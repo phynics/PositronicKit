@@ -34,6 +34,11 @@ for tagged releases beginning with `1.0.0`.
   test discovery and diagnostics. The suites define durable CRUD, scope, authority, history,
   recovery, and workspace-reference behavior without prescribing storage technology or adapter-
   specific presentation details.
+- **Provider conformance fixtures:** provider tests now share one package-scoped scripted HTTP
+  transport for the injectable adapters, while OpenAI keeps its hermetic `TestHTTPServer` path
+  and Foundation Models keeps its scripted session path. Stream decoding, typed HTTP failures,
+  malformed streams, and event-driven cancellation are covered across the five adapters without
+  adding a public transport API.
 - **Deterministic Turn timing and cancellation:** `RuntimeConfiguration.streamTimeout` configures
   the existing 60-second streamed-response idle default, while retry, idle-timeout, and
   termination-wait timing use internal injectable seams for deterministic tests. Cancelling the

@@ -4,39 +4,11 @@ import Foundation
 #endif
 @testable import PKOpenRouterProvider
 import PKContracts
+import PKTestSupport
 import PKUtilities
 import Testing
 
-private actor EndpointRecordingTransport: ProviderHTTPTransport {
-    private var requests: [URLRequest] = []
-
-    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        requests.append(request)
-        return (Data(#"{"data":[]}"#.utf8), response(for: request))
-    }
-
-    func lines(for request: URLRequest) async throws -> (AsyncThrowingStream<String, Error>, URLResponse) {
-        requests.append(request)
-        let stream = AsyncThrowingStream<String, Error> { continuation in
-            continuation.yield("data: [DONE]")
-            continuation.finish()
-        }
-        return (stream, response(for: request))
-    }
-
-    func requestURLs() -> [URL] {
-        requests.compactMap(\.url)
-    }
-
-    private func response(for request: URLRequest) -> HTTPURLResponse {
-        HTTPURLResponse(
-            url: request.url ?? URL(string: "https://example.invalid")!,
-            statusCode: 200,
-            httpVersion: nil,
-            headerFields: nil
-        )!
-    }
-}
+private typealias EndpointRecordingTransport = ScriptedProviderHTTPTransport
 
 struct OpenRouterEndpointTests {
     private static let endpoints = [
@@ -48,7 +20,16 @@ struct OpenRouterEndpointTests {
     @Test("OpenRouter chat and model paths retain configured base paths")
     func chatAndModelPathsRetainConfiguredBasePaths() async throws {
         for (configuredEndpoint, expectedBaseURL) in Self.endpoints {
-            let transport = EndpointRecordingTransport()
+            let transport = EndpointRecordingTransport(responder: { request in
+                if request.url?.path.hasSuffix("/models") == true {
+                    return .data(Data(#"{"data":[]}"#.utf8), HTTPURLResponse(
+                        url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil
+                    )!)
+                }
+                return .lines(["data: [DONE]"], HTTPURLResponse(
+                    url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil
+                )!)
+            })
             let client = OpenRouterClient(
                 apiKey: "test",
                 baseURL: URL(string: configuredEndpoint)!,

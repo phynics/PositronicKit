@@ -41,54 +41,9 @@ private enum AnthropicWireFixtures {
     static let errorEvent = #"data: {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}"#
 }
 
-private actor AnthropicTestTransport: ProviderHTTPTransport {
-    private(set) var requests: [URLRequest] = []
-    let lines: [String]
-    let statusCode: Int
+private typealias AnthropicTestTransport = ScriptedProviderHTTPTransport
 
-    init(lines: [String], statusCode: Int = 200) {
-        self.lines = lines
-        self.statusCode = statusCode
-    }
-
-    func lastRequest() -> URLRequest? {
-        requests.last
-    }
-
-    func requestCount() -> Int {
-        requests.count
-    }
-
-    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        requests.append(request)
-        return (Data(lines.joined(separator: "\n").utf8), makeResponse(for: request))
-    }
-
-    func lines(for request: URLRequest) async throws -> (AsyncThrowingStream<String, Error>, URLResponse) {
-        requests.append(request)
-        let lines = self.lines
-        return (
-            AsyncThrowingStream { continuation in
-                for line in lines {
-                    continuation.yield(line)
-                }
-                continuation.finish()
-            },
-            makeResponse(for: request)
-        )
-    }
-
-    private func makeResponse(for request: URLRequest) -> HTTPURLResponse {
-        HTTPURLResponse(
-            url: request.url ?? URL(string: "https://api.anthropic.com/v1/messages")!,
-            statusCode: statusCode,
-            httpVersion: nil,
-            headerFields: ["Content-Type": "text/event-stream"]
-        )!
-    }
-}
-
-private func makeClient(transport: AnthropicTestTransport, maxRetries: Int = 3) -> AnthropicClient {
+private func makeClient(transport: AnthropicTestTransport, maxRetries: Int = 0) -> AnthropicClient {
     AnthropicClient(
         apiKey: "secret",
         modelName: "claude-sonnet-4-5",

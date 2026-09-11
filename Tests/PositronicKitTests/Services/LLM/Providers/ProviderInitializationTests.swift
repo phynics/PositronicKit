@@ -14,42 +14,7 @@ import PKUtilities
 import Synchronization
 import Testing
 
-/// Local `ProviderHTTPTransport` mock, mirroring `TestProviderTransport` in
-/// `ProviderTransportContractTests.swift`. Kept file-local (not shared via `PKTestSupport`)
-/// to match the established convention in this test target.
-private actor RequestRecordingTransport: ProviderHTTPTransport {
-    private(set) var requests: [URLRequest] = []
-    var responder: @Sendable (URLRequest) -> (Data, HTTPURLResponse)
-
-    init(responder: @escaping @Sendable (URLRequest) -> (Data, HTTPURLResponse)) {
-        self.responder = responder
-    }
-
-    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        requests.append(request)
-        let (data, response) = responder(request)
-        return (data, response)
-    }
-
-    func lines(for request: URLRequest) async throws -> (AsyncThrowingStream<String, Error>, URLResponse) {
-        requests.append(request)
-        let (data, response) = responder(request)
-        let string = String(decoding: data, as: UTF8.self)
-        return (
-            AsyncThrowingStream { continuation in
-                for line in string.split(separator: "\n", omittingEmptySubsequences: true) {
-                    continuation.yield(String(line))
-                }
-                continuation.finish()
-            },
-            response
-        )
-    }
-
-    func recordedRequests() -> [URLRequest] {
-        requests
-    }
-}
+private typealias RequestRecordingTransport = ScriptedProviderHTTPTransport
 
 /// Records the URLRequest OpenAI's SDK sends over the wire, without performing real network
 /// I/O. `intercept(request:)` fires synchronously before the request is dispatched, so it lets

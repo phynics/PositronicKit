@@ -44,6 +44,9 @@ annotation reasons around `concurrency_unchecked_sendable` matches). Categories:
   `RecordingOpenAIMiddleware` request signal is a one-shot `AsyncStream` continuation used only
   to stop the request consumer after the middleware has observed the outgoing request; its inline
   annotation documents that lifecycle.
+- **Provider fixtures** (`ScriptedProviderHTTPTransport`, provider cancellation latches):
+  actor-owned request and stream-termination waiters are registered before suspension and resumed
+  exactly once by the corresponding event or cancellation callback.
 - **Pipe/lint fixtures** (`TestContext`): isolated per-test instances.
 - **ManualClock** (`Tests/PKTestSupport/ManualClock.swift`): actor-owned virtual-time waiters
   resume exactly once when a test advances the clock.

@@ -13,14 +13,26 @@ import Testing
 
 private final class CapturingMiddleware: OpenAIMiddleware, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let requests = Mutex<[URLRequest]>([])
+    private let signals: AsyncStream<Void>
+    private let signalContinuation: AsyncStream<Void>.Continuation // swiftlint:disable:this concurrency_stored_continuation -- test-only request observation signal
+
+    init() {
+        (signals, signalContinuation) = AsyncStream<Void>.makeStream()
+    }
 
     func intercept(request: URLRequest) -> URLRequest {
         requests.withLock { $0.append(request) }
+        signalContinuation.yield(())
         return request
     }
 
     func recordedRequests() -> [URLRequest] {
         requests.withLock { $0 }
+    }
+
+    func waitUntilIntercepted() async {
+        var iterator = signals.makeAsyncIterator()
+        _ = await iterator.next()
     }
 }
 
@@ -126,7 +138,7 @@ data: {bad json
         ))
         defer { server.stop() }
 
-        let client = makeClient(host: "127.0.0.1", port: server.port, middleware: CapturingMiddleware())
+        let client = makeClient(host: "127.0.0.1", port: server.port, middleware: CapturingMiddleware(), maxRetries: 0)
         let stream = await client.chatStream(
             messages: [LLMMessage(role: .user, content: "x")],
             tools: nil,
@@ -145,6 +157,47 @@ data: {bad json
         }
 
         #expect(chunks >= 0)
+    }
+
+    @Test("OpenAI cancellation stops an active request at the SDK boundary")
+    func midStreamCancellationStopsPromptly() async throws {
+        let server = try await TestHTTPServer.start(response: .streaming(
+            headers: ["Content-Type": "text/event-stream"],
+            chunks: [
+                Data(#"""
+                data: {"id":"chunk-1","object":"chat.completion.chunk","created":0,"model":"gpt-4o","choices":[{"index":0,"delta":{"content":"first"}}]}
+
+                """#.utf8),
+                Data(#"""
+                data: {"id":"chunk-2","object":"chat.completion.chunk","created":0,"model":"gpt-4o","choices":[{"index":0,"delta":{"content":"second"}}]}
+
+                """#.utf8),
+                Data("data: [DONE]\n\n".utf8),
+            ],
+            delay: 0.05
+        ))
+        defer { server.stop() }
+
+        let middleware = CapturingMiddleware()
+        let client = makeClient(host: "127.0.0.1", port: server.port, middleware: middleware, maxRetries: 0)
+        let stream = await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+        let consumer = Task {
+            do {
+                for try await _ in stream {}
+            } catch {
+                // Cancellation is the expected terminal path.
+            }
+        }
+
+        await middleware.waitUntilIntercepted()
+        consumer.cancel()
+        _ = await consumer.value
     }
 
     @Test("OpenAI model listing parses ids and tolerates malformed payloads")
@@ -180,7 +233,7 @@ data: {bad json
         ))
         defer { server.stop() }
 
-        let client = makeClient(host: "127.0.0.1", port: server.port, middleware: CapturingMiddleware())
+        let client = makeClient(host: "127.0.0.1", port: server.port, middleware: CapturingMiddleware(), maxRetries: 0)
         let stream = await client.chatStream(
             messages: [LLMMessage(role: .user, content: "hello")],
             tools: nil,
