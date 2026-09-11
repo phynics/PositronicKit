@@ -17301,7 +17301,7 @@
         "DirectTurnContext",
         "init(systemInstructions:contributors:)"
       ],
-      "declaration": "init(systemInstructions: String, contributors: [TurnContributor])"
+      "declaration": "init(systemInstructions: String, contributors: [TurnContributor] = [.host])"
     },
     {
       "precise": "s:13PositronicKit17DirectTurnContextV18systemInstructionsSSvp",

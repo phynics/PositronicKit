@@ -32,10 +32,16 @@ public struct DirectTurnContext: Codable, Equatable, Hashable, Sendable {
     /// The complete system prompt for this direct Turn. An empty string is intentional and is
     /// distinct from omitting the context entirely.
     public let systemInstructions: String
-    /// The contributor set selected by the caller for this direct Turn.
+    /// The contributor set selected by the caller for this direct Turn. If omitted, the
+    /// conventional host contributor is used.
     public let contributors: [TurnContributor]
 
-    public init(systemInstructions: String, contributors: [TurnContributor]) {
+    /// Creates the explicit context for a direct Turn.
+    ///
+    /// - Parameters:
+    ///   - systemInstructions: The complete system prompt for the Turn.
+    ///   - contributors: The contributors selected for the Turn. Defaults to `[.host]`.
+    public init(systemInstructions: String, contributors: [TurnContributor] = [.host]) {
         self.systemInstructions = systemInstructions
         self.contributors = contributors
     }

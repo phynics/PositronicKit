@@ -49,7 +49,7 @@ func runExamples() async throws {
     let handle = try await kit.threads.create(title: "Docs agent")
     let directTurn = try await handle.startDirectTurn(
         "Hello",
-        context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        context: DirectTurnContext(systemInstructions: "")
     )
     var offlineResponse = ""
     for await event in directTurn.events() {
