@@ -81,7 +81,7 @@
     {
       "title": "Development",
       "path": "docs/Development.md",
-      "summary": "Supported platform gates, Podman workflow, and dependency checks."
+      "summary": "Supported platform gates, Podman workflow, Linux coverage reports, and dependency checks."
     },
     {
       "title": "Context map",

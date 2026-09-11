@@ -1,14 +1,15 @@
 .PHONY: help build clean test test-parallel harden doctor validate-docs verify-documentation verify-doc-snippets \
 	verify verify-concurrency-scan verify-runtime-architecture verify-macos-default \
 	verify-linux verify-linux-agent verify-linux-base verify-linux-current verify-linux-filter \
-	verify-linux-scratch verify-linux-suites \
+	verify-linux-scratch verify-linux-suites verify-linux-coverage \
 	verify-agent-harness verify-products verify-examples verify-tests verify-pktestsupport verify-public-consumers verify-dependency-direction verify-v4-vocabulary \
 	verify-public-api update-public-api-baseline verify-release \
-	agent-verify agent-test linux-image linux-build linux-test linux-test-scratch \
+	agent-verify agent-test linux-image linux-build linux-test linux-test-scratch linux-coverage \
 	linux-test-filter require-podman
 
 LINUX_IMAGE ?= positronickit-linux-dev
 LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/agent-scratch/swift-6.3.3
+LINUX_COVERAGE_SCRATCH_DIR ?= $(CURDIR)/.build/linux-coverage-scratch
 LINUX_TEST_TRAITS ?=
 AGENT_LOG_DIR ?= $(CURDIR)/.build/agent-logs
 AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock
@@ -36,6 +37,7 @@ help:
 	@echo "Development:"
 	@echo "  make agent-verify          Canonical full gate (Podman-only on Linux)"
 	@echo "  make agent-test FILTER='…' Run a focused Podman Linux test"
+	@echo "  make linux-coverage         Generate Linux llvm-cov reports in .build/linux-coverage"
 	@echo "  make test                  Run tests"
 	@echo "  make test-parallel         Run tests in parallel"
 	@echo "  make harden                Run build and parallel hardening test gate"
@@ -137,6 +139,10 @@ verify-linux-current: verify-linux-base
 
 verify-linux: verify-linux-current
 
+verify-linux-coverage:
+	@python3 Tests/Scripts/linux_coverage_report_test.py
+	@bash Scripts/run-linux-coverage.sh
+
 # The inner Linux gate used by both GitHub Actions and the outer Podman agent
 # entrypoint. Native-linker discovery is exported once for every product,
 # example, support, and test command so callers cannot accidentally omit it.
@@ -207,6 +213,7 @@ verify-agent-harness:
 	@bash Tests/Scripts/doctor_test.sh
 	@bash Tests/Scripts/run_linux_container_test.sh
 	@bash Tests/Scripts/public_api_baseline_test.sh
+	@python3 Tests/Scripts/linux_coverage_report_test.py
 
 # Linux testing intentionally has no native or Docker fallback. The shared
 # runner performs the deeper access check and prints the sandbox-escalation
@@ -254,6 +261,14 @@ linux-build: require-podman
 		bash Scripts/run-linux-container.sh --lock "$(AGENT_LOCK_FILE)" -- make build
 
 linux-test: agent-verify
+
+linux-coverage: require-podman
+	@mkdir -p "$(LINUX_COVERAGE_SCRATCH_DIR)"
+	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		bash Scripts/run-linux-container.sh \
+		--lock "$(AGENT_LOCK_FILE)" \
+		--scratch "$(LINUX_COVERAGE_SCRATCH_DIR)" \
+		-- env LINUX_COVERAGE_SCRATCH_PATH=/scratch make verify-linux-coverage
 
 # Run both canonical Linux suites without using the checkout's shared SwiftPM
 # build database. Reusing LINUX_SCRATCH_DIR makes subsequent gates much faster.
