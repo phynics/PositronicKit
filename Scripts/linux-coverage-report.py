@@ -4,8 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
-import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -72,15 +73,20 @@ def load_export(path: Path) -> dict[str, Any]:
     return root
 
 
-def module_for_path(filename: str, package_root: Path) -> str | None:
+def source_relative_path(filename: str, package_root: Path) -> Path | None:
     absolute = Path(filename)
     if not absolute.is_absolute():
         absolute = package_root / absolute
     try:
-        relative = absolute.resolve().relative_to(package_root.resolve())
+        return absolute.resolve().relative_to(package_root.resolve())
     except ValueError:
         return None
 
+
+def module_for_path(filename: str, package_root: Path) -> str | None:
+    relative = source_relative_path(filename, package_root)
+    if relative is None:
+        return None
     parts = relative.parts
     if len(parts) < 3 or parts[0] != "Sources" or parts[1] not in MODULES:
         return None
@@ -118,6 +124,31 @@ def _summary(files: list[dict[str, Any]]) -> dict[str, dict[str, int | float]]:
     return result
 
 
+def _merge_file_entries(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
+    """Merge duplicate source entries without counting the same file twice."""
+    merged = copy.deepcopy(left)
+    left_summary = _require_dict(left.get("summary", {}), "file summary")
+    right_summary = _require_dict(right.get("summary", {}), "file summary")
+    merged_summary = copy.deepcopy(left_summary)
+    for metric in METRICS:
+        if metric not in right_summary:
+            continue
+        if metric not in left_summary:
+            merged_summary[metric] = copy.deepcopy(right_summary[metric])
+            continue
+        left_count, left_covered = _metric(left_summary[metric])
+        right_count, right_covered = _metric(right_summary[metric])
+        count = max(left_count, right_count)
+        covered = max(left_covered, right_covered)
+        merged_summary[metric] = {
+            "count": count,
+            "covered": covered,
+            "percent": round((covered * 100 / count), 2) if count else 0.0,
+        }
+    merged["summary"] = merged_summary
+    return merged
+
+
 def normalize(report: dict[str, Any], package_root: Path) -> dict[str, Any]:
     data = _require_list(report.get("data"), "coverage report data")
     files_by_module: dict[str, dict[str, dict[str, Any]]] = {module: {} for module in MODULES}
@@ -129,10 +160,18 @@ def normalize(report: dict[str, Any], package_root: Path) -> dict[str, Any]:
             filename = file_entry.get("filename")
             if not isinstance(filename, str):
                 raise CoverageReportError("coverage file filename must be a string")
-            module = module_for_path(filename, package_root)
-            if module is None:
+            relative = source_relative_path(filename, package_root)
+            if relative is None:
                 continue
-            files_by_module[module][filename] = file_entry
+            parts = relative.parts
+            if len(parts) < 3 or parts[0] != "Sources" or parts[1] not in MODULES:
+                continue
+            module = parts[1]
+            key = relative.as_posix()
+            existing = files_by_module[module].get(key)
+            files_by_module[module][key] = (
+                file_entry if existing is None else _merge_file_entries(existing, file_entry)
+            )
 
     missing_modules = [module for module in MODULES if not files_by_module[module]]
     if missing_modules:
@@ -143,16 +182,16 @@ def normalize(report: dict[str, Any], package_root: Path) -> dict[str, Any]:
 
     modules: list[dict[str, Any]] = []
     for module in MODULES:
-        files = [files_by_module[module][filename] for filename in sorted(files_by_module[module])]
+        files = [files_by_module[module][path] for path in sorted(files_by_module[module])]
         modules.append(
             {
                 "name": module,
                 "files": [
                     {
-                        "path": os.path.relpath(file["filename"], package_root),
+                        "path": path,
                         "summary": file.get("summary", {}),
                     }
-                    for file in files
+                    for path, file in sorted(files_by_module[module].items())
                 ],
                 "summary": _summary(files),
             }
@@ -227,7 +266,7 @@ def write_reports(raw_path: Path, output_dir: Path, package_root: Path) -> None:
     asymmetry = asymmetry_report(normalized)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    (output_dir / "raw-llvm-cov.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    shutil.copyfile(raw_path, output_dir / "raw-llvm-cov.json")
     (output_dir / "module-coverage.json").write_text(
         json.dumps(normalized, indent=2, sort_keys=True) + "\n"
     )

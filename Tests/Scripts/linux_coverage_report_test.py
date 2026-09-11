@@ -73,6 +73,67 @@ def main() -> None:
         assert_equal(len(modules["PKObservable"]["files"]), 1, "observable file selection")
         assert_equal(sum(len(module["files"]) for module in modules.values()), 5, "target selection")
         assert_equal(modules["PositronicKit"]["summary"]["lines"]["covered"], 8, "line normalization")
+        assert_equal(
+            (output_dir / "raw-llvm-cov.json").read_bytes(),
+            raw_path.read_bytes(),
+            "raw report copy",
+        )
+
+        duplicate_path = root / "Sources/PositronicKit/Runtime.swift"
+        duplicate_report = root / "duplicate.json"
+        duplicate_report.write_text(
+            json.dumps(
+                {
+                    "data": [
+                        {
+                            "files": [
+                                file_entry(str(duplicate_path), 8, 10),
+                                file_entry(str(root / "Sources/PKContracts/Contracts.swift"), 3, 5),
+                                file_entry(str(root / "Sources/PKPrompt/Prompt.swift"), 2, 4),
+                                file_entry(str(root / "Sources/PKUtilities/Utilities.swift"), 6, 8),
+                                file_entry(str(root / "Sources/PKObservable/Observable.swift"), 1, 1),
+                            ]
+                        },
+                        {"files": [file_entry(str(duplicate_path), 9, 10)]},
+                    ]
+                }
+            )
+        )
+        duplicate = coverage.normalize(coverage.load_export(duplicate_report), root)
+        runtime = next(module for module in duplicate["modules"] if module["name"] == "PositronicKit")
+        assert_equal(len(runtime["files"]), 1, "duplicate file merge")
+        assert_equal(runtime["summary"]["lines"]["covered"], 9, "duplicate coverage merge")
+
+        alias = root / "checkout-alias"
+        alias.symlink_to(root, target_is_directory=True)
+        symlink_report = root / "symlink.json"
+        symlink_report.write_text(
+            json.dumps(
+                {
+                    "data": [
+                        {
+                            "files": [
+                                file_entry(
+                                    str(alias / "Sources/PositronicKit/Runtime.swift"),
+                                    8,
+                                    10,
+                                ),
+                                file_entry(str(root / "Sources/PKContracts/Contracts.swift"), 3, 5),
+                                file_entry(str(root / "Sources/PKPrompt/Prompt.swift"), 2, 4),
+                                file_entry(str(root / "Sources/PKUtilities/Utilities.swift"), 6, 8),
+                                file_entry(str(root / "Sources/PKObservable/Observable.swift"), 1, 1),
+                            ]
+                        }
+                    ]
+                }
+            )
+        )
+        normalized_symlink = coverage.normalize(coverage.load_export(symlink_report), root)
+        assert_equal(
+            normalized_symlink["modules"][0]["files"][0]["path"],
+            "Sources/PositronicKit/Runtime.swift",
+            "resolved source path",
+        )
         for name in (
             "raw-llvm-cov.json",
             "module-coverage.json",
