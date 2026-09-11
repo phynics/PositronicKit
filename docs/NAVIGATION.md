@@ -5,7 +5,7 @@ Stable [5.1.0](stable/5.1.0/) is the default immutable channel. [Next / v5](next
 
 | Guide | Purpose |
 | --- | --- |
-| [Overview and quick start](../README.md) | Release selection, current runtime contracts, provider setup, runnable examples, products, and verification. |
+| [Overview and quick start](../README.md) | Release selection, runtime contracts, provider setup, conformance suites, runnable examples, products, and verification. |
 | [Setup](Setup.md) | Provider-neutral configuration, readiness and health, stream timing, offline examples, persistence, customization, logging, and errors. |
 | [Usage](Usage.md) | Managed and direct Turns, cancellation, SOUL/Notes Agent memory, lifecycle, and Workspace routing. |
 | [Architecture](Architecture.md) | v5 domain boundaries, capability values, durability, and execution authority. |
@@ -29,5 +29,6 @@ Stable [5.1.0](stable/5.1.0/) is the default immutable channel. [Next / v5](next
 | `PKOllamaProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |
 | `PKAnthropicProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |
 | `PKFoundationModelsProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |
-| `PKTestSupport` | library | `PublicProductConsumer` | [README.md](../README.md) |
+| `PKTestSupport` | library | `PKTestSupportConsumer` | [README.md](../README.md) |
 | `PositronicKitExamples` | executable | `PositronicKitExamples` | [Sources/PositronicKitExamples](../Sources/PositronicKitExamples) |
+| `PKTestSupportConsumer` | executable | `PKTestSupportConsumer` | [README.md](../README.md) |

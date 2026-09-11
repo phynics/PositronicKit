@@ -12,8 +12,13 @@ import PKUtilities
 /// The default in-process conformer is ``InMemoryAgentStore`` (array-backed actor).
 /// `MockPersistenceService` in `PKTestSupport` also conforms for test wiring.
 ///
-/// The protocol contract is exercised in `AgentStoreContractTests` against both
-/// in-package conformers.
+/// The protocol contract is exercised by the reusable `AgentStoreConformanceSuite` in
+/// `PKTestSupport` against in-package and downstream conformers.
+///
+/// Saves replace an existing Agent with the same ID. Fetch-all includes every saved ID, deleting
+/// one Agent leaves unrelated Agents unchanged, and deleting an unknown ID is idempotent.
+/// `fetchThreads(attachedToAgent:)` returns exactly the Threads attached to the supplied Agent;
+/// storage order is not part of the contract.
 public protocol AgentStoreProtocol: DurabilityAware {
     func saveAgent(_ instance: Agent) async throws
     func fetchAgent(id: UUID) async throws -> Agent?

@@ -1,206 +1,68 @@
 import Foundation
 @testable import PKContracts
 import PKUtilities
+import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-/// Contract tests for the in-memory persistence stores.
+/// Implementation-specific checks for the in-memory persistence stores.
 ///
-/// These `actor`-backed stores are the shipping reference conformers for their respective
-/// protocols and are reused by downstream consumers (Monad, Yakamoz) during development and
-/// testing. They previously had near-zero direct coverage — most exercise came transitively
-/// through higher-level facade tests, which left CRUD edge cases (not-found, update, delete,
-/// origin/primary resolution) unverified. These tests pin the contract directly.
+/// Generic tool persistence behavior is exercised through the public
+/// ``ToolPersistenceConformanceSuite``. These checks retain only the in-memory source-label
+/// presentation, which is intentionally outside that protocol's universal contract.
 @Suite("In-memory stores")
 struct InMemoryStoresContractTests {
-
-    // MARK: - InMemoryToolPersistence
-
-    @Suite("InMemoryToolPersistence")
+    @Suite("InMemoryToolPersistence source labels")
     struct ToolPersistenceTests {
         private func makeWorkspace(
             id: UUID = UUID(),
-            originId: UUID? = nil,
             location: WorkspaceReference.WorkspaceLocation = .runtime,
             uri: WorkspaceURI = WorkspaceURI(host: "localhost", path: "/tmp/ws")
         ) -> WorkspaceReference {
-            WorkspaceReference(
-                id: id, uri: uri, location: location, originID: originId, tools: []
-            )
+            WorkspaceReference(id: id, uri: uri, location: location)
         }
 
-        @Test("addToolToWorkspace appends to an existing workspace")
-        func addToolAppends() async throws {
-            let store = InMemoryToolPersistence()
-            let wsId = UUID()
-            await store.replaceWorkspaces([makeWorkspace(id: wsId)])
-
-            try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("read_file"))
-            try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("list_dir"))
-
-            let tools = try await store.fetchTools(forWorkspaces: [wsId])
-            #expect(tools.count == 2)
-            #expect(tools.map(\.toolID) == ["read_file", "list_dir"])
-        }
-
-        @Test("addToolToWorkspace throws when workspace is missing")
-        func addToolMissingWorkspaceThrows() async throws {
-            let store = InMemoryToolPersistence()
-
-            await #expect(throws: ToolError.self) {
-                try await store.addToolToWorkspace(workspaceId: UUID(), tool: .known("read_file"))
-            }
-        }
-
-        @Test("syncTools replaces the entire tool set for a workspace")
-        func syncToolsReplaces() async throws {
-            let store = InMemoryToolPersistence()
-            let wsId = UUID()
-            await store.replaceWorkspaces([makeWorkspace(id: wsId)])
-            try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("old_tool"))
-
-            try await store.syncTools(workspaceId: wsId, tools: [.known("a"), .known("b")])
-
-            let tools = try await store.fetchTools(forWorkspaces: [wsId])
-            #expect(tools.count == 2)
-            #expect(tools.map(\.toolID) == ["a", "b"])
-        }
-
-        @Test("syncTools throws when workspace is missing")
-        func syncToolsMissingWorkspaceThrows() async throws {
-            let store = InMemoryToolPersistence()
-
-            await #expect(throws: ToolError.self) {
-                try await store.syncTools(workspaceId: UUID(), tools: [.known("a")])
-            }
-        }
-
-        @Test("fetchTools unions tools across multiple workspaces")
-        func fetchToolsUnionsAcrossWorkspaces() async throws {
-            let store = InMemoryToolPersistence()
-            let wsA = UUID(), wsB = UUID(), wsC = UUID()
-            await store.replaceWorkspaces([
-                makeWorkspace(id: wsA, originId: nil),
-                makeWorkspace(id: wsB, originId: nil),
-                makeWorkspace(id: wsC, originId: nil),
-            ])
-            try await store.addToolToWorkspace(workspaceId: wsA, tool: .known("a1"))
-            try await store.addToolToWorkspace(workspaceId: wsB, tool: .known("b1"))
-            try await store.addToolToWorkspace(workspaceId: wsC, tool: .known("c1"))
-
-            let tools = try await store.fetchTools(forWorkspaces: [wsA, wsC])
-            #expect(tools.count == 2)
-            #expect(Set(tools.map(\.toolID)) == Set(["a1", "c1"]))
-        }
-
-        @Test("fetchOriginTools returns tools for workspaces matching the origin")
-        func fetchOriginToolsFiltersByOrigin() async throws {
-            let store = InMemoryToolPersistence()
-            let origin = UUID()
-            let wsA = UUID(), wsB = UUID()
-            await store.replaceWorkspaces([
-                makeWorkspace(id: wsA, originId: origin),
-                makeWorkspace(id: wsB, originId: nil),
-            ])
-            try await store.addToolToWorkspace(workspaceId: wsA, tool: .known("a"))
-            try await store.addToolToWorkspace(workspaceId: wsB, tool: .known("b"))
-
-            let originTools = try await store.fetchOriginTools(originId: origin)
-            #expect(originTools.count == 1)
-            #expect(originTools.first?.toolID == "a")
-        }
-
-        @Test("findWorkspaceId locates the workspace owning a tool")
-        func findWorkspaceIdLocatesOwner() async throws {
-            let store = InMemoryToolPersistence()
-            let wsA = UUID(), wsB = UUID()
-            await store.replaceWorkspaces([makeWorkspace(id: wsA), makeWorkspace(id: wsB)])
-            try await store.addToolToWorkspace(workspaceId: wsA, tool: .known("a"))
-            try await store.addToolToWorkspace(workspaceId: wsB, tool: .known("b"))
-
-            let found = try await store.findWorkspaceId(forToolId: "b", in: [wsA, wsB])
-            #expect(found == wsB)
-        }
-
-        @Test("findWorkspaceId returns nil for an unknown tool")
-        func findWorkspaceIdUnknownReturnsNil() async throws {
-            let store = InMemoryToolPersistence()
-            let wsA = UUID()
-            await store.replaceWorkspaces([makeWorkspace(id: wsA)])
-
-            let found = try await store.findWorkspaceId(forToolId: "nope", in: [wsA])
-            #expect(found == nil)
-        }
-
-        @Test("findWorkspaceId scopes the search to the provided workspace ids")
-        func findWorkspaceIdScopedToProvidedIds() async throws {
-            let store = InMemoryToolPersistence()
-            let wsA = UUID(), wsB = UUID()
-            await store.replaceWorkspaces([makeWorkspace(id: wsA), makeWorkspace(id: wsB)])
-            try await store.addToolToWorkspace(workspaceId: wsB, tool: .known("b"))
-
-            // Tool "b" exists in wsB, but wsB is not in the search set.
-            let found = try await store.findWorkspaceId(forToolId: "b", in: [wsA])
-            #expect(found == nil)
-        }
-
-        @Test("fetchToolSource returns 'Additional Workspace' for attached workspaces")
+        @Test("fetchToolSource returns the attached-workspace label")
         func fetchToolSourceAttachedWorkspace() async throws {
             let store = InMemoryToolPersistence()
-            let wsId = UUID()
-            await store.replaceWorkspaces([
-                makeWorkspace(id: wsId, location: .attached)
-            ])
-            try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("t"))
+            let wsID = UUID()
+            await store.replaceWorkspaces([makeWorkspace(id: wsID, location: .attached)])
+            try await store.addToolToWorkspace(workspaceId: wsID, tool: .known("t"))
 
             let source = try await store.fetchToolSource(
-                toolId: "t", workspaceIds: [wsId], primaryWorkspaceId: UUID()
+                toolId: "t", workspaceIds: [wsID], primaryWorkspaceId: UUID()
             )
             #expect(source == "Additional Workspace")
         }
 
-        @Test("fetchToolSource returns 'Primary Workspace' for the primary workspace")
+        @Test("fetchToolSource returns the primary-workspace label")
         func fetchToolSourcePrimaryWorkspace() async throws {
             let store = InMemoryToolPersistence()
-            let wsId = UUID()
-            await store.replaceWorkspaces([
-                makeWorkspace(id: wsId, location: .runtimeThread)
-            ])
-            try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("t"))
+            let wsID = UUID()
+            await store.replaceWorkspaces([makeWorkspace(id: wsID, location: .runtimeThread)])
+            try await store.addToolToWorkspace(workspaceId: wsID, tool: .known("t"))
 
             let source = try await store.fetchToolSource(
-                toolId: "t", workspaceIds: [wsId], primaryWorkspaceId: wsId
+                toolId: "t", workspaceIds: [wsID], primaryWorkspaceId: wsID
             )
             #expect(source == "Primary Workspace")
         }
 
-        @Test("fetchToolSource returns a URI-based label for other runtime workspaces")
+        @Test("fetchToolSource returns a URI-based label for another runtime workspace")
         func fetchToolSourceOtherRuntimeWorkspace() async throws {
             let store = InMemoryToolPersistence()
-            let wsId = UUID()
+            let wsID = UUID()
             let uri = WorkspaceURI(host: "localhost", path: "/projects/extra")
             await store.replaceWorkspaces([
-                makeWorkspace(id: wsId, location: .runtimeThread, uri: uri)
+                makeWorkspace(id: wsID, location: .runtimeThread, uri: uri)
             ])
-            try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("t"))
+            try await store.addToolToWorkspace(workspaceId: wsID, tool: .known("t"))
 
             let source = try await store.fetchToolSource(
-                toolId: "t", workspaceIds: [wsId], primaryWorkspaceId: UUID()
+                toolId: "t", workspaceIds: [wsID], primaryWorkspaceId: UUID()
             )
             #expect(source?.hasPrefix("Workspace:") == true)
             #expect(source?.contains("/projects/extra") == true)
-        }
-
-        @Test("fetchToolSource returns nil for an unknown tool")
-        func fetchToolSourceUnknownReturnsNil() async throws {
-            let store = InMemoryToolPersistence()
-            let wsId = UUID()
-            await store.replaceWorkspaces([makeWorkspace(id: wsId)])
-
-            let source = try await store.fetchToolSource(
-                toolId: "ghost", workspaceIds: [wsId], primaryWorkspaceId: wsId
-            )
-            #expect(source == nil)
         }
     }
 

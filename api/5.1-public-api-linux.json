@@ -13136,6 +13136,25 @@
       "declaration": "let modelTier: ModelTier"
     },
     {
+      "precise": "s:13PKTestSupport26AgentStoreConformanceSuiteO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "AgentStoreConformanceSuite"
+      ],
+      "declaration": "enum AgentStoreConformanceSuite"
+    },
+    {
+      "precise": "s:13PKTestSupport26AgentStoreConformanceSuiteO3run04makeD0y13PositronicKit0cD8Protocol_pSayAF6ThreadVGYaKYCXE_tYaKFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "AgentStoreConformanceSuite",
+        "run(makeStore:)"
+      ],
+      "declaration": "static func run(makeStore: nonisolated(nonsending) ([Thread]) async throws -> any AgentStoreProtocol) async throws"
+    },
+    {
       "precise": "s:13PKTestSupport26MockThreadPersistenceStoreC",
       "module": "PKTestSupport",
       "kind": "swift.class",
@@ -13262,6 +13281,101 @@
         "textChunk(_:finishReason:)"
       ],
       "declaration": "static func textChunk(_ content: String, finishReason: String? = nil) -> LLMStreamChunk"
+    },
+    {
+      "precise": "s:13PKTestSupport30WorkspaceStoreConformanceSuiteO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "WorkspaceStoreConformanceSuite"
+      ],
+      "declaration": "enum WorkspaceStoreConformanceSuite"
+    },
+    {
+      "precise": "s:13PKTestSupport30WorkspaceStoreConformanceSuiteO3run04makeD0y13PositronicKit0cD0_pyYaKYCXE_tYaKFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "WorkspaceStoreConformanceSuite",
+        "run(makeStore:)"
+      ],
+      "declaration": "static func run(makeStore: nonisolated(nonsending) () async throws -> any WorkspaceStore) async throws"
+    },
+    {
+      "precise": "s:13PKTestSupport31ToolPersistenceConformanceSuiteO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "ToolPersistenceConformanceSuite"
+      ],
+      "declaration": "enum ToolPersistenceConformanceSuite"
+    },
+    {
+      "precise": "s:13PKTestSupport31ToolPersistenceConformanceSuiteO3run9makeStorey13PositronicKit0cD8Protocol_pSay11PKContracts18WorkspaceReferenceVGYaKYCXE_tYaKFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "ToolPersistenceConformanceSuite",
+        "run(makeStore:)"
+      ],
+      "declaration": "static func run(makeStore: nonisolated(nonsending) ([WorkspaceReference]) async throws -> any ToolPersistenceProtocol) async throws"
+    },
+    {
+      "precise": "s:13PKTestSupport32WorkspaceFactoryConformanceSuiteO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "WorkspaceFactoryConformanceSuite"
+      ],
+      "declaration": "enum WorkspaceFactoryConformanceSuite"
+    },
+    {
+      "precise": "s:13PKTestSupport32WorkspaceFactoryConformanceSuiteO3run7factory18supportedReferencey13PositronicKit0cD0_p_11PKContracts0cJ0VtKFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "WorkspaceFactoryConformanceSuite",
+        "run(factory:supportedReference:)"
+      ],
+      "declaration": "static func run(factory: any WorkspaceFactory, supportedReference: WorkspaceReference) throws"
+    },
+    {
+      "precise": "s:13PKTestSupport34RequestOriginStoreConformanceSuiteO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "RequestOriginStoreConformanceSuite"
+      ],
+      "declaration": "enum RequestOriginStoreConformanceSuite"
+    },
+    {
+      "precise": "s:13PKTestSupport34RequestOriginStoreConformanceSuiteO3run04makeE0y13PositronicKit0cdE8Protocol_pyYaKYCXE_tYaKFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "RequestOriginStoreConformanceSuite",
+        "run(makeStore:)"
+      ],
+      "declaration": "static func run(makeStore: nonisolated(nonsending) () async throws -> any RequestOriginStoreProtocol) async throws"
+    },
+    {
+      "precise": "s:13PKTestSupport39ThreadRuntimeRepositoryConformanceSuiteO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "ThreadRuntimeRepositoryConformanceSuite"
+      ],
+      "declaration": "enum ThreadRuntimeRepositoryConformanceSuite"
+    },
+    {
+      "precise": "s:13PKTestSupport39ThreadRuntimeRepositoryConformanceSuiteO3run10staleAfter04makeE0ySd_13PositronicKit0cdE0_pyYaKYCXEtYaKFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "ThreadRuntimeRepositoryConformanceSuite",
+        "run(staleAfter:makeRepository:)"
+      ],
+      "declaration": "static func run(staleAfter: TimeInterval, makeRepository: nonisolated(nonsending) () async throws -> any ThreadRuntimeRepository) async throws"
     },
     {
       "precise": "s:13PositronicKit10AgentErrorO",
@@ -18281,7 +18395,7 @@
         "InMemoryAgentStore",
         "fetchThreads(attachedToAgent:)"
       ],
-      "declaration": "func fetchThreads(attachedToAgent _: UUID) async throws -> [Thread]"
+      "declaration": "func fetchThreads(attachedToAgent agentId: UUID) async throws -> [Thread]"
     },
     {
       "precise": "s:13PositronicKit18InMemoryAgentStoreC14fetchAllAgentsSay11PKContracts0E0VGyYaKF",
@@ -49207,6 +49321,12 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport26AgentStoreConformanceSuiteO3run04makeD0y13PositronicKit0cD8Protocol_pSayAF6ThreadVGYaKYCXE_tYaKFZ",
+      "target": "s:13PKTestSupport26AgentStoreConformanceSuiteO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport26MockThreadPersistenceStoreC04saveD0yy13PositronicKit0D0VYaKF",
       "target": "s:13PKTestSupport26MockThreadPersistenceStoreC",
       "sourceOrigin": {
@@ -49289,6 +49409,36 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport29GenerationStreamResultFactoryO9textChunk_12finishReason11PKContracts09LLMStreamH0VSS_SSSgtFZ",
       "target": "s:13PKTestSupport29GenerationStreamResultFactoryO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport30WorkspaceStoreConformanceSuiteO3run04makeD0y13PositronicKit0cD0_pyYaKYCXE_tYaKFZ",
+      "target": "s:13PKTestSupport30WorkspaceStoreConformanceSuiteO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport31ToolPersistenceConformanceSuiteO3run9makeStorey13PositronicKit0cD8Protocol_pSay11PKContracts18WorkspaceReferenceVGYaKYCXE_tYaKFZ",
+      "target": "s:13PKTestSupport31ToolPersistenceConformanceSuiteO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport32WorkspaceFactoryConformanceSuiteO3run7factory18supportedReferencey13PositronicKit0cD0_p_11PKContracts0cJ0VtKFZ",
+      "target": "s:13PKTestSupport32WorkspaceFactoryConformanceSuiteO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport34RequestOriginStoreConformanceSuiteO3run04makeE0y13PositronicKit0cdE8Protocol_pyYaKYCXE_tYaKFZ",
+      "target": "s:13PKTestSupport34RequestOriginStoreConformanceSuiteO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport39ThreadRuntimeRepositoryConformanceSuiteO3run10staleAfter04makeE0ySd_13PositronicKit0cdE0_pyYaKYCXEtYaKFZ",
+      "target": "s:13PKTestSupport39ThreadRuntimeRepositoryConformanceSuiteO"
     },
     {
       "module": "PKTestSupport",

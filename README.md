@@ -389,6 +389,30 @@ func capturesDownstreamRequest() async throws {
 }
 ```
 
+### Reusing the shipped conformance suites
+
+`PKTestSupport` also provides explicitly invoked Swift Testing suites for downstream persistence
+and workspace adapters. The runners do not declare tests themselves, so call them from the
+consumer's test target and keep native diagnostics at the call site:
+
+```swift
+import PKTestSupport
+import PositronicKit
+
+@Test("my Thread repository conforms")
+func threadRepositoryConforms() async throws {
+    try await ThreadRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
+        MyThreadRuntimeRepository()
+    }
+}
+```
+
+The package ships runners for `ThreadRuntimeRepository`, `WorkspaceStore`,
+`ToolPersistenceProtocol`, `AgentStoreProtocol`, `RequestOriginStoreProtocol`, and
+`WorkspaceFactory`. Each scenario creates an isolated fixture and runs sequentially. Result
+ordering, storage schema, exact tool-source labels, and unsupported workspace-factory inputs
+remain adapter-specific unless the protocol documents otherwise.
+
 The harness follows these contracts:
 
 - `MockLLMClient` chooses one stream plan atomically in this precedence order: configured
@@ -440,7 +464,9 @@ Supporting targets:
 - `PKObservable` contains opt-in `@Observable` wrappers. `ThreadController` mirrors
   `ThreadHandle` stream state for SwiftUI clients.
 - `PositronicKitExamples` contains runnable, compile-checked examples.
-- `PKTestSupport` contains public mocks, fixtures, stream factories, and `TestRuntime`.
+- `PKTestSupport` is a test-only library product containing public mocks, fixtures, stream
+  factories, `TestRuntime`, and reusable persistence/workspace conformance suites. Its ordinary
+  import and executable behavior are verified by `PKTestSupportConsumer`.
 
 All declared products are cataloged in [docs/catalog.json](docs/catalog.json). The generated
 [documentation navigation](docs/NAVIGATION.md) records the owning guide and compiled consumer gate

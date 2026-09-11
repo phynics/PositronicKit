@@ -165,8 +165,7 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
     }
 
     public func deleteMessages(for threadID: UUID) async throws {
-        try await messagesMock.deleteMessages(for: threadID)
-        _ = state.withLock { $0.deletedMessageThreadIDs.insert(threadID) }
+        throw ThreadRuntimeRepositoryError.historyDeletionForbidden(threadID: threadID)
     }
 
     public func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
@@ -245,7 +244,10 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
 
     public var workspaces: [WorkspaceReference] {
         get { workspacesMock.workspaces }
-        set { workspacesMock.workspaces = newValue }
+        set {
+            workspacesMock.workspaces = newValue
+            toolsMock.workspaces = newValue
+        }
     }
 
     public func saveWorkspace(_ workspace: WorkspaceReference) async throws {

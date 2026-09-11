@@ -27,6 +27,13 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Shipped protocol conformance suites:** `PKTestSupport` now exposes explicitly invoked Swift
+  Testing runners for `ThreadRuntimeRepository`, `WorkspaceStore`, `ToolPersistenceProtocol`,
+  `AgentStoreProtocol`, `RequestOriginStoreProtocol`, and `WorkspaceFactory`. The toolchain-provided
+  `Testing` module is used only by the test-support product; downstream test targets retain native
+  test discovery and diagnostics. The suites define durable CRUD, scope, authority, history,
+  recovery, and workspace-reference behavior without prescribing storage technology or adapter-
+  specific presentation details.
 - **Deterministic Turn timing and cancellation:** `RuntimeConfiguration.streamTimeout` configures
   the existing 60-second streamed-response idle default, while retry, idle-timeout, and
   termination-wait timing use internal injectable seams for deterministic tests. Cancelling the

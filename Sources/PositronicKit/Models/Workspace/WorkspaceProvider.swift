@@ -92,6 +92,10 @@ public enum WorkspaceError: PKError, Sendable {
 
 /// Abstracts live workspace-provider instantiation so the runtime stays decoupled from concrete
 /// workspace backends.
+///
+/// A successful creation must preserve the complete caller-supplied `WorkspaceReference` as the
+/// provider's authoritative `reference`. The universal contract does not prescribe behavior,
+/// errors, or supported inputs for unsupported references.
 public protocol WorkspaceFactory: Sendable {
     func create(from reference: WorkspaceReference) throws -> any WorkspaceProvider
 }

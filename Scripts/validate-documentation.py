@@ -50,6 +50,10 @@ def validate_catalog() -> None:
         if not docs_path.exists():
             error(f"{product['name']} references missing documentation: {product['docs']}")
         if product["kind"] == "library":
+            if product.get("testOnly"):
+                if product.get("docc"):
+                    error(f"test-only library must not require DocC coverage: {product['name']}")
+                continue
             if not product.get("docc"):
                 error(f"library product lacks DocC coverage: {product['name']}")
             if product["module"] not in consumer_imports:

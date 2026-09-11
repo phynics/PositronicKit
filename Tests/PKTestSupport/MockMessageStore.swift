@@ -21,6 +21,12 @@ public final class MockMessageStore: ThreadMessageStoreProtocol, @unchecked Send
 
     public func saveMessage(_ message: ThreadMessage) async throws {
         messagesState.withLock {
+            if $0.contains(where: { $0.id == message.id }) {
+                // The cohesive runtime repository owns the append-only error. This focused
+                // double still refuses a conflicting replacement so composite conformance
+                // tests cannot hide a duplicate terminal message.
+                return
+            }
             $0.append(message)
         }
     }

@@ -186,7 +186,20 @@ verify-pktestsupport:
 	@echo "Building PKTestSupport in release configuration..."
 	@swift build $(SWIFT_BUILD_FLAGS) -c release --target PKTestSupport
 	@echo "Compiling an ordinary-import PKTestSupport consumer..."
-	@swift build $(SWIFT_BUILD_FLAGS) -c release --target PKTestSupportConsumer
+	@swift build $(SWIFT_BUILD_FLAGS) -c release --product PKTestSupportConsumer
+	@echo "Running the already-built ordinary-import PKTestSupport consumer..."
+	@consumer_path="$$(swift build $(SWIFT_BUILD_FLAGS) -c release --show-bin-path)/PKTestSupportConsumer"; \
+	if [ "$$(uname -s)" = "Darwin" ]; then \
+		testing_framework_path="$$(xcrun --show-sdk-platform-path)/Developer/Library/Frameworks"; \
+		if [ ! -d "$$testing_framework_path/Testing.framework" ]; then \
+			echo "Testing.framework not found at $$testing_framework_path" >&2; \
+			exit 1; \
+		fi; \
+		DYLD_FRAMEWORK_PATH="$$testing_framework_path$${DYLD_FRAMEWORK_PATH:+:$$DYLD_FRAMEWORK_PATH}" \
+			"$$consumer_path"; \
+	else \
+		"$$consumer_path"; \
+	fi
 
 verify-public-consumers:
 	@echo "Compiling ordinary imports for every public library product..."
