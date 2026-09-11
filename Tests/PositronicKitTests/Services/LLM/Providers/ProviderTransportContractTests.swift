@@ -12,79 +12,7 @@ import PKTestSupport
 import Synchronization
 import Testing
 
-private actor TestProviderTransport: ProviderHTTPTransport {
-    enum Response {
-        case data(Data, HTTPURLResponse)
-        case lines([String], HTTPURLResponse)
-        case error(Error)
-        /// Yield the given SSE/NDJSON lines, then finish the stream by throwing `error`.
-        /// Used to test the duplicate-content retry gate (PKR-5): a stream that yields content
-        /// and then hits a transient transport error must NOT be retried.
-        case linesThenError([String], Error, HTTPURLResponse)
-    }
-
-    private(set) var requests: [URLRequest] = []
-    var responder: @Sendable (URLRequest) -> Response
-
-    init(responder: @escaping @Sendable (URLRequest) -> Response) {
-        self.responder = responder
-    }
-
-    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        requests.append(request)
-        switch responder(request) {
-        case let .data(data, response):
-            return (data, response)
-        case let .error(error):
-            throw error
-        case let .lines(lines, response):
-            return (Data(lines.joined(separator: "\n").utf8), response)
-        case let .linesThenError(_, _, response):
-            return (Data(), response)
-        }
-    }
-
-    func lines(for request: URLRequest) async throws -> (AsyncThrowingStream<String, Error>, URLResponse) {
-        requests.append(request)
-        switch responder(request) {
-        case let .lines(lines, response):
-            return (
-                AsyncThrowingStream { continuation in
-                    for line in lines {
-                        continuation.yield(line)
-                    }
-                    continuation.finish()
-                },
-                response
-            )
-        case let .error(error):
-            throw error
-        case let .data(data, response):
-            let string = String(decoding: data, as: UTF8.self)
-            return (
-                AsyncThrowingStream { continuation in
-                    continuation.yield(string)
-                    continuation.finish()
-                },
-                response
-            )
-        case let .linesThenError(lines, error, response):
-            return (
-                AsyncThrowingStream { continuation in
-                    for line in lines {
-                        continuation.yield(line)
-                    }
-                    continuation.finish(throwing: error)
-                },
-                response
-            )
-        }
-    }
-
-    func recordedRequests() -> [URLRequest] {
-        requests
-    }
-}
+private typealias TestProviderTransport = ScriptedProviderHTTPTransport
 
 @Suite("Provider transport contracts")
 struct ProviderTransportContractTests {
@@ -274,7 +202,7 @@ struct ProviderTransportContractTests {
             ], self.response(url: "http://localhost:11434/api/chat"))
         }
 
-        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", transport: transport)
+        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", maxRetries: 0, transport: transport)
         let stream = await client.chatStream(messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil)
         await #expect(throws: DecodingError.self) {
             _ = try await stream.collect()
@@ -396,7 +324,7 @@ struct ProviderTransportContractTests {
                 #"{"model":"llama3.1","message":{"role":"assistant","content":""},"done":true,"done_reason":"length","prompt_eval_count":1,"eval_count":1}"#,
             ], self.response(url: "http://localhost:11434/api/chat"))
         }
-        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", transport: transport)
+        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", maxRetries: 0, transport: transport)
         let chunks = try await client.chatStream(
             messages: [LLMMessage(role: .user, content: "hi")],
             tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
@@ -592,7 +520,7 @@ struct ProviderTransportContractTests {
             )
         }
 
-        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", transport: transport)
+        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", maxRetries: 0, transport: transport)
         let stream = await client.chatStream(
             messages: [LLMMessage(role: .user, content: "hi")],
             tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil

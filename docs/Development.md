@@ -30,6 +30,17 @@ refresh it with `make linux-image`; compile in it with `make linux-build`.
 
 Use `make agent-test FILTER='…'` for a focused Linux test.
 
+Provider conformance tests use the package-scoped `ScriptedProviderHTTPTransport` for Anthropic,
+OpenRouter, Ollama, and runtime transport checks. OpenAI tests use `TestHTTPServer`; Foundation
+Models tests use a scripted session. Run the provider suites with:
+
+```bash
+make agent-test FILTER='StreamDecodingConformanceTests|ProviderCancellationConformanceTests'
+```
+
+These fixtures are internal to the package. Downstream tests should use public provider APIs or
+`TestHTTPServer`, not the provider injection seams.
+
 ## Linux coverage reports
 
 Run `make linux-coverage` in the pinned Linux environment to execute the tests with

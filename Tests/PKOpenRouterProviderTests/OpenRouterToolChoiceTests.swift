@@ -4,51 +4,21 @@ import Foundation
 #endif
 @testable import PKOpenRouterProvider
 import PKContracts
+import PKTestSupport
 import PKUtilities
 import Testing
 
-private actor ToolChoiceRecordingTransport: ProviderHTTPTransport {
-    private var requestBodies: [Data] = []
-
-    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        record(request)
-        return (Data(#"{"data":[]}"#.utf8), response(for: request))
-    }
-
-    func lines(for request: URLRequest) async throws -> (AsyncThrowingStream<String, Error>, URLResponse) {
-        record(request)
-        let stream = AsyncThrowingStream<String, Error> { continuation in
-            continuation.yield("data: [DONE]")
-            continuation.finish()
-        }
-        return (stream, response(for: request))
-    }
-
-    func lastRequestBody() -> Data? {
-        requestBodies.last
-    }
-
-    private func record(_ request: URLRequest) {
-        if let httpBody = request.httpBody {
-            requestBodies.append(httpBody)
-        }
-    }
-
-    private func response(for request: URLRequest) -> HTTPURLResponse {
-        HTTPURLResponse(
-            url: request.url ?? URL(string: "https://example.invalid")!,
-            statusCode: 200,
-            httpVersion: nil,
-            headerFields: nil
-        )!
-    }
-}
+private typealias ToolChoiceRecordingTransport = ScriptedProviderHTTPTransport
 
 @Suite("OpenRouter tool choice")
 struct OpenRouterToolChoiceTests {
     @Test("Explicit LLMToolChoice.none is encoded when tools are present")
     func explicitNoneIsEncodedWithTools() async throws {
-        let transport = ToolChoiceRecordingTransport()
+        let transport = ToolChoiceRecordingTransport(responses: [
+            .lines(["data: [DONE]"], HTTPURLResponse(
+                url: URL(string: "https://example.invalid")!, statusCode: 200, httpVersion: nil, headerFields: nil
+            )!),
+        ])
         let client = OpenRouterClient(
             apiKey: "test",
             baseURL: URL(string: "https://example.invalid/api")!,
@@ -72,7 +42,11 @@ struct OpenRouterToolChoiceTests {
 
     @Test("An omitted tool choice retains auto selection when tools are present")
     func omittedChoiceRemainsAutoWithTools() async throws {
-        let transport = ToolChoiceRecordingTransport()
+        let transport = ToolChoiceRecordingTransport(responses: [
+            .lines(["data: [DONE]"], HTTPURLResponse(
+                url: URL(string: "https://example.invalid")!, statusCode: 200, httpVersion: nil, headerFields: nil
+            )!),
+        ])
         let client = OpenRouterClient(
             apiKey: "test",
             baseURL: URL(string: "https://example.invalid/api")!,

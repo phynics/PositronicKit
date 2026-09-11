@@ -6,6 +6,7 @@ import struct JSONSchema.Schema
 import Logging
 @testable import PKOllamaProvider
 import PKContracts
+import PKTestSupport
 import PKUtilities
 import Synchronization
 import Testing
@@ -49,25 +50,7 @@ private struct CapturingLogHandler: LogHandler {
     }
 }
 
-private actor OllamaTestTransport: ProviderHTTPTransport {
-    private var requestCount = 0
-
-    func data(for _: URLRequest) async throws -> (Data, URLResponse) {
-        requestCount += 1
-        throw UnexpectedTransportCall()
-    }
-
-    func lines(for _: URLRequest) async throws -> (AsyncThrowingStream<String, Error>, URLResponse) {
-        requestCount += 1
-        throw UnexpectedTransportCall()
-    }
-
-    func requestsMade() -> Int {
-        requestCount
-    }
-}
-
-private struct UnexpectedTransportCall: Error, Sendable {}
+private typealias OllamaTestTransport = ScriptedProviderHTTPTransport
 
 struct OllamaClientTests {
     @Test func ollamaEndpointNormalization() {
@@ -114,7 +97,7 @@ struct OllamaClientTests {
             Issue.record("Expected LLMServiceError.invalidConfiguration, got \(error)")
         }
 
-        #expect(await transport.requestsMade() == 0)
+        #expect(await transport.requestCount() == 0)
     }
 
     @Test func ollamaMessageInitialization() {

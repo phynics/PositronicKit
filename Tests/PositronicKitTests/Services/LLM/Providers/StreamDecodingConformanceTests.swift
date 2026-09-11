@@ -5,10 +5,13 @@ import FoundationNetworking
 #if canImport(Network)
 import Network
 #endif
+@testable import PKAnthropicProvider
+@testable import PKFoundationModelsProvider
 @testable import PKOllamaProvider
 @testable import PKOpenAIProvider
 @testable import PKOpenRouterProvider
 import PKContracts
+import PKTestSupport
 import PKUtilities
 import PositronicKit
 import Synchronization
@@ -88,143 +91,36 @@ data: [DONE]
     static let ollamaPlainTextLine = #"""
     {"model":"llama3.1","message":{"role":"assistant","content":"hello world"},"done":true,"prompt_eval_count":4,"eval_count":2}
     """#
+
+    static let anthropicPlainTextLines = [
+        #"data: {"type":"message_start","message":{"id":"msg-1","model":"claude-sonnet-4-5","usage":{"input_tokens":4}}}"#,
+        #"data: {"type":"content_block_start","index":0,"content_block":{"type":"text"}}"#,
+        #"data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"hello "}}"#,
+        #"data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"world"}}"#,
+        #"data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":2}}"#,
+        #"data: {"type":"message_stop"}"#,
+    ]
 }
 
-private actor TestProviderTransport: ProviderHTTPTransport {
-    enum Response {
-        case lines([String], HTTPURLResponse)
+private typealias TestProviderTransport = ScriptedProviderHTTPTransport
+
+private actor ConformanceFoundationModelsSession: FoundationModelsSessionProtocol {
+    private let events: [FoundationModelsSessionEvent]
+
+    init(events: [FoundationModelsSessionEvent]) {
+        self.events = events
     }
 
-    private(set) var requests: [URLRequest] = []
-    let responder: @Sendable (URLRequest) -> Response
-
-    init(responder: @escaping @Sendable (URLRequest) -> Response) {
-        self.responder = responder
-    }
-
-    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        requests.append(request)
-        switch responder(request) {
-        case let .lines(lines, response):
-            return (Data(lines.joined(separator: "\n").utf8), response)
-        }
-    }
-
-    func lines(for request: URLRequest) async throws -> (AsyncThrowingStream<String, Error>, URLResponse) {
-        requests.append(request)
-        switch responder(request) {
-        case let .lines(lines, response):
-            return (
-                AsyncThrowingStream { continuation in
-                    for line in lines {
-                        continuation.yield(line)
-                    }
-                    continuation.finish()
-                },
-                response
-            )
+    nonisolated func streamTurn(prompt _: String) -> AsyncThrowingStream<FoundationModelsSessionEvent, Error> {
+        let events = self.events
+        return AsyncThrowingStream { continuation in
+            for event in events {
+                continuation.yield(event)
+            }
+            continuation.finish()
         }
     }
 }
-
-#if canImport(Network)
-private struct LocalResponse: Sendable {
-    var statusCode: Int = 200
-    var headers: [String: String] = [:]
-    var body: Data = Data()
-}
-
-private final class LocalHTTPServer: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
-    private let listener: NWListener
-    private let queue = DispatchQueue(label: "StreamDecodingConformanceTests.LocalHTTPServer")
-    private let response: LocalResponse
-
-    static func start(response: LocalResponse) async throws -> LocalHTTPServer {
-        let server = try LocalHTTPServer(response: response)
-        try await server.waitUntilReady()
-        return server
-    }
-
-    private init(response: LocalResponse) throws {
-        self.response = response
-        self.listener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: 0)!)
-    }
-
-    var port: UInt16 {
-        listener.port?.rawValue ?? 0
-    }
-
-    func stop() {
-        listener.cancel()
-    }
-
-    private func waitUntilReady() async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            listener.stateUpdateHandler = { [weak self] state in
-                switch state {
-                case .ready:
-                    guard let self, self.port != 0 else {
-                        continuation.resume(throwing: NSError(domain: "StreamDecodingConformanceTests", code: 1))
-                        return
-                    }
-                    continuation.resume(returning: ())
-                case .failed(let error):
-                    continuation.resume(throwing: error)
-                default:
-                    break
-                }
-            }
-            listener.newConnectionHandler = { [weak self] connection in
-                self?.handle(connection)
-            }
-            listener.start(queue: queue)
-        }
-    }
-
-    private func handle(_ connection: NWConnection) {
-        connection.start(queue: queue)
-        receive(on: connection, buffer: Data())
-    }
-
-    private func receive(on connection: NWConnection, buffer: Data) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { [weak self] data, _, isComplete, error in
-            guard let self else { return }
-            var accumulated = buffer
-            if let data {
-                accumulated.append(data)
-            }
-
-            if let requestString = String(data: accumulated, encoding: .utf8), requestString.contains("\r\n\r\n") {
-                self.sendResponse(on: connection)
-                return
-            }
-
-            if isComplete || error != nil {
-                connection.cancel()
-                return
-            }
-
-            self.receive(on: connection, buffer: accumulated)
-        }
-    }
-
-    private func sendResponse(on connection: NWConnection) {
-        let responseData = Self.makeHTTPResponseData(response)
-        connection.send(content: responseData, completion: .contentProcessed { _ in
-            connection.cancel()
-        })
-    }
-
-    private static func makeHTTPResponseData(_ response: LocalResponse) -> Data {
-        let statusLine = "HTTP/1.1 \(response.statusCode) OK\r\n"
-        var headers = response.headers
-        headers["Content-Length"] = "\(response.body.count)"
-        headers["Connection"] = "close"
-        let headerLines = headers.map { "\($0.key): \($0.value)\r\n" }.sorted().joined()
-        return Data((statusLine + headerLines + "\r\n").utf8) + response.body
-    }
-}
-#endif
 
 @Suite("Stream decoding conformance")
 struct StreamDecodingConformanceTests {
@@ -304,7 +200,7 @@ struct StreamDecodingConformanceTests {
     )
     func openAIStreamDecodesToolCallFixture() async throws {
         #if canImport(Network)
-        let server = try await LocalHTTPServer.start(response: .init(
+        let server = try await TestHTTPServer.start(response: .init(
             headers: ["Content-Type": "text/event-stream"],
             body: Data(StreamWireFixtures.openAIToolCallChunk.utf8)
         ))
@@ -343,7 +239,7 @@ struct StreamDecodingConformanceTests {
     )
     func openAIPlainTextStreamPreservesContent() async throws {
         #if canImport(Network)
-        let server = try await LocalHTTPServer.start(response: .init(
+        let server = try await TestHTTPServer.start(response: .init(
             headers: ["Content-Type": "text/event-stream"],
             body: Data(StreamWireFixtures.openAIPlainTextChunk.utf8)
         ))
@@ -418,6 +314,55 @@ struct StreamDecodingConformanceTests {
 
         #expect(chunks.first?.choices.first?.delta.content == "hello world")
         #expect(chunks.first?.choices.first?.delta.toolCalls == nil)
+    }
+
+    @Test("Anthropic plain-text events normalize through the shared stream contract")
+    func anthropicPlainTextStreamPreservesContent() async throws {
+        let transport = TestProviderTransport(responses: [
+            .lines(
+                StreamWireFixtures.anthropicPlainTextLines,
+                HTTPURLResponse(
+                    url: URL(string: "https://api.anthropic.com/v1/messages")!,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "text/event-stream"]
+                )!
+            ),
+        ])
+        let client = AnthropicClient(apiKey: "secret", maxRetries: 0, transport: transport)
+        let chunks = try await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "say hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        ).collect()
+
+        #expect(chunks.compactMap { $0.choices.first?.delta.content }.joined() == "hello world")
+        #expect(chunks.last?.choices.first?.finishReason == "stop")
+    }
+
+    @Test("Foundation Models session events normalize through the shared stream contract")
+    func foundationModelsPlainTextStreamPreservesContent() async throws {
+        let client = FoundationModelsClient(
+            makeSession: { _, _ in
+                ConformanceFoundationModelsSession(events: [
+                    .textDelta("hello "),
+                    .textDelta("world"),
+                    .finished(.stop),
+                ])
+            }
+        )
+        let chunks = try await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "say hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        ).collect()
+
+        #expect(chunks.compactMap { $0.choices.first?.delta.content }.joined() == "hello world")
+        #expect(chunks.last?.choices.first?.finishReason == "stop")
     }
 }
 
