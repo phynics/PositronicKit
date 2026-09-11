@@ -186,7 +186,10 @@ verify-pktestsupport:
 	@echo "Building PKTestSupport in release configuration..."
 	@swift build $(SWIFT_BUILD_FLAGS) -c release --target PKTestSupport
 	@echo "Compiling an ordinary-import PKTestSupport consumer..."
-	@swift build $(SWIFT_BUILD_FLAGS) -c release --target PKTestSupportConsumer
+	@swift build $(SWIFT_BUILD_FLAGS) -c release --product PKTestSupportConsumer
+	@echo "Running the already-built ordinary-import PKTestSupport consumer..."
+	@consumer_path="$$(swift build $(SWIFT_BUILD_FLAGS) -c release --show-bin-path)/PKTestSupportConsumer"; \
+		"$$consumer_path"
 
 verify-public-consumers:
 	@echo "Compiling ordinary imports for every public library product..."

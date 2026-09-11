@@ -114,6 +114,34 @@ provided by `AgentContextSource`; additive, namespaced prompt context comes from
 
 Tests and host code can inject doubles directly through the facade initializers; lower-level wiring should remain inside the components you own.
 
+### Reusable persistence conformance suites
+
+Downstream adapters can use the public runners in `PKTestSupport` from their own Swift Testing
+target. The runners are ordinary async or throwing functions, not discovered tests, so the
+downstream target owns test names, tags, and source locations:
+
+```swift
+import PKTestSupport
+import PositronicKit
+
+@Test("the workspace adapter conforms")
+func workspaceAdapterConforms() async throws {
+    try await WorkspaceStoreConformanceSuite.run {
+        MyWorkspaceStore()
+    }
+}
+```
+
+The six available runners cover `ThreadRuntimeRepository`, `WorkspaceStore`,
+`ToolPersistenceProtocol`, `AgentStoreProtocol`, `RequestOriginStoreProtocol`, and
+`WorkspaceFactory`. Each runner creates a fresh fixture for every scenario and runs scenarios
+sequentially. The suites make durable behavior normative: ID-based replacement, targeted and
+idempotent deletion, scope-aware tool queries, attached-thread filtering, atomic Turn admission
+and terminal transitions, and complete workspace-reference preservation. They intentionally do
+not prescribe result ordering, storage technology, exact tool-source presentation strings,
+`includeTools` projection details, unsupported factory inputs, or the self-reported `isDurable`
+capability.
+
 ### Default Tool Installation
 
 The facade applies a configurable default tool policy:

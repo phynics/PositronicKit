@@ -51,7 +51,7 @@
     {
       "title": "Overview and quick start",
       "path": "README.md",
-      "summary": "Release selection, current runtime contracts, provider setup, runnable examples, products, and verification."
+      "summary": "Release selection, runtime contracts, provider setup, conformance suites, runnable examples, products, and verification."
     },
     {
       "title": "Setup",
@@ -110,6 +110,7 @@
     {"name": "PKAnthropicProvider", "kind": "library", "module": "PKAnthropicProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKAnthropicProvider.self"},
     {"name": "PKFoundationModelsProvider", "kind": "library", "module": "PKFoundationModelsProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKFoundationModelsProvider.self"},
     {"name": "PKTestSupport", "kind": "library", "module": "PKTestSupport", "docs": "README.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "TestRuntime.self"},
-    {"name": "PositronicKitExamples", "kind": "executable", "module": "PositronicKitExamples", "docs": "Sources/PositronicKitExamples", "docc": false, "consumer": "PositronicKitExamples"}
+    {"name": "PositronicKitExamples", "kind": "executable", "module": "PositronicKitExamples", "docs": "Sources/PositronicKitExamples", "docc": false, "consumer": "PositronicKitExamples"},
+    {"name": "PKTestSupportConsumer", "kind": "executable", "module": "PKTestSupportConsumer", "docs": "README.md", "docc": false, "consumer": "PKTestSupportConsumer"}
   ]
 }
