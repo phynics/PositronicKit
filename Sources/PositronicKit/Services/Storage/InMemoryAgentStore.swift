@@ -5,8 +5,15 @@ import PKUtilities
 /// Thread-safe in-memory agent store for prototyping and development.
 public actor InMemoryAgentStore: AgentStoreProtocol {
     private var instances: [Agent] = []
+    private var threads: [Thread]
 
-    public init() {}
+    public init() {
+        threads = []
+    }
+
+    package init(threads: [Thread]) {
+        self.threads = threads
+    }
 
     public func saveAgent(_ instance: Agent) async throws {
         if let index = instances.firstIndex(where: { $0.id == instance.id }) {
@@ -28,7 +35,7 @@ public actor InMemoryAgentStore: AgentStoreProtocol {
         instances.removeAll { $0.id == id }
     }
 
-    public func fetchThreads(attachedToAgent _: UUID) async throws -> [Thread] {
-        []
+    public func fetchThreads(attachedToAgent agentId: UUID) async throws -> [Thread] {
+        threads.filter { $0.attachedAgentID == agentId }
     }
 }

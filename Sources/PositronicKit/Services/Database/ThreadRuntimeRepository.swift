@@ -434,6 +434,10 @@ public enum ThreadRuntimeRepositoryError: Error, Equatable, Sendable, CustomStri
 /// conformer typically satisfies this with `ON DELETE CASCADE` foreign keys from messages/summary
 /// tables to the thread row; an in-memory or other keyed-store conformer must remove the
 /// corresponding per-thread entries explicitly inside `deleteThread(id:)`.
+///
+/// `PKTestSupport` ships `ThreadRuntimeRepositoryConformanceSuite` for downstream adapters. The
+/// suite exercises these durable admission, history, ordering, recovery, and terminal-transition
+/// invariants without making the support library a test-discovery target.
 public protocol ThreadRuntimeRepository: ThreadPersistenceProtocol, ThreadMessageStoreProtocol {
     func admitTurn(
         threadID: UUID,

@@ -31,6 +31,7 @@ let package = Package(
         .library(name: "PKFoundationModelsProvider", targets: ["PKFoundationModelsProvider"]),
         .library(name: "PKTestSupport", targets: ["PKTestSupport"]),
         .executable(name: "PositronicKitExamples", targets: ["PositronicKitExamples"]),
+        .executable(name: "PKTestSupportConsumer", targets: ["PKTestSupportConsumer"]),
     ],
     dependencies: [
         .package(url: "https://github.com/MacPaw/OpenAI.git", exact: "0.4.8"),
@@ -322,6 +323,7 @@ let package = Package(
                 "PKTestSupport",
                 "PKContracts",
                 "PKUtilities",
+                "PositronicKit",
             ],
             path: "Tests/PKTestSupportTests",
             swiftSettings: approachableConcurrency
