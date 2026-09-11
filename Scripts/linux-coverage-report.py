@@ -134,6 +134,13 @@ def normalize(report: dict[str, Any], package_root: Path) -> dict[str, Any]:
                 continue
             files_by_module[module][filename] = file_entry
 
+    missing_modules = [module for module in MODULES if not files_by_module[module]]
+    if missing_modules:
+        raise CoverageReportError(
+            "coverage report has no source files for configured modules: "
+            + ", ".join(missing_modules)
+        )
+
     modules: list[dict[str, Any]] = []
     for module in MODULES:
         files = [files_by_module[module][filename] for filename in sorted(files_by_module[module])]

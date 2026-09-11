@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -46,7 +48,10 @@ def main() -> None:
                         {
                             "files": [
                                 file_entry(str(root / "Sources/PositronicKit/Runtime.swift"), 8, 10),
+                                file_entry(str(root / "Sources/PKContracts/Contracts.swift"), 3, 5),
                                 file_entry(str(root / "Sources/PKPrompt/Prompt.swift"), 2, 4),
+                                file_entry(str(root / "Sources/PKUtilities/Utilities.swift"), 6, 8),
+                                file_entry(str(root / "Sources/PKObservable/Observable.swift"), 1, 1),
                                 file_entry(str(root / "Sources/PKOpenAIProvider/Client.swift"), 99, 100),
                                 file_entry(str(root / "Tests/PositronicKitTests/RuntimeTests.swift"), 99, 100),
                                 file_entry(str(root / "Sources/PositronicKitExamples/main.swift"), 99, 100),
@@ -62,10 +67,12 @@ def main() -> None:
         modules = {module["name"]: module for module in normalized["modules"]}
         assert_equal(list(modules), list(coverage.MODULES), "module order")
         assert_equal(len(modules["PositronicKit"]["files"]), 1, "runtime file selection")
+        assert_equal(len(modules["PKContracts"]["files"]), 1, "contracts file selection")
         assert_equal(len(modules["PKPrompt"]["files"]), 1, "prompt file selection")
-        assert_equal(sum(len(module["files"]) for module in modules.values()), 2, "target selection")
+        assert_equal(len(modules["PKUtilities"]["files"]), 1, "utilities file selection")
+        assert_equal(len(modules["PKObservable"]["files"]), 1, "observable file selection")
+        assert_equal(sum(len(module["files"]) for module in modules.values()), 5, "target selection")
         assert_equal(modules["PositronicKit"]["summary"]["lines"]["covered"], 8, "line normalization")
-        assert_equal(modules["PKContracts"]["summary"]["lines"]["count"], 0, "missing module data")
         for name in (
             "raw-llvm-cov.json",
             "module-coverage.json",
@@ -84,6 +91,39 @@ def main() -> None:
             pass
         else:
             raise AssertionError("malformed coverage output was accepted")
+
+        missing_modules = root / "missing-modules.json"
+        missing_modules.write_text(
+            json.dumps(
+                {
+                    "data": [
+                        {
+                            "files": [
+                                file_entry(str(root / "Sources/PKOpenAIProvider/Client.swift"), 1, 1)
+                            ]
+                        }
+                    ]
+                }
+            )
+        )
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "--raw-report",
+                str(missing_modules),
+                "--output-dir",
+                str(root / "missing-reports"),
+                "--package-root",
+                str(root),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert_equal(result.returncode, 1, "non-matching export exit status")
+        if "no source files for configured modules" not in result.stderr:
+            raise AssertionError("missing module diagnostic was not reported")
 
     print("ok: Linux coverage report target selection, normalization, missing data, and malformed output")
 
