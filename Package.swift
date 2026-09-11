@@ -197,6 +197,7 @@ let package = Package(
                 .product(name: "JSONSchema", package: "swift-json-schema"),
             ],
             path: "Tests/PKTestSupport",
+            resources: [.copy("Fixtures/ProviderCapabilityMatrix.json")],
             swiftSettings: approachableConcurrency
         ),
         .executableTarget(
@@ -213,6 +214,7 @@ let package = Package(
                 "PKOpenRouterProvider",
                 "PKOllamaProvider",
                 "PKAnthropicProvider",
+                "PKFoundationModelsProvider",
                 "PositronicKitExamples",
                 "PKContracts",
                 "PKUtilities",

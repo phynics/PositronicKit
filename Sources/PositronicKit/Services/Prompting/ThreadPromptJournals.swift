@@ -37,6 +37,12 @@ actor ThreadPromptJournals {
         return created
     }
 
+    /// Package-only inspection used by runtime ordering tests. Unlike `history(for:)`, this does
+    /// not create a journal entry as a side effect.
+    package func containsHistory(for threadID: UUID) -> Bool {
+        historiesByThreadID[threadID] != nil
+    }
+
     /// Drops the cached history for a thread, e.g. when a thread is deleted.
     func removeHistory(for threadID: UUID) {
         historiesByThreadID.removeValue(forKey: threadID)

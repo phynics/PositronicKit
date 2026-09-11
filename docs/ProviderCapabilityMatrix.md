@@ -1,5 +1,9 @@
 # Provider capability matrix
 
+This table is published from and validated against the executable manifest at
+`Tests/PKTestSupport/Fixtures/ProviderCapabilityMatrix.json`. Run `make verify-documentation` after
+changing either the manifest or this table.
+
 The common request surface remains provider-neutral. Optional generation settings may degrade with
 a structured warning, but media is strict: callers must explicitly enable the model capability and
 unsupported media or an unrepresentable content order fails before prompt journaling, persistence,

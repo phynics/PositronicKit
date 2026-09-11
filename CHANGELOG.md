@@ -39,6 +39,10 @@ for tagged releases beginning with `1.0.0`.
   and Foundation Models keeps its scripted session path. Stream decoding, typed HTTP failures,
   malformed streams, and event-driven cancellation are covered across the five adapters without
   adding a public transport API.
+- **Executable provider capability matrix:** the published image/audio capability table is now
+  validated against a package resource and every row is backed by a direct-provider or runtime
+  ordering assertion, including provider-specific rejection and preflight-before-persistence
+  behavior.
 - **Deterministic Turn timing and cancellation:** `RuntimeConfiguration.streamTimeout` configures
   the existing 60-second streamed-response idle default, while retry, idle-timeout, and
   termination-wait timing use internal injectable seams for deterministic tests. Cancelling the
