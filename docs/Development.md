@@ -41,6 +41,9 @@ make agent-test FILTER='StreamDecodingConformanceTests|ProviderCancellationConfo
 These fixtures are internal to the package. Downstream tests should use public provider APIs or
 `TestHTTPServer`, not the provider injection seams.
 
+The shared fixture records requests and exposes an event-driven termination signal, so cancellation
+tests do not depend on sleeps, polling, or live provider services.
+
 ## Linux coverage reports
 
 Run `make linux-coverage` in the pinned Linux environment to execute the tests with
