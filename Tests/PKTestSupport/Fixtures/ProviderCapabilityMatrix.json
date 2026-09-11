@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "published": {
+    "headers": [
+      "Provider",
+      "Image input",
+      "Audio input",
+      "Audio output",
+      "Layout notes"
+    ],
+    "rows": [
+      {
+        "Provider": "OpenAI",
+        "Image input": "Ordered content parts",
+        "Audio input": "Ordered WAV/MP3 parts",
+        "Audio output": "Typed streamed deltas with transcript",
+        "Layout notes": "Capabilities must be explicitly configured, including for OpenAI-compatible endpoints"
+      },
+      {
+        "Provider": "OpenRouter",
+        "Image input": "Ordered content parts",
+        "Audio input": "Ordered WAV/MP3 parts",
+        "Audio output": "Typed streamed deltas with transcript",
+        "Layout notes": "Actual model support remains route-dependent"
+      },
+      {
+        "Provider": "Anthropic",
+        "Image input": "Ordered base64 image blocks",
+        "Audio input": "Rejected",
+        "Audio output": "Rejected",
+        "Layout notes": "Text and image block order is preserved"
+      },
+      {
+        "Provider": "Ollama",
+        "Image input": "Base64 image arrays",
+        "Audio input": "Rejected",
+        "Audio output": "Rejected",
+        "Layout notes": "Mixed text/image layouts are rejected because the wire format cannot preserve relative order"
+      },
+      {
+        "Provider": "Foundation Models",
+        "Image input": "Disabled",
+        "Audio input": "Disabled",
+        "Audio output": "Disabled",
+        "Layout notes": "Remains disabled until a native mapping exists"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "openai.image-input.ordered-content-parts",
+      "provider": "OpenAI",
+      "capability": "image-input",
+      "expected": "accepted",
+      "representation": "ordered-parts",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "openai.audio-input.wav",
+      "provider": "OpenAI",
+      "capability": "audio-input",
+      "expected": "accepted",
+      "representation": "base64-block",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "openai.audio-input.mp3",
+      "provider": "OpenAI",
+      "capability": "audio-input",
+      "expected": "accepted",
+      "representation": "base64-block",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "openai.audio-output.streamed-transcript",
+      "provider": "OpenAI",
+      "capability": "audio-output",
+      "expected": "accepted",
+      "representation": "typed-audio-delta",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "openai.audio-input.flac-rejected",
+      "provider": "OpenAI",
+      "capability": "audio-input",
+      "expected": "rejected",
+      "representation": "provider-specific-rejection",
+      "expectedError": "MultimodalContentError.unsupportedAudioFormat",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "openrouter.image-input.ordered-content-parts",
+      "provider": "OpenRouter",
+      "capability": "image-input",
+      "expected": "accepted",
+      "representation": "ordered-parts",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "openrouter.audio-input.wav",
+      "provider": "OpenRouter",
+      "capability": "audio-input",
+      "expected": "accepted",
+      "representation": "base64-block",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "openrouter.audio-input.mp3",
+      "provider": "OpenRouter",
+      "capability": "audio-input",
+      "expected": "accepted",
+      "representation": "base64-block",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "openrouter.audio-output.streamed-transcript",
+      "provider": "OpenRouter",
+      "capability": "audio-output",
+      "expected": "accepted",
+      "representation": "typed-audio-delta",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "anthropic.image-input.ordered-base64-blocks",
+      "provider": "Anthropic",
+      "capability": "image-input",
+      "expected": "accepted",
+      "representation": "ordered-base64-blocks",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "anthropic.audio-input.rejected",
+      "provider": "Anthropic",
+      "capability": "audio-input",
+      "expected": "rejected",
+      "representation": "provider-specific-rejection",
+      "expectedError": "MultimodalContentError.missingCapability.audioInput",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "anthropic.audio-output.rejected",
+      "provider": "Anthropic",
+      "capability": "audio-output",
+      "expected": "rejected",
+      "representation": "provider-specific-rejection",
+      "expectedError": "MultimodalContentError.missingCapability.audioOutput",
+      "probe": "runtime-ordering"
+    },
+    {
+      "id": "ollama.image-input.base64-array",
+      "provider": "Ollama",
+      "capability": "image-input",
+      "expected": "accepted",
+      "representation": "image-array",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "ollama.mixed-layout.rejected",
+      "provider": "Ollama",
+      "capability": "mixed-text-image-layout",
+      "expected": "rejected",
+      "representation": "provider-specific-rejection",
+      "expectedError": "MultimodalContentError.unsupportedContentLayout",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "ollama.audio-input.rejected",
+      "provider": "Ollama",
+      "capability": "audio-input",
+      "expected": "rejected",
+      "representation": "provider-specific-rejection",
+      "expectedError": "MultimodalContentError.missingCapability.audioInput",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "ollama.audio-output.rejected",
+      "provider": "Ollama",
+      "capability": "audio-output",
+      "expected": "rejected",
+      "representation": "provider-specific-rejection",
+      "expectedError": "MultimodalContentError.missingCapability.audioOutput",
+      "probe": "runtime-ordering"
+    },
+    {
+      "id": "foundation-models.image-input.disabled",
+      "provider": "Foundation Models",
+      "capability": "image-input",
+      "expected": "disabled",
+      "representation": "session-factory-not-invoked",
+      "expectedError": "MultimodalContentError.missingCapability.imageInput",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "foundation-models.audio-input.disabled",
+      "provider": "Foundation Models",
+      "capability": "audio-input",
+      "expected": "disabled",
+      "representation": "session-factory-not-invoked",
+      "expectedError": "MultimodalContentError.missingCapability.audioInput",
+      "probe": "direct-provider"
+    },
+    {
+      "id": "runtime.openai.invalid-audio-order",
+      "provider": "OpenAI",
+      "capability": "audio-input",
+      "expected": "rejected",
+      "representation": "provider-specific-rejection",
+      "expectedError": "MultimodalContentError.unsupportedAudioFormat",
+      "probe": "runtime-ordering"
+    },
+    {
+      "id": "runtime.openrouter.invalid-audio-order",
+      "provider": "OpenRouter",
+      "capability": "audio-input",
+      "expected": "rejected",
+      "representation": "provider-specific-rejection",
+      "expectedError": "MultimodalContentError.unsupportedAudioFormat",
+      "probe": "runtime-ordering"
+    },
+    {
+      "id": "runtime.anthropic.audio-rejected",
+      "provider": "Anthropic",
+      "capability": "audio-input",
+      "expected": "rejected",
+      "representation": "provider-specific-rejection",
+      "expectedError": "MultimodalContentError.missingCapability.audioInput",
+      "probe": "runtime-ordering"
+    },
+    {
+      "id": "runtime.ollama.mixed-layout",
+      "provider": "Ollama",
+      "capability": "image-input",
+      "expected": "rejected",
+      "representation": "provider-specific-rejection",
+      "expectedError": "MultimodalContentError.unsupportedContentLayout",
+      "probe": "runtime-ordering"
+    }
+  ]
+}

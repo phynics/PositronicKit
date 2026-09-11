@@ -38,6 +38,15 @@ Models tests use a scripted session. Run the provider suites with:
 make agent-test FILTER='StreamDecodingConformanceTests|ProviderCancellationConformanceTests'
 ```
 
+The executable provider capability matrix runs with:
+
+```bash
+make agent-test FILTER='ProviderCapabilityMatrixTests'
+```
+
+`make verify-documentation` validates the machine-readable matrix, its published table, malformed
+input handling, and registration of every executable case.
+
 These fixtures are internal to the package. Downstream tests should use public provider APIs or
 `TestHTTPServer`, not the provider injection seams.
 
