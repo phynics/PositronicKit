@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-output_dir="${LINUX_COVERAGE_OUTPUT_DIR:-$repo_root/.build/linux-coverage}"
+output_dir="$repo_root/.build/linux-coverage"
 mkdir -p "$output_dir"
 
 swiftpm_args=()
