@@ -1,5 +1,6 @@
 import PKContracts
 
+/// Entry point for configuring PositronicKit against a local or remote Ollama server.
 public enum PKOllamaProvider: LLMProviderFactory {
     /// Creates a configured Ollama provider for the common runtime setup path.
     public static func makeConfiguredProvider(

@@ -23,7 +23,7 @@ struct ThreadCancellationTests {
         let thread = try await kit.threadManager.createThread()
         let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let driver = kit.openThread(thread.id)
+        let driver = kit.threads.open(thread.id)
 
         let turn = try await driver.startTurn("hello")
         let stream = turn.events()
@@ -70,7 +70,7 @@ struct ThreadCancellationTests {
         let thread = try await kit.threadManager.createThread()
         let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let driver = kit.openThread(thread.id)
+        let driver = kit.threads.open(thread.id)
 
         let turn = try await driver.startTurn("hello")
         let stream = turn.events()
@@ -111,7 +111,7 @@ struct ThreadCancellationTests {
         let thread = try await kit.threadManager.createThread()
         let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let driver = kit.openThread(thread.id)
+        let driver = kit.threads.open(thread.id)
 
         // Before sending, no active task.
         let activeBefore = await kit.threadManager.hasActiveTask(for: thread.id)
@@ -139,7 +139,7 @@ struct ThreadCancellationTests {
         let thread = try await kit.threadManager.createThread()
         let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let driver = kit.openThread(thread.id)
+        let driver = kit.threads.open(thread.id)
 
         let turn = try await driver.startTurn("hello")
         let stream = turn.events()
@@ -180,7 +180,7 @@ struct ThreadCancellationTests {
         let thread = try await kit.threadManager.createThread()
         let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let driver = kit.openThread(thread.id)
+        let driver = kit.threads.open(thread.id)
 
         let turn = try await driver.startTurn("hello")
         let stream = turn.events()
@@ -225,7 +225,7 @@ struct ThreadCancellationTests {
         let thread = try await kit.threadManager.createThread()
         let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let driver = kit.openThread(thread.id)
+        let driver = kit.threads.open(thread.id)
 
         let turn = try await driver.startTurn("hello")
         let stream = turn.events()

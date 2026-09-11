@@ -27,7 +27,7 @@ struct PromptAugmentedJSONSchemaAdapterTests {
             name: "tag_result",
             description: "Extracted tags",
             schema: schema,
-            strict: true
+            isStrict: true
         )
     }
 
@@ -84,7 +84,7 @@ struct PromptAugmentedJSONSchemaAdapterTests {
         }
         #expect(responseSchema.name == "tag_result")
         #expect(responseSchema.description == "Extracted tags")
-        #expect(responseSchema.strict == true)
+        #expect(responseSchema.isStrict == true)
     }
 
     @Test("jsonSchema request works with nil tools")
@@ -111,7 +111,7 @@ struct PromptAugmentedJSONSchemaAdapterTests {
             name: "numbers",
             description: nil,
             schema: schema,
-            strict: false
+            isStrict: false
         )
 
         let prepared = adapter.prepareRequest(
@@ -126,6 +126,6 @@ struct PromptAugmentedJSONSchemaAdapterTests {
         }
         #expect(responseSchema.name == "numbers")
         #expect(responseSchema.description == nil)
-        #expect(responseSchema.strict == false)
+        #expect(responseSchema.isStrict == false)
     }
 }

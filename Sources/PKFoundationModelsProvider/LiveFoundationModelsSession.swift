@@ -106,6 +106,7 @@ import PKUtilities
     /// failure vocabulary rather than a wire `finish_reason` string, since these arrive as thrown
     /// errors from the stream, not as a terminal chunk).
     public struct FoundationModelsGenerationError: PKError, Equatable {
+        /// The category of on-device generation failure.
         public enum Kind: Sendable, Equatable {
             case exceededContextWindowSize
             case guardrailViolation
@@ -119,7 +120,10 @@ import PKUtilities
             case other(String)
         }
 
+        /// Which failure category this error represents.
         public let kind: Kind
+        /// The framework's own debug description for the underlying context, preserved for
+        /// diagnostics.
         public let debugDescription: String
 
         @available(macOS 26.0, *)
@@ -158,10 +162,12 @@ import PKUtilities
             }
         }
 
+        /// Always ``PKErrorDomain/llm``.
         public var errorDomain: String {
             PKErrorDomain.llm
         }
 
+        /// A stable numeric identifier for `kind`.
         public var errorCode: Int {
             switch kind {
             case .exceededContextWindowSize: return 2101
@@ -177,6 +183,7 @@ import PKUtilities
             }
         }
 
+        /// A human-readable explanation of the failure, specific to `kind`.
         public var userFriendlyMessage: String {
             switch kind {
             case .exceededContextWindowSize:

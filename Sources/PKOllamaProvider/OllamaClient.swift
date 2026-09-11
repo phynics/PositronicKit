@@ -14,7 +14,10 @@ struct OllamaTagsResponse: Codable {
     let models: [Model]
 }
 
+/// `LLMClientProtocol` adapter over Ollama's `/api/chat` endpoint.
 public actor OllamaClient: LLMClientProtocol {
+    /// Prepares structured-output requests by augmenting the prompt with the target schema,
+    /// since Ollama's chat API has no native JSON Schema constraint parameter.
     public let structuredOutputAdapter: any StructuredOutputAdapter = PromptAugmentedJSONSchemaAdapter()
     private let endpoint: OllamaEndpoint
     private let modelName: String
@@ -23,6 +26,15 @@ public actor OllamaClient: LLMClientProtocol {
     private let transport: any ProviderHTTPTransport
     private let logger = Logger.module(named: "ollama-client")
 
+    /// Creates a client that talks to the given Ollama server over `URLSession`.
+    ///
+    /// - Parameters:
+    ///   - endpoint: The base URL of the Ollama server (e.g. `http://localhost:11434`).
+    ///   - modelName: The model to request completions from.
+    ///   - timeoutInterval: Per-request timeout, in seconds. The resource timeout is set to
+    ///     5x this value to accommodate slow local inference.
+    ///   - maxRetries: Retry attempts for transient transport failures before any content has
+    ///     streamed to the caller.
     public init(
         endpoint: String,
         modelName: String,
@@ -56,6 +68,11 @@ public actor OllamaClient: LLMClientProtocol {
         self.transport = transport
     }
 
+    /// Streams a chat completion from the Ollama server.
+    ///
+    /// Retries transient transport failures up to `maxRetries` times, but only before any
+    /// content has been yielded to the caller — once streaming has started, a retry would
+    /// duplicate content, so failures after that point are surfaced instead.
     public func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
@@ -284,6 +301,11 @@ public actor OllamaClient: LLMClientProtocol {
         )
     }
 
+    /// Sends a single user message and returns the full accumulated text response.
+    ///
+    /// Buffers the entire streamed response before returning; use
+    /// ``chatStream(messages:tools:toolChoice:responseFormat:generationParameters:)`` directly
+    /// for incremental output.
     public func sendMessage(
         _ content: String,
         responseFormat: LLMResponseFormat? = nil,
@@ -302,6 +324,9 @@ public actor OllamaClient: LLMClientProtocol {
         }
     }
 
+    /// Fetches the model names installed on the Ollama server via `/api/tags`.
+    ///
+    /// Retries transient transport failures up to `maxRetries` times.
     public func fetchAvailableModels() async throws -> [String]? {
         let maxRetries = self.maxRetries
         let endpoint = self.endpoint

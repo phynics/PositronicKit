@@ -131,9 +131,11 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
         state.withLock { $0.accessCount += 1 }
     }
 
-    public func getHealthDetails() async -> [String: String]? {
-        defer { recordPersistenceAccess() }
-        return state.withLock { $0.mockHealthDetails }
+    public var healthDetails: [String: String]? {
+        get async {
+            defer { recordPersistenceAccess() }
+            return state.withLock { $0.mockHealthDetails }
+        }
     }
 
     public func checkHealth() async -> HealthStatus {

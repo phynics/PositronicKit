@@ -72,7 +72,7 @@ struct ThreadSendToolTests {
             "message": "should be blocked",
         ])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("Remote depth limit") == true)
     }
 
@@ -103,7 +103,7 @@ struct ThreadSendToolTests {
             "message": "carry the chain forward",
         ])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         let delivered = try await messageStore.fetchMessages(for: destination.id)
         #expect(delivered.count == 1)
         #expect(delivered.first?.remoteDepth == 2)

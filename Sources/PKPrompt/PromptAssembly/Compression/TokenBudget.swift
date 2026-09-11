@@ -368,7 +368,7 @@ public struct TokenBudget: Sendable {
                 action: .keep,
                 beforeTokens: section.estimatedTokens,
                 afterTokens: section.estimatedTokens,
-                cacheHit: false,
+                didHitCache: false,
                 fallbackReason: nil
             )
         case let .constrain(limit):
@@ -384,7 +384,7 @@ public struct TokenBudget: Sendable {
                 action: .truncate(limit: limit, keeping: tail ? .head : .tail),
                 beforeTokens: section.estimatedTokens,
                 afterTokens: min(section.estimatedTokens, limit),
-                cacheHit: false,
+                didHitCache: false,
                 fallbackReason: nil
             )
         case let .replaceWithSummary(_, estimatedTokens):
@@ -394,7 +394,7 @@ public struct TokenBudget: Sendable {
                 action: .summarize(targetTokens: estimatedTokens, reason: .budgetReduction),
                 beforeTokens: section.estimatedTokens,
                 afterTokens: estimatedTokens,
-                cacheHit: false,
+                didHitCache: false,
                 fallbackReason: nil
             )
         case let .drop(fallbackReason):
@@ -404,7 +404,7 @@ public struct TokenBudget: Sendable {
                 action: .drop,
                 beforeTokens: section.estimatedTokens,
                 afterTokens: 0,
-                cacheHit: false,
+                didHitCache: false,
                 fallbackReason: fallbackReason
             )
         }

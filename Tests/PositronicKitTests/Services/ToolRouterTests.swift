@@ -118,7 +118,7 @@ final class ToolRouterTests {
         }
 
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-            if !result.success, result.error == "client_tools_disallowed_on_private_thread" {
+            if !result.isSuccess, result.error == "client_tools_disallowed_on_private_thread" {
                 throw ToolError.attachedToolsDisallowedOnPrivateThread
             }
             return result
@@ -371,10 +371,10 @@ final class ToolRouterTests {
         #expect(events.contains(where: {
             guard case let .completion(.toolExecution(toolCallID: id, status: status)) = $0 else { return false }
             guard id == "call-success", case let .success(result) = status else { return false }
-            return result.success && result.workspaceID == workspace.id && result.workspaceRouting == .explicit
+            return result.isSuccess && result.workspaceID == workspace.id && result.workspaceRouting == .explicit
         }))
         let results = try await runtimeRepository.fetchToolResults(turnID: turnID)
-        #expect(results.first?.succeeded == true)
+        #expect(results.first?.isSuccessful == true)
         #expect(results.first?.workspaceID == workspace.id)
         #expect(results.first?.workspaceRouting == .explicit)
     }
@@ -529,7 +529,7 @@ final class ToolRouterTests {
         #expect(result.hasDeferred == false)
         #expect(result.resolvedToolParams.count == 1)
         let results = try await runtimeRepository.fetchToolResults(turnID: admission.turn.identity.turnID)
-        #expect(results.first?.succeeded == false)
+        #expect(results.first?.isSuccessful == false)
         #expect(results.first?.workspaceID == workspace.id)
         #expect(results.first?.workspaceRouting == .explicit)
     }

@@ -27,7 +27,7 @@ struct PromptJournalTests {
                 action: .truncate(limit: 12, keeping: .tail),
                 beforeTokens: 24,
                 afterTokens: 12,
-                cacheHit: true,
+                didHitCache: true,
                 fallbackReason: "budget"
             ),
             content: content

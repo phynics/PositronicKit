@@ -80,10 +80,10 @@ struct ThreadManagerTests {
     func canonicalThreadManagerTypes() {
         let policy = RuntimeToolPolicy(
             installThreadObservationTools: false,
-            installThreadSendTool: false
+            installsThreadSendTool: false
         )
         #expect(policy.installThreadObservationTools == false)
-        #expect(policy.installThreadSendTool == false)
+        #expect(policy.installsThreadSendTool == false)
 
         let workspaceStore = InMemoryWorkspacePersistence()
         let stores = ThreadManager.Stores(

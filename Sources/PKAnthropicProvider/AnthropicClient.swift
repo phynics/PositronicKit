@@ -17,6 +17,8 @@ import PKUtilities
 /// without it and a warning is logged; callers needing schema-constrained output should use
 /// tool calling (a forced tool with the desired `input_schema`) instead.
 public actor AnthropicClient: LLMClientProtocol {
+    /// Prepares structured-output requests using the default synthetic-tool strategy, since
+    /// the Messages API has no native `response_format` equivalent.
     public let structuredOutputAdapter: any StructuredOutputAdapter = DefaultStructuredOutputAdapter()
     /// The Messages API requires `max_tokens`; used when `GenerationParameters.maxTokens` is nil.
     public static let defaultMaxTokens = 4096
@@ -39,6 +41,18 @@ public actor AnthropicClient: LLMClientProtocol {
         return decoder
     }()
 
+    /// Creates a client that talks to the given Anthropic-compatible endpoint over
+    /// `URLSession`.
+    ///
+    /// - Parameters:
+    ///   - apiKey: Sent as the `x-api-key` header on every request.
+    ///   - modelName: The model to request completions from.
+    ///   - host: The API host, overridable for self-hosted or proxy endpoints.
+    ///   - port: The API port; omitted from the request URL when it's the scheme's default.
+    ///   - scheme: The URL scheme (`https` or `http`).
+    ///   - timeoutInterval: Per-request timeout, in seconds.
+    ///   - maxRetries: Retry attempts for transient transport failures before any content has
+    ///     streamed to the caller.
     public init(
         apiKey: String,
         modelName: String = "claude-sonnet-4-5",
@@ -83,6 +97,13 @@ public actor AnthropicClient: LLMClientProtocol {
 
     // MARK: - Streaming
 
+    /// Streams a chat completion from the Anthropic Messages API.
+    ///
+    /// Retries transient transport failures up to `maxRetries` times, but only before any
+    /// content has been yielded to `continuation` — once streaming has started, a retry would
+    /// duplicate content for the caller, so failures after that point are surfaced instead.
+    /// `responseFormat` values other than `.text`/`nil` are logged and ignored — see this
+    /// type's documentation for why.
     public func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
@@ -256,6 +277,10 @@ public actor AnthropicClient: LLMClientProtocol {
 
     // MARK: - Convenience
 
+    /// Sends a single user message and returns the full accumulated text response.
+    ///
+    /// Buffers the entire streamed response before returning; use ``chatStream(messages:tools:toolChoice:responseFormat:generationParameters:)``
+    /// directly for incremental output.
     public func sendMessage(
         _ content: String,
         responseFormat: LLMResponseFormat? = nil,
@@ -271,6 +296,9 @@ public actor AnthropicClient: LLMClientProtocol {
         return try await accumulateStreamContent(from: stream)
     }
 
+    /// Fetches the model IDs available from the Anthropic models API, sorted alphabetically.
+    ///
+    /// Retries transient transport failures up to `maxRetries` times.
     public func fetchAvailableModels() async throws -> [String]? {
         let maxRetries = self.maxRetries
         let endpoint = self.endpoint

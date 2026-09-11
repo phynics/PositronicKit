@@ -198,7 +198,7 @@ public extension Tool {
 
         // Truncate result
         let resultSummary: String
-        if result.success {
+        if result.isSuccess {
             let lines = result.output.components(separatedBy: .newlines).count
             if lines > 1 {
                 resultSummary = "\(lines) lines"

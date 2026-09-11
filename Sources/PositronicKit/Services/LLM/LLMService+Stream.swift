@@ -89,35 +89,4 @@ public extension LLMService {
             audioOutput: audioOutput
         )
     }
-
-    /// Stream generation responses (low-level API)
-    func generationStream(
-        messages: [LLMMessage],
-        tools: [LLMToolDefinition]?,
-        toolChoice: LLMToolChoice?,
-        responseFormat: LLMResponseFormat?,
-        generationParameters: GenerationParameters?,
-        modelTier: ModelTier
-    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        await prepareIfNeeded()
-        let resolved: ResolvedLLMClient
-        do {
-            resolved = try resolve(tier: modelTier)
-        } catch {
-            return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: error)
-            }
-        }
-
-        // Use provided parameters or default from configuration
-        let params = generationParameters ?? resolved.generationParameters
-
-        return await resolved.client.chatStream(
-            messages: messages,
-            tools: tools,
-            toolChoice: toolChoice,
-            responseFormat: responseFormat,
-            generationParameters: params
-        )
-    }
 }

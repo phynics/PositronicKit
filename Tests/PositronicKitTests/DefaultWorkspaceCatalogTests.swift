@@ -46,7 +46,7 @@ struct AgentWorkspaceServiceTests {
         )
         try await persistence.saveWorkspace(ws)
 
-        let retrieved = try await repository.getWorkspace(id: ws.id)
+        let retrieved = try await repository.fetchWorkspace(id: ws.id)
         #expect(retrieved != nil)
         #expect(retrieved?.id == ws.id)
     }
@@ -111,7 +111,7 @@ struct AgentWorkspaceServiceTests {
         try await persistence.saveWorkspace(ws)
 
         do {
-            try await repository.deleteWorkspace(id: ws.id, deleteDirectory: true)
+            try await repository.deleteWorkspace(id: ws.id, includingDirectory: true)
             Issue.record("Expected workspace directory deletion to be rejected")
         } catch let error as WorkspaceError {
             guard case .accessDenied = error else {
@@ -150,7 +150,7 @@ struct AgentWorkspaceServiceTests {
         try await persistence.saveWorkspace(ws)
 
         do {
-            try await repository.deleteWorkspace(id: ws.id, deleteDirectory: true)
+            try await repository.deleteWorkspace(id: ws.id, includingDirectory: true)
             Issue.record("Expected workspace directory deletion to be rejected")
         } catch is WorkspaceError {
             // Expected.
@@ -188,7 +188,7 @@ struct AgentWorkspaceServiceTests {
         try await persistence.saveWorkspace(ws)
 
         do {
-            try await repository.deleteWorkspace(id: ws.id, deleteDirectory: true)
+            try await repository.deleteWorkspace(id: ws.id, includingDirectory: true)
             Issue.record("Expected workspace directory deletion to be rejected")
         } catch is WorkspaceError {
             // Expected.

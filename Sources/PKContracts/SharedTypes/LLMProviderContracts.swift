@@ -10,18 +10,18 @@ public struct LLMToolDefinition: Sendable, Codable {
     /// JSON Schema describing the tool's call arguments.
     public let parameters: Schema?
     /// Whether the provider should enforce strict schema adherence, where supported.
-    public let strict: Bool?
+    public let isStrict: Bool?
 
     public init(
         name: String,
         description: String? = nil,
         parameters: Schema? = nil,
-        strict: Bool? = nil
+        isStrict: Bool? = nil
     ) {
         self.name = name
         self.description = description
         self.parameters = parameters
-        self.strict = strict
+        self.isStrict = isStrict
     }
 }
 
@@ -68,24 +68,24 @@ public struct LLMResponseSchema: Sendable, Codable, Equatable {
     /// The JSON Schema itself.
     public let schema: Schema?
     /// Whether the provider should enforce strict schema adherence, where supported.
-    public let strict: Bool?
+    public let isStrict: Bool?
 
     public init(
         name: String,
         description: String? = nil,
         schema: Schema? = nil,
-        strict: Bool? = nil
+        isStrict: Bool? = nil
     ) {
         self.name = name
         self.description = description
         self.schema = schema
-        self.strict = strict
+        self.isStrict = isStrict
     }
 
     public static func == (lhs: LLMResponseSchema, rhs: LLMResponseSchema) -> Bool {
         lhs.name == rhs.name &&
             lhs.description == rhs.description &&
-            lhs.strict == rhs.strict &&
+            lhs.isStrict == rhs.isStrict &&
             encodeSchema(lhs.schema) == encodeSchema(rhs.schema)
     }
 }

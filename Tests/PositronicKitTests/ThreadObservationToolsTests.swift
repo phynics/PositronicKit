@@ -27,7 +27,7 @@ struct ThreadObservationToolsTests {
 
         #expect(listTool.callName == "thread_list")
         #expect(peekTool.callName == "thread_peek")
-        #expect((try await listTool.execute(parameters: [:])).success)
+        #expect((try await listTool.execute(parameters: [:])).isSuccess)
     }
 
     // MARK: - ThreadPeekTool
@@ -55,7 +55,7 @@ struct ThreadObservationToolsTests {
                 "thread_id": AnyCodable(thread.id.uuidString),
             ])
 
-            #expect(result.success)
+            #expect(result.isSuccess)
             #expect(result.output.contains("Hello") == true)
             #expect(result.output.contains("Hi there") == true)
             #expect(result.output.contains("2 messages") == true)
@@ -79,7 +79,7 @@ struct ThreadObservationToolsTests {
                 "limit": AnyCodable(100),
             ])
 
-            #expect(result.success)
+            #expect(result.isSuccess)
             #expect(result.output.contains("50 messages") == true)
         }
 
@@ -98,7 +98,7 @@ struct ThreadObservationToolsTests {
                 "limit": AnyCodable(-1),
             ])
 
-            #expect(!result.success)
+            #expect(!result.isSuccess)
             #expect(result.error?.contains("non-negative") == true)
         }
 
@@ -118,7 +118,7 @@ struct ThreadObservationToolsTests {
                 "thread_id": AnyCodable(thread.id.uuidString),
             ])
 
-            #expect(result.success)
+            #expect(result.isSuccess)
             #expect(result.output.contains("10 messages") == true)
         }
 
@@ -133,7 +133,7 @@ struct ThreadObservationToolsTests {
                 "thread_id": AnyCodable(thread.id.uuidString),
             ])
 
-            #expect(!result.success)
+            #expect(!result.isSuccess)
             #expect(result.error?.contains("private") == true)
         }
 
@@ -146,7 +146,7 @@ struct ThreadObservationToolsTests {
                 "thread_id": AnyCodable(UUID().uuidString),
             ])
 
-            #expect(!result.success)
+            #expect(!result.isSuccess)
             #expect(result.error?.contains("not found") == true)
         }
 
@@ -159,7 +159,7 @@ struct ThreadObservationToolsTests {
                 "thread_id": AnyCodable("not-a-uuid"),
             ])
 
-            #expect(!result.success)
+            #expect(!result.isSuccess)
             #expect(result.error?.contains("Invalid") == true)
         }
 
@@ -170,7 +170,7 @@ struct ThreadObservationToolsTests {
             let tool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
             let result = try await tool.execute(parameters: [:])
 
-            #expect(!result.success)
+            #expect(!result.isSuccess)
         }
 
         @Test("canExecute always returns true")
@@ -191,7 +191,7 @@ struct ThreadObservationToolsTests {
                 "thread_id": AnyCodable(thread.id.uuidString),
             ])
 
-            #expect(result.success)
+            #expect(result.isSuccess)
             #expect(result.output.contains("0 messages") == true)
         }
     }
@@ -214,7 +214,7 @@ struct ThreadObservationToolsTests {
             let tool = ThreadListTool(threadStore: threadStore)
             let result = try await tool.execute(parameters: [:])
 
-            #expect(result.success)
+            #expect(result.isSuccess)
             let output = result.output
             #expect(output.contains(public1.id.uuidString))
             #expect(output.contains(public2.id.uuidString))
@@ -232,7 +232,7 @@ struct ThreadObservationToolsTests {
             let tool = ThreadListTool(threadStore: threadStore)
             let result = try await tool.execute(parameters: [:])
 
-            #expect(result.success)
+            #expect(result.isSuccess)
             #expect(result.output.contains(agentId.uuidString) == true)
         }
 
@@ -243,7 +243,7 @@ struct ThreadObservationToolsTests {
             let tool = ThreadListTool(threadStore: threadStore)
             let result = try await tool.execute(parameters: [:])
 
-            #expect(result.success)
+            #expect(result.isSuccess)
             #expect(result.output.contains("[]") == true)
         }
 
@@ -256,7 +256,7 @@ struct ThreadObservationToolsTests {
             let tool = ThreadListTool(threadStore: threadStore)
             let result = try await tool.execute(parameters: [:])
 
-            #expect(result.success)
+            #expect(result.isSuccess)
             #expect(result.output.contains("[]") == true)
         }
 

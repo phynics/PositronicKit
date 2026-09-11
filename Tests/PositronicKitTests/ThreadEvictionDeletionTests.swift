@@ -26,7 +26,7 @@ struct ThreadEvictionDeletionTests {
         let thread = try await kit.threadManager.createThread()
         let agent = try await kit.agents.create(name: "Eviction Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let driver = kit.openThread(thread.id)
+        let driver = kit.threads.open(thread.id)
 
         // Seed a persisted message so we can prove eviction does not delete it.
         let seededMessage = ThreadMessage(
@@ -234,7 +234,7 @@ struct ThreadEvictionDeletionTests {
         let thread = try await kit.threadManager.createThread()
         let agent = try await kit.agents.create(name: "Deletion Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let driver = kit.openThread(thread.id)
+        let driver = kit.threads.open(thread.id)
 
         let turn = try await driver.startTurn("hello")
         let stream = turn.events()

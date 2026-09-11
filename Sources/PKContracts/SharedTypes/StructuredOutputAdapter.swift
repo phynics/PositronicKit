@@ -89,7 +89,7 @@ public struct NativeJSONSchemaStructuredOutputAdapter: StructuredOutputAdapter {
                     name: schema.name,
                     description: schema.description,
                     schema: schema.schema,
-                    strict: schema.strict
+                    isStrict: schema.isStrict
                 ))
             )
         }
@@ -154,7 +154,7 @@ public struct PromptAugmentedJSONSchemaAdapter: StructuredOutputAdapter {
                     name: schema.name,
                     description: schema.description,
                     schema: schema.schema,
-                    strict: schema.strict
+                    isStrict: schema.isStrict
                 )),
                 promptAugmentation: augmentation
             )
@@ -172,7 +172,7 @@ package func makeSyntheticStructuredOutputTool(
         name: name,
         description: schema.description ?? "Emit the final structured response payload for \(schema.name).",
         parameters: schema.schema,
-        strict: schema.strict
+        isStrict: schema.isStrict
     )
 }
 

@@ -465,8 +465,8 @@ public final class MockLLMService: LLMStreamClient, LLMConfigStore, HealthChecka
         set { state.withLock { $0.mockHealthDetails = newValue } }
     }
 
-    public func getHealthDetails() async -> [String: String]? {
-        state.withLock { $0.mockHealthDetails }
+    public var healthDetails: [String: String]? {
+        get async { state.withLock { $0.mockHealthDetails } }
     }
 
     public func checkHealth() async -> HealthStatus {
@@ -588,7 +588,9 @@ public final class MockLLMService: LLMStreamClient, LLMConfigStore, HealthChecka
         toolChoice: LLMToolChoice?,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
-        modelTier: ModelTier
+        modelTier: ModelTier,
+        responseModalities _: Set<ResponseModality>,
+        audioOutput _: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let target = state.withLock { state -> (
             stubbed: AsyncThrowingStream<LLMStreamChunk, Error>?,
@@ -618,26 +620,6 @@ public final class MockLLMService: LLMStreamClient, LLMConfigStore, HealthChecka
             toolChoice: toolChoice,
             responseFormat: responseFormat,
             generationParameters: generationParameters
-        )
-    }
-
-    public func generationStream(
-        messages: [LLMMessage],
-        tools: [LLMToolDefinition]?,
-        toolChoice: LLMToolChoice?,
-        responseFormat: LLMResponseFormat?,
-        generationParameters: GenerationParameters?,
-        modelTier: ModelTier,
-        responseModalities _: Set<ResponseModality>,
-        audioOutput _: AudioOutputOptions?
-    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        await generationStream(
-            messages: messages,
-            tools: tools,
-            toolChoice: toolChoice,
-            responseFormat: responseFormat,
-            generationParameters: generationParameters,
-            modelTier: modelTier
         )
     }
 

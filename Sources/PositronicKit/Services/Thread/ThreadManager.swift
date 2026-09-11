@@ -11,23 +11,23 @@ import PKUtilities
 public struct RuntimeToolPolicy: Sendable, Equatable {
     public let installFilesystemTools: Bool
     public let installThreadObservationTools: Bool
-    public let installThreadSendTool: Bool
+    public let installsThreadSendTool: Bool
 
     public init(
         installFilesystemTools: Bool = true,
         installThreadObservationTools: Bool = true,
-        installThreadSendTool: Bool = true
+        installsThreadSendTool: Bool = true
     ) {
         self.installFilesystemTools = installFilesystemTools
         self.installThreadObservationTools = installThreadObservationTools
-        self.installThreadSendTool = installThreadSendTool
+        self.installsThreadSendTool = installsThreadSendTool
     }
 
     public static let `default` = RuntimeToolPolicy()
     public static let denyAll = RuntimeToolPolicy(
         installFilesystemTools: false,
         installThreadObservationTools: false,
-        installThreadSendTool: false
+        installsThreadSendTool: false
     )
 }
 

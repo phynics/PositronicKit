@@ -23,9 +23,9 @@ struct UnconfiguredLLMServiceCoverageTests {
         #expect(config.version == 1)
     }
 
-    @Test("getHealthDetails reports the unconfigured error")
+    @Test("healthDetails reports the unconfigured error")
     func healthDetailsReportsError() async {
-        let details = await service.getHealthDetails()
+        let details = await service.healthDetails
         #expect(details?["error"] == "Unconfigured")
     }
 
@@ -61,7 +61,7 @@ struct WorkspaceToolWrapperCoverageTests {
         #expect(wrapper.usageExample == "custom_tool --foo bar")
     }
 
-    @Test("canExecute delegates to workspace.healthCheck")
+    @Test("canExecute delegates to workspace.isHealthy")
     func canExecuteDelegatesToHealthCheck() async throws {
         let healthy = StubWorkspace(healthy: true)
         let definition = WorkspaceToolDefinition(
@@ -85,7 +85,7 @@ struct WorkspaceToolWrapperCoverageTests {
         )
         let wrapper = WorkspaceToolWrapper(workspace: workspace, definition: definition)
         let result = try await wrapper.execute(parameters: ["x": .string("y")])
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output == "done")
     }
 
@@ -98,7 +98,7 @@ struct WorkspaceToolWrapperCoverageTests {
         )
         let wrapper = WorkspaceToolWrapper(workspace: workspace, definition: definition)
         let result = try await wrapper.execute(parameters: [:])
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error == "boom")
     }
 }
@@ -127,5 +127,5 @@ private struct StubWorkspace: WorkspaceToolProvider, WorkspaceFileProvider {
     func writeFile(path _: String, content _: String) async throws {}
     func listFiles(path _: String) async throws -> [String] { [] }
     func deleteFile(path _: String) async throws {}
-    func healthCheck() async -> Bool { healthy }
+    var isHealthy: Bool { get async { healthy } }
 }

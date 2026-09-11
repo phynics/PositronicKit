@@ -641,7 +641,7 @@ public extension TurnEvent {
     }
 
     /// Compatibility factory for consumers that construct this event directly.
-    static func sidecarsCompleted(_ results: [SidecarResult]) -> TurnEvent {
+    static func sidecarsCompleted(results: [SidecarResult]) -> TurnEvent {
         .sidecarsCompleted(SidecarCompletion(
             identity: TurnIdentity(turnID: UUID(), requestID: UUID(), modelRoundIndex: 0),
             results: results

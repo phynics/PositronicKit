@@ -34,8 +34,8 @@ final class ThreadToolRegistryTests {
             .success("Workspace tool executed")
         }
 
-        func healthCheck() async -> Bool {
-            true
+        var isHealthy: Bool {
+            get async { true }
         }
     }
 

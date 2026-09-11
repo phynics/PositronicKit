@@ -348,7 +348,7 @@ struct LLMServiceTests {
         )
         let service = LLMService(configuration: openRouterConfig, clients: .empty)
 
-        let details = await service.getHealthDetails()
+        let details = await service.healthDetails
         #expect(details?["provider"] == "OpenRouter")
         #expect(details?["model"] == "gpt-4o")
     }
@@ -443,7 +443,7 @@ struct LLMServiceTests {
             activeProvider: .openAI
         )
         let invalidService = LLMService(configuration: invalidConfig, clients: .empty)
-        let invalidDetails = await invalidService.getHealthDetails()
+        let invalidDetails = await invalidService.healthDetails
         #expect(invalidDetails?["readiness"] == "invalid configuration")
         #expect(await invalidService.isConfigured == false)
         #expect(await invalidService.isReady == false)
@@ -456,7 +456,7 @@ struct LLMServiceTests {
             activeProvider: .openRouter
         )
         let noClientService = LLMService(configuration: validConfig, clients: .empty)
-        let noClientDetails = await noClientService.getHealthDetails()
+        let noClientDetails = await noClientService.healthDetails
         #expect(noClientDetails?["provider"] == "OpenRouter")
         #expect(noClientDetails?["readiness"] == "no client resolved for provider OpenRouter; no client factory supplied")
         #expect(await noClientService.isConfigured == true)
@@ -468,7 +468,7 @@ struct LLMServiceTests {
             configuration: validConfig,
             clients: .init(primary: readyClient)
         )
-        let readyDetails = await readyService.getHealthDetails()
+        let readyDetails = await readyService.healthDetails
         #expect(readyDetails?["readiness"] == "ready")
         #expect(await readyService.isReady == true)
     }

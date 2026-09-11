@@ -25,7 +25,9 @@ private struct StreamOnlyLLMClient: LLMStreamClient {
         toolChoice _: LLMToolChoice?,
         responseFormat _: LLMResponseFormat?,
         generationParameters _: GenerationParameters?,
-        modelTier _: ModelTier
+        modelTier _: ModelTier,
+        responseModalities _: Set<ResponseModality>,
+        audioOutput _: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         AsyncThrowingStream { continuation in
             continuation.finish()

@@ -10,32 +10,30 @@ public struct ThreadCapability: Sendable {
     }
 
     /// Creates and persists a Thread, returning its stable handle.
-    public func create(title: String = "New Thread") async throws -> ThreadHandle {
-        let thread = try await kit.threadManager.createThread(title: title)
-        return kit.openThread(thread.id)
-    }
-
-    /// Creates and persists an ordinary Thread already attached to an existing Agent.
     ///
-    /// The Agent must be active. The operation validates the Agent before durable creation and
-    /// returns only after the Thread row contains the attachment, so managed execution can begin
-    /// immediately from the returned handle.
+    /// When `agentID` is supplied, the Agent must be active. The operation validates the Agent
+    /// before durable creation and returns only after the Thread row contains the attachment, so
+    /// managed execution can begin immediately from the returned handle.
     ///
     /// - Parameters:
     ///   - title: The title to persist for the new Thread.
-    ///   - agentID: The existing Agent that owns the managed execution authority.
-    /// - Returns: A handle for the newly created, Agent-attached Thread.
+    ///   - agentID: An existing Agent that owns the managed execution authority, if any.
+    /// - Returns: A handle for the newly created Thread.
     public func create(
         title: String = "New Thread",
-        attaching agentID: UUID
+        attaching agentID: UUID? = nil
     ) async throws -> ThreadHandle {
-        let thread = try await kit.agentManager.createThread(title: title, attaching: agentID)
-        return kit.openThread(thread.id)
+        let thread = if let agentID {
+            try await kit.agentManager.createThread(title: title, attaching: agentID)
+        } else {
+            try await kit.threadManager.createThread(title: title)
+        }
+        return open(thread.id)
     }
 
     /// Opens a handle without performing persistence I/O.
     public func open(_ threadID: UUID) -> ThreadHandle {
-        kit.openThread(threadID)
+        ThreadHandle(threadID: threadID, kit: kit)
     }
 
     /// Lists persisted Threads.
@@ -49,7 +47,7 @@ public struct ThreadCapability: Sendable {
     }
 
     /// Renames a Thread while preserving its existing handle.
-    public func rename(_ threadID: UUID, title: String) async throws {
+    public func rename(_ threadID: UUID, to title: String) async throws {
         try await kit.threadManager.updateThreadTitle(threadID, title: title)
     }
 

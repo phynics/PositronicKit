@@ -48,21 +48,23 @@ public actor LLMService: LLMStreamClient, LLMConfigStore, HealthCheckable {
 
     // MARK: - HealthCheckable
 
-    public func getHealthDetails() async -> [String: String]? {
-        await prepareIfNeeded()
-        var details: [String: String] = [
-            "model": snapshot.configuration.activeProviderConfiguration.modelName,
-            "provider": snapshot.configuration.activeProvider.rawValue,
-        ]
-        switch snapshot.readiness {
-        case .invalidConfiguration:
-            details["readiness"] = "invalid configuration"
-        case let .clientUnavailable(provider):
-            details["readiness"] = "no client resolved for provider \(provider.rawValue); no client factory supplied"
-        case .ready:
-            details["readiness"] = "ready"
+    public var healthDetails: [String: String]? {
+        get async {
+            await prepareIfNeeded()
+            var details: [String: String] = [
+                "model": snapshot.configuration.activeProviderConfiguration.modelName,
+                "provider": snapshot.configuration.activeProvider.rawValue,
+            ]
+            switch snapshot.readiness {
+            case .invalidConfiguration:
+                details["readiness"] = "invalid configuration"
+            case let .clientUnavailable(provider):
+                details["readiness"] = "no client resolved for provider \(provider.rawValue); no client factory supplied"
+            case .ready:
+                details["readiness"] = "ready"
+            }
+            return details
         }
-        return details
     }
 
     public func checkHealth() async -> HealthStatus {

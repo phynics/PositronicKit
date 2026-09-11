@@ -36,7 +36,7 @@ import PKUtilities
                 schema: wrapped.parametersSchema
             )
             let result = try await wrapped.execute(parameters: parameters)
-            if result.success {
+            if result.isSuccess {
                 return result.output
             }
             // Tool failures are reported back to the model as textual output (matching how the

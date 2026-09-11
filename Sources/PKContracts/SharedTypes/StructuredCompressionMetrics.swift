@@ -13,7 +13,7 @@ public struct StructuredCompressionNodeMetric: Codable, Sendable, Equatable {
     /// Estimated token count for the node's content after compression.
     public let afterTokens: Int
     /// Whether this node's compressed output was served from cache rather than recomputed.
-    public let cacheHit: Bool
+    public let didHitCache: Bool
 
     public init(
         nodeID: String,
@@ -21,19 +21,20 @@ public struct StructuredCompressionNodeMetric: Codable, Sendable, Equatable {
         action: String,
         beforeTokens: Int,
         afterTokens: Int,
-        cacheHit: Bool
+        didHitCache: Bool
     ) {
         self.nodeID = nodeID
         self.path = path
         self.action = action
         self.beforeTokens = beforeTokens
         self.afterTokens = afterTokens
-        self.cacheHit = cacheHit
+        self.didHitCache = didHitCache
     }
 
     private enum CodingKeys: String, CodingKey {
         case nodeID = "nodeId"
-        case path, action, beforeTokens, afterTokens, cacheHit
+        case path, action, beforeTokens, afterTokens
+        case didHitCache = "cacheHit"
     }
 }
 

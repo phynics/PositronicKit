@@ -36,7 +36,7 @@ public enum StructuredOutputDecoder {
                 let repaired = try LenientJSONParser.parse(cleaned)
                 let data = try LenientJSONParser.jsonData(from: repaired.value)
                 let decoded = try decoder.decode(type, from: data)
-                if repaired.repaired {
+                if repaired.wasRepaired {
                     let reason = ErrorKit.userFriendlyMessage(for: error)
                     let fallbackReason = reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         ? String(describing: error)

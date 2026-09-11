@@ -82,7 +82,7 @@ struct CoreAPIClarityTests {
             action: "keep",
             beforeTokens: 3,
             afterTokens: 3,
-            cacheHit: false
+            didHitCache: false
         )
 
         let values: [(data: Data, requiredKeys: Set<String>, forbiddenKeys: Set<String>)] = [

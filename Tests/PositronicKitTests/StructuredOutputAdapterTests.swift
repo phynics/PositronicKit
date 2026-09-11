@@ -14,7 +14,7 @@ struct StructuredOutputAdapterTests {
             name: "tag_schema",
             description: "Tag extraction schema",
             schema: JSONString().definition(),
-            strict: true
+            isStrict: true
         )
     }
 
@@ -50,7 +50,7 @@ struct StructuredOutputAdapterTests {
         }
         #expect(responseSchema.name == schema.name)
         #expect(responseSchema.description == schema.description)
-        #expect(responseSchema.strict == schema.strict)
+        #expect(responseSchema.isStrict == schema.isStrict)
     }
 
     @Test("OpenRouter adapter behaves like OpenAI native schema")
@@ -136,7 +136,7 @@ struct StructuredOutputAdapterTests {
         }
         #expect(responseSchema.name == schema.name)
         #expect(responseSchema.description == schema.description)
-        #expect(responseSchema.strict == schema.strict)
+        #expect(responseSchema.isStrict == schema.isStrict)
     }
 
     @Test("Default adapter uses synthetic tool fallback for JSON schema")

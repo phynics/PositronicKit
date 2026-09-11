@@ -1,6 +1,7 @@
 import Foundation
 import PKContracts
 
+/// Entry point for configuring PositronicKit against the OpenRouter multi-provider API.
 public enum PKOpenRouterProvider: LLMProviderFactory {
     /// Creates a configured OpenRouter provider for the common runtime setup path.
     public static func makeConfiguredProvider(

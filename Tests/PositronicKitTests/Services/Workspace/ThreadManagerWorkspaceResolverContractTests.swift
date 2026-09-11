@@ -44,7 +44,7 @@ struct ThreadManagerWorkspaceResolverContractTests {
         func writeFile(path: String, content: String) async throws {}
         func listFiles(path: String) async throws -> [String] { [] }
         func deleteFile(path: String) async throws {}
-        func healthCheck() async -> Bool { true }
+        var isHealthy: Bool { get async { true } }
     }
 
     @Test("ThreadManager built with a custom WorkspaceResolver creates and hydrates threads")

@@ -19,13 +19,13 @@ public protocol WorkspaceCatalog: Sendable {
     ) async throws -> WorkspaceReference
 
     /// Fetches a workspace by its unique identifier.
-    func getWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference?
+    func fetchWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference?
 
     /// Lists all workspaces.
     func listWorkspaces() async throws -> [WorkspaceReference]
 
     /// Deletes a workspace.
-    func deleteWorkspace(id: UUID, deleteDirectory: Bool) async throws
+    func deleteWorkspace(id: UUID, includingDirectory: Bool) async throws
 
     /// Updates an existing workspace.
     func updateWorkspace(_ workspace: WorkspaceReference) async throws
@@ -58,11 +58,11 @@ public extension WorkspaceCatalog {
         )
     }
 
-    func getWorkspace(id: UUID, includeTools: Bool = true) async throws -> WorkspaceReference? {
-        try await getWorkspace(id: id, includeTools: includeTools)
+    func fetchWorkspace(id: UUID, includeTools: Bool = true) async throws -> WorkspaceReference? {
+        try await fetchWorkspace(id: id, includeTools: includeTools)
     }
 
-    func deleteWorkspace(id: UUID, deleteDirectory: Bool = false) async throws {
-        try await deleteWorkspace(id: id, deleteDirectory: deleteDirectory)
+    func deleteWorkspace(id: UUID, includingDirectory: Bool = false) async throws {
+        try await deleteWorkspace(id: id, includingDirectory: includingDirectory)
     }
 }

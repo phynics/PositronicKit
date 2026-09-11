@@ -81,6 +81,11 @@ public actor FoundationModelsClient: LLMClientProtocol {
         }
     }
 
+    /// Streams a single-turn completion from the on-device model.
+    ///
+    /// No retries: on-device failures (availability, guardrail, context-window) are typed and
+    /// not transient, so a failure is surfaced immediately rather than retried. Only the latest
+    /// user message is sent — see this type's documentation for the multi-turn scope gap.
     public func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
@@ -165,6 +170,8 @@ public actor FoundationModelsClient: LLMClientProtocol {
         makeSession?(tools, instructions)
     }
 
+    /// Returns the single configured on-device model name; there is no discovery API since
+    /// exactly one on-device system model exists.
     public func fetchAvailableModels() async throws -> [String]? {
         // Exactly one on-device system model exists; there is nothing to list.
         [modelName]
@@ -217,18 +224,22 @@ public actor FoundationModelsClient: LLMClientProtocol {
 public enum FoundationModelsPlatformError: PKError, Equatable {
     case unsupportedPlatform
 
+    /// Always ``PKErrorDomain/llm``.
     public var errorDomain: String {
         PKErrorDomain.llm
     }
 
+    /// A stable numeric identifier for this error.
     public var errorCode: Int {
         2201
     }
 
+    /// A human-readable explanation of the platform gap.
     public var userFriendlyMessage: String {
         "The on-device Foundation Models framework is not available on this build/host."
     }
 
+    /// A suggested next step for the caller.
     public var remediation: String? {
         "Use a different provider, or run on macOS 26+ with the FoundationModels SDK available."
     }

@@ -3,7 +3,7 @@ import Foundation
 /// Encapsulates the outcome of a tool execution.
 public struct ToolResult: Sendable, Codable {
     /// Whether the execution was successful.
-    public let success: Bool
+    public let isSuccess: Bool
 
     /// The string output of the tool, shown to the LLM on success.
     public let output: String
@@ -18,13 +18,13 @@ public struct ToolResult: Sendable, Codable {
     public let workspaceRouting: WorkspaceToolRouting?
 
     public init(
-        success: Bool,
+        isSuccess: Bool,
         output: String,
         error: String?,
         workspaceID: UUID? = nil,
         workspaceRouting: WorkspaceToolRouting? = nil
     ) {
-        self.success = success
+        self.isSuccess = isSuccess
         self.output = output
         self.error = error
         self.workspaceID = workspaceID
@@ -39,7 +39,7 @@ public struct ToolResult: Sendable, Codable {
     )
         -> ToolResult {
         ToolResult(
-            success: true,
+            isSuccess: true,
             output: output,
             error: nil,
             workspaceID: workspaceID,
@@ -54,7 +54,7 @@ public struct ToolResult: Sendable, Codable {
         workspaceRouting: WorkspaceToolRouting? = nil
     ) -> ToolResult {
         ToolResult(
-            success: false,
+            isSuccess: false,
             output: "",
             error: error,
             workspaceID: workspaceID,

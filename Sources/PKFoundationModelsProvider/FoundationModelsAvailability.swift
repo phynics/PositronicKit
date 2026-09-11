@@ -25,10 +25,12 @@ public enum FoundationModelsAvailabilityError: PKError, Equatable {
     /// Preserves the raw description rather than losing the information.
     case unknown(String)
 
+    /// Always ``PKErrorDomain/llm``.
     public var errorDomain: String {
         PKErrorDomain.llm
     }
 
+    /// A stable numeric identifier for the specific unavailability reason.
     public var errorCode: Int {
         switch self {
         case .deviceNotEligible: return 2001
@@ -38,6 +40,7 @@ public enum FoundationModelsAvailabilityError: PKError, Equatable {
         }
     }
 
+    /// A human-readable explanation of why the on-device model is unavailable.
     public var userFriendlyMessage: String {
         switch self {
         case .deviceNotEligible:
@@ -51,6 +54,7 @@ public enum FoundationModelsAvailabilityError: PKError, Equatable {
         }
     }
 
+    /// A suggested next step for the caller, when one exists.
     public var remediation: String? {
         switch self {
         case .deviceNotEligible:

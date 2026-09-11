@@ -37,7 +37,7 @@ struct FilesystemToolsTests {
         let tool = ListDirectoryTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": "."])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         let content = result.output
 
         #expect(content.contains("file1.txt"))
@@ -52,7 +52,7 @@ struct FilesystemToolsTests {
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": "file1.txt"])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output == "Hello World")
     }
 
@@ -63,7 +63,7 @@ struct FilesystemToolsTests {
 
         let result = try await tool.execute(parameters: ["path": ".", "pattern": "nested"])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         let content = result.output
 
         #expect(content.contains("subdir/nested.txt"))
@@ -76,13 +76,13 @@ struct FilesystemToolsTests {
 
         // 1. Non-recursive
         let result1 = try await tool.execute(parameters: ["path": ".", "pattern": "Hello", "recursive": false])
-        #expect(result1.success)
+        #expect(result1.isSuccess)
         #expect(result1.output.contains("file1.txt"))
         #expect(!result1.output.contains("nested.txt"))
 
         // 2. Recursive
         let result2 = try await tool.execute(parameters: ["path": ".", "pattern": "Hello", "recursive": true])
-        #expect(result2.success)
+        #expect(result2.isSuccess)
         #expect(result2.output.contains("file1.txt"))
         #expect(result2.output.contains("nested.txt"))
     }
@@ -93,19 +93,19 @@ struct FilesystemToolsTests {
         let tool = SearchFilesTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
 
         let result = try await tool.execute(parameters: ["pattern": "Hello"])
-        #expect(result.success)
+        #expect(result.isSuccess)
         let content = result.output
 
         #expect(content.contains("file1.txt"))
         #expect(content.contains("subdir/nested.txt"))
 
         let resultInclude = try await tool.execute(parameters: ["pattern": "Hello", "include": "*.txt"])
-        #expect(resultInclude.success)
+        #expect(resultInclude.isSuccess)
         #expect(resultInclude.output.contains("file1.txt"))
         #expect(!resultInclude.output.contains("file2.md"))
 
         let resultSingleFile = try await tool.execute(parameters: ["pattern": "Hello", "path": "file1.txt"])
-        #expect(resultSingleFile.success)
+        #expect(resultSingleFile.isSuccess)
         #expect(resultSingleFile.output.contains("file1.txt"))
     }
 
@@ -125,7 +125,7 @@ struct FilesystemToolsTests {
         )
         let result = try await tool.execute(parameters: ["pattern": "needle", "path": "high-output.txt"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("output byte limit") == true)
     }
 
@@ -143,7 +143,7 @@ struct FilesystemToolsTests {
         )
         let result = try await tool.execute(parameters: ["pattern": "needle", "path": "large-search.txt"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("per-file byte limit") == true)
     }
 
@@ -157,7 +157,7 @@ struct FilesystemToolsTests {
         )
         let result = try await tool.execute(parameters: ["pattern": "missing", "path": "."])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("file-count limit") == true)
     }
 
@@ -171,7 +171,7 @@ struct FilesystemToolsTests {
         )
         let result = try await tool.execute(parameters: ["pattern": "Hello", "path": "."])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("timed out") == true)
     }
 
@@ -185,7 +185,7 @@ struct FilesystemToolsTests {
         let tool = SearchFileContentTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": "large.txt", "pattern": "needle"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("per-file byte limit") == true)
     }
 
@@ -199,7 +199,7 @@ struct FilesystemToolsTests {
         )
         let result = try await tool.execute(parameters: ["path": ".", "pattern": "missing", "recursive": true])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("file-count limit") == true)
     }
 
@@ -213,7 +213,7 @@ struct FilesystemToolsTests {
         )
         let result = try await tool.execute(parameters: ["path": ".", "pattern": "missing", "recursive": false])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("total byte limit") == true)
     }
 
@@ -227,7 +227,7 @@ struct FilesystemToolsTests {
         )
         let result = try await tool.execute(parameters: ["path": ".", "pattern": "Hello", "recursive": true])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("timed out") == true)
     }
 
@@ -250,7 +250,7 @@ struct FilesystemToolsTests {
         )
         let result = try await tool.execute(parameters: ["path": ".", "pattern": "needle", "recursive": false])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         let outputLines = result.output
             .split(separator: "\n")
             .filter { $0.contains("needle") }
@@ -270,7 +270,7 @@ struct FilesystemToolsTests {
 
         let result = try await tool.execute(parameters: ["path": AnyCodable(relativePathOutside)])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error != nil)
     }
 
@@ -282,11 +282,11 @@ struct FilesystemToolsTests {
 
         let result = try await tool.execute(parameters: ["path": ".."])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output.contains("file1.txt"))
 
         let resultOutside = try await tool.execute(parameters: ["path": "../../.."])
-        #expect(!resultOutside.success)
+        #expect(!resultOutside.isSuccess)
     }
 
     @Test("Sibling prefix path is outside jail")
@@ -302,7 +302,7 @@ struct FilesystemToolsTests {
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": AnyCodable(secretURL.path)])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
     }
 
     @Test("Absolute path inside jail is allowed")
@@ -312,7 +312,7 @@ struct FilesystemToolsTests {
 
         let result = try await tool.execute(parameters: ["path": AnyCodable(tempURL.appendingPathComponent("file1.txt").path)])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output == "Hello World")
     }
 
@@ -326,7 +326,7 @@ struct FilesystemToolsTests {
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": AnyCodable(outsideURL.path)])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
     }
 
     @Test("Symlink inside jail pointing outside is rejected")
@@ -342,7 +342,7 @@ struct FilesystemToolsTests {
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": "outside-link.txt"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
     }
 
     @Test("Symlink inside jail pointing inside is allowed")
@@ -357,7 +357,7 @@ struct FilesystemToolsTests {
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": "inside-link.txt"])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output == "Hello World")
     }
 
@@ -372,7 +372,7 @@ struct FilesystemToolsTests {
             "workspaceID": "08573919-5c5e-4fb9-9285-352a8c88f7ab",
         ])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output == "Hello World")
     }
 
@@ -385,7 +385,7 @@ struct FilesystemToolsTests {
             "workspaceID": "08573919-5c5e-4fb9-9285-352a8c88f7ab",
         ])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output.contains("file1.txt"))
     }
 
@@ -399,7 +399,7 @@ struct FilesystemToolsTests {
             "workspaceID": "08573919-5c5e-4fb9-9285-352a8c88f7ab",
         ])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output.contains("subdir/nested.txt"))
     }
 
@@ -412,7 +412,7 @@ struct FilesystemToolsTests {
             "workspaceID": "08573919-5c5e-4fb9-9285-352a8c88f7ab",
         ])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output.contains("file1.txt"))
     }
 
@@ -427,7 +427,7 @@ struct FilesystemToolsTests {
             "workspaceID": "08573919-5c5e-4fb9-9285-352a8c88f7ab",
         ])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output.contains("file1.txt"))
     }
 }

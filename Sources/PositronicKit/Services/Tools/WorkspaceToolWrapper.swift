@@ -26,7 +26,7 @@ public struct WorkspaceToolWrapper: Tool, Sendable {
     }
 
     public func canExecute() async -> Bool {
-        return await workspace.healthCheck()
+        return await workspace.isHealthy
     }
 
     public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
@@ -34,7 +34,7 @@ public struct WorkspaceToolWrapper: Tool, Sendable {
         // takes the same type, so no conversion is needed.
         let result = try await workspace.executeTool(id: callName, parameters: parameters)
 
-        if result.success {
+        if result.isSuccess {
             return .success(result.output)
         } else {
             return .failure(result.error ?? "Unknown error during workspace tool execution")

@@ -75,7 +75,7 @@ struct LenientJSONParserTests {
     @Test("parse returns strict value without repair for valid JSON")
     func parseValidJSONNoRepair() throws {
         let result = try LenientJSONParser.parse("{\"key\":\"value\"}")
-        #expect(result.repaired == false)
+        #expect(result.wasRepaired == false)
         if case let .dictionary(dict) = result.value {
             if case let .string(str) = dict["key"] ?? .null {
                 #expect(str == "value")
@@ -91,13 +91,13 @@ struct LenientJSONParserTests {
     func parseRepairsTruncatedJSON() throws {
         // Truncated JSON — PartialJSON should repair it.
         let result = try LenientJSONParser.parse("{\"key\":\"value\",\"nested\":{\"a\":1")
-        #expect(result.repaired == true)
+        #expect(result.wasRepaired == true)
     }
 
     @Test("parse sanitizes code fences when sanitizeCodeFences is true")
     func parseWithCodeFenceSanitization() throws {
         let result = try LenientJSONParser.parse("```json\n{\"key\":\"value\"}\n```", sanitizeCodeFences: true)
-        #expect(result.repaired == false)
+        #expect(result.wasRepaired == false)
         if case let .dictionary(dict) = result.value {
             if case let .string(str) = dict["key"] ?? .null {
                 #expect(str == "value")
@@ -133,13 +133,13 @@ struct LenientJSONParserTests {
     @Test("parse handles JSON array fragments")
     func parseArrayFragment() throws {
         let result = try LenientJSONParser.parse("[1, 2, 3]")
-        #expect(result.repaired == false)
+        #expect(result.wasRepaired == false)
     }
 
     @Test("parse handles JSON value fragments")
     func parseValueFragment() throws {
         let result = try LenientJSONParser.parse("\"hello\"")
-        #expect(result.repaired == false)
+        #expect(result.wasRepaired == false)
     }
 
     // MARK: - jsonData

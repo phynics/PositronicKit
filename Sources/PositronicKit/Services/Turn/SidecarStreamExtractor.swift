@@ -105,7 +105,7 @@ struct SidecarStreamExtractor {
         }
 
         guard let repaired = try? LenientJSONParser.parse(buffer),
-              repaired.repaired,
+              repaired.wasRepaired,
               let object = repaired.value.value as? [String: Any]
         else {
             return nil

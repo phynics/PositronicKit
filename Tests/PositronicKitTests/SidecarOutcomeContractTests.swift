@@ -160,7 +160,7 @@ struct SidecarOutcomeContractTests {
     // optionals must additionally use `type: ["string", "null"]`. `@Schemable` emits the
     // nullable union correctly but omits the `required` array entirely when all fields are
     // optional (and never emits `additionalProperties`). `SidecarSchemaComposer.compose`
-    // sets `strict: true` unconditionally, so a directive whose payload has only optional
+    // sets `isStrict: true` unconditionally, so a directive whose payload has only optional
     // fields would otherwise produce a schema that violates OpenAI strict-mode rules — the
     // provider silently degrades and the model freelances off-schema keys (observed in
     // production: Yakamoz SID-3). `SidecarSchemaComposer.containerSchema(for:)` now
@@ -179,7 +179,7 @@ struct SidecarOutcomeContractTests {
             Issue.record("expected .jsonSchema")
             return
         }
-        #expect(schema.strict)
+        #expect(schema.isStrict)
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
@@ -209,7 +209,7 @@ struct SidecarOutcomeContractTests {
             Issue.record("expected .jsonSchema")
             return
         }
-        #expect(schema.strict)
+        #expect(schema.isStrict)
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]

@@ -486,7 +486,7 @@ extension TurnEngine {
                         if case .drop = $0.action { return true }
                         return false
                     }.count,
-                    cacheHits: report.nodeReports.filter { $0.cacheHit }.count,
+                    cacheHits: report.nodeReports.filter { $0.didHitCache }.count,
                     nodeMetrics: report.nodeReports.map {
                         StructuredCompressionNodeMetric(
                             nodeID: $0.nodeID,
@@ -494,7 +494,7 @@ extension TurnEngine {
                             action: String(describing: $0.action),
                             beforeTokens: $0.beforeTokens,
                             afterTokens: $0.afterTokens,
-                            cacheHit: $0.cacheHit
+                            didHitCache: $0.didHitCache
                         )
                     }
                 )

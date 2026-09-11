@@ -193,15 +193,10 @@ public protocol LLMStreamClient: Sendable {
     ///   - modelTier: Which configured model tier to stream from (`.primary`, `.utility`,
     ///     or `.fast`). See ``ModelTier`` for the fallback rules when a tier's client isn't
     ///     configured.
-    func generationStream(
-        messages: [LLMMessage],
-        tools: [LLMToolDefinition]?,
-        toolChoice: LLMToolChoice?,
-        responseFormat: LLMResponseFormat?,
-        generationParameters: GenerationParameters?,
-        modelTier: ModelTier
-    ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
-
+    ///   - responseModalities: The output modalities requested for this response.
+    ///   - audioOutput: Audio-output options, required when `responseModalities` includes
+    ///     `.audio`. Conformers that don't support audio output should fail the stream with
+    ///     ``MultimodalContentError/missingCapability(_:)`` rather than ignoring the request.
     func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
@@ -237,32 +232,8 @@ public extension LLMStreamClient {
         DefaultStructuredOutputAdapter()
     }
 
-    func generationStream(
-        messages: [LLMMessage],
-        tools: [LLMToolDefinition]?,
-        toolChoice: LLMToolChoice?,
-        responseFormat: LLMResponseFormat?,
-        generationParameters: GenerationParameters?,
-        modelTier: ModelTier,
-        responseModalities: Set<ResponseModality>,
-        audioOutput: AudioOutputOptions?
-    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        guard !responseModalities.contains(.audio), audioOutput == nil else {
-            return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: MultimodalContentError.missingCapability(.audioOutput))
-            }
-        }
-        return await generationStream(
-            messages: messages,
-            tools: tools,
-            toolChoice: toolChoice,
-            responseFormat: responseFormat,
-            generationParameters: generationParameters,
-            modelTier: modelTier
-        )
-    }
-
-    /// Default-args convenience for the low-level streaming entry point.
+    /// Default-args convenience for the low-level streaming entry point, for callers that
+    /// don't need non-text output modalities.
     func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]? = nil,
@@ -277,7 +248,9 @@ public extension LLMStreamClient {
             toolChoice: toolChoice,
             responseFormat: responseFormat,
             generationParameters: generationParameters,
-            modelTier: modelTier
+            modelTier: modelTier,
+            responseModalities: [.text],
+            audioOutput: nil
         )
     }
 }

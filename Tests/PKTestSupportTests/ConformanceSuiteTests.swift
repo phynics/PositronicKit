@@ -240,5 +240,5 @@ private struct BrokenWorkspaceFactory: WorkspaceFactory {
 private struct BrokenWorkspaceProvider: WorkspaceProvider {
     let reference: WorkspaceReference
 
-    func healthCheck() async -> Bool { true }
+    var isHealthy: Bool { get async { true } }
 }
