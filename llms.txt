@@ -14,9 +14,9 @@
 
 ## Next / v5
 
-- [Overview and quick start](README.md): Release selection, runtime contracts, provider setup, conformance suites, runnable examples, products, and verification.
+- [Overview and quick start](README.md): Release selection, runtime contracts, provider setup, typed structured generation, conformance suites, runnable examples, products, and verification.
 - [Setup](docs/Setup.md): Provider-neutral configuration, readiness and health, stream timing, offline examples, persistence, customization, logging, and stable error identity.
-- [Usage](docs/Usage.md): Managed and direct Turns, cancellation, SOUL/Notes Agent memory, lifecycle, and Workspace routing.
+- [Usage](docs/Usage.md): Managed and direct Turns, typed and raw one-shot structured generation, cancellation, SOUL/Notes Agent memory, lifecycle, and Workspace routing.
 - [Architecture](docs/Architecture.md): v5 domain boundaries, capability values, durability, and execution authority.
 - [Prompt composition](docs/PKPromptComposition.md): Prompt IR, assembly, rendering, compression, and PromptJournal.
 - [Sidecar directives](docs/SidecarDirectives.md): Auxiliary structured results carried by the same Turn.

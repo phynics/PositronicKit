@@ -149,6 +149,33 @@ after every provider chunk. Structured one-shot output uses the same native-resp
 synthetic-tool adapter path as full runs:
 
 ```swift
+import JSONSchemaBuilder
+
+@Schemable
+struct ProjectMetadata: Decodable, Sendable {
+    let projectName: String
+    let language: String
+
+    enum CodingKeys: String, CodingKey {
+        case projectName = "project_name"
+        case language
+    }
+}
+
+let metadata = try await kit.model.generate(
+    ProjectMetadata.self,
+    from: "Extract the project metadata.",
+    generationParameters: GenerationParameters(temperature: 0),
+    idleTimeout: 30
+)
+```
+
+The type must be `Decodable`, `Sendable`, and `Schemable`. `CodingKeys` and the decoder's key
+strategy must agree with the generated schema; pass a configured `JSONDecoder` when decoding
+needs custom behavior. For callers that need the raw JSON payload or a hand-built schema, the
+advanced operation remains available:
+
+```swift
 let json = try await kit.model.generateStructured(
     "Extract the project metadata.",
     structuredOutput: request,
@@ -156,6 +183,14 @@ let json = try await kit.model.generateStructured(
     idleTimeout: 30
 )
 ```
+
+Typed structured generation reports schema construction failures as
+`StructuredGenerationError.schemaConstructionFailed` before provider execution. After a response
+arrives, `StructuredOutputDecodingError.invalidJSONPayload` means the payload was not parseable
+even after repair, while `.decodingFailed` means valid JSON could not be decoded as `Output`,
+including failures raised by custom decoding. Provider failures, idle timeouts, and cancellation
+retain their existing error identities. The raw operation's rename for the next breaking release
+is tracked in [#176](https://github.com/phynics/PositronicKit/issues/176).
 
 Errors arrive at the boundary where the work occurs:
 
@@ -166,7 +201,7 @@ Errors arrive at the boundary where the work occurs:
 - Provider and pipeline failures after a `TurnHandle` is admitted arrive as terminal events on
   its nonthrowing `events()` stream. The durable `outcome()` remains authoritative for every
   joiner.
-- `kit.model.generate` and `generateStructured` consume provider streams internally, so preparation
+- `kit.model.generate`, `generateStructured`, and typed structured generation consume provider streams internally, so preparation
   and provider failures both throw from the one-shot call. `kit.model.stream` returns immediately
   and reports provider failures during iteration.
 

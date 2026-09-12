@@ -145,6 +145,60 @@ struct StructuredOutputDecoderTests {
         }
     }
 
+    @Test("Distinguishes invalid JSON from a decoding mismatch")
+    func distinguishesInvalidJSONFromDecodingMismatch() {
+        do {
+            _ = try StructuredOutputDecoder.decode(TagPayload.self, from: "not json")
+            Issue.record("Expected invalid JSON to fail")
+        } catch let error as StructuredOutputDecodingError {
+            #expect(error == .invalidJSONPayload)
+            #expect(error.errorDomain == PKErrorDomain.shared)
+            #expect(error.errorCode == 203)
+            #expect(error.remediation != nil)
+        } catch {
+            Issue.record("Expected StructuredOutputDecodingError, got \(error)")
+        }
+
+        do {
+            _ = try StructuredOutputDecoder.decode(TagPayload.self, from: #"{"tags":"not-an-array"}"#)
+            Issue.record("Expected a decoding mismatch to fail")
+        } catch let error as StructuredOutputDecodingError {
+            guard case let .decodingFailed(reason) = error else {
+                Issue.record("Expected decodingFailed, got \(error)")
+                return
+            }
+            #expect(!reason.isEmpty)
+            #expect(error.errorDomain == PKErrorDomain.shared)
+            #expect(error.errorCode == 204)
+            #expect(error.userFriendlyMessage.contains(reason))
+            #expect(error.remediation != nil)
+        } catch {
+            Issue.record("Expected StructuredOutputDecodingError, got \(error)")
+        }
+    }
+
+    @Test("Maps arbitrary custom decoder errors as decoding failures")
+    func mapsArbitraryCustomDecoderErrors() {
+        let decoder = JSONDecoder()
+
+        do {
+            _ = try StructuredOutputDecoder.decode(
+                CustomErrorPayload.self,
+                from: #"{"value":"valid JSON"}"#,
+                decoder: decoder
+            )
+            Issue.record("Expected the custom decoder error to fail")
+        } catch let error as StructuredOutputDecodingError {
+            guard case let .decodingFailed(reason) = error else {
+                Issue.record("Expected decodingFailed, got \(error)")
+                return
+            }
+            #expect(reason.contains("custom decoder failed"))
+        } catch {
+            Issue.record("Expected StructuredOutputDecodingError, got \(error)")
+        }
+    }
+
     @Test("Throws on empty payload")
     func throwsOnEmptyPayload() {
         #expect(throws: StructuredOutputDecodingError.self) {
@@ -272,5 +326,17 @@ struct StructuredOutputDecoderTests {
         struct EmptyPayload: Decodable, Equatable {}
         let decoded = try StructuredOutputDecoder.decode(EmptyPayload.self, from: "{}")
         #expect(decoded == EmptyPayload())
+    }
+}
+
+private struct CustomDecodingFailure: LocalizedError {
+    var errorDescription: String? {
+        "custom decoder failed"
+    }
+}
+
+private struct CustomErrorPayload: Decodable {
+    init(from _: Decoder) throws {
+        throw CustomDecodingFailure()
     }
 }

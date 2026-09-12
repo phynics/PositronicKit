@@ -183,6 +183,7 @@ let package = Package(
                 "PKAnthropicProvider",
                 "PKFoundationModelsProvider",
                 "PKTestSupport",
+                .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
             path: "Tests/PublicProductConsumer",
             swiftSettings: approachableConcurrency

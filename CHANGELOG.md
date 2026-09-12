@@ -51,6 +51,11 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Typed one-shot structured generation (#142):** `kit.model.generate(_:from:generationParameters:idleTimeout:decoder:)`
+  derives a Draft 2020-12 schema from a `Schemable` `Decodable & Sendable` output type, uses the
+  existing native/synthetic structured-output path, and returns the decoded value. Schema
+  construction and payload-decoding failures have stable, actionable error identities; the raw
+  `generateStructured` operation remains available for advanced callers.
 - **Stable repository error identity and durable failure messages (#167):** `ThreadRuntimeRepositoryError`
   now uses `PKErrorDomain.thread` codes `6101` through `6117`, with `6118` reserved. Each
   `WorkspaceBindingRepositoryError` case uses `PKErrorDomain.workspace` codes `3101` through
@@ -58,7 +63,6 @@ for tagged releases beginning with `1.0.0`.
   `userFriendlyMessage`. Newly persisted `TurnOutcome.failed` messages use
   `ErrorKit.userFriendlyMessage(for:)`, while transient errors, cancellation outcomes, and fixed
   policy messages keep their existing behavior.
-
 - `DirectTurnContext` now defaults omitted `contributors` to `[.host]`, so common detached direct
   Turn calls do not need to name a contributor. Explicit contributor arrays and the existing
   convenience initializers remain unchanged.

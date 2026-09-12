@@ -1,5 +1,7 @@
 import Foundation
 import ErrorKit
+import JSONSchema
+import JSONSchemaBuilder
 import PKContracts
 
 /// Errors returned by model capability operations that are not available for an injected client.
@@ -72,6 +74,63 @@ public struct ModelInferenceCapability: Sendable {
             generationParameters: generationParameters,
             idleTimeout: idleTimeout
         )
+    }
+
+    /// Generates and decodes one structured response for a single prompt, without creating or
+    /// updating a Thread.
+    ///
+    /// The result type must provide a JSON Schema through `@Schemable`. The generated schema's
+    /// keys must agree with the keys accepted by `decoder`, including any explicit `CodingKeys`
+    /// or custom decoding strategy.
+    ///
+    /// - Parameters:
+    ///   - type: The `Decodable` type to request and return.
+    ///   - prompt: The user prompt to send.
+    ///   - generationParameters: Per-call generation parameters. Defaults to the facade's
+    ///     configured parameters when `nil`.
+    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. This defaults to
+    ///     60 seconds and is applied by the existing one-shot structured-output path.
+    ///   - decoder: The decoder used to turn the model's JSON payload into `Output`.
+    /// - Returns: The decoded structured response.
+    /// - Throws: `PKContracts.StructuredGenerationError.schemaConstructionFailed(typeName:reason:)` when
+    ///   the generated schema cannot be constructed. Provider, timeout, cancellation, and
+    ///   payload-decoding errors are thrown unchanged from their existing paths.
+    public func generate<Output>(
+        _ type: Output.Type,
+        from prompt: String,
+        generationParameters: GenerationParameters? = nil,
+        idleTimeout: TimeInterval = 60,
+        decoder: JSONDecoder = SerializationUtils.jsonDecoder
+    ) async throws -> Output
+    where
+        Output: Decodable & Sendable & Schemable,
+        Output.Schema.Output == Output
+    {
+        let schema: Schema
+        do {
+            schema = try Schema(
+                rawSchema: Output.schema.schemaValue.value,
+                context: Context(dialect: .draft2020_12)
+            )
+        } catch {
+            throw StructuredGenerationError.schemaConstructionFailed(
+                typeName: String(reflecting: Output.self),
+                reason: String(describing: error)
+            )
+        }
+
+        let request = StructuredOutputRequest.jsonSchema(StructuredOutputSchema(
+            name: Output.defaultAnchor,
+            schema: schema
+        ))
+        let payload = try await kit.complete(
+            prompt,
+            structuredOutput: request,
+            generationParameters: generationParameters,
+            idleTimeout: idleTimeout
+        )
+
+        return try StructuredOutputDecoder.decode(Output.self, from: payload, decoder: decoder)
     }
 
     /// Streams a response for a single prompt, without creating or updating a Thread.

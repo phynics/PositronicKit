@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 import PKAnthropicProvider
 import PKContracts
 import PKFoundationModelsProvider
@@ -54,6 +55,23 @@ _ = kit.threads
 _ = kit.agents
 _ = kit.workspaces
 _ = String(describing: ThreadHandle.self)
+
+@Schemable
+struct PublicTypedStructuredPayload: Decodable, Sendable {
+    let projectName: String
+
+    enum CodingKeys: String, CodingKey {
+        case projectName = "project_name"
+    }
+}
+
+// Ordinary-import compile coverage for the typed one-shot structured-generation API.
+func exercisePublicTypedStructuredGeneration() async {
+    _ = try? await kit.model.generate(
+        PublicTypedStructuredPayload.self,
+        from: "Extract the project name."
+    )
+}
 
 // Ordinary-import compile coverage for the canonical managed/direct admission overloads.
 func exercisePublicTurnAdmission(_ thread: ThreadHandle) async {
