@@ -88,7 +88,7 @@ final class WorkspaceBindingRepositoryTests: XCTestCase {
             description: "Primary workspace ownership test"
         )
         let workspaceID = try XCTUnwrap(agent.primaryWorkspaceID)
-        let privateThread = try await kit.threads.get(agent.privateThreadID)
+        let privateThread = try await kit.threads.fetch(agent.privateThreadID)
 
         XCTAssertNotNil(privateThread)
         let owner = try await bindings.threadID(for: workspaceID)

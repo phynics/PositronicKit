@@ -24,11 +24,11 @@ private actor FakeWorkspaceRepository: WorkspaceCatalog {
         shouldThrow = value
     }
 
-    func fetchWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference? {
+    func fetchWorkspace(workspaceID: UUID, includeTools: Bool) async throws -> WorkspaceReference? {
         if shouldThrow {
             throw TestError.repositoryFailure
         }
-        return references[id]
+        return references[workspaceID]
     }
 
     func createWorkspace(
@@ -64,8 +64,8 @@ private actor FakeWorkspaceRepository: WorkspaceCatalog {
         Array(references.values)
     }
 
-    func deleteWorkspace(id: UUID, includingDirectory: Bool) async throws {
-        references.removeValue(forKey: id)
+    func deleteWorkspace(workspaceID: UUID, includingDirectory: Bool) async throws {
+        references.removeValue(forKey: workspaceID)
     }
 
     func updateWorkspace(_ workspace: WorkspaceReference) async throws {

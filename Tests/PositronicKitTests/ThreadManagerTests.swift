@@ -79,10 +79,10 @@ struct ThreadManagerTests {
     @Test("canonical thread manager exposes store and runtime policy names")
     func canonicalThreadManagerTypes() {
         let policy = RuntimeToolPolicy(
-            installThreadObservationTools: false,
+            installsThreadObservationTools: false,
             installsThreadSendTool: false
         )
-        #expect(policy.installThreadObservationTools == false)
+        #expect(policy.installsThreadObservationTools == false)
         #expect(policy.installsThreadSendTool == false)
 
         let workspaceStore = InMemoryWorkspacePersistence()

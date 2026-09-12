@@ -12,6 +12,11 @@ public struct LLMToolDefinition: Sendable, Codable {
     /// Whether the provider should enforce strict schema adherence, where supported.
     public let isStrict: Bool?
 
+    private enum CodingKeys: String, CodingKey {
+        case name, description, parameters
+        case isStrict = "strict"
+    }
+
     public init(
         name: String,
         description: String? = nil,
@@ -69,6 +74,11 @@ public struct LLMResponseSchema: Sendable, Codable, Equatable {
     public let schema: Schema?
     /// Whether the provider should enforce strict schema adherence, where supported.
     public let isStrict: Bool?
+
+    private enum CodingKeys: String, CodingKey {
+        case name, description, schema
+        case isStrict = "strict"
+    }
 
     public init(
         name: String,

@@ -15,16 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / "docs" / "catalog.json"
 
 
-def platform_name() -> str:
-    system = platform.system()
-    if system == "Darwin":
-        return "macos"
-    if system == "Linux":
-        return "linux"
-    raise SystemExit(f"unsupported public API baseline platform: {system}")
-
-
-PLATFORM = platform_name()
+BASELINE_PLATFORM = "linux"
 
 
 def target_release() -> str:
@@ -37,7 +28,7 @@ def target_release() -> str:
 
 
 BASELINE_RELEASE = target_release()
-BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{PLATFORM}.json"
+BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{BASELINE_PLATFORM}.json"
 
 
 def run_result(*arguments: str) -> tuple[int, str]:
@@ -112,30 +103,6 @@ def inventory() -> dict:
         json.loads(path.read_text())["module"]["name"]
         for path in graph_paths
     }
-    if platform.system() == "Darwin":
-        generated_module_maps = bin_path.parent.parent / "Intermediates.noindex" / "GeneratedModuleMaps"
-        sdk = run("xcrun", "--show-sdk-path")
-        fallback_modules = set(modules) - observed_graph_modules
-        fallback_modules.add("PKContracts")
-        for module in sorted(fallback_modules):
-            for graph in graph_dir.rglob("*.symbols.json"):
-                if json.loads(graph.read_text())["module"]["name"] == module:
-                    graph.unlink()
-            candidates = list(bin_path.parent.parent.rglob(f"{module}.swiftmodule"))
-            if not candidates:
-                continue
-            run(
-                "xcrun", "swift-symbolgraph-extract",
-                "-module-name", module,
-                "-I", str(candidates[0].parent),
-                "-I", str(generated_module_maps),
-                "-sdk", sdk,
-                "-output-dir", str(graph_dir),
-                "-minimum-access-level", "public",
-                "-skip-synthesized-members",
-                "-skip-inherited-docs",
-            )
-
     symbols: dict[str, dict] = {}
     relationships: dict[str, dict] = {}
     observed_modules: set[str] = set()
@@ -184,7 +151,7 @@ def inventory() -> dict:
     return {
         "schemaVersion": 2,
         "release": BASELINE_RELEASE,
-        "platform": PLATFORM,
+        "platform": BASELINE_PLATFORM,
         "modules": modules,
         "symbols": [dict(precise=precise, **symbols[precise]) for precise in sorted(symbols)],
         "relationships": [relationships[key] for key in sorted(relationships)],
@@ -248,6 +215,14 @@ def main() -> int:
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--write", action="store_true")
     args = parser.parse_args()
+    system = platform.system()
+    if system == "Darwin":
+        if args.check:
+            print("Skipping public API baseline validation on macOS; Linux is the canonical baseline.")
+            return 0
+        raise SystemExit("public API baselines are Linux-only; run make update-public-api-baseline on Linux")
+    if system != "Linux":
+        raise SystemExit(f"unsupported public API baseline platform: {system}")
     actual = inventory()
     if args.write:
         BASELINE.parent.mkdir(parents=True, exist_ok=True)

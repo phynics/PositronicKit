@@ -37,7 +37,7 @@ public actor DefaultWorkspaceResolver: WorkspaceResolver {
         }
 
         // Fetch from repository
-        guard let reference = try await repository.fetchWorkspace(id: id) else {
+        guard let reference = try await repository.fetchWorkspace(workspaceID: id) else {
             return nil
         }
 

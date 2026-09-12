@@ -20,6 +20,22 @@ struct StructuredOutputSchemaTests {
         #expect(encodedString.contains("\"type\":\"object\""))
         #expect(encodedString.contains("\"tags\""))
     }
+
+    @Test("Strict flag preserves the legacy JSON key")
+    func strictFlagPreservesLegacyJSONKey() throws {
+        let schema = try Schema(instance: #"{"type":"object"}"#)
+        let structuredSchema = StructuredOutputSchema(
+            name: "payload",
+            schema: schema,
+            isStrict: false
+        )
+
+        let object = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(structuredSchema)) as? [String: Any]
+        )
+        #expect(object["strict"] as? Bool == false)
+        #expect(object["isStrict"] == nil)
+    }
 }
 
 @Suite("LLM Tool Call Recovery State Tests")

@@ -53,7 +53,7 @@ help:
 	@echo "  make verify-tests          Run the test suite"
 	@echo "  make verify-pktestsupport  Build PKTestSupport and an ordinary-import consumer in release mode"
 	@echo "  make verify-public-consumers  Compile ordinary imports for every public library product"
-	@echo "  make verify-public-api    Compare public Swift symbols with the reviewed Next / v5 baseline"
+	@echo "  make verify-public-api    Compare public Swift symbols with the reviewed Linux Next / v5 baseline"
 	@echo "  make update-public-api-baseline  Record an intentionally reviewed public API change"
 	@echo "  make verify-release VERSION=x.y.z  Check local tag and release artifacts agree"
 	@echo "  make verify-dependency-direction  Check the v4 target dependency boundaries"
@@ -127,7 +127,7 @@ doctor:
 
 verify-macos-default: verify
 
-verify: verify-concurrency-scan verify-runtime-architecture verify-dependency-direction validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers verify-tests
+verify: verify-concurrency-scan verify-runtime-architecture verify-dependency-direction validate-docs verify-products verify-examples verify-pktestsupport verify-public-consumers verify-tests
 
 verify-linux-suites:
 	@echo "Running comprehensive Linux test suite..."

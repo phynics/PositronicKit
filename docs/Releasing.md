@@ -24,10 +24,10 @@ The tagged version applies to the public products documented in
    reviewing the public API. In particular, primary-Workspace tool activity is durable only on the
    executing Thread in v4; `AgentActivitySink` is lifecycle-only and must not become a hidden
    cross-Thread history path without a new issue and an accepted history contract.
-3. Review the public API inventory with `make verify-public-api` on Linux and macOS. The platform
-   graphs differ, especially for Apple-only products, so the release requires reviewed
-   `api/4.0-public-api-linux.json` and `api/4.0-public-api-macos.json` files. For an intentional
-   contract change, inspect the reported symbols and record that platform with
+3. Review the public API inventory with `make verify-public-api` on Linux. Linux is the canonical
+   baseline platform, so the release requires a reviewed `api/4.0-public-api-linux.json` file. On
+   macOS, the check is skipped because its symbol graphs are not used as a release contract. For an
+   intentional contract change, inspect the reported symbols and record it with
    `make update-public-api-baseline`; never update a baseline merely to make the gate pass. The
    checker uses the output directory reported by SwiftPM and validates every catalog module before
    treating extraction status as a failure, so errors for non-public test targets are tooling noise
