@@ -68,7 +68,7 @@ struct RuntimeToolPolicyFactoryTests {
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: thread,
             jailRoot: "/tmp/test",
-            runtimeToolPolicy: .default, // installThreadSendTool = true
+            runtimeToolPolicy: .default, // installsThreadSendTool = true
             threadStore: threadStore,
             messageStore: messageStore
         )
@@ -90,7 +90,7 @@ struct RuntimeToolPolicyFactoryTests {
             runtimeToolPolicy: .init(
                 installFilesystemTools: false,
                 installThreadObservationTools: true,
-                installThreadSendTool: true
+                installsThreadSendTool: true
             ),
             threadStore: threadStore,
             messageStore: messageStore
@@ -132,7 +132,7 @@ struct RuntimeToolPolicyFactoryTests {
             runtimeToolPolicy: .init(
                 installFilesystemTools: true,
                 installThreadObservationTools: false,
-                installThreadSendTool: false
+                installsThreadSendTool: false
             ),
             threadStore: threadStore,
             messageStore: messageStore

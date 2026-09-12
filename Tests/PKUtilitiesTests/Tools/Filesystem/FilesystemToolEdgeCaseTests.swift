@@ -38,7 +38,7 @@ struct FilesystemToolEdgeCaseTests {
         let subdir = tempURL.appendingPathComponent("subdir").path
         let result = try await tool.execute(parameters: ["path": "subdir"])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output.contains(subdir))
         #expect(await actor.path == subdir)
     }
@@ -49,7 +49,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = ChangeDirectoryTool(currentPath: tempURL.path, root: tempURL.path) { _ in }
         let result = try await tool.execute(parameters: ["path": "nonexistent"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("not found") == true)
     }
 
@@ -59,7 +59,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = ChangeDirectoryTool(currentPath: tempURL.path, root: tempURL.path) { _ in }
         let result = try await tool.execute(parameters: ["path": "file1.txt"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("not a directory") == true)
     }
 
@@ -69,7 +69,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = ChangeDirectoryTool(currentPath: tempURL.path, root: tempURL.path) { _ in }
         let result = try await tool.execute(parameters: [:])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
     }
 
     @Test("ChangeDirectoryTool rejects path escape outside jail")
@@ -78,7 +78,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = ChangeDirectoryTool(currentPath: tempURL.path, root: tempURL.path) { _ in }
         let result = try await tool.execute(parameters: ["path": "../../etc"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
     }
 
     @Test("ChangeDirectoryTool canExecute returns true")
@@ -96,7 +96,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: [:])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
     }
 
     @Test("ReadFileTool fails for a non-existent file")
@@ -105,7 +105,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": "nonexistent.txt"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
         #expect(result.error?.contains("not found") == true || result.error?.contains("does not exist") == true)
     }
 
@@ -115,7 +115,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": "../../../etc/passwd"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
     }
 
     // MARK: - ListDirectoryTool
@@ -126,7 +126,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = ListDirectoryTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: [:])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output.contains("file1.txt"))
     }
 
@@ -136,7 +136,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = ListDirectoryTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": "nonexistent"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
     }
 
     @Test("ListDirectoryTool rejects path escape outside jail")
@@ -145,7 +145,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = ListDirectoryTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": "../../etc"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
     }
 
     // MARK: - FindFileTool
@@ -156,7 +156,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = FindFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["pattern": "file"])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output.contains("file1.txt"))
     }
 
@@ -166,7 +166,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = FindFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": "."])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
     }
 
     @Test("FindFileTool returns no results for a non-matching pattern")
@@ -175,7 +175,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = FindFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": ".", "pattern": "zzznomatch"])
 
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output.contains("No files") || result.output.contains("0"))
     }
 
@@ -185,7 +185,7 @@ struct FilesystemToolEdgeCaseTests {
         let tool = FindFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
         let result = try await tool.execute(parameters: ["path": "../../etc", "pattern": "passwd"])
 
-        #expect(!result.success)
+        #expect(!result.isSuccess)
     }
 }
 

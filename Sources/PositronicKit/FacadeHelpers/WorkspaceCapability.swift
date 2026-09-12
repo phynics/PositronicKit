@@ -24,7 +24,7 @@ public struct WorkspaceCapability: Sendable {
     }
 
     public func get(_ workspaceID: UUID, includeTools: Bool = true) async throws -> WorkspaceReference? {
-        try await kit.workspaceCatalog.getWorkspace(id: workspaceID, includeTools: includeTools)
+        try await kit.workspaceCatalog.fetchWorkspace(id: workspaceID, includeTools: includeTools)
     }
 
     public func list() async throws -> [WorkspaceReference] {
@@ -35,10 +35,10 @@ public struct WorkspaceCapability: Sendable {
         try await kit.workspaceCatalog.updateWorkspace(workspace)
     }
 
-    public func delete(_ workspaceID: UUID, deleteDirectory: Bool = false) async throws {
+    public func delete(_ workspaceID: UUID, includingDirectory: Bool = false) async throws {
         try await kit.workspaceCatalog.deleteWorkspace(
             id: workspaceID,
-            deleteDirectory: deleteDirectory
+            includingDirectory: includingDirectory
         )
     }
 }

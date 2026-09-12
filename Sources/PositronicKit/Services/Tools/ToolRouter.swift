@@ -477,7 +477,7 @@ actor ToolRouter {
             timeout: toolExecutionTimeout,
             sleep: sleep
         )
-        if result.success {
+        if result.isSuccess {
             logger.info("Success: \(toolName)")
             return result.output
         } else {
@@ -608,7 +608,7 @@ actor ToolRouter {
                     threadID: threadId,
                     toolCallID: call.callId,
                     output: errorOutput,
-                    succeeded: false,
+                    isSuccessful: false,
                     errorMessage: errorMsg,
                     workspaceID: workspaceRoute?.workspaceID,
                     workspaceRouting: workspaceRoute?.routing

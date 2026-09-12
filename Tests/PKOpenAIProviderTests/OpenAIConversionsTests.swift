@@ -192,7 +192,7 @@ struct OpenAIConversionsTests {
             name: "weather_result",
             description: "Weather output",
             schema: nil,
-            strict: true
+            isStrict: true
         )
         let format = LLMResponseFormat.jsonSchema(schema)
         let param = format.toOpenAIResponseFormat()
@@ -212,7 +212,7 @@ struct OpenAIConversionsTests {
             name: "weather",
             description: nil,
             schema: rawSchema,
-            strict: nil
+            isStrict: nil
         )
         let format = LLMResponseFormat.jsonSchema(responseSchema)
         let param = format.toOpenAIResponseFormat()
@@ -231,7 +231,7 @@ struct OpenAIConversionsTests {
             name: "get_weather",
             description: "Get the weather for a city",
             parameters: nil,
-            strict: true
+            isStrict: true
         )
         let param = tool.toOpenAIToolParam()
         #expect(param.function.name == "get_weather")
@@ -247,7 +247,7 @@ struct OpenAIConversionsTests {
             name: "get_weather",
             description: "Get weather",
             parameters: rawSchema,
-            strict: false
+            isStrict: false
         )
         let param = tool.toOpenAIToolParam()
         #expect(param.function.name == "get_weather")

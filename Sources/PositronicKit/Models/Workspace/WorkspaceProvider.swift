@@ -12,8 +12,8 @@ public protocol WorkspaceProvider: Sendable {
     /// The persisted identity and metadata represented by this provider.
     var reference: WorkspaceReference { get }
 
-    /// Returns whether the provider can currently reach its backing workspace.
-    func healthCheck() async -> Bool
+    /// Whether the provider can currently reach its backing workspace.
+    var isHealthy: Bool { get async }
 }
 
 public extension WorkspaceProvider {

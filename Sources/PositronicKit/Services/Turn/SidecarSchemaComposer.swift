@@ -74,7 +74,7 @@ public enum SidecarSchemaComposer {
             name: "sidecar_turn",
             description: "User-visible response plus piggy-backed auxiliary fields.",
             schema: schema,
-            strict: true
+            isStrict: true
         ))
     }
 

@@ -20,16 +20,16 @@ struct AgentWorkspaceFileToolsTests {
         let read = AgentWorkspaceFileTool(operation: .readFile, provider: provider)
         let delete = AgentWorkspaceFileTool(operation: .deleteFile, provider: provider)
 
-        #expect((try await write.execute(parameters: ["path": "Notes/MEMORY.md", "content": "hello\n"])).success)
-        #expect((try await append.execute(parameters: ["path": "Notes/MEMORY.md", "content": "world\n"])).success)
+        #expect((try await write.execute(parameters: ["path": "Notes/MEMORY.md", "content": "hello\n"])).isSuccess)
+        #expect((try await append.execute(parameters: ["path": "Notes/MEMORY.md", "content": "world\n"])).isSuccess)
         let edits: AnyCodable = .array([.dictionary([
             "oldText": .string("hello"),
             "newText": .string("updated"),
         ])])
-        #expect((try await edit.execute(parameters: ["path": "Notes/MEMORY.md", "edits": edits])).success)
+        #expect((try await edit.execute(parameters: ["path": "Notes/MEMORY.md", "edits": edits])).isSuccess)
         let readResult = try await read.execute(parameters: ["path": "Notes/MEMORY.md"])
         #expect(readResult.output.contains("updated\nworld"))
-        #expect((try await write.execute(parameters: ["path": "Notes/ambiguous.md", "content": "aaa"])).success)
+        #expect((try await write.execute(parameters: ["path": "Notes/ambiguous.md", "content": "aaa"])).isSuccess)
         let ambiguous = try await edit.execute(parameters: [
             "path": "Notes/ambiguous.md",
             "edits": .array([.dictionary([
@@ -37,8 +37,8 @@ struct AgentWorkspaceFileToolsTests {
                 "newText": .string("x"),
             ])]),
         ])
-        #expect(!ambiguous.success)
-        #expect((try await delete.execute(parameters: ["path": "Notes/MEMORY.md"])).success)
+        #expect(!ambiguous.isSuccess)
+        #expect((try await delete.execute(parameters: ["path": "Notes/MEMORY.md"])).isSuccess)
     }
 
     @Test("jails paths and requests approval only for SOUL mutations")
@@ -65,6 +65,6 @@ struct AgentWorkspaceFileToolsTests {
             "path": "../outside.md",
             "content": "must not escape",
         ])
-        #expect(!blocked.success)
+        #expect(!blocked.isSuccess)
     }
 }

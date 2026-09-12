@@ -92,7 +92,7 @@ struct StructuredOutputServiceTests {
             }
             #expect(schema.name == "tag_payload")
             #expect(schema.schema != nil)
-            #expect(schema.strict == true)
+            #expect(schema.isStrict == true)
         }
     }
 

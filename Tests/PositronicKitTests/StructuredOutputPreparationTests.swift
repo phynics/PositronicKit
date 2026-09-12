@@ -55,7 +55,7 @@ struct StructuredOutputPreparationTests {
                     }
                     #expect(responseSchema.name == schema.name)
                     #expect(responseSchema.description == schema.description)
-                    #expect(responseSchema.strict == schema.strict)
+                    #expect(responseSchema.isStrict == schema.isStrict)
                     #expect(responseSchema.schema != nil)
                     #expect(prepared.promptAugmentation == nil)
                     #expect(prepared.toolChoice == nil)
@@ -70,7 +70,7 @@ struct StructuredOutputPreparationTests {
                     }
                     #expect(responseSchema.name == schema.name)
                     #expect(responseSchema.description == schema.description)
-                    #expect(responseSchema.strict == schema.strict)
+                    #expect(responseSchema.isStrict == schema.isStrict)
                     #expect(responseSchema.schema != nil)
                     #expect(prepared.promptAugmentation?.contains("Schema name: \(schema.name)") == true)
                     #expect(prepared.promptAugmentation?.contains("JSON Schema") == true)
@@ -89,7 +89,7 @@ struct StructuredOutputPreparationTests {
                     }
                     #expect(responseSchema.name == schema.name)
                     #expect(responseSchema.description == schema.description)
-                    #expect(responseSchema.strict == schema.strict)
+                    #expect(responseSchema.isStrict == schema.isStrict)
                     #expect(responseSchema.schema != nil)
                     #expect(prepared.promptAugmentation?.contains("Schema name: \(schema.name)") == true)
                     #expect(prepared.promptAugmentation?.contains("JSON Schema") == true)
@@ -115,7 +115,7 @@ struct StructuredOutputPreparationTests {
                     if let tool = prepared.tools?.last {
                         #expect(tool.description?.contains(schema.name) == true)
                         #expect(tool.parameters != nil)
-                        #expect(tool.strict == schema.strict)
+                        #expect(tool.isStrict == schema.isStrict)
                     }
                 }
             }
@@ -163,7 +163,7 @@ struct StructuredOutputPreparationTests {
                 name: schema.name,
                 description: schema.description,
                 schema: schema.schema,
-                strict: schema.strict
+                isStrict: schema.isStrict
             )).toOpenAIResponseFormat(),
             stream: true
         )
@@ -193,7 +193,7 @@ struct StructuredOutputPreparationTests {
                 name: schema.name,
                 description: schema.description,
                 schema: schema.schema,
-                strict: schema.strict
+                isStrict: schema.isStrict
             )),
             generationParameters: nil
         )
@@ -223,7 +223,7 @@ struct StructuredOutputPreparationTests {
                 name: schema.name,
                 description: schema.description,
                 schema: schema.schema,
-                strict: schema.strict
+                isStrict: schema.isStrict
             )),
             generationParameters: nil
         )
@@ -249,7 +249,7 @@ struct StructuredOutputPreparationTests {
             name: "emit_structured_response",
             description: "Emit structured response",
             parameters: schema.schema,
-            strict: true
+            isStrict: true
         )
         let stream = await client.chatStream(
             messages: [LLMMessage(role: .user, content: "hello")],

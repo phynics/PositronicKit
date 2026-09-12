@@ -147,8 +147,8 @@ private actor AcceptanceWorkspace: WorkspaceToolProvider, WorkspaceFileProvider 
     }
 
     func deleteFile(path _: String) async throws {}
-    func healthCheck() async -> Bool {
-        true
+    var isHealthy: Bool {
+        get async { true }
     }
 }
 

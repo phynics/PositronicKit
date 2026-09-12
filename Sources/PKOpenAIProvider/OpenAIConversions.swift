@@ -10,7 +10,7 @@ public extension LLMToolDefinition {
             name: name,
             description: description,
             parameters: parameters.flatMap { convertToOpenAISchema($0) },
-            strict: strict
+            strict: isStrict
         ))
     }
 }
@@ -108,7 +108,7 @@ public extension LLMResponseFormat {
                 name: schema.name,
                 description: schema.description,
                 schema: schema.schema.flatMap { convertToOpenAISchema($0) }.map { .jsonSchema($0) },
-                strict: schema.strict
+                strict: schema.isStrict
             ))
         }
     }

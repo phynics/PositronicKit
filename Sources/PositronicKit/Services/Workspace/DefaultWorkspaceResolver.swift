@@ -37,7 +37,7 @@ public actor DefaultWorkspaceResolver: WorkspaceResolver {
         }
 
         // Fetch from repository
-        guard let reference = try await repository.getWorkspace(id: id) else {
+        guard let reference = try await repository.fetchWorkspace(id: id) else {
             return nil
         }
 
@@ -58,7 +58,7 @@ public actor DefaultWorkspaceResolver: WorkspaceResolver {
     public func healthCheckAll() async -> [UUID: Bool] {
         var results: [UUID: Bool] = [:]
         for (id, workspace) in activeWorkspaces {
-            let healthy = await workspace.healthCheck()
+            let healthy = await workspace.isHealthy
             results[id] = healthy
             if !healthy {
                 activeWorkspaces.removeValue(forKey: id)

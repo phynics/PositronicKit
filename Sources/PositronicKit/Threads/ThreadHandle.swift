@@ -6,7 +6,7 @@ import PKContracts
 ///
 /// `ThreadHandle` holds no mutable turn state, does not perform persistence lookups on
 /// construction, and does not expose the underlying coordinator. Opening a handle via
-/// `PositronicKit.openThread(_:)` is pure value construction — persistence happens lazily,
+/// ``ThreadCapability/open(_:)`` is pure value construction — persistence happens lazily,
 /// when `startTurn` or `startDirectTurn` admits a Turn.
 public struct ThreadHandle: Identifiable, Sendable {
     /// The persisted Thread this handle sends to and cancels work for.
@@ -46,30 +46,11 @@ public struct ThreadHandle: Identifiable, Sendable {
     ///
     /// - Parameters:
     ///   - message: The user message to admit.
+    ///   - systemInstructions: Instructions included in the managed Agent prompt, if any.
     ///   - options: Per-Turn configuration that does not repeat this handle's Thread identity.
     public func startTurn(
         _ message: String,
-        options: TurnOptions = .init()
-    ) async throws -> TurnHandle {
-        try await startTurn(MessageContent(message), options: options)
-    }
-
-    /// Starts a managed Turn with ordered text and media content.
-    ///
-    /// - Parameters:
-    ///   - content: The ordered text and media content to admit.
-    ///   - options: Per-Turn configuration that does not repeat this handle's Thread identity.
-    public func startTurn(
-        _ content: MessageContent,
-        options: TurnOptions = .init()
-    ) async throws -> TurnHandle {
-        try await admitManagedTurn(options.makeRequest(threadID: threadID, content: content))
-    }
-
-    /// Starts a managed Turn with explicit system instructions.
-    public func startTurn(
-        _ message: String,
-        systemInstructions: String,
+        systemInstructions: String? = nil,
         options: TurnOptions = .init()
     ) async throws -> TurnHandle {
         try await startTurn(
@@ -79,15 +60,15 @@ public struct ThreadHandle: Identifiable, Sendable {
         )
     }
 
-    /// Starts a managed Turn with ordered text and media content and explicit system instructions.
+    /// Starts a managed Turn with ordered text and media content.
     ///
     /// - Parameters:
     ///   - content: The ordered text and media content to admit.
-    ///   - systemInstructions: Instructions included in the managed Agent prompt.
+    ///   - systemInstructions: Instructions included in the managed Agent prompt, if any.
     ///   - options: Per-Turn configuration that does not repeat this handle's Thread identity.
     public func startTurn(
         _ content: MessageContent,
-        systemInstructions: String,
+        systemInstructions: String? = nil,
         options: TurnOptions = .init()
     ) async throws -> TurnHandle {
         try await admitManagedTurn(options.makeRequest(
@@ -147,16 +128,3 @@ public struct ThreadHandle: Identifiable, Sendable {
     }
 }
 
-public extension PositronicKit {
-    /// Opens an **existing** thread for sending and cancellation.
-    ///
-    /// This is pure handle construction: it performs no persistence I/O. The Thread
-    /// must have been created beforehand via ``ThreadCapability/create(title:)``.
-    /// A missing (never-persisted) thread id is an error, not a silent creation —
-    /// the first managed Turn call will throw
-    /// ``ThreadError/threadNotFound`` before any message is persisted.
-    func openThread(_ threadID: UUID) -> ThreadHandle {
-        ThreadHandle(threadID: threadID, kit: self)
-    }
-
-}

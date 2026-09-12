@@ -229,7 +229,7 @@ struct OpenRouterTool: Codable {
 
     init(_ tool: LLMToolDefinition) {
         type = "function"
-        function = .init(name: tool.name, description: tool.description, parameters: tool.parameters, strict: tool.strict)
+        function = .init(name: tool.name, description: tool.description, parameters: tool.parameters, strict: tool.isStrict)
     }
 }
 

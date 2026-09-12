@@ -1,6 +1,7 @@
 import Foundation
 import PKContracts
 
+/// Entry point for configuring PositronicKit against the Anthropic Messages API.
 public enum PKAnthropicProvider: LLMProviderFactory {
     /// Creates a configured Anthropic provider for the common runtime setup path.
     public static func makeConfiguredProvider(

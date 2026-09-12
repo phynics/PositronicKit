@@ -71,7 +71,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             workspaceBindingsByWorkspace.removeValue(forKey: workspaceID)
         }
         if let activeTurnID = activeTurns.removeValue(forKey: id) {
-            turns[activeTurnID]?.recoveryRequired = true
+            turns[activeTurnID]?.requiresRecovery = true
             turns[activeTurnID]?.recoveryMessage = "Thread deleted while Turn was active."
             recoveryRequiredTurns[id] = activeTurnID
         }
@@ -184,7 +184,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
                 return TurnAdmission(disposition: .replayed, turn: matching)
             }
             if matching.callerIntent.fingerprint == callerIntentFingerprint,
-               matching.recoveryRequired
+               matching.requiresRecovery
             {
                 // A force-interrupted attempt remains visible as a replay of the original
                 // request while recovery is pending. Distinct requests are rejected below until
@@ -196,7 +196,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             // retry is a new durable Turn linked to the failed attempt; completed Turns and
             // active attempts remain strict idempotency conflicts.
             guard matching.isTerminal,
-                  matching.recoveryRequired == false,
+                  matching.requiresRecovery == false,
                   !isCompleted(matching.outcome)
             else {
                 throw ThreadRuntimeRepositoryError.idempotencyConflict(requestID: requestID)
@@ -211,7 +211,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             throw ThreadRuntimeRepositoryError.recoveryRequired(threadID: threadID, turnID: recoveryTurnID)
         }
         if let activeTurnID = activeTurns[threadID], let active = turns[activeTurnID] {
-            if active.recoveryRequired {
+            if active.requiresRecovery {
                 throw ThreadRuntimeRepositoryError.recoveryRequired(threadID: threadID, turnID: activeTurnID)
             }
             throw ThreadRuntimeRepositoryError.threadBusy(threadID: threadID, activeTurnID: activeTurnID)
@@ -468,7 +468,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         guard !turn.isTerminal || force else { return turn }
         turn.outcome = .interrupted(reason: reason)
         turn.lifecycle = .interrupted
-        turn.recoveryRequired = force
+        turn.requiresRecovery = force
         turn.recoveryMessage = force ? reason : nil
         turn.updatedAt = now
         turn.notices.append(TurnNotice(kind: force ? "turn-force-interrupted" : "turn-interrupted", message: reason, createdAt: now))
@@ -511,7 +511,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         guard let activeID, var turn = turns[activeID] else {
             return nil
         }
-        turn.recoveryRequired = true
+        turn.requiresRecovery = true
         turn.recoveryMessage = "Active pointer force-cleared by an administrator."
         turn.updatedAt = now
         turn.notices.append(TurnNotice(kind: "turn-force-cleared", createdAt: now))

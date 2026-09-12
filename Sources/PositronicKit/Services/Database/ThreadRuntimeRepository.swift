@@ -134,7 +134,7 @@ public struct TurnRecord: Codable, Equatable, Sendable {
     public var notices: [TurnNotice]
     public var correlations: [TurnCorrelation]
     public var retryRelation: TurnRetryRelation?
-    public var recoveryRequired: Bool
+    public var requiresRecovery: Bool
     public var recoveryMessage: String?
     public var terminalHandle: TurnTerminalHandle?
     /// The assistant message that represents a completed Turn, when one exists.
@@ -154,7 +154,7 @@ public struct TurnRecord: Codable, Equatable, Sendable {
         notices: [TurnNotice] = [],
         correlations: [TurnCorrelation] = [],
         retryRelation: TurnRetryRelation? = nil,
-        recoveryRequired: Bool = false,
+        requiresRecovery: Bool = false,
         recoveryMessage: String? = nil,
         terminalHandle: TurnTerminalHandle? = nil,
         terminalMessageID: UUID? = nil,
@@ -172,7 +172,7 @@ public struct TurnRecord: Codable, Equatable, Sendable {
         self.notices = notices
         self.correlations = correlations
         self.retryRelation = retryRelation
-        self.recoveryRequired = recoveryRequired
+        self.requiresRecovery = requiresRecovery
         self.recoveryMessage = recoveryMessage
         self.terminalHandle = terminalHandle
         self.terminalMessageID = terminalMessageID
@@ -241,7 +241,7 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
     public let threadID: UUID
     public let toolCallID: String
     public let output: String
-    public let succeeded: Bool
+    public let isSuccessful: Bool
     public let errorMessage: String?
     public let workspaceID: UUID?
     public let workspaceRouting: WorkspaceToolRouting?
@@ -253,7 +253,7 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
         threadID: UUID,
         toolCallID: String,
         output: String,
-        succeeded: Bool = true,
+        isSuccessful: Bool = true,
         errorMessage: String? = nil,
         workspaceID: UUID? = nil,
         workspaceRouting: WorkspaceToolRouting? = nil,
@@ -264,7 +264,7 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
         self.threadID = threadID
         self.toolCallID = toolCallID
         self.output = output
-        self.succeeded = succeeded
+        self.isSuccessful = isSuccessful
         self.errorMessage = errorMessage
         self.workspaceID = workspaceID
         self.workspaceRouting = workspaceRouting

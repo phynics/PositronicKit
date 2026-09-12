@@ -26,7 +26,7 @@ struct SidecarSchemaComposerTests {
             Issue.record("expected .jsonSchema")
             return
         }
-        #expect(schema.strict)
+        #expect(schema.isStrict)
         let encoded = try encodedSchemaString(schema.schema)
         let rootSection = try #require(rootPropertiesSection(in: encoded))
         #expect(rootSection.contains(#""response""#))

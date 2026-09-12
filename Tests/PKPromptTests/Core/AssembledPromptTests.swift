@@ -165,7 +165,7 @@ struct AssembledPromptTests {
             action: .summarize(targetTokens: 10, reason: .budgetReduction),
             beforeTokens: 50,
             afterTokens: 10,
-            cacheHit: false,
+            didHitCache: false,
             fallbackReason: nil
         )
         let prompt = try! AssembledPrompt(sections: [

@@ -183,7 +183,7 @@ struct ToolTimeoutEnforcerTests {
             arguments: [:],
             timeout: 5
         )
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output == "hello")
     }
 
@@ -507,7 +507,7 @@ struct ToolTimeoutEnforcerTests {
                 try await Task.sleep(nanoseconds: min(nanoseconds, 100_000_000))
             }
         )
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output == "ok")
     }
 }

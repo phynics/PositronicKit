@@ -18,7 +18,7 @@ public struct CompressionNodeReport: Sendable, Equatable, Codable {
     /// Estimated token count after compression was applied.
     public let afterTokens: Int
     /// Whether the result was served from cache instead of recomputing.
-    public let cacheHit: Bool
+    public let didHitCache: Bool
     /// Reason a fallback occurred (e.g., missing compressor or budget), if any.
     public let fallbackReason: String?
 
@@ -29,7 +29,7 @@ public struct CompressionNodeReport: Sendable, Equatable, Codable {
     ///   - action: The compression action that was applied.
     ///   - beforeTokens: Estimated tokens before compression.
     ///   - afterTokens: Estimated tokens after compression.
-    ///   - cacheHit: Whether a cached result was used.
+    ///   - didHitCache: Whether a cached result was used.
     ///   - fallbackReason: Reason for fallback when action couldn't be honored.
     public init(
         nodeID: String,
@@ -37,7 +37,7 @@ public struct CompressionNodeReport: Sendable, Equatable, Codable {
         action: CompressionAction,
         beforeTokens: Int,
         afterTokens: Int,
-        cacheHit: Bool,
+        didHitCache: Bool,
         fallbackReason: String?
     ) {
         self.nodeID = nodeID
@@ -45,7 +45,7 @@ public struct CompressionNodeReport: Sendable, Equatable, Codable {
         self.action = action
         self.beforeTokens = beforeTokens
         self.afterTokens = afterTokens
-        self.cacheHit = cacheHit
+        self.didHitCache = didHitCache
         self.fallbackReason = fallbackReason
     }
 
@@ -55,7 +55,7 @@ public struct CompressionNodeReport: Sendable, Equatable, Codable {
         case action
         case beforeTokens
         case afterTokens
-        case cacheHit
+        case didHitCache = "cacheHit"
         case fallbackReason
     }
 }

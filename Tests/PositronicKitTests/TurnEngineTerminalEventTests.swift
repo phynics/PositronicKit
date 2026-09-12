@@ -379,7 +379,7 @@ private struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:di
 
     func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
         if shouldWait { try? await Task.sleep(nanoseconds: 100_000_000) }
-        if !result.success && result.error == "client_tools_disallowed_on_private_thread" {
+        if !result.isSuccess && result.error == "client_tools_disallowed_on_private_thread" {
             throw ToolError.attachedToolsDisallowedOnPrivateThread
         }
         return result

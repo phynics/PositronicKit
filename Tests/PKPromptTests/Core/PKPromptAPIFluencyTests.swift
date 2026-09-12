@@ -95,7 +95,7 @@ struct PKPromptAPIFluencyTests {
             action: .keep,
             beforeTokens: 4,
             afterTokens: 4,
-            cacheHit: false,
+            didHitCache: false,
             fallbackReason: nil
         )
         let request = SummaryRequest(

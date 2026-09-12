@@ -8,12 +8,21 @@ import PKContracts
 import PKUtilities
 import Synchronization
 
+/// `LLMClientProtocol` adapter over the OpenRouter chat completions API.
 public actor OpenRouterClient: LLMClientProtocol {
+    /// Prepares structured-output requests using OpenRouter's native JSON Schema
+    /// `response_format` support.
     public let structuredOutputAdapter: any StructuredOutputAdapter = NativeJSONSchemaStructuredOutputAdapter()
+
+    /// Optional identification OpenRouter surfaces on its public leaderboards, sent as the
+    /// `HTTP-Referer`/`X-Title` headers.
     public struct Attribution: Sendable, Equatable {
+        /// Sent as the `HTTP-Referer` header, if set.
         public let applicationURL: String?
+        /// Sent as the `X-Title` header, if set.
         public let applicationTitle: String?
 
+        /// Creates an attribution header set.
         public init(applicationURL: String? = nil, applicationTitle: String? = nil) {
             self.applicationURL = applicationURL
             self.applicationTitle = applicationTitle
@@ -41,6 +50,20 @@ public actor OpenRouterClient: LLMClientProtocol {
         return decoder
     }()
 
+    /// Creates a client that talks to the given OpenRouter-compatible endpoint over
+    /// `URLSession`.
+    ///
+    /// - Parameters:
+    ///   - apiKey: Sent as the bearer token on every request.
+    ///   - modelName: The model to request completions from, in OpenRouter's `vendor/model`
+    ///     form.
+    ///   - host: The API host, overridable for self-hosted or proxy endpoints.
+    ///   - port: The API port; omitted from the request URL when it's the scheme's default.
+    ///   - scheme: The URL scheme (`https` or `http`).
+    ///   - timeoutInterval: Per-request timeout, in seconds.
+    ///   - maxRetries: Retry attempts for transient transport failures before any content has
+    ///     streamed to the caller.
+    ///   - attribution: Optional leaderboard identification headers.
     public init(
         apiKey: String,
         modelName: String = "openai/gpt-4o",
@@ -170,6 +193,8 @@ public actor OpenRouterClient: LLMClientProtocol {
         endpoint
     }
 
+    /// Streams a chat completion from the OpenRouter API with the default (text-only) output
+    /// modality.
     public func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
@@ -180,6 +205,11 @@ public actor OpenRouterClient: LLMClientProtocol {
         await chatStream(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: [.text], audioOutput: nil)
     }
 
+    /// Streams a chat completion from the OpenRouter API with explicit output modalities.
+    ///
+    /// Retries transient transport failures up to `maxRetries` times, but only before any
+    /// content has been yielded to the caller — once streaming has started, a retry would
+    /// duplicate content, so failures after that point are surfaced instead.
     public func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
@@ -436,6 +466,10 @@ public actor OpenRouterClient: LLMClientProtocol {
         )
     }
 
+    /// Sends a single user message and returns the full accumulated text response.
+    ///
+    /// Buffers the entire streamed response before returning; use one of the `chatStream`
+    /// overloads directly for incremental output.
     public func sendMessage(
         _ content: String,
         responseFormat: LLMResponseFormat? = nil,
@@ -454,6 +488,9 @@ public actor OpenRouterClient: LLMClientProtocol {
         }
     }
 
+    /// Fetches the model IDs available from the OpenRouter models API.
+    ///
+    /// Retries transient transport failures up to `maxRetries` times.
     public func fetchAvailableModels() async throws -> [String]? {
         let maxRetries = self.maxRetries
         let endpoint = self.endpoint
@@ -496,7 +533,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                 name: schema.name,
                 description: schema.description,
                 schema: schema.schema,
-                strict: schema.strict
+                strict: schema.isStrict
             ))
         }
     }

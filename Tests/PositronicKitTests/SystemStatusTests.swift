@@ -9,8 +9,8 @@ struct SystemStatusTests {
     @Test("HealthCheckable Protocol")
     func healthCheckableProtocol() async {
         struct MockService: HealthCheckable {
-            func getHealthDetails() async -> [String: String]? {
-                ["test": "true"]
+            var healthDetails: [String: String]? {
+                get async { ["test": "true"] }
             }
 
             func checkHealth() async -> HealthStatus {
@@ -20,7 +20,7 @@ struct SystemStatusTests {
 
         let service = MockService()
         let status = await service.checkHealth()
-        let currentDetails = await service.getHealthDetails()
+        let currentDetails = await service.healthDetails
         #expect(status == .ok)
         #expect(currentDetails?["test"] == "true")
     }

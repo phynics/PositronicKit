@@ -36,8 +36,8 @@ public struct UnconfiguredLLMService: LLMStreamClient, HealthCheckable {
         }
     }
 
-    public func getHealthDetails() async -> [String: String]? {
-        ["error": "Unconfigured"]
+    public var healthDetails: [String: String]? {
+        get async { ["error": "Unconfigured"] }
     }
 
     public func checkHealth() async -> HealthStatus {
@@ -54,9 +54,16 @@ public struct UnconfiguredLLMService: LLMStreamClient, HealthCheckable {
         toolChoice _: LLMToolChoice?,
         responseFormat _: LLMResponseFormat?,
         generationParameters _: GenerationParameters?,
-        modelTier _: ModelTier
+        modelTier _: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, any Error> {
-        failingStream()
+        guard !responseModalities.contains(.audio), audioOutput == nil else {
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: MultimodalContentError.missingCapability(.audioOutput))
+            }
+        }
+        return failingStream()
     }
 
 }

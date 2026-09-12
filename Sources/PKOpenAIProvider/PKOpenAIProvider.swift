@@ -1,6 +1,7 @@
 import Foundation
 import PKContracts
 
+/// Entry point for configuring PositronicKit against OpenAI or an OpenAI-compatible endpoint.
 public enum PKOpenAIProvider: LLMProviderFactory {
     /// Creates a configured OpenAI provider for the common runtime setup path.
     public static func makeConfiguredProvider(

@@ -24,6 +24,24 @@ for tagged releases beginning with `1.0.0`.
   persistence failure is now `.error(.durabilityFailure(...))` and does not fabricate a durable
   `TurnOutcome`. `ThreadController.send(_:)` throws `ThreadControllerError` for runtime and
   durability events and `CancellationError` for cancellation.
+- **Public naming and shape cleanup for Swift API Design Guidelines conformance (#141):**
+  `WorkspaceCatalog.getWorkspace(id:includeTools:)` is now `fetchWorkspace(id:includeTools:)`;
+  `PositronicKit.openThread(_:)` is removed in favor of `ThreadCapability.open(_:)`;
+  `HealthCheckable.getHealthDetails()` and `WorkspaceProvider.healthCheck()` are now the async
+  properties `healthDetails` and `isHealthy`; `ThreadCapability.create(title:attaching:)` takes
+  an optional `agentID` instead of two overloads, and `ThreadHandle.startTurn` collapses its
+  `systemInstructions` overloads into an optional parameter; `ThreadCapability.rename(_:title:)`
+  is now `rename(_:to:)` and `WorkspaceCapability.delete(_:deleteDirectory:)` is now
+  `delete(_:includingDirectory:)`; `TurnEvent.sidecarsCompleted(_:[SidecarResult])` is now the
+  labeled `sidecarsCompleted(results:)`; `LLMStreamClient.generationStream` collapses its
+  `responseModalities`/`audioOutput` overload into the single required signature. Boolean
+  properties that didn't read as assertions are renamed: `ToolResult.success` → `isSuccess`,
+  `RuntimeToolResult.succeeded` → `isSuccessful`, `TurnRecord.recoveryRequired` →
+  `requiresRecovery`, `RuntimeToolPolicy.installThreadSendTool` → `installsThreadSendTool`,
+  `StructuredOutputSchema.strict`/`LLMResponseSchema.strict`/`LLMToolDefinition.strict` →
+  `isStrict`, `LenientJSONParser.ParseResult.repaired` → `wasRepaired`, and
+  `CompressionNodeReport.cacheHit`/`StructuredCompressionNodeMetric.cacheHit` → `didHitCache`
+  (the latter two keep their `"cacheHit"` wire/JSON key via explicit `CodingKeys`).
 
 ### Added
 

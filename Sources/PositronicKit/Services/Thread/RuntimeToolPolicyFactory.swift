@@ -47,7 +47,7 @@ package enum RuntimeToolPolicyFactory {
         }
 
         // Thread Send: only available when an agent is attached (needs sender identity)
-        if runtimeToolPolicy.installThreadSendTool, let agentId = thread.attachedAgentID {
+        if runtimeToolPolicy.installsThreadSendTool, let agentId = thread.attachedAgentID {
             availableTools.append(AnyTool(ThreadSendTool(
                 messageStore: messageStore,
                 threadStore: threadStore,

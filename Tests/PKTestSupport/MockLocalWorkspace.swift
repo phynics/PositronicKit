@@ -70,8 +70,8 @@ public actor MockLocalWorkspace: WorkspaceToolProvider, WorkspaceFileProvider {
         try FileManager.default.removeItem(at: url)
     }
 
-    public func healthCheck() async -> Bool {
-        return FileManager.default.fileExists(atPath: rootURL.path)
+    public var isHealthy: Bool {
+        get async { FileManager.default.fileExists(atPath: rootURL.path) }
     }
 }
 

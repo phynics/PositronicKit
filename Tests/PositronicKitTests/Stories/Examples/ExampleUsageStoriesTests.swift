@@ -44,7 +44,7 @@ struct ExampleUsageStoriesTests {
         #expect(schemaDict["properties"]?.asDictionary?["name"]?.asDictionary?["type"]?.asString == "string")
 
         let result = try await tools[0].execute(parameters: ["name": "Taylor"])
-        #expect(result.success)
+        #expect(result.isSuccess)
         #expect(result.output == "Hello, Taylor!")
     }
 

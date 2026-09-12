@@ -29,11 +29,11 @@ public enum LenientJSONParsingError: PKError, Equatable {
 public enum LenientJSONParser {
     public struct ParseResult: Sendable, Equatable {
         public let value: AnyCodable
-        public let repaired: Bool
+        public let wasRepaired: Bool
 
-        public init(value: AnyCodable, repaired: Bool) {
+        public init(value: AnyCodable, wasRepaired: Bool) {
             self.value = value
-            self.repaired = repaired
+            self.wasRepaired = wasRepaired
         }
     }
 
@@ -64,12 +64,12 @@ public enum LenientJSONParser {
         }
 
         if let strictValue = try? strictJSONObject(from: cleaned) {
-            return ParseResult(value: AnyCodable(strictValue), repaired: false)
+            return ParseResult(value: AnyCodable(strictValue), wasRepaired: false)
         }
 
         do {
             let repairedValue = try PartialJSON.parse(cleaned, options: .all)
-            return ParseResult(value: AnyCodable(repairedValue), repaired: true)
+            return ParseResult(value: AnyCodable(repairedValue), wasRepaired: true)
         } catch {
             throw LenientJSONParsingError.invalidJSONPayload
         }

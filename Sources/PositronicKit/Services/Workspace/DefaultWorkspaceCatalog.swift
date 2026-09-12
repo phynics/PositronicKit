@@ -188,7 +188,7 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
     }
 
     /// Fetches a workspace by its unique identifier.
-    public func getWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference? {
+    public func fetchWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference? {
         return try await persistenceService.fetchWorkspace(id: id, includeTools: includeTools)
     }
 
@@ -198,16 +198,16 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
     }
 
     /// Deletes a workspace.
-    public func deleteWorkspace(id: UUID, deleteDirectory: Bool) async throws {
+    public func deleteWorkspace(id: UUID, includingDirectory: Bool) async throws {
         try await withWorkspaceAuthority(id) { [self] in
-            try await self.deleteWorkspaceLocked(id: id, deleteDirectory: deleteDirectory)
+            try await self.deleteWorkspaceLocked(id: id, includingDirectory: includingDirectory)
         }
     }
 
-    private func deleteWorkspaceLocked(id: UUID, deleteDirectory: Bool) async throws {
+    private func deleteWorkspaceLocked(id: UUID, includingDirectory: Bool) async throws {
         try await requireWorkspaceMutationAllowed(id: id)
-        if deleteDirectory,
-           let workspace = try await getWorkspace(id: id, includeTools: false)
+        if includingDirectory,
+           let workspace = try await fetchWorkspace(id: id, includeTools: false)
         {
             guard workspace.location != .attached else {
                 throw WorkspaceError.accessDenied

@@ -608,26 +608,6 @@
       "declaration": "static func failure(_ error: String, workspaceID: UUID? = nil, workspaceRouting: WorkspaceToolRouting? = nil) -> ToolResult"
     },
     {
-      "precise": "s:11PKContracts10ToolResultV7success6output5error11workspaceID0G7RoutingACSb_S2SSg20FoundationEssentials4UUIDVSgAA09WorkspacebI0OSgtcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "ToolResult",
-        "init(success:output:error:workspaceID:workspaceRouting:)"
-      ],
-      "declaration": "init(success: Bool, output: String, error: String?, workspaceID: UUID? = nil, workspaceRouting: WorkspaceToolRouting? = nil)"
-    },
-    {
-      "precise": "s:11PKContracts10ToolResultV7successSbvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "ToolResult",
-        "success"
-      ],
-      "declaration": "let success: Bool"
-    },
-    {
       "precise": "s:11PKContracts10ToolResultV7success_11workspaceID0E7RoutingACSS_20FoundationEssentials4UUIDVSgAA09WorkspacebG0OSgtFZ",
       "module": "PKContracts",
       "kind": "swift.type.method",
@@ -636,6 +616,26 @@
         "success(_:workspaceID:workspaceRouting:)"
       ],
       "declaration": "static func success(_ output: String, workspaceID: UUID? = nil, workspaceRouting: WorkspaceToolRouting? = nil) -> ToolResult"
+    },
+    {
+      "precise": "s:11PKContracts10ToolResultV9isSuccess6output5error11workspaceID0H7RoutingACSb_S2SSg20FoundationEssentials4UUIDVSgAA09WorkspacebJ0OSgtcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "ToolResult",
+        "init(isSuccess:output:error:workspaceID:workspaceRouting:)"
+      ],
+      "declaration": "init(isSuccess: Bool, output: String, error: String?, workspaceID: UUID? = nil, workspaceRouting: WorkspaceToolRouting? = nil)"
+    },
+    {
+      "precise": "s:11PKContracts10ToolResultV9isSuccessSbvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "ToolResult",
+        "isSuccess"
+      ],
+      "declaration": "let isSuccess: Bool"
     },
     {
       "precise": "s:11PKContracts10ToolSourceP",
@@ -4167,14 +4167,14 @@
       "declaration": "init(from decoder: any Decoder) throws"
     },
     {
-      "precise": "s:11PKContracts17LLMResponseSchemaV4name11description6schema6strictACSS_SSSg10JSONSchema0C0VSgSbSgtcfc",
+      "precise": "s:11PKContracts17LLMResponseSchemaV4name11description6schema8isStrictACSS_SSSg10JSONSchema0C0VSgSbSgtcfc",
       "module": "PKContracts",
       "kind": "swift.init",
       "path": [
         "LLMResponseSchema",
-        "init(name:description:schema:strict:)"
+        "init(name:description:schema:isStrict:)"
       ],
-      "declaration": "init(name: String, description: String? = nil, schema: Schema? = nil, strict: Bool? = nil)"
+      "declaration": "init(name: String, description: String? = nil, schema: Schema? = nil, isStrict: Bool? = nil)"
     },
     {
       "precise": "s:11PKContracts17LLMResponseSchemaV4nameSSvp",
@@ -4197,14 +4197,14 @@
       "declaration": "let schema: Schema?"
     },
     {
-      "precise": "s:11PKContracts17LLMResponseSchemaV6strictSbSgvp",
+      "precise": "s:11PKContracts17LLMResponseSchemaV8isStrictSbSgvp",
       "module": "PKContracts",
       "kind": "swift.property",
       "path": [
         "LLMResponseSchema",
-        "strict"
+        "isStrict"
       ],
-      "declaration": "let strict: Bool?"
+      "declaration": "let isStrict: Bool?"
     },
     {
       "precise": "s:11PKContracts17LLMToolDefinitionV",
@@ -4256,14 +4256,14 @@
       "declaration": "init(from decoder: any Decoder) throws"
     },
     {
-      "precise": "s:11PKContracts17LLMToolDefinitionV4name11description10parameters6strictACSS_SSSg10JSONSchema6SchemaVSgSbSgtcfc",
+      "precise": "s:11PKContracts17LLMToolDefinitionV4name11description10parameters8isStrictACSS_SSSg10JSONSchema6SchemaVSgSbSgtcfc",
       "module": "PKContracts",
       "kind": "swift.init",
       "path": [
         "LLMToolDefinition",
-        "init(name:description:parameters:strict:)"
+        "init(name:description:parameters:isStrict:)"
       ],
-      "declaration": "init(name: String, description: String? = nil, parameters: Schema? = nil, strict: Bool? = nil)"
+      "declaration": "init(name: String, description: String? = nil, parameters: Schema? = nil, isStrict: Bool? = nil)"
     },
     {
       "precise": "s:11PKContracts17LLMToolDefinitionV4nameSSvp",
@@ -4276,14 +4276,14 @@
       "declaration": "let name: String"
     },
     {
-      "precise": "s:11PKContracts17LLMToolDefinitionV6strictSbSgvp",
+      "precise": "s:11PKContracts17LLMToolDefinitionV8isStrictSbSgvp",
       "module": "PKContracts",
       "kind": "swift.property",
       "path": [
         "LLMToolDefinition",
-        "strict"
+        "isStrict"
       ],
-      "declaration": "let strict: Bool?"
+      "declaration": "let isStrict: Bool?"
     },
     {
       "precise": "s:11PKContracts17LenientJSONParserO",
@@ -4305,15 +4305,26 @@
       "declaration": "struct ParseResult"
     },
     {
-      "precise": "s:11PKContracts17LenientJSONParserO11ParseResultV5value8repairedAeA10AnyCodableO_Sbtcfc",
+      "precise": "s:11PKContracts17LenientJSONParserO11ParseResultV11wasRepairedSbvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "LenientJSONParser",
+        "ParseResult",
+        "wasRepaired"
+      ],
+      "declaration": "let wasRepaired: Bool"
+    },
+    {
+      "precise": "s:11PKContracts17LenientJSONParserO11ParseResultV5value11wasRepairedAeA10AnyCodableO_Sbtcfc",
       "module": "PKContracts",
       "kind": "swift.init",
       "path": [
         "LenientJSONParser",
         "ParseResult",
-        "init(value:repaired:)"
+        "init(value:wasRepaired:)"
       ],
-      "declaration": "init(value: AnyCodable, repaired: Bool)"
+      "declaration": "init(value: AnyCodable, wasRepaired: Bool)"
     },
     {
       "precise": "s:11PKContracts17LenientJSONParserO11ParseResultV5valueAA10AnyCodableOvp",
@@ -4325,17 +4336,6 @@
         "value"
       ],
       "declaration": "let value: AnyCodable"
-    },
-    {
-      "precise": "s:11PKContracts17LenientJSONParserO11ParseResultV8repairedSbvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "LenientJSONParser",
-        "ParseResult",
-        "repaired"
-      ],
-      "declaration": "let repaired: Bool"
     },
     {
       "precise": "s:11PKContracts17LenientJSONParserO5parse_18sanitizeCodeFencesAC11ParseResultVSS_SbtKFZ",
@@ -6534,14 +6534,14 @@
       "declaration": "init(from decoder: any Decoder) throws"
     },
     {
-      "precise": "s:11PKContracts22StructuredOutputSchemaV4name11description6schema6strictACSS_SSSg10JSONSchema0D0VSbtcfc",
+      "precise": "s:11PKContracts22StructuredOutputSchemaV4name11description6schema8isStrictACSS_SSSg10JSONSchema0D0VSbtcfc",
       "module": "PKContracts",
       "kind": "swift.init",
       "path": [
         "StructuredOutputSchema",
-        "init(name:description:schema:strict:)"
+        "init(name:description:schema:isStrict:)"
       ],
-      "declaration": "init(name: String, description: String? = nil, schema: Schema, strict: Bool = true)"
+      "declaration": "init(name: String, description: String? = nil, schema: Schema, isStrict: Bool = true)"
     },
     {
       "precise": "s:11PKContracts22StructuredOutputSchemaV4nameSSvp",
@@ -6564,14 +6564,14 @@
       "declaration": "let schema: Schema"
     },
     {
-      "precise": "s:11PKContracts22StructuredOutputSchemaV6strictSbvp",
+      "precise": "s:11PKContracts22StructuredOutputSchemaV8isStrictSbvp",
       "module": "PKContracts",
       "kind": "swift.property",
       "path": [
         "StructuredOutputSchema",
-        "strict"
+        "isStrict"
       ],
-      "declaration": "let strict: Bool"
+      "declaration": "let isStrict: Bool"
     },
     {
       "precise": "s:11PKContracts22WorkspaceToolCandidateV",
@@ -7805,6 +7805,16 @@
       "declaration": "let afterTokens: Int"
     },
     {
+      "precise": "s:11PKContracts31StructuredCompressionNodeMetricV11didHitCacheSbvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "StructuredCompressionNodeMetric",
+        "didHitCache"
+      ],
+      "declaration": "let didHitCache: Bool"
+    },
+    {
       "precise": "s:11PKContracts31StructuredCompressionNodeMetricV12beforeTokensSivp",
       "module": "PKContracts",
       "kind": "swift.property",
@@ -7845,14 +7855,14 @@
       "declaration": "let action: String"
     },
     {
-      "precise": "s:11PKContracts31StructuredCompressionNodeMetricV6nodeID4path6action12beforeTokens05afterK08cacheHitACSS_SaySSGSSS2iSbtcfc",
+      "precise": "s:11PKContracts31StructuredCompressionNodeMetricV6nodeID4path6action12beforeTokens05afterK011didHitCacheACSS_SaySSGSSS2iSbtcfc",
       "module": "PKContracts",
       "kind": "swift.init",
       "path": [
         "StructuredCompressionNodeMetric",
-        "init(nodeID:path:action:beforeTokens:afterTokens:cacheHit:)"
+        "init(nodeID:path:action:beforeTokens:afterTokens:didHitCache:)"
       ],
-      "declaration": "init(nodeID: String, path: [String], action: String, beforeTokens: Int, afterTokens: Int, cacheHit: Bool)"
+      "declaration": "init(nodeID: String, path: [String], action: String, beforeTokens: Int, afterTokens: Int, didHitCache: Bool)"
     },
     {
       "precise": "s:11PKContracts31StructuredCompressionNodeMetricV6nodeIDSSvp",
@@ -7863,16 +7873,6 @@
         "nodeID"
       ],
       "declaration": "let nodeID: String"
-    },
-    {
-      "precise": "s:11PKContracts31StructuredCompressionNodeMetricV8cacheHitSbvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "StructuredCompressionNodeMetric",
-        "cacheHit"
-      ],
-      "declaration": "let cacheHit: Bool"
     },
     {
       "precise": "s:11PKContracts32PromptAugmentedJSONSchemaAdapterV",
@@ -9780,14 +9780,14 @@
       "declaration": "var sidecarCompletion: SidecarCompletion? { get }"
     },
     {
-      "precise": "s:11PKContracts9TurnEventO17sidecarsCompletedyACSayAA13SidecarResultVGFZ",
+      "precise": "s:11PKContracts9TurnEventO17sidecarsCompleted7resultsACSayAA13SidecarResultVG_tFZ",
       "module": "PKContracts",
       "kind": "swift.type.method",
       "path": [
         "TurnEvent",
-        "sidecarsCompleted(_:)"
+        "sidecarsCompleted(results:)"
       ],
-      "declaration": "static func sidecarsCompleted(_ results: [SidecarResult]) -> TurnEvent"
+      "declaration": "static func sidecarsCompleted(results: [SidecarResult]) -> TurnEvent"
     },
     {
       "precise": "s:11PKContracts9TurnEventO17sidecarsCompletedyAcA17SidecarCompletionVFZ",
@@ -10572,6 +10572,16 @@
       "declaration": "var configuration: LLMConfiguration { get async }"
     },
     {
+      "precise": "s:13PKTestSupport14MockLLMServiceC13healthDetailsSDyS2SGSgvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockLLMService",
+        "healthDetails"
+      ],
+      "declaration": "var healthDetails: [String : String]? { get async }"
+    },
+    {
       "precise": "s:13PKTestSupport14MockLLMServiceC13lastModelTier13PositronicKit0fG0OSgvp",
       "module": "PKTestSupport",
       "kind": "swift.property",
@@ -10600,26 +10610,6 @@
         "generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
       ],
       "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities _: Set<ResponseModality>, audioOutput _: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, any Error>"
-    },
-    {
-      "precise": "s:13PKTestSupport14MockLLMServiceC16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0uJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSg13PositronicKit05ModelO0OtYaF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockLLMService",
-        "generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)"
-      ],
-      "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier) async -> AsyncThrowingStream<LLMStreamChunk, any Error>"
-    },
-    {
-      "precise": "s:13PKTestSupport14MockLLMServiceC16getHealthDetailsSDyS2SGSgyYaF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockLLMService",
-        "getHealthDetails()"
-      ],
-      "declaration": "func getHealthDetails() async -> [String : String]?"
     },
     {
       "precise": "s:13PKTestSupport14MockLLMServiceC16mockHealthStatus11PKContracts0fG0Ovp",
@@ -11182,16 +11172,6 @@
       "declaration": "func executeTool(id _: String, parameters _: [String : AnyCodable]) async throws -> ToolResult"
     },
     {
-      "precise": "s:13PKTestSupport18MockLocalWorkspaceC11healthCheckSbyYaF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockLocalWorkspace",
-        "healthCheck()"
-      ],
-      "declaration": "func healthCheck() async -> Bool"
-    },
-    {
       "precise": "s:13PKTestSupport18MockLocalWorkspaceC2id20FoundationEssentials4UUIDVvp",
       "module": "PKTestSupport",
       "kind": "swift.property",
@@ -11220,6 +11200,16 @@
         "readFile(path:)"
       ],
       "declaration": "func readFile(path: String) async throws -> String"
+    },
+    {
+      "precise": "s:13PKTestSupport18MockLocalWorkspaceC9isHealthySbvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockLocalWorkspace",
+        "isHealthy"
+      ],
+      "declaration": "var isHealthy: Bool { get async }"
     },
     {
       "precise": "s:13PKTestSupport18MockLocalWorkspaceC9listFiles4pathSaySSGSS_tYaKF",
@@ -12093,6 +12083,16 @@
       "declaration": "func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage]"
     },
     {
+      "precise": "s:13PKTestSupport22MockPersistenceServiceC13healthDetailsSDyS2SGSgvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockPersistenceService",
+        "healthDetails"
+      ],
+      "declaration": "var healthDetails: [String : String]? { get async }"
+    },
+    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC13interruptTurn6turnID6reason5force3now13PositronicKit0G6RecordV20FoundationEssentials4UUIDV_SSSbAL4DateVtYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12311,16 +12311,6 @@
         "fetchToolResults(turnID:)"
       ],
       "declaration": "func fetchToolResults(turnID: UUID) async throws -> [RuntimeToolResult]"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC16getHealthDetailsSDyS2SGSgyYaF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "getHealthDetails()"
-      ],
-      "declaration": "func getHealthDetails() async -> [String : String]?"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC16hasAgentTemplate2idSbSS_tYaF",
@@ -13586,6 +13576,16 @@
       "declaration": "convenience init(configuration: LLMConfiguration, clients: LLMClientSet, logger: Logger = Logger.module(named: \"llm\"))"
     },
     {
+      "precise": "s:13PositronicKit10LLMServiceC13healthDetailsSDyS2SGSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "LLMService",
+        "healthDetails"
+      ],
+      "declaration": "var healthDetails: [String : String]? { get async }"
+    },
+    {
       "precise": "s:13PositronicKit10LLMServiceC16generationStream8messages5tools10toolChoice14responseFormat0D10Parameters9modelTier0J10Modalities11audioOutputScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wI0OSgAM011LLMResponseK0OSgAM010GenerationL0VSgAA05ModelN0OShyAM16ResponseModalityOGAM05AudioQ7OptionsVSgtYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -13594,26 +13594,6 @@
         "generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
       ],
       "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, any Error>"
-    },
-    {
-      "precise": "s:13PositronicKit10LLMServiceC16generationStream8messages5tools10toolChoice14responseFormat0D10Parameters9modelTierScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tI0OSgAK011LLMResponseK0OSgAK010GenerationL0VSgAA05ModelN0OtYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMService",
-        "generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)"
-      ],
-      "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier) async -> AsyncThrowingStream<LLMStreamChunk, any Error>"
-    },
-    {
-      "precise": "s:13PositronicKit10LLMServiceC16getHealthDetailsSDyS2SGSgyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMService",
-        "getHealthDetails()"
-      ],
-      "declaration": "func getHealthDetails() async -> [String : String]?"
     },
     {
       "precise": "s:13PositronicKit10LLMServiceC17loadConfigurationyyYaF",
@@ -13943,14 +13923,14 @@
       "declaration": "var recoveryMessage: String?"
     },
     {
-      "precise": "s:13PositronicKit10TurnRecordV16recoveryRequiredSbvp",
+      "precise": "s:13PositronicKit10TurnRecordV16requiresRecoverySbvp",
       "module": "PositronicKit",
       "kind": "swift.property",
       "path": [
         "TurnRecord",
-        "recoveryRequired"
+        "requiresRecovery"
       ],
-      "declaration": "var recoveryRequired: Bool"
+      "declaration": "var requiresRecovery: Bool"
     },
     {
       "precise": "s:13PositronicKit10TurnRecordV17terminalMessageID20FoundationEssentials4UUIDVSgvp",
@@ -14013,14 +13993,14 @@
       "declaration": "let identity: TurnIdentity"
     },
     {
-      "precise": "s:13PositronicKit10TurnRecordV8identity8threadID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation16recoveryRequired0X7Message14terminalHandle08terminalzG09createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAZSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgSbSSSgAA0C14TerminalHandleVSgA3_AX4DateVA24_tcfc",
+      "precise": "s:13PositronicKit10TurnRecordV8identity8threadID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation16requiresRecovery15recoveryMessage14terminalHandle015terminalMessageG09createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAZSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgSbSSSgAA0C14TerminalHandleVSgA3_AX4DateVA24_tcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "TurnRecord",
-        "init(identity:threadID:callerIntent:executionKind:capturedAgentID:lifecycle:currentModelRoundIndex:outcome:notices:correlations:retryRelation:recoveryRequired:recoveryMessage:terminalHandle:terminalMessageID:createdAt:updatedAt:)"
+        "init(identity:threadID:callerIntent:executionKind:capturedAgentID:lifecycle:currentModelRoundIndex:outcome:notices:correlations:retryRelation:requiresRecovery:recoveryMessage:terminalHandle:terminalMessageID:createdAt:updatedAt:)"
       ],
-      "declaration": "init(identity: TurnIdentity, threadID: UUID, callerIntent: TurnCallerIntent, executionKind: TurnExecutionKind = .agentManaged, capturedAgentID: UUID? = nil, lifecycle: TurnLifecycle = .admitted, currentModelRoundIndex: Int? = nil, outcome: TurnOutcome? = nil, notices: [TurnNotice] = [], correlations: [TurnCorrelation] = [], retryRelation: TurnRetryRelation? = nil, recoveryRequired: Bool = false, recoveryMessage: String? = nil, terminalHandle: TurnTerminalHandle? = nil, terminalMessageID: UUID? = nil, createdAt: Date = Date(), updatedAt: Date = Date())"
+      "declaration": "init(identity: TurnIdentity, threadID: UUID, callerIntent: TurnCallerIntent, executionKind: TurnExecutionKind = .agentManaged, capturedAgentID: UUID? = nil, lifecycle: TurnLifecycle = .admitted, currentModelRoundIndex: Int? = nil, outcome: TurnOutcome? = nil, notices: [TurnNotice] = [], correlations: [TurnCorrelation] = [], retryRelation: TurnRetryRelation? = nil, requiresRecovery: Bool = false, recoveryMessage: String? = nil, terminalHandle: TurnTerminalHandle? = nil, terminalMessageID: UUID? = nil, createdAt: Date = Date(), updatedAt: Date = Date())"
     },
     {
       "precise": "s:13PositronicKit10TurnRecordV8threadID20FoundationEssentials4UUIDVvp",
@@ -14685,44 +14665,24 @@
       "declaration": "let threadID: UUID"
     },
     {
-      "precise": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0V11PKContracts14MessageContentV_SSAA0F7OptionsVtYaKF",
+      "precise": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0V11PKContracts14MessageContentV_SSSgAA0F7OptionsVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ThreadHandle",
         "startTurn(_:systemInstructions:options:)"
       ],
-      "declaration": "func startTurn(_ content: MessageContent, systemInstructions: String, options: TurnOptions = .init()) async throws -> TurnHandle"
+      "declaration": "func startTurn(_ content: MessageContent, systemInstructions: String? = nil, options: TurnOptions = .init()) async throws -> TurnHandle"
     },
     {
-      "precise": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0VSS_SSAA0F7OptionsVtYaKF",
+      "precise": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0VSS_SSSgAA0F7OptionsVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ThreadHandle",
         "startTurn(_:systemInstructions:options:)"
       ],
-      "declaration": "func startTurn(_ message: String, systemInstructions: String, options: TurnOptions = .init()) async throws -> TurnHandle"
-    },
-    {
-      "precise": "s:13PositronicKit12ThreadHandleV9startTurn_7optionsAA0fD0V11PKContracts14MessageContentV_AA0F7OptionsVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ThreadHandle",
-        "startTurn(_:options:)"
-      ],
-      "declaration": "func startTurn(_ content: MessageContent, options: TurnOptions = .init()) async throws -> TurnHandle"
-    },
-    {
-      "precise": "s:13PositronicKit12ThreadHandleV9startTurn_7optionsAA0fD0VSS_AA0F7OptionsVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ThreadHandle",
-        "startTurn(_:options:)"
-      ],
-      "declaration": "func startTurn(_ message: String, options: TurnOptions = .init()) async throws -> TurnHandle"
+      "declaration": "func startTurn(_ message: String, systemInstructions: String? = nil, options: TurnOptions = .init()) async throws -> TurnHandle"
     },
     {
       "precise": "s:13PositronicKit13AgentActivityV",
@@ -16123,16 +16083,6 @@
       "declaration": "protocol HealthCheckable : Sendable"
     },
     {
-      "precise": "s:13PositronicKit15HealthCheckableP03getC7DetailsSDyS2SGSgyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "HealthCheckable",
-        "getHealthDetails()"
-      ],
-      "declaration": "func getHealthDetails() async -> [String : String]?"
-    },
-    {
       "precise": "s:13PositronicKit15HealthCheckableP05checkC011PKContracts0C6StatusOyYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -16141,6 +16091,16 @@
         "checkHealth()"
       ],
       "declaration": "func checkHealth() async -> HealthStatus"
+    },
+    {
+      "precise": "s:13PositronicKit15HealthCheckableP13healthDetailsSDyS2SGSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "HealthCheckable",
+        "healthDetails"
+      ],
+      "declaration": "var healthDetails: [String : String]? { get async }"
     },
     {
       "precise": "s:13PositronicKit15LLMPromptResultV",
@@ -16221,16 +16181,6 @@
       "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, any Error>"
     },
     {
-      "precise": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMStreamClient",
-        "generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)"
-      ],
-      "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier) async -> AsyncThrowingStream<LLMStreamChunk, any Error>"
-    },
-    {
       "precise": "s:13PositronicKit15LLMStreamClientP23structuredOutputAdapter3for11PKContracts010StructuredfG0_pAA9ModelTierO_tYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -16269,16 +16219,6 @@
         "sendStructured(_:structuredOutput:as:decoder:generationParameters:modelTier:)"
       ],
       "declaration": "func sendStructured<T>(_ content: String, structuredOutput: StructuredOutputRequest, as type: T.Type = T.self, decoder: JSONDecoder = SerializationUtils.jsonDecoder, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary) async throws -> T where T : Decodable, T : Sendable"
-    },
-    {
-      "precise": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts0C5ChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMStreamClient",
-        "generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
-      ],
-      "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, any Error>"
     },
     {
       "precise": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF",
@@ -16882,34 +16822,24 @@
       "declaration": "func open(_ threadID: UUID) -> ThreadHandle"
     },
     {
-      "precise": "s:13PositronicKit16ThreadCapabilityV6create5title9attachingAA0C6HandleVSS_20FoundationEssentials4UUIDVtYaKF",
+      "precise": "s:13PositronicKit16ThreadCapabilityV6create5title9attachingAA0C6HandleVSS_20FoundationEssentials4UUIDVSgtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ThreadCapability",
         "create(title:attaching:)"
       ],
-      "declaration": "func create(title: String = \"New Thread\", attaching agentID: UUID) async throws -> ThreadHandle"
+      "declaration": "func create(title: String = \"New Thread\", attaching agentID: UUID? = nil) async throws -> ThreadHandle"
     },
     {
-      "precise": "s:13PositronicKit16ThreadCapabilityV6create5titleAA0C6HandleVSS_tYaKF",
+      "precise": "s:13PositronicKit16ThreadCapabilityV6rename_2toy20FoundationEssentials4UUIDV_SStYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ThreadCapability",
-        "create(title:)"
+        "rename(_:to:)"
       ],
-      "declaration": "func create(title: String = \"New Thread\") async throws -> ThreadHandle"
-    },
-    {
-      "precise": "s:13PositronicKit16ThreadCapabilityV6rename_5titley20FoundationEssentials4UUIDV_SStYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ThreadCapability",
-        "rename(_:title:)"
-      ],
-      "declaration": "func rename(_ threadID: UUID, title: String) async throws"
+      "declaration": "func rename(_ threadID: UUID, to title: String) async throws"
     },
     {
       "precise": "s:13PositronicKit16TurnCallerIntentV",
@@ -17049,14 +16979,14 @@
       "declaration": "func createAgentWorkspace(agentID: UUID, template: AgentTemplate?) async throws -> WorkspaceReference"
     },
     {
-      "precise": "s:13PositronicKit16WorkspaceCatalogP03getC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "precise": "s:13PositronicKit16WorkspaceCatalogP05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "WorkspaceCatalog",
-        "getWorkspace(id:includeTools:)"
+        "fetchWorkspace(id:includeTools:)"
       ],
-      "declaration": "func getWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference?"
+      "declaration": "func fetchWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference?"
     },
     {
       "precise": "s:13PositronicKit16WorkspaceCatalogP06createC03uri8location8originID8rootPath11PKContracts0C9ReferenceVAI0C3URIV_AK0C8LocationO20FoundationEssentials4UUIDVSgSSSgtYaKF",
@@ -17069,14 +16999,14 @@
       "declaration": "func createWorkspace(uri: WorkspaceURI, location: WorkspaceReference.WorkspaceLocation, originID: UUID?, rootPath: String?) async throws -> WorkspaceReference"
     },
     {
-      "precise": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id0E9Directoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "precise": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "WorkspaceCatalog",
-        "deleteWorkspace(id:deleteDirectory:)"
+        "deleteWorkspace(id:includingDirectory:)"
       ],
-      "declaration": "func deleteWorkspace(id: UUID, deleteDirectory: Bool) async throws"
+      "declaration": "func deleteWorkspace(id: UUID, includingDirectory: Bool) async throws"
     },
     {
       "precise": "s:13PositronicKit16WorkspaceCatalogP06updateC0yy11PKContracts0C9ReferenceVYaKF",
@@ -17109,14 +17039,14 @@
       "declaration": "func createAgentWorkspace(agentID: UUID, template: AgentTemplate? = nil) async throws -> WorkspaceReference"
     },
     {
-      "precise": "s:13PositronicKit16WorkspaceCatalogPAAE03getC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "precise": "s:13PositronicKit16WorkspaceCatalogPAAE05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "WorkspaceCatalog",
-        "getWorkspace(id:includeTools:)"
+        "fetchWorkspace(id:includeTools:)"
       ],
-      "declaration": "func getWorkspace(id: UUID, includeTools: Bool = true) async throws -> WorkspaceReference?"
+      "declaration": "func fetchWorkspace(id: UUID, includeTools: Bool = true) async throws -> WorkspaceReference?"
     },
     {
       "precise": "s:13PositronicKit16WorkspaceCatalogPAAE06createC03uri8location8originID8rootPath11PKContracts0C9ReferenceVAI0C3URIV_AK0C8LocationO20FoundationEssentials4UUIDVSgSSSgtYaKF",
@@ -17129,14 +17059,14 @@
       "declaration": "func createWorkspace(uri: WorkspaceURI, location: WorkspaceReference.WorkspaceLocation, originID: UUID? = nil, rootPath: String? = nil) async throws -> WorkspaceReference"
     },
     {
-      "precise": "s:13PositronicKit16WorkspaceCatalogPAAE06deleteC02id0E9Directoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "precise": "s:13PositronicKit16WorkspaceCatalogPAAE06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "WorkspaceCatalog",
-        "deleteWorkspace(id:deleteDirectory:)"
+        "deleteWorkspace(id:includingDirectory:)"
       ],
-      "declaration": "func deleteWorkspace(id: UUID, deleteDirectory: Bool = false) async throws"
+      "declaration": "func deleteWorkspace(id: UUID, includingDirectory: Bool = false) async throws"
     },
     {
       "precise": "s:13PositronicKit16WorkspaceFactoryP",
@@ -17532,24 +17462,24 @@
       "declaration": "struct RuntimeToolPolicy"
     },
     {
-      "precise": "s:13PositronicKit17RuntimeToolPolicyV017installThreadSendD0Sbvp",
+      "precise": "s:13PositronicKit17RuntimeToolPolicyV018installsThreadSendD0Sbvp",
       "module": "PositronicKit",
       "kind": "swift.property",
       "path": [
         "RuntimeToolPolicy",
-        "installThreadSendTool"
+        "installsThreadSendTool"
       ],
-      "declaration": "let installThreadSendTool: Bool"
+      "declaration": "let installsThreadSendTool: Bool"
     },
     {
-      "precise": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemTools0f17ThreadObservationH00fi4SendD0ACSb_S2btcfc",
+      "precise": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemTools0f17ThreadObservationH008installsi4SendD0ACSb_S2btcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "RuntimeToolPolicy",
-        "init(installFilesystemTools:installThreadObservationTools:installThreadSendTool:)"
+        "init(installFilesystemTools:installThreadObservationTools:installsThreadSendTool:)"
       ],
-      "declaration": "init(installFilesystemTools: Bool = true, installThreadObservationTools: Bool = true, installThreadSendTool: Bool = true)"
+      "declaration": "init(installFilesystemTools: Bool = true, installThreadObservationTools: Bool = true, installsThreadSendTool: Bool = true)"
     },
     {
       "precise": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemToolsSbvp",
@@ -17631,6 +17561,16 @@
       "declaration": "let errorMessage: String?"
     },
     {
+      "precise": "s:13PositronicKit17RuntimeToolResultV12isSuccessfulSbvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "RuntimeToolResult",
+        "isSuccessful"
+      ],
+      "declaration": "let isSuccessful: Bool"
+    },
+    {
       "precise": "s:13PositronicKit17RuntimeToolResultV16workspaceRouting11PKContracts09WorkspacedG0OSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -17651,14 +17591,14 @@
       "declaration": "let id: UUID"
     },
     {
-      "precise": "s:13PositronicKit17RuntimeToolResultV2id6turnID06threadH008toolCallH06output9succeeded12errorMessage09workspaceH00P7Routing9createdAtAC20FoundationEssentials4UUIDV_A2PS2SSbSSSgAPSg11PKContracts09WorkspacedQ0OSgAN4DateVtcfc",
+      "precise": "s:13PositronicKit17RuntimeToolResultV2id6turnID06threadH008toolCallH06output12isSuccessful12errorMessage09workspaceH00Q7Routing9createdAtAC20FoundationEssentials4UUIDV_A2PS2SSbSSSgAPSg11PKContracts09WorkspacedR0OSgAN4DateVtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "RuntimeToolResult",
-        "init(id:turnID:threadID:toolCallID:output:succeeded:errorMessage:workspaceID:workspaceRouting:createdAt:)"
+        "init(id:turnID:threadID:toolCallID:output:isSuccessful:errorMessage:workspaceID:workspaceRouting:createdAt:)"
       ],
-      "declaration": "init(id: UUID = UUID(), turnID: UUID, threadID: UUID, toolCallID: String, output: String, succeeded: Bool = true, errorMessage: String? = nil, workspaceID: UUID? = nil, workspaceRouting: WorkspaceToolRouting? = nil, createdAt: Date = Date())"
+      "declaration": "init(id: UUID = UUID(), turnID: UUID, threadID: UUID, toolCallID: String, output: String, isSuccessful: Bool = true, errorMessage: String? = nil, workspaceID: UUID? = nil, workspaceRouting: WorkspaceToolRouting? = nil, createdAt: Date = Date())"
     },
     {
       "precise": "s:13PositronicKit17RuntimeToolResultV4fromACs7Decoder_p_tKcfc",
@@ -17709,16 +17649,6 @@
         "createdAt"
       ],
       "declaration": "let createdAt: Date"
-    },
-    {
-      "precise": "s:13PositronicKit17RuntimeToolResultV9succeededSbvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "RuntimeToolResult",
-        "succeeded"
-      ],
-      "declaration": "let succeeded: Bool"
     },
     {
       "precise": "s:13PositronicKit17TurnContextSourceP",
@@ -17956,14 +17886,14 @@
       "declaration": "protocol WorkspaceProvider : Sendable"
     },
     {
-      "precise": "s:13PositronicKit17WorkspaceProviderP11healthCheckSbyYaF",
+      "precise": "s:13PositronicKit17WorkspaceProviderP9isHealthySbvp",
       "module": "PositronicKit",
-      "kind": "swift.method",
+      "kind": "swift.property",
       "path": [
         "WorkspaceProvider",
-        "healthCheck()"
+        "isHealthy"
       ],
-      "declaration": "func healthCheck() async -> Bool"
+      "declaration": "var isHealthy: Bool { get async }"
     },
     {
       "precise": "s:13PositronicKit17WorkspaceProviderP9reference11PKContracts0C9ReferenceVvp",
@@ -18907,14 +18837,14 @@
       "declaration": "func create(uri: WorkspaceURI, location: WorkspaceReference.WorkspaceLocation, originID: UUID? = nil, rootPath: String? = nil) async throws -> WorkspaceReference"
     },
     {
-      "precise": "s:13PositronicKit19WorkspaceCapabilityV6delete_0E9Directoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "precise": "s:13PositronicKit19WorkspaceCapabilityV6delete_18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "WorkspaceCapability",
-        "delete(_:deleteDirectory:)"
+        "delete(_:includingDirectory:)"
       ],
-      "declaration": "func delete(_ workspaceID: UUID, deleteDirectory: Bool = false) async throws"
+      "declaration": "func delete(_ workspaceID: UUID, includingDirectory: Bool = false) async throws"
     },
     {
       "precise": "s:13PositronicKit19WorkspaceCapabilityV6updateyy11PKContracts0C9ReferenceVYaKF",
@@ -19979,24 +19909,24 @@
       "declaration": "var configuration: LLMConfiguration { get async }"
     },
     {
-      "precise": "s:13PositronicKit22UnconfiguredLLMServiceV16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0uJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF",
+      "precise": "s:13PositronicKit22UnconfiguredLLMServiceV13healthDetailsSDyS2SGSgvp",
       "module": "PositronicKit",
-      "kind": "swift.method",
+      "kind": "swift.property",
       "path": [
         "UnconfiguredLLMService",
-        "generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)"
+        "healthDetails"
       ],
-      "declaration": "func generationStream(messages _: [LLMMessage], tools _: [LLMToolDefinition]?, toolChoice _: LLMToolChoice?, responseFormat _: LLMResponseFormat?, generationParameters _: GenerationParameters?, modelTier _: ModelTier) async -> AsyncThrowingStream<LLMStreamChunk, any Error>"
+      "declaration": "var healthDetails: [String : String]? { get async }"
     },
     {
-      "precise": "s:13PositronicKit22UnconfiguredLLMServiceV16getHealthDetailsSDyS2SGSgyYaF",
+      "precise": "s:13PositronicKit22UnconfiguredLLMServiceV16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0xJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "UnconfiguredLLMService",
-        "getHealthDetails()"
+        "generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
       ],
-      "declaration": "func getHealthDetails() async -> [String : String]?"
+      "declaration": "func generationStream(messages _: [LLMMessage], tools _: [LLMToolDefinition]?, toolChoice _: LLMToolChoice?, responseFormat _: LLMResponseFormat?, generationParameters _: GenerationParameters?, modelTier _: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, any Error>"
     },
     {
       "precise": "s:13PositronicKit22UnconfiguredLLMServiceV27generationStreamWithContextyAA15LLMStreamResultVAA20LLMGenerationRequestVYaKF",
@@ -23019,16 +22949,6 @@
         "PositronicKit"
       ],
       "declaration": "final class PositronicKit"
-    },
-    {
-      "precise": "s:13PositronicKitAAC10openThreadyAA0D6HandleV20FoundationEssentials4UUIDVF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "PositronicKit",
-        "openThread(_:)"
-      ],
-      "declaration": "func openThread(_ threadID: UUID) -> ThreadHandle"
     },
     {
       "precise": "s:13PositronicKitAAC10workspacesAA19WorkspaceCapabilityVvp",
@@ -26994,6 +26914,16 @@
       "declaration": "let afterTokens: Int"
     },
     {
+      "precise": "s:8PKPrompt21CompressionNodeReportV11didHitCacheSbvp",
+      "module": "PKPrompt",
+      "kind": "swift.property",
+      "path": [
+        "CompressionNodeReport",
+        "didHitCache"
+      ],
+      "declaration": "let didHitCache: Bool"
+    },
+    {
       "precise": "s:8PKPrompt21CompressionNodeReportV12beforeTokensSivp",
       "module": "PKPrompt",
       "kind": "swift.property",
@@ -27044,14 +26974,14 @@
       "declaration": "let action: CompressionAction"
     },
     {
-      "precise": "s:8PKPrompt21CompressionNodeReportV6nodeID4path6action12beforeTokens05afterJ08cacheHit14fallbackReasonACSS_SaySSGAA0B6ActionOS2iSbSSSgtcfc",
+      "precise": "s:8PKPrompt21CompressionNodeReportV6nodeID4path6action12beforeTokens05afterJ011didHitCache14fallbackReasonACSS_SaySSGAA0B6ActionOS2iSbSSSgtcfc",
       "module": "PKPrompt",
       "kind": "swift.init",
       "path": [
         "CompressionNodeReport",
-        "init(nodeID:path:action:beforeTokens:afterTokens:cacheHit:fallbackReason:)"
+        "init(nodeID:path:action:beforeTokens:afterTokens:didHitCache:fallbackReason:)"
       ],
-      "declaration": "init(nodeID: String, path: [String], action: CompressionAction, beforeTokens: Int, afterTokens: Int, cacheHit: Bool, fallbackReason: String?)"
+      "declaration": "init(nodeID: String, path: [String], action: CompressionAction, beforeTokens: Int, afterTokens: Int, didHitCache: Bool, fallbackReason: String?)"
     },
     {
       "precise": "s:8PKPrompt21CompressionNodeReportV6nodeIDSSvp",
@@ -27062,16 +26992,6 @@
         "nodeID"
       ],
       "declaration": "let nodeID: String"
-    },
-    {
-      "precise": "s:8PKPrompt21CompressionNodeReportV8cacheHitSbvp",
-      "module": "PKPrompt",
-      "kind": "swift.property",
-      "path": [
-        "CompressionNodeReport",
-        "cacheHit"
-      ],
-      "declaration": "let cacheHit: Bool"
     },
     {
       "precise": "s:8PKPrompt22JournaledPromptSectionV",
@@ -38774,18 +38694,6 @@
     {
       "module": "PositronicKit",
       "kind": "defaultImplementationOf",
-      "source": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts0C5ChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF",
-      "target": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts0C5ChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "defaultImplementationOf",
-      "source": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF",
-      "target": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "defaultImplementationOf",
       "source": "s:13PositronicKit15LLMStreamClientPAAE23structuredOutputAdapter3for11PKContracts010StructuredfG0_pAA9ModelTierO_tYaF",
       "target": "s:13PositronicKit15LLMStreamClientP23structuredOutputAdapter3for11PKContracts010StructuredfG0_pAA9ModelTierO_tYaF",
       "sourceOrigin": {
@@ -38818,11 +38726,11 @@
     {
       "module": "PositronicKit",
       "kind": "defaultImplementationOf",
-      "source": "s:13PositronicKit16WorkspaceCatalogPAAE03getC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
-      "target": "s:13PositronicKit16WorkspaceCatalogP03getC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "source": "s:13PositronicKit16WorkspaceCatalogPAAE05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "target": "s:13PositronicKit16WorkspaceCatalogP05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit16WorkspaceCatalogP03getC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
-        "displayName": "WorkspaceCatalog.getWorkspace(id:includeTools:)"
+        "identifier": "s:13PositronicKit16WorkspaceCatalogP05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+        "displayName": "WorkspaceCatalog.fetchWorkspace(id:includeTools:)"
       }
     },
     {
@@ -38834,11 +38742,11 @@
     {
       "module": "PositronicKit",
       "kind": "defaultImplementationOf",
-      "source": "s:13PositronicKit16WorkspaceCatalogPAAE06deleteC02id0E9Directoryy20FoundationEssentials4UUIDV_SbtYaKF",
-      "target": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id0E9Directoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "source": "s:13PositronicKit16WorkspaceCatalogPAAE06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "target": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id0E9Directoryy20FoundationEssentials4UUIDV_SbtYaKF",
-        "displayName": "WorkspaceCatalog.deleteWorkspace(id:deleteDirectory:)"
+        "identifier": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
+        "displayName": "WorkspaceCatalog.deleteWorkspace(id:includingDirectory:)"
       }
     },
     {
@@ -39296,19 +39204,19 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts10ToolResultV7success6output5error11workspaceID0G7RoutingACSb_S2SSg20FoundationEssentials4UUIDVSgAA09WorkspacebI0OSgtcfc",
-      "target": "s:11PKContracts10ToolResultV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts10ToolResultV7successSbvp",
-      "target": "s:11PKContracts10ToolResultV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts10ToolResultV7success_11workspaceID0E7RoutingACSS_20FoundationEssentials4UUIDVSgAA09WorkspacebG0OSgtFZ",
+      "target": "s:11PKContracts10ToolResultV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts10ToolResultV9isSuccess6output5error11workspaceID0H7RoutingACSb_S2SSg20FoundationEssentials4UUIDVSgAA09WorkspacebJ0OSgtcfc",
+      "target": "s:11PKContracts10ToolResultV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts10ToolResultV9isSuccessSbvp",
       "target": "s:11PKContracts10ToolResultV"
     },
     {
@@ -41280,7 +41188,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts17LLMResponseSchemaV4name11description6schema6strictACSS_SSSg10JSONSchema0C0VSgSbSgtcfc",
+      "source": "s:11PKContracts17LLMResponseSchemaV4name11description6schema8isStrictACSS_SSSg10JSONSchema0C0VSgSbSgtcfc",
       "target": "s:11PKContracts17LLMResponseSchemaV"
     },
     {
@@ -41298,7 +41206,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts17LLMResponseSchemaV6strictSbSgvp",
+      "source": "s:11PKContracts17LLMResponseSchemaV8isStrictSbSgvp",
       "target": "s:11PKContracts17LLMResponseSchemaV"
     },
     {
@@ -41326,7 +41234,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts17LLMToolDefinitionV4name11description10parameters6strictACSS_SSSg10JSONSchema6SchemaVSgSbSgtcfc",
+      "source": "s:11PKContracts17LLMToolDefinitionV4name11description10parameters8isStrictACSS_SSSg10JSONSchema6SchemaVSgSbSgtcfc",
       "target": "s:11PKContracts17LLMToolDefinitionV"
     },
     {
@@ -41338,7 +41246,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts17LLMToolDefinitionV6strictSbSgvp",
+      "source": "s:11PKContracts17LLMToolDefinitionV8isStrictSbSgvp",
       "target": "s:11PKContracts17LLMToolDefinitionV"
     },
     {
@@ -41350,19 +41258,19 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts17LenientJSONParserO11ParseResultV5value8repairedAeA10AnyCodableO_Sbtcfc",
+      "source": "s:11PKContracts17LenientJSONParserO11ParseResultV11wasRepairedSbvp",
+      "target": "s:11PKContracts17LenientJSONParserO11ParseResultV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts17LenientJSONParserO11ParseResultV5value11wasRepairedAeA10AnyCodableO_Sbtcfc",
       "target": "s:11PKContracts17LenientJSONParserO11ParseResultV"
     },
     {
       "module": "PKContracts",
       "kind": "memberOf",
       "source": "s:11PKContracts17LenientJSONParserO11ParseResultV5valueAA10AnyCodableOvp",
-      "target": "s:11PKContracts17LenientJSONParserO11ParseResultV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts17LenientJSONParserO11ParseResultV8repairedSbvp",
       "target": "s:11PKContracts17LenientJSONParserO11ParseResultV"
     },
     {
@@ -42602,7 +42510,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts22StructuredOutputSchemaV4name11description6schema6strictACSS_SSSg10JSONSchema0D0VSbtcfc",
+      "source": "s:11PKContracts22StructuredOutputSchemaV4name11description6schema8isStrictACSS_SSSg10JSONSchema0D0VSbtcfc",
       "target": "s:11PKContracts22StructuredOutputSchemaV"
     },
     {
@@ -42620,7 +42528,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts22StructuredOutputSchemaV6strictSbvp",
+      "source": "s:11PKContracts22StructuredOutputSchemaV8isStrictSbvp",
       "target": "s:11PKContracts22StructuredOutputSchemaV"
     },
     {
@@ -43304,6 +43212,12 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
+      "source": "s:11PKContracts31StructuredCompressionNodeMetricV11didHitCacheSbvp",
+      "target": "s:11PKContracts31StructuredCompressionNodeMetricV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts31StructuredCompressionNodeMetricV12beforeTokensSivp",
       "target": "s:11PKContracts31StructuredCompressionNodeMetricV"
     },
@@ -43332,19 +43246,13 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts31StructuredCompressionNodeMetricV6nodeID4path6action12beforeTokens05afterK08cacheHitACSS_SaySSGSSS2iSbtcfc",
+      "source": "s:11PKContracts31StructuredCompressionNodeMetricV6nodeID4path6action12beforeTokens05afterK011didHitCacheACSS_SaySSGSSS2iSbtcfc",
       "target": "s:11PKContracts31StructuredCompressionNodeMetricV"
     },
     {
       "module": "PKContracts",
       "kind": "memberOf",
       "source": "s:11PKContracts31StructuredCompressionNodeMetricV6nodeIDSSvp",
-      "target": "s:11PKContracts31StructuredCompressionNodeMetricV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts31StructuredCompressionNodeMetricV8cacheHitSbvp",
       "target": "s:11PKContracts31StructuredCompressionNodeMetricV"
     },
     {
@@ -44416,7 +44324,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO17sidecarsCompletedyACSayAA13SidecarResultVGFZ",
+      "source": "s:11PKContracts9TurnEventO17sidecarsCompleted7resultsACSayAA13SidecarResultVG_tFZ",
       "target": "s:11PKContracts9TurnEventO"
     },
     {
@@ -46509,6 +46417,12 @@
     {
       "module": "PKPrompt",
       "kind": "memberOf",
+      "source": "s:8PKPrompt21CompressionNodeReportV11didHitCacheSbvp",
+      "target": "s:8PKPrompt21CompressionNodeReportV"
+    },
+    {
+      "module": "PKPrompt",
+      "kind": "memberOf",
       "source": "s:8PKPrompt21CompressionNodeReportV12beforeTokensSivp",
       "target": "s:8PKPrompt21CompressionNodeReportV"
     },
@@ -46543,19 +46457,13 @@
     {
       "module": "PKPrompt",
       "kind": "memberOf",
-      "source": "s:8PKPrompt21CompressionNodeReportV6nodeID4path6action12beforeTokens05afterJ08cacheHit14fallbackReasonACSS_SaySSGAA0B6ActionOS2iSbSSSgtcfc",
+      "source": "s:8PKPrompt21CompressionNodeReportV6nodeID4path6action12beforeTokens05afterJ011didHitCache14fallbackReasonACSS_SaySSGAA0B6ActionOS2iSbSSSgtcfc",
       "target": "s:8PKPrompt21CompressionNodeReportV"
     },
     {
       "module": "PKPrompt",
       "kind": "memberOf",
       "source": "s:8PKPrompt21CompressionNodeReportV6nodeIDSSvp",
-      "target": "s:8PKPrompt21CompressionNodeReportV"
-    },
-    {
-      "module": "PKPrompt",
-      "kind": "memberOf",
-      "source": "s:8PKPrompt21CompressionNodeReportV8cacheHitSbvp",
       "target": "s:8PKPrompt21CompressionNodeReportV"
     },
     {
@@ -47347,6 +47255,16 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport14MockLLMServiceC13healthDetailsSDyS2SGSgvp",
+      "target": "s:13PKTestSupport14MockLLMServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit15HealthCheckableP13healthDetailsSDyS2SGSgvp",
+        "displayName": "HealthCheckable.healthDetails"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC13lastModelTier13PositronicKit0fG0OSgvp",
       "target": "s:13PKTestSupport14MockLLMServiceC"
     },
@@ -47364,26 +47282,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts0C5ChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF",
         "displayName": "LLMStreamClient.generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport14MockLLMServiceC16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0uJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSg13PositronicKit05ModelO0OtYaF",
-      "target": "s:13PKTestSupport14MockLLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF",
-        "displayName": "LLMStreamClient.generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport14MockLLMServiceC16getHealthDetailsSDyS2SGSgyYaF",
-      "target": "s:13PKTestSupport14MockLLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit15HealthCheckableP03getC7DetailsSDyS2SGSgyYaF",
-        "displayName": "HealthCheckable.getHealthDetails()"
       }
     },
     {
@@ -47755,16 +47653,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport18MockLocalWorkspaceC11healthCheckSbyYaF",
-      "target": "s:13PKTestSupport18MockLocalWorkspaceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit17WorkspaceProviderP11healthCheckSbyYaF",
-        "displayName": "WorkspaceProvider.healthCheck()"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport18MockLocalWorkspaceC2id20FoundationEssentials4UUIDVvp",
       "target": "s:13PKTestSupport18MockLocalWorkspaceC",
       "sourceOrigin": {
@@ -47786,6 +47674,16 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit21WorkspaceFileProviderP04readD04pathS2S_tYaKF",
         "displayName": "WorkspaceFileProvider.readFile(path:)"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport18MockLocalWorkspaceC9isHealthySbvp",
+      "target": "s:13PKTestSupport18MockLocalWorkspaceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit17WorkspaceProviderP9isHealthySbvp",
+        "displayName": "WorkspaceProvider.isHealthy"
       }
     },
     {
@@ -48493,6 +48391,16 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC13healthDetailsSDyS2SGSgvp",
+      "target": "s:13PKTestSupport22MockPersistenceServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit15HealthCheckableP13healthDetailsSDyS2SGSgvp",
+        "displayName": "HealthCheckable.healthDetails"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC13interruptTurn6turnID6reason5force3now13PositronicKit0G6RecordV20FoundationEssentials4UUIDV_SSSbAL4DateVtYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -48692,16 +48600,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ThreadRuntimeRepositoryP16fetchToolResults6turnIDSayAA0dG6ResultVG20FoundationEssentials4UUIDV_tYaKF",
         "displayName": "ThreadRuntimeRepository.fetchToolResults(turnID:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC16getHealthDetailsSDyS2SGSgyYaF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit15HealthCheckableP03getC7DetailsSDyS2SGSgyYaF",
-        "displayName": "HealthCheckable.getHealthDetails()"
       }
     },
     {
@@ -49620,31 +49518,21 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit10LLMServiceC13healthDetailsSDyS2SGSgvp",
+      "target": "s:13PositronicKit10LLMServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit15HealthCheckableP13healthDetailsSDyS2SGSgvp",
+        "displayName": "HealthCheckable.healthDetails"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit10LLMServiceC16generationStream8messages5tools10toolChoice14responseFormat0D10Parameters9modelTier0J10Modalities11audioOutputScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wI0OSgAM011LLMResponseK0OSgAM010GenerationL0VSgAA05ModelN0OShyAM16ResponseModalityOGAM05AudioQ7OptionsVSgtYaF",
       "target": "s:13PositronicKit10LLMServiceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts0C5ChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF",
         "displayName": "LLMStreamClient.generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10LLMServiceC16generationStream8messages5tools10toolChoice14responseFormat0D10Parameters9modelTierScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tI0OSgAK011LLMResponseK0OSgAK010GenerationL0VSgAA05ModelN0OtYaF",
-      "target": "s:13PositronicKit10LLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF",
-        "displayName": "LLMStreamClient.generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10LLMServiceC16getHealthDetailsSDyS2SGSgyYaF",
-      "target": "s:13PositronicKit10LLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit15HealthCheckableP03getC7DetailsSDyS2SGSgyYaF",
-        "displayName": "HealthCheckable.getHealthDetails()"
       }
     },
     {
@@ -49870,7 +49758,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit10TurnRecordV16recoveryRequiredSbvp",
+      "source": "s:13PositronicKit10TurnRecordV16requiresRecoverySbvp",
       "target": "s:13PositronicKit10TurnRecordV"
     },
     {
@@ -49916,7 +49804,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit10TurnRecordV8identity8threadID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation16recoveryRequired0X7Message14terminalHandle08terminalzG09createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAZSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgSbSSSgAA0C14TerminalHandleVSgA3_AX4DateVA24_tcfc",
+      "source": "s:13PositronicKit10TurnRecordV8identity8threadID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation16requiresRecovery15recoveryMessage14terminalHandle015terminalMessageG09createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAZSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgSbSSSgAA0C14TerminalHandleVSgA3_AX4DateVA24_tcfc",
       "target": "s:13PositronicKit10TurnRecordV"
     },
     {
@@ -50324,25 +50212,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0V11PKContracts14MessageContentV_SSAA0F7OptionsVtYaKF",
+      "source": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0V11PKContracts14MessageContentV_SSSgAA0F7OptionsVtYaKF",
       "target": "s:13PositronicKit12ThreadHandleV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0VSS_SSAA0F7OptionsVtYaKF",
-      "target": "s:13PositronicKit12ThreadHandleV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12ThreadHandleV9startTurn_7optionsAA0fD0V11PKContracts14MessageContentV_AA0F7OptionsVtYaKF",
-      "target": "s:13PositronicKit12ThreadHandleV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12ThreadHandleV9startTurn_7optionsAA0fD0VSS_AA0F7OptionsVtYaKF",
+      "source": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0VSS_SSSgAA0F7OptionsVtYaKF",
       "target": "s:13PositronicKit12ThreadHandleV"
     },
     {
@@ -51184,6 +51060,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF",
+      "target": "s:13PositronicKit15LLMStreamClientP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools16structuredOutput0E10Parameters9modelTier18responseModalities05audioJ0Scsy11PKContracts0C5ChunkVs5Error_pGSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL010StructuredJ7RequestOAL010GenerationK0VSgAA05ModelM0OShyAL16ResponseModalityOGAL05AudioJ7OptionsVSgtYaF",
       "target": "s:13PositronicKit15LLMStreamClientP"
     },
@@ -51490,19 +51372,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit16ThreadCapabilityV6create5title9attachingAA0C6HandleVSS_20FoundationEssentials4UUIDVtYaKF",
+      "source": "s:13PositronicKit16ThreadCapabilityV6create5title9attachingAA0C6HandleVSS_20FoundationEssentials4UUIDVSgtYaKF",
       "target": "s:13PositronicKit16ThreadCapabilityV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit16ThreadCapabilityV6create5titleAA0C6HandleVSS_tYaKF",
-      "target": "s:13PositronicKit16ThreadCapabilityV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit16ThreadCapabilityV6rename_5titley20FoundationEssentials4UUIDV_SStYaKF",
+      "source": "s:13PositronicKit16ThreadCapabilityV6rename_2toy20FoundationEssentials4UUIDV_SStYaKF",
       "target": "s:13PositronicKit16ThreadCapabilityV"
     },
     {
@@ -51786,13 +51662,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolPolicyV017installThreadSendD0Sbvp",
+      "source": "s:13PositronicKit17RuntimeToolPolicyV018installsThreadSendD0Sbvp",
       "target": "s:13PositronicKit17RuntimeToolPolicyV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemTools0f17ThreadObservationH00fi4SendD0ACSb_S2btcfc",
+      "source": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemTools0f17ThreadObservationH008installsi4SendD0ACSb_S2btcfc",
       "target": "s:13PositronicKit17RuntimeToolPolicyV"
     },
     {
@@ -51840,6 +51716,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit17RuntimeToolResultV12isSuccessfulSbvp",
+      "target": "s:13PositronicKit17RuntimeToolResultV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit17RuntimeToolResultV16workspaceRouting11PKContracts09WorkspacedG0OSgvp",
       "target": "s:13PositronicKit17RuntimeToolResultV"
     },
@@ -51852,7 +51734,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolResultV2id6turnID06threadH008toolCallH06output9succeeded12errorMessage09workspaceH00P7Routing9createdAtAC20FoundationEssentials4UUIDV_A2PS2SSbSSSgAPSg11PKContracts09WorkspacedQ0OSgAN4DateVtcfc",
+      "source": "s:13PositronicKit17RuntimeToolResultV2id6turnID06threadH008toolCallH06output12isSuccessful12errorMessage09workspaceH00Q7Routing9createdAtAC20FoundationEssentials4UUIDV_A2PS2SSbSSSgAPSg11PKContracts09WorkspacedR0OSgAN4DateVtcfc",
       "target": "s:13PositronicKit17RuntimeToolResultV"
     },
     {
@@ -51887,12 +51769,6 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit17RuntimeToolResultV9createdAt20FoundationEssentials4DateVvp",
-      "target": "s:13PositronicKit17RuntimeToolResultV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolResultV9succeededSbvp",
       "target": "s:13PositronicKit17RuntimeToolResultV"
     },
     {
@@ -52456,7 +52332,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit19WorkspaceCapabilityV6delete_0E9Directoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "source": "s:13PositronicKit19WorkspaceCapabilityV6delete_18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
       "target": "s:13PositronicKit19WorkspaceCapabilityV"
     },
     {
@@ -53058,21 +52934,21 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit22UnconfiguredLLMServiceV16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0uJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF",
+      "source": "s:13PositronicKit22UnconfiguredLLMServiceV13healthDetailsSDyS2SGSgvp",
       "target": "s:13PositronicKit22UnconfiguredLLMServiceV",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF",
-        "displayName": "LLMStreamClient.generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)"
+        "identifier": "s:13PositronicKit15HealthCheckableP13healthDetailsSDyS2SGSgvp",
+        "displayName": "HealthCheckable.healthDetails"
       }
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit22UnconfiguredLLMServiceV16getHealthDetailsSDyS2SGSgyYaF",
+      "source": "s:13PositronicKit22UnconfiguredLLMServiceV16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0xJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF",
       "target": "s:13PositronicKit22UnconfiguredLLMServiceV",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit15HealthCheckableP03getC7DetailsSDyS2SGSgyYaF",
-        "displayName": "HealthCheckable.getHealthDetails()"
+        "identifier": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts0C5ChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF",
+        "displayName": "LLMStreamClient.generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
       }
     },
     {
@@ -54762,12 +54638,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKitAAC10openThreadyAA0D6HandleV20FoundationEssentials4UUIDVF",
-      "target": "s:13PositronicKitAAC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKitAAC10workspacesAA19WorkspaceCapabilityVvp",
       "target": "s:13PositronicKitAAC"
     },
@@ -55394,13 +55264,13 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit15HealthCheckableP03getC7DetailsSDyS2SGSgyYaF",
+      "source": "s:13PositronicKit15HealthCheckableP05checkC011PKContracts0C6StatusOyYaF",
       "target": "s:13PositronicKit15HealthCheckableP"
     },
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit15HealthCheckableP05checkC011PKContracts0C6StatusOyYaF",
+      "source": "s:13PositronicKit15HealthCheckableP13healthDetailsSDyS2SGSgvp",
       "target": "s:13PositronicKit15HealthCheckableP"
     },
     {
@@ -55419,12 +55289,6 @@
       "module": "PositronicKit",
       "kind": "requirementOf",
       "source": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts0C5ChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF",
-      "target": "s:13PositronicKit15LLMStreamClientP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF",
       "target": "s:13PositronicKit15LLMStreamClientP"
     },
     {
@@ -55464,7 +55328,7 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit16WorkspaceCatalogP03getC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "source": "s:13PositronicKit16WorkspaceCatalogP05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
       "target": "s:13PositronicKit16WorkspaceCatalogP"
     },
     {
@@ -55476,7 +55340,7 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id0E9Directoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "source": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
       "target": "s:13PositronicKit16WorkspaceCatalogP"
     },
     {
@@ -55518,7 +55382,7 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit17WorkspaceProviderP11healthCheckSbyYaF",
+      "source": "s:13PositronicKit17WorkspaceProviderP9isHealthySbvp",
       "target": "s:13PositronicKit17WorkspaceProviderP"
     },
     {

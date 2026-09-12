@@ -220,7 +220,7 @@ public actor StructuredCompressionExecutor {
         action: CompressionAction,
         before: Int,
         after: Int,
-        cacheHit: Bool = false,
+        didHitCache: Bool = false,
         fallback: String? = nil
     ) -> CompressionNodeReport {
         CompressionNodeReport(
@@ -229,7 +229,7 @@ public actor StructuredCompressionExecutor {
             action: action,
             beforeTokens: before,
             afterTokens: after,
-            cacheHit: cacheHit,
+            didHitCache: didHitCache,
             fallbackReason: fallback
         )
     }

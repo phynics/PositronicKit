@@ -15,7 +15,7 @@ struct ReconfiguredRuntimeStateTests {
         let requestID = UUID()
         let context = DirectTurnContext(systemInstructions: "", contributor: .host)
 
-        let original = try await originalKit.openThread(thread.id).startDirectTurn(
+        let original = try await originalKit.threads.open(thread.id).startDirectTurn(
             "same request",
             context: context,
             options: TurnOptions(requestID: requestID)
@@ -26,7 +26,7 @@ struct ReconfiguredRuntimeStateTests {
 
         let replacementModel = MockLLMService()
         let reconfiguredKit = originalKit.reconfigured(languageModel: replacementModel)
-        let joined = try await reconfiguredKit.openThread(thread.id).startDirectTurn(
+        let joined = try await reconfiguredKit.threads.open(thread.id).startDirectTurn(
             "same request",
             context: context,
             options: TurnOptions(requestID: requestID)
@@ -51,7 +51,7 @@ struct ReconfiguredRuntimeStateTests {
         let replacementModel = MockLLMService()
         replacementModel.mockClient.neverFinishingStreamCallIndices = [1]
         let reconfiguredKit = originalKit.reconfigured(languageModel: replacementModel)
-        let active = try await reconfiguredKit.openThread(thread.id).startDirectTurn(
+        let active = try await reconfiguredKit.threads.open(thread.id).startDirectTurn(
             "same request",
             context: context,
             options: TurnOptions(requestID: requestID)
@@ -60,7 +60,7 @@ struct ReconfiguredRuntimeStateTests {
             await Task.yield()
         }
 
-        let joined = try await originalKit.openThread(thread.id).startDirectTurn(
+        let joined = try await originalKit.threads.open(thread.id).startDirectTurn(
             "same request",
             context: context,
             options: TurnOptions(requestID: requestID)

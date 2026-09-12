@@ -24,7 +24,7 @@ private actor FakeWorkspaceRepository: WorkspaceCatalog {
         shouldThrow = value
     }
 
-    func getWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference? {
+    func fetchWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference? {
         if shouldThrow {
             throw TestError.repositoryFailure
         }
@@ -64,7 +64,7 @@ private actor FakeWorkspaceRepository: WorkspaceCatalog {
         Array(references.values)
     }
 
-    func deleteWorkspace(id: UUID, deleteDirectory: Bool) async throws {
+    func deleteWorkspace(id: UUID, includingDirectory: Bool) async throws {
         references.removeValue(forKey: id)
     }
 
@@ -83,7 +83,7 @@ private actor FakeWorkspace: WorkspaceProvider {
         self.healthy = healthy
     }
 
-    func healthCheck() async -> Bool { healthy }
+    var isHealthy: Bool { get async { healthy } }
 }
 
 /// Creator that vends `FakeWorkspace` instances with per-ID health overrides.

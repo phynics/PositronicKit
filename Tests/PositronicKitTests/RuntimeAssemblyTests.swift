@@ -41,7 +41,7 @@ struct RuntimeAssemblyTests {
         )
 
         let thread = try await kit.threads.create(title: "Explicit repository")
-        let turn = try await kit.openThread(thread.id).startDirectTurn(
+        let turn = try await kit.threads.open(thread.id).startDirectTurn(
             "persist through the repository",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
@@ -171,11 +171,11 @@ struct RuntimeAssemblyTests {
         let agent = try await kit.agents.create(name: "Assembly Agent", description: "custom")
         let primaryWorkspaceID = try #require(agent.primaryWorkspaceID)
         #expect(try await agentStore.fetchAgent(id: agent.id) != nil)
-        #expect(try await kit.workspaceCatalog.getWorkspace(id: primaryWorkspaceID, includeTools: false) != nil)
+        #expect(try await kit.workspaceCatalog.fetchWorkspace(id: primaryWorkspaceID, includeTools: false) != nil)
 
         let thread = try await kit.threads.create(title: "Customization")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let turn = try await kit.openThread(thread.id).startTurn("custom context")
+        let turn = try await kit.threads.open(thread.id).startTurn("custom context")
         _ = await turn.events().collect()
 
         #expect(try await turn.outcome() == .completed)
@@ -205,7 +205,7 @@ struct RuntimeAssemblyTests {
         )
 
         let thread = try await kit.threads.create(title: "Durability barriers")
-        let turn = try await kit.openThread(thread.id).startDirectTurn(
+        let turn = try await kit.threads.open(thread.id).startDirectTurn(
             "admit before provider",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
@@ -257,7 +257,7 @@ struct RuntimeAssemblyTests {
             name: "call_tool",
             arguments: "{\"tool\":\"cat\",\"at\":\"\(attachedWorkspace.id.uuidString)\",\"arguments\":{\"path\":\"README.md\"}}"
         )]]
-        let turn = try await kit.openThread(thread.id).startDirectTurn(
+        let turn = try await kit.threads.open(thread.id).startDirectTurn(
             "defer this tool",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
@@ -317,7 +317,7 @@ struct RuntimeAssemblyTests {
 
         let thread = try await originalKit.threads.create(title: "Reconfigured assembly")
         let requestID = thread.id
-        let original = try await originalKit.openThread(thread.id).startDirectTurn(
+        let original = try await originalKit.threads.open(thread.id).startDirectTurn(
             "same request",
             context: DirectTurnContext(systemInstructions: "", contributor: .host),
             options: TurnOptions(requestID: requestID)
@@ -330,7 +330,7 @@ struct RuntimeAssemblyTests {
         }
 
         let journalBefore = await originalKit.turnEngine.dependencies.promptHistoryRegistry.history(for: thread.id)
-        let joined = try await reconfiguredKit.openThread(thread.id).startDirectTurn(
+        let joined = try await reconfiguredKit.threads.open(thread.id).startDirectTurn(
             "same request",
             context: DirectTurnContext(systemInstructions: "", contributor: .host),
             options: TurnOptions(requestID: requestID)
@@ -346,7 +346,7 @@ struct RuntimeAssemblyTests {
         #expect(try await original.outcome() == .cancelled(reason: "Turn task cancelled."))
 
         replacementModel.mockClient.nextResponse = "replacement reply"
-        let replacementTurn = try await reconfiguredKit.openThread(thread.id).startDirectTurn(
+        let replacementTurn = try await reconfiguredKit.threads.open(thread.id).startDirectTurn(
             "new provider view",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )

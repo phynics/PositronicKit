@@ -322,7 +322,7 @@ struct WorkspaceToolDispatchIntegrationTests {
         #expect(await executionProbe.executionCount == 0)
         let results = try await environment.repository.fetchToolResults(turnID: turnID)
         #expect(results.count == 1)
-        #expect(results.first?.succeeded == false)
+        #expect(results.first?.isSuccessful == false)
         #expect(results.first?.workspaceID == environment.workspace.id)
     }
 

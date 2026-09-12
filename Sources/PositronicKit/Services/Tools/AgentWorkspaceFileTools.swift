@@ -130,7 +130,7 @@ struct AgentWorkspaceFileTool: Tool, Sendable {
     }
 
     func canExecute() async -> Bool {
-        await provider.healthCheck()
+        await provider.isHealthy
     }
 
     func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
@@ -323,8 +323,8 @@ actor LocalAgentWorkspaceProvider: WorkspaceFileProvider {
         rootURL = URL(fileURLWithPath: rootPath, isDirectory: true)
     }
 
-    func healthCheck() async -> Bool {
-        FileManager.default.fileExists(atPath: rootURL.path)
+    var isHealthy: Bool {
+        get async { FileManager.default.fileExists(atPath: rootURL.path) }
     }
 
     func readFile(path: String) async throws -> String {

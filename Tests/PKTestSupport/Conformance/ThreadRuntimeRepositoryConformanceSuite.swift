@@ -527,7 +527,7 @@ public enum ThreadRuntimeRepositoryConformanceSuite {
             Issue.record("thread.recovery.stale.required")
             return
         }
-        try #require(record.recoveryRequired, "thread.recovery.stale.marker")
+        try #require(record.requiresRecovery, "thread.recovery.stale.marker")
         try #require(try await repository.fetchToolIntents(turnID: record.identity.turnID) == [intent], "thread.recovery.stale.intent")
         try #require(try await repository.fetchActiveTurn(for: threadID) == nil, "thread.recovery.stale.no-active-turn")
         try #require(try await repository.fetchMessages(for: threadID).map(\.id) == [input.id], "thread.recovery.stale.input")

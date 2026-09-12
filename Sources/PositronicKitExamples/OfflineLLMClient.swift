@@ -29,8 +29,15 @@ struct OfflineLLMClient: LLMStreamClient {
         toolChoice _: LLMToolChoice?,
         responseFormat _: LLMResponseFormat?,
         generationParameters _: GenerationParameters?,
-        modelTier _: ModelTier
+        modelTier _: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        guard !responseModalities.contains(.audio), audioOutput == nil else {
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: MultimodalContentError.missingCapability(.audioOutput))
+            }
+        }
         let responseParts = ["PositronicKit ", "is running ", "offline."]
         return AsyncThrowingStream { continuation in
             for (index, content) in responseParts.enumerated() {

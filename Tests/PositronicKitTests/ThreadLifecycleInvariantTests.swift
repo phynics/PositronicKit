@@ -5,7 +5,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-/// PKRR-005 lifecycle invariants: `openThread` opens an existing thread only. Sending
+/// PKRR-005 lifecycle invariants: `ThreadCapability.open(_:)` opens an existing thread only. Sending
 /// to a missing ID throws before any user input is persisted. Store failure is
 /// distinguishable from not-found.
 @Suite("Thread lifecycle invariants (PKRR-005)")
@@ -75,7 +75,7 @@ struct ThreadLifecycleInvariantTests {
             persistence: .inMemory()
         ))
 
-        let driver = kit.openThread(UUID())
+        let driver = kit.threads.open(UUID())
 
         await #expect(throws: ThreadError.threadNotFound) {
             _ = try await driver.startTurn("hello")
@@ -91,7 +91,7 @@ struct ThreadLifecycleInvariantTests {
         let thread = try await kit.threadManager.createThread(title: "Lifecycle Invariant")
         let agent = try await kit.agents.create(name: "Lifecycle Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let driver = kit.openThread(thread.id)
+        let driver = kit.threads.open(thread.id)
 
         let turn = try await driver.startTurn("hello")
         let events = await turn.events().collect()
