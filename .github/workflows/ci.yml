@@ -102,20 +102,6 @@ jobs:
           mkdir -p .build
           make verify 2>&1 | tee .build/macos-verify.log
 
-      - name: Generate macOS public API baseline for review
-        if: always() && github.event_name == 'pull_request' && github.head_ref == 'codex/issue-142-typed-one-shot-structured-generation'
-        run: |
-          make update-public-api-baseline
-          cp api/5.1-public-api-macos.json .build/macos-public-api-baseline.json
-
-      - name: Publish generated macOS public API baseline
-        if: always() && github.event_name == 'pull_request' && github.head_ref == 'codex/issue-142-typed-one-shot-structured-generation'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: macos-public-api-baseline
-          path: .build/macos-public-api-baseline.json
-          if-no-files-found: ignore
-
       - name: Publish macOS verify log
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
