@@ -301,6 +301,39 @@ struct FacadeOneShotTests {
         #expect(probe.terminationCount == 1)
     }
 
+    @Test("typed structured generation preserves cancellation and terminates the provider once")
+    func typedStructuredGenerationCancellation() async throws {
+        let probe = OneShotTerminationProbe()
+        let llm = MockLLMService()
+        llm.stubbedStream = Self.cancellableProviderStream(probe: probe)
+        let kit = Self.makeKit(languageModel: llm)
+        let task = Task {
+            try await kit.model.generate(
+                ProjectMetadata.self,
+                from: "Extract the project metadata.",
+                idleTimeout: 60
+            )
+        }
+        defer {
+            task.cancel()
+            probe.releaseAll()
+        }
+
+        await probe.waitUntilStarted()
+        task.cancel()
+        await probe.waitUntilTerminated()
+
+        do {
+            _ = try await task.value
+            Issue.record("Expected typed one-shot cancellation to throw")
+        } catch is CancellationError {
+            // Expected.
+        } catch {
+            Issue.record("Expected CancellationError, got \(error)")
+        }
+        #expect(probe.terminationCount == 1)
+    }
+
     @Test("structured complete wraps foreign provider stream errors")
     func structuredCompleteWrapsForeignProviderError() async throws {
         let llm = MockLLMService()

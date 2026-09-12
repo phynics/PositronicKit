@@ -217,6 +217,8 @@ public enum PositronicKitUsageExamples {
         ExampleWorkspaceToolProvider(workspaceID: workspaceID, workspaceName: workspaceName)
     }
 
+    /// Builds the raw schema used by the advanced `generateStructured` example.
+    /// Prefer `completeStructuredOutputExample(prompt:)` for typed one-shot generation.
     public static func makeStructuredOutputSchema() -> StructuredOutputSchema {
         StructuredOutputSchema(
             name: "tag_payload",
@@ -233,18 +235,17 @@ public enum PositronicKitUsageExamples {
         try StructuredOutputDecoder.decode(ExampleTagPayload.self, from: payload)
     }
 
-    /// Tier 1 structured-output variant: a one-shot `kit.model.generateStructured(...)`
-    /// call, no thread created or updated. The returned string is the raw JSON
-    /// payload, decodable via `decodeStructuredOutputExample(from:)`/`StructuredOutputDecoder`.
+    /// Tier 1 structured-output variant: a typed one-shot `kit.model.generate(...)` call, with
+    /// no thread created or updated. The raw `generateStructured` request and decoder helpers
+    /// above remain available for advanced callers that need direct payload control.
     public static func completeStructuredOutputExample(prompt: String) async throws -> ExampleTagPayload {
         let kit = makeOneShotRuntime()
-        let payload = try await kit.model.generateStructured(
-            prompt,
-            structuredOutput: makeStructuredOutputRequest(),
+        return try await kit.model.generate(
+            ExampleTagPayload.self,
+            from: prompt,
             generationParameters: GenerationParameters(temperature: 0, maxTokens: 128),
             idleTimeout: 30
         )
-        return try decodeStructuredOutputExample(from: payload)
     }
 
     /// Sidecar directives (piggy-backed requests): auxiliary generations riding the same
@@ -333,6 +334,10 @@ public struct ExampleGreetingInput: Codable, Sendable {
 public struct ExampleTagPayload: Codable, Sendable, Equatable {
     public let tags: [String]
 
+    public enum CodingKeys: String, CodingKey {
+        case tags
+    }
+
     public init(tags: [String]) {
         self.tags = tags
     }
@@ -341,6 +346,10 @@ public struct ExampleTagPayload: Codable, Sendable, Equatable {
 @Schemable
 public struct ExampleOneShotTitlePayload: Codable, Sendable, Equatable {
     public let title: String?
+
+    public enum CodingKeys: String, CodingKey {
+        case title
+    }
 
     public init(title: String?) {
         self.title = title

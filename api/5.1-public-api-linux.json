@@ -7580,6 +7580,26 @@
       "declaration": "enum StructuredOutputDecodingError"
     },
     {
+      "precise": "s:11PKContracts29StructuredOutputDecodingErrorO11errorDomainSSvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "StructuredOutputDecodingError",
+        "errorDomain"
+      ],
+      "declaration": "var errorDomain: String { get }"
+    },
+    {
+      "precise": "s:11PKContracts29StructuredOutputDecodingErrorO11remediationSSSgvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "StructuredOutputDecodingError",
+        "remediation"
+      ],
+      "declaration": "var remediation: String? { get }"
+    },
+    {
       "precise": "s:11PKContracts29StructuredOutputDecodingErrorO14decodingFailedyACSScACmF",
       "module": "PKContracts",
       "kind": "swift.enum.case",
@@ -7598,6 +7618,26 @@
         "invalidJSONPayload"
       ],
       "declaration": "case invalidJSONPayload"
+    },
+    {
+      "precise": "s:11PKContracts29StructuredOutputDecodingErrorO19userFriendlyMessageSSvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "StructuredOutputDecodingError",
+        "userFriendlyMessage"
+      ],
+      "declaration": "var userFriendlyMessage: String { get }"
+    },
+    {
+      "precise": "s:11PKContracts29StructuredOutputDecodingErrorO9errorCodeSivp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "StructuredOutputDecodingError",
+        "errorCode"
+      ],
+      "declaration": "var errorCode: Int { get }"
     },
     {
       "precise": "s:11PKContracts30DefaultStructuredOutputAdapterV",
@@ -20672,6 +20712,16 @@
       "declaration": "func generate(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60) async throws -> OneShotResult"
     },
     {
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_4from20generationParameters11idleTimeout7decoderxxm_SS11PKContracts010GenerationI0VSgSd20FoundationEssentials11JSONDecoderCtYaK17JSONSchemaBuilder9SchemableRzSeRzs8SendableRz6SchemaApQP_6OutputQZRszlF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ModelInferenceCapability",
+        "generate(_:from:generationParameters:idleTimeout:decoder:)"
+      ],
+      "declaration": "func generate<Output>(_ type: Output.Type, from prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, decoder: JSONDecoder = SerializationUtils.jsonDecoder) async throws -> Output where Output : Schemable, Output : Decodable, Output : Sendable, Output == Output.Schema.Output"
+    },
+    {
       "precise": "s:13PositronicKit24ModelInferenceCapabilityV9readiness11PKContracts0C9ReadinessOyYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -20885,6 +20935,65 @@
         "init()"
       ],
       "declaration": "init()"
+    },
+    {
+      "precise": "s:13PositronicKit25StructuredGenerationErrorO",
+      "module": "PositronicKit",
+      "kind": "swift.enum",
+      "path": [
+        "StructuredGenerationError"
+      ],
+      "declaration": "enum StructuredGenerationError"
+    },
+    {
+      "precise": "s:13PositronicKit25StructuredGenerationErrorO11errorDomainSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "StructuredGenerationError",
+        "errorDomain"
+      ],
+      "declaration": "var errorDomain: String { get }"
+    },
+    {
+      "precise": "s:13PositronicKit25StructuredGenerationErrorO11remediationSSSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "StructuredGenerationError",
+        "remediation"
+      ],
+      "declaration": "var remediation: String? { get }"
+    },
+    {
+      "precise": "s:13PositronicKit25StructuredGenerationErrorO19userFriendlyMessageSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "StructuredGenerationError",
+        "userFriendlyMessage"
+      ],
+      "declaration": "var userFriendlyMessage: String { get }"
+    },
+    {
+      "precise": "s:13PositronicKit25StructuredGenerationErrorO24schemaConstructionFailedyACSS_SStcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "StructuredGenerationError",
+        "schemaConstructionFailed(typeName:reason:)"
+      ],
+      "declaration": "case schemaConstructionFailed(typeName: String, reason: String)"
+    },
+    {
+      "precise": "s:13PositronicKit25StructuredGenerationErrorO9errorCodeSivp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "StructuredGenerationError",
+        "errorCode"
+      ],
+      "declaration": "var errorCode: Int { get }"
     },
     {
       "precise": "s:13PositronicKit25ThreadPersistenceProtocolP",
@@ -31524,6 +31633,26 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts29StructuredOutputDecodingErrorO",
+      "target": "s:11PKContracts7PKErrorP"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts29StructuredOutputDecodingErrorO",
+      "target": "s:20FoundationEssentials14LocalizedErrorP",
+      "targetFallback": "FoundationEssentials.LocalizedError"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts29StructuredOutputDecodingErrorO",
+      "target": "s:8ErrorKit9ThrowableP",
+      "targetFallback": "ErrorKit.Throwable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts29StructuredOutputDecodingErrorO",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
@@ -37694,6 +37823,55 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO",
+      "target": "s:11PKContracts7PKErrorP",
+      "targetFallback": "PKContracts.PKError"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO",
+      "target": "s:20FoundationEssentials14LocalizedErrorP",
+      "targetFallback": "FoundationEssentials.LocalizedError"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO",
+      "target": "s:8ErrorKit9ThrowableP",
+      "targetFallback": "ErrorKit.Throwable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO",
+      "target": "s:s5ErrorP",
+      "targetFallback": "Swift.Error"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit25ThreadPersistenceProtocolP",
       "target": "s:13PositronicKit15DurabilityAwareP"
     },
@@ -43096,6 +43274,26 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
+      "source": "s:11PKContracts29StructuredOutputDecodingErrorO11errorDomainSSvp",
+      "target": "s:11PKContracts29StructuredOutputDecodingErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP11errorDomainSSvp",
+        "displayName": "PKError.errorDomain"
+      }
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts29StructuredOutputDecodingErrorO11remediationSSSgvp",
+      "target": "s:11PKContracts29StructuredOutputDecodingErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP11remediationSSSgvp",
+        "displayName": "PKError.remediation"
+      }
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts29StructuredOutputDecodingErrorO14decodingFailedyACSScACmF",
       "target": "s:11PKContracts29StructuredOutputDecodingErrorO"
     },
@@ -43104,6 +43302,26 @@
       "kind": "memberOf",
       "source": "s:11PKContracts29StructuredOutputDecodingErrorO18invalidJSONPayloadyA2CmF",
       "target": "s:11PKContracts29StructuredOutputDecodingErrorO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts29StructuredOutputDecodingErrorO19userFriendlyMessageSSvp",
+      "target": "s:11PKContracts29StructuredOutputDecodingErrorO",
+      "sourceOrigin": {
+        "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp",
+        "displayName": "Throwable.userFriendlyMessage"
+      }
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts29StructuredOutputDecodingErrorO9errorCodeSivp",
+      "target": "s:11PKContracts29StructuredOutputDecodingErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp",
+        "displayName": "PKError.errorCode"
+      }
     },
     {
       "module": "PKContracts",
@@ -53244,6 +53462,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_4from20generationParameters11idleTimeout7decoderxxm_SS11PKContracts010GenerationI0VSgSd20FoundationEssentials11JSONDecoderCtYaK17JSONSchemaBuilder9SchemableRzSeRzs8SendableRz6SchemaApQP_6OutputQZRszlF",
+      "target": "s:13PositronicKit24ModelInferenceCapabilityV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit24ModelInferenceCapabilityV9readiness11PKContracts0C9ReadinessOyYaF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
@@ -53374,6 +53598,52 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit25InMemoryThreadPersistenceCACycfc",
       "target": "s:13PositronicKit25InMemoryThreadPersistenceC"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO11errorDomainSSvp",
+      "target": "s:13PositronicKit25StructuredGenerationErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP11errorDomainSSvp",
+        "displayName": "PKError.errorDomain"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO11remediationSSSgvp",
+      "target": "s:13PositronicKit25StructuredGenerationErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP11remediationSSSgvp",
+        "displayName": "PKError.remediation"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO19userFriendlyMessageSSvp",
+      "target": "s:13PositronicKit25StructuredGenerationErrorO",
+      "sourceOrigin": {
+        "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp",
+        "displayName": "Throwable.userFriendlyMessage"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO24schemaConstructionFailedyACSS_SStcACmF",
+      "target": "s:13PositronicKit25StructuredGenerationErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit25StructuredGenerationErrorO9errorCodeSivp",
+      "target": "s:13PositronicKit25StructuredGenerationErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp",
+        "displayName": "PKError.errorCode"
+      }
     },
     {
       "module": "PositronicKit",

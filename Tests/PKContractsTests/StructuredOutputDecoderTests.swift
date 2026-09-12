@@ -145,6 +145,38 @@ struct StructuredOutputDecoderTests {
         }
     }
 
+    @Test("Distinguishes invalid JSON from a decoding mismatch")
+    func distinguishesInvalidJSONFromDecodingMismatch() {
+        do {
+            _ = try StructuredOutputDecoder.decode(TagPayload.self, from: "not json")
+            Issue.record("Expected invalid JSON to fail")
+        } catch let error as StructuredOutputDecodingError {
+            #expect(error == .invalidJSONPayload)
+            #expect(error.errorDomain == PKErrorDomain.shared)
+            #expect(error.errorCode == 203)
+            #expect(error.remediation != nil)
+        } catch {
+            Issue.record("Expected StructuredOutputDecodingError, got \(error)")
+        }
+
+        do {
+            _ = try StructuredOutputDecoder.decode(TagPayload.self, from: #"{"tags":"not-an-array"}"#)
+            Issue.record("Expected a decoding mismatch to fail")
+        } catch let error as StructuredOutputDecodingError {
+            guard case let .decodingFailed(reason) = error else {
+                Issue.record("Expected decodingFailed, got \(error)")
+                return
+            }
+            #expect(!reason.isEmpty)
+            #expect(error.errorDomain == PKErrorDomain.shared)
+            #expect(error.errorCode == 204)
+            #expect(error.userFriendlyMessage.contains(reason))
+            #expect(error.remediation != nil)
+        } catch {
+            Issue.record("Expected StructuredOutputDecodingError, got \(error)")
+        }
+    }
+
     @Test("Throws on empty payload")
     func throwsOnEmptyPayload() {
         #expect(throws: StructuredOutputDecodingError.self) {

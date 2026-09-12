@@ -4,12 +4,41 @@ import Logging
 
 /// Errors surfaced when a structured-output payload can't be turned into the requested type,
 /// even after lenient JSON repair.
-public enum StructuredOutputDecodingError: Error, Equatable {
+public enum StructuredOutputDecodingError: PKError, Sendable, Equatable {
     /// The payload could not be parsed as JSON at all (not even after repair).
     case invalidJSONPayload
     /// The payload parsed as JSON but didn't match the requested `Decodable` type; the
     /// associated string carries the underlying decoding error's description.
     case decodingFailed(String)
+
+    public var errorDomain: String {
+        PKErrorDomain.shared
+    }
+
+    public var errorCode: Int {
+        switch self {
+        case .invalidJSONPayload: return 203
+        case .decodingFailed: return 204
+        }
+    }
+
+    public var userFriendlyMessage: String {
+        switch self {
+        case .invalidJSONPayload:
+            return "The model response was not valid JSON, even after repair. Ask the model to return only the requested JSON object."
+        case let .decodingFailed(reason):
+            return "The model returned valid JSON, but it did not match the requested type: \(reason)"
+        }
+    }
+
+    public var remediation: String? {
+        switch self {
+        case .invalidJSONPayload:
+            return "Retry with a prompt that requests only JSON matching the structured-output schema, and confirm the provider supports structured output."
+        case .decodingFailed:
+            return "Ensure the schema keys match the decoder's CodingKeys or key-decoding strategy, then retry."
+        }
+    }
 }
 
 /// Decodes structured-output payloads returned by the model, tolerating minor JSON

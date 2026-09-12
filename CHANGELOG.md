@@ -45,6 +45,11 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Typed one-shot structured generation (#142):** `kit.model.generate(_:from:generationParameters:idleTimeout:decoder:)`
+  derives a Draft 2020-12 schema from a `Schemable` `Decodable & Sendable` output type, uses the
+  existing native/synthetic structured-output path, and returns the decoded value. Schema
+  construction and payload-decoding failures have stable, actionable error identities; the raw
+  `generateStructured` operation remains available for advanced callers.
 - **Shipped protocol conformance suites:** `PKTestSupport` now exposes explicitly invoked Swift
   Testing runners for `ThreadRuntimeRepository`, `WorkspaceStore`, `ToolPersistenceProtocol`,
   `AgentStoreProtocol`, `RequestOriginStoreProtocol`, and `WorkspaceFactory`. The toolchain-provided

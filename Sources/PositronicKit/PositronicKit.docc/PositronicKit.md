@@ -62,8 +62,11 @@ The configurable `complete`, `completeResult`, `stream`, and structured-output `
 overloads accept per-call `GenerationParameters` and an `idleTimeout`. Non-`nil` per-call
 parameters override the facade defaults; `nil` uses those defaults. The timeout defaults to 60
 seconds, measures provider inactivity rather than total duration, and resets after each chunk.
-Structured one-shot requests use the same provider adapter path as full runs and return the raw
-structured payload for decoding.
+Typed structured one-shot requests use the same provider adapter path as full runs and return a
+`Decodable` value. The requested type must conform to `Decodable`, `Sendable`, and `Schemable`;
+its generated schema and decoder key strategy must agree. Pass a configured `JSONDecoder` when
+custom decoding is required. The lower-level `generateStructured` operation remains available
+when callers need the raw JSON payload or a hand-built schema.
 
 ### Error Delivery And Cancellation
 
