@@ -383,28 +383,73 @@ public enum ThreadRuntimeRepositoryError: Error, Equatable, Sendable, CustomStri
     case inputMessageThreadMismatch(messageID: UUID, expectedThreadID: UUID, actualThreadID: UUID)
     case finalMessageThreadMismatch(messageID: UUID, expectedThreadID: UUID, actualThreadID: UUID)
 
-    public var description: String {
+    private struct ErrorMetadata {
+        let code: Int
+        let message: String
+    }
+
+    private var errorMetadata: ErrorMetadata {
         switch self {
-        case let .threadNotFound(id): return "Thread \(id) does not exist."
-        case let .turnNotFound(id): return "Turn \(id) does not exist."
-        case let .threadBusy(threadID, activeTurnID): return "Thread \(threadID) is busy with Turn \(activeTurnID)."
-        case let .idempotencyConflict(requestID): return "Request \(requestID) was reused with a different caller intent."
-        case let .recoveryRequired(threadID, turnID): return "Thread \(threadID) requires recovery for Turn \(turnID)."
-        case let .invalidTransition(turnID, lifecycle): return "Turn \(turnID) cannot transition from \(lifecycle.rawValue)."
-        case let .toolIntentRequired(turnID, toolCallID): return "Turn \(turnID) has no durable intent for tool call \(toolCallID)."
-        case let .duplicateToolIntent(turnID, toolCallID): return "Turn \(turnID) already records tool call \(toolCallID)."
-        case let .duplicateToolResult(turnID, toolCallID): return "Turn \(turnID) already records a result for tool call \(toolCallID)."
-        case let .appendOnlyViolation(messageID): return "Message \(messageID) is append-only and cannot be replaced."
-        case let .historyDeletionForbidden(threadID): return "Thread \(threadID) history is append-only and cannot be deleted."
-        case let .summarySourceMissing(messageID): return "Summary source message \(messageID) is not durable."
-        case .confirmationRequired: return "This administrative operation requires explicit FORCE_CLEAR confirmation."
-        case let .runtimeRepositoryRequired(threadID): return "A ThreadRuntimeRepository is required to archive Thread \(threadID)."
-        case let .authorityCoordinatorRequired(threadID): return "A ThreadAuthorityCoordinator is required to archive Thread \(threadID) safely."
+        case let .threadNotFound(id):
+            return ErrorMetadata(code: 6101, message: "Thread \(id) does not exist.")
+        case let .turnNotFound(id):
+            return ErrorMetadata(code: 6102, message: "Turn \(id) does not exist.")
+        case let .threadBusy(threadID, activeTurnID):
+            return ErrorMetadata(code: 6103, message: "Thread \(threadID) is busy with Turn \(activeTurnID).")
+        case let .idempotencyConflict(requestID):
+            return ErrorMetadata(code: 6104, message: "Request \(requestID) was reused with a different caller intent.")
+        case let .recoveryRequired(threadID, turnID):
+            return ErrorMetadata(code: 6105, message: "Thread \(threadID) requires recovery for Turn \(turnID).")
+        case let .invalidTransition(turnID, lifecycle):
+            return ErrorMetadata(code: 6106, message: "Turn \(turnID) cannot transition from \(lifecycle.rawValue).")
+        case let .toolIntentRequired(turnID, toolCallID):
+            return ErrorMetadata(code: 6107, message: "Turn \(turnID) has no durable intent for tool call \(toolCallID).")
+        case let .duplicateToolIntent(turnID, toolCallID):
+            return ErrorMetadata(code: 6108, message: "Turn \(turnID) already records tool call \(toolCallID).")
+        case let .duplicateToolResult(turnID, toolCallID):
+            return ErrorMetadata(code: 6109, message: "Turn \(turnID) already records a result for tool call \(toolCallID).")
+        case let .appendOnlyViolation(messageID):
+            return ErrorMetadata(code: 6110, message: "Message \(messageID) is append-only and cannot be replaced.")
+        case let .historyDeletionForbidden(threadID):
+            return ErrorMetadata(code: 6111, message: "Thread \(threadID) history is append-only and cannot be deleted.")
+        case let .summarySourceMissing(messageID):
+            return ErrorMetadata(code: 6112, message: "Summary source message \(messageID) is not durable.")
+        case .confirmationRequired:
+            return ErrorMetadata(code: 6113, message: "This administrative operation requires explicit FORCE_CLEAR confirmation.")
+        case let .runtimeRepositoryRequired(threadID):
+            return ErrorMetadata(code: 6114, message: "A ThreadRuntimeRepository is required to archive Thread \(threadID).")
+        case let .authorityCoordinatorRequired(threadID):
+            return ErrorMetadata(code: 6115, message: "A ThreadAuthorityCoordinator is required to archive Thread \(threadID) safely.")
         case let .inputMessageThreadMismatch(messageID, expectedThreadID, actualThreadID):
-            return "Input message \(messageID) belongs to Thread \(actualThreadID), not Thread \(expectedThreadID)."
+            return ErrorMetadata(
+                code: 6116,
+                message: "Input message \(messageID) belongs to Thread \(actualThreadID), not Thread \(expectedThreadID)."
+            )
         case let .finalMessageThreadMismatch(messageID, expectedThreadID, actualThreadID):
-            return "Final message \(messageID) belongs to Thread \(actualThreadID), not Thread \(expectedThreadID)."
+            return ErrorMetadata(
+                code: 6117,
+                message: "Final message \(messageID) belongs to Thread \(actualThreadID), not Thread \(expectedThreadID)."
+            )
         }
+    }
+
+    public var description: String {
+        errorMetadata.message
+    }
+}
+
+/// Stable `PKError` identity for Thread runtime repository failures.
+extension ThreadRuntimeRepositoryError: PKError {
+    public var errorDomain: String {
+        PKErrorDomain.thread
+    }
+
+    public var errorCode: Int {
+        errorMetadata.code
+    }
+
+    public var userFriendlyMessage: String {
+        errorMetadata.message
     }
 }
 
