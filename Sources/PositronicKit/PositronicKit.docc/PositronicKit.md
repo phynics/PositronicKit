@@ -77,6 +77,22 @@ timeouts, and cancellation retain their existing error identities. The raw opera
 the next breaking release is tracked in
 [#176](https://github.com/phynics/PositronicKit/issues/176).
 
+### Thread history
+
+Read durable Thread messages through ``ThreadCapability/messages(for:)``. The result is ordered
+from oldest to newest by ``ThreadMessage/timestamp``. Messages with equal timestamps keep their
+append order. An unknown Thread ID returns an empty array.
+
+```swift
+let history = try await kit.threads.messages(for: threadID)
+for message in history {
+    print("\(message.messageRole): \(message.content)")
+}
+```
+
+Thread history records semantic runtime messages. ``PromptJournal`` observes assembled prompt state
+for provider prompt reuse and does not replace Thread history.
+
 ### Error Delivery And Cancellation
 
 Errors are delivered at the boundary where their work occurs:

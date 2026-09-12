@@ -51,7 +51,7 @@
     {
       "title": "Overview and quick start",
       "path": "README.md",
-        "summary": "Release selection, runtime contracts, provider setup, typed structured generation, conformance suites, runnable examples, products, and verification."
+        "summary": "Release selection, runtime contracts, Thread history, provider setup, typed structured generation, conformance suites, runnable examples, products, and verification."
     },
     {
       "title": "Setup",
@@ -61,7 +61,7 @@
     {
       "title": "Usage",
       "path": "docs/Usage.md",
-      "summary": "Managed and direct Turns, typed and raw one-shot structured generation, cancellation, SOUL/Notes Agent memory, lifecycle, and Workspace routing."
+      "summary": "Managed and direct Turns, durable Thread history, typed and raw one-shot structured generation, cancellation, SOUL/Notes Agent memory, lifecycle, and Workspace routing."
     },
     {
       "title": "Architecture",

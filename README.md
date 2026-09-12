@@ -98,6 +98,20 @@ let managedTurn = try await managedThread.startTurn("Use the attached identity."
 let outcome = try await managedTurn.outcome()
 ```
 
+Read a Thread's durable history through `kit.threads.messages(for:)`. The result is ordered from
+oldest to newest by message timestamp. Messages with the same timestamp keep their append order,
+and an unknown Thread ID returns an empty array.
+
+```swift
+let history = try await kit.threads.messages(for: directThread.id)
+for message in history {
+    print("\(message.messageRole): \(message.content)")
+}
+```
+
+This history is separate from `PromptJournal`, which observes assembled prompt state for provider
+prompt reuse.
+
 The capability values are the supported consumer entry points. `kit.model` is thread-free
 inference; `kit.threads` returns a stateful `ThreadHandle`; `kit.agents` manages identities and
 their Thread attachments; and `kit.workspaces` owns the workspace catalog. Concrete managers,
