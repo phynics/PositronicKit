@@ -84,6 +84,23 @@ struct ConformanceSuiteTests {
         )
     }
 
+    @Test("broken ThreadRuntimeRepository ordering is reported")
+    func brokenThreadRuntimeRepositoryOrdering() async throws {
+        try await withKnownIssue(
+            "broken fixture must be observed",
+            {
+                try await ThreadRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
+                    let store = MockPersistenceService()
+                    store.unorderedMessagesForThreadID = UUID(
+                        uuidString: "00000000-0000-0000-0000-000000000166"
+                    )!
+                    return store
+                }
+            },
+            matching: Self.matchesScenario("thread.history.ordering")
+        )
+    }
+
     @Test("broken WorkspaceStore is reported at save/fetch")
     func brokenWorkspaceStore() async throws {
         try await withKnownIssue(

@@ -47,6 +47,9 @@ public enum ThreadRuntimeRepositoryConformanceSuite {
         try await runScenario("thread.history.append-only") {
             try await preservesAppendOnlyHistory(makeRepository: makeRepository)
         }
+        try await runScenario("thread.history.ordering") {
+            try await ordersHistoryByTimestampAndAppendOrder(makeRepository: makeRepository)
+        }
         try await runScenario("thread.recovery.stale") {
             try await recoversStaleTurn(makeRepository: makeRepository, staleAfter: staleAfter)
         }
@@ -564,6 +567,57 @@ public enum ThreadRuntimeRepositoryConformanceSuite {
         } catch let error as ThreadRuntimeRepositoryError {
             try #require(error == .recoveryRequired(threadID: threadID, turnID: record.identity.turnID), "thread.recovery.distinct-request.error")
         }
+    }
+
+    private static func ordersHistoryByTimestampAndAppendOrder(
+        makeRepository: () async throws -> any ThreadRuntimeRepository
+    ) async throws {
+        let repository = try await makeRepository()
+        let threadID = UUID(uuidString: "00000000-0000-0000-0000-000000000166")!
+        try await repository.saveThread(Thread(id: threadID))
+
+        let earliest = ThreadMessage(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000101")!,
+            threadID: threadID,
+            role: .user,
+            content: "earliest",
+            timestamp: fixedDate(10)
+        )
+        let equalFirst = ThreadMessage(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000102")!,
+            threadID: threadID,
+            role: .user,
+            content: "equal first",
+            timestamp: fixedDate(20)
+        )
+        let equalSecond = ThreadMessage(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000103")!,
+            threadID: threadID,
+            role: .user,
+            content: "equal second",
+            timestamp: fixedDate(20)
+        )
+        let latest = ThreadMessage(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000104")!,
+            threadID: threadID,
+            role: .user,
+            content: "latest",
+            timestamp: fixedDate(30)
+        )
+
+        for message in [equalFirst, latest, equalSecond, earliest] {
+            try await repository.saveMessage(message)
+        }
+
+        let messages = try await repository.fetchMessages(for: threadID)
+        try #require(
+            messages.map(\.id) == [earliest.id, equalFirst.id, equalSecond.id, latest.id],
+            "thread.history.ordering.timestamp-then-append"
+        )
+        try #require(
+            try await repository.fetchMessages(for: UUID(uuidString: "00000000-0000-0000-0000-000000000199")!).isEmpty,
+            "thread.history.ordering.unknown-thread"
+        )
     }
 
     private static func requiresForceClearConfirmation(

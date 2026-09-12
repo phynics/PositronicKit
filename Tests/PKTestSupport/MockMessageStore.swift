@@ -33,7 +33,16 @@ public final class MockMessageStore: ThreadMessageStoreProtocol, @unchecked Send
 
     public func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage] {
         messagesState.withLock {
-            $0.filter { $0.threadID == threadID }
+            $0
+                .filter { $0.threadID == threadID }
+                .enumerated()
+                .sorted { lhs, rhs in
+                    if lhs.element.timestamp != rhs.element.timestamp {
+                        return lhs.element.timestamp < rhs.element.timestamp
+                    }
+                    return lhs.offset < rhs.offset
+                }
+                .map { $0.element }
         }
     }
 
