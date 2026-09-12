@@ -16941,6 +16941,16 @@
       "declaration": "func rename(_ threadID: UUID, to title: String) async throws"
     },
     {
+      "precise": "s:13PositronicKit16ThreadCapabilityV8messages3forSayAA0C7MessageVG20FoundationEssentials4UUIDV_tYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ThreadCapability",
+        "messages(for:)"
+      ],
+      "declaration": "func messages(for threadID: UUID) async throws -> [ThreadMessage]"
+    },
+    {
       "precise": "s:13PositronicKit16TurnCallerIntentV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -51772,6 +51782,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit16ThreadCapabilityV6rename_2toy20FoundationEssentials4UUIDV_SStYaKF",
+      "target": "s:13PositronicKit16ThreadCapabilityV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit16ThreadCapabilityV8messages3forSayAA0C7MessageVG20FoundationEssentials4UUIDV_tYaKF",
       "target": "s:13PositronicKit16ThreadCapabilityV"
     },
     {
