@@ -46,39 +46,48 @@ public enum StructuredOutputDecodingError: PKError, Sendable, Equatable {
 public enum StructuredOutputDecoder {
     private static let logger = Logger(label: "com.positronickit.structured-output-decoder")
 
-    /// Decodes `payload` as `type`, first attempting strict JSON decoding and falling back
-    /// to ``LenientJSONParser`` repair (e.g. trailing commas, unquoted keys) if that fails.
-    /// A successful repair is logged at `warning` level.
+    /// Decodes `payload` as `type`, first checking strict JSON syntax and falling back to
+    /// ``LenientJSONParser`` repair (e.g. trailing commas, unquoted keys) if that fails. A
+    /// successful repair is logged at `warning` level. The type decoder runs exactly once after
+    /// the payload has been parsed, so custom decoding failures cannot be mistaken for malformed
+    /// JSON or executed a second time.
     public static func decode<T: Decodable>(
         _ type: T.Type,
         from payload: String,
         decoder: JSONDecoder = SerializationUtils.jsonDecoder
     ) throws -> T {
         let cleaned = sanitize(payload)
-        do {
-            guard let data = cleaned.data(using: .utf8) else {
-                throw StructuredOutputDecodingError.invalidJSONPayload
-            }
-            return try decoder.decode(type, from: data)
-        } catch {
+        guard let strictData = cleaned.data(using: .utf8) else {
+            throw StructuredOutputDecodingError.invalidJSONPayload
+        }
+
+        let data: Data
+        let wasRepaired: Bool
+        if (try? JSONSerialization.jsonObject(with: strictData, options: [.fragmentsAllowed])) != nil {
+            data = strictData
+            wasRepaired = false
+        } else {
             do {
                 let repaired = try LenientJSONParser.parse(cleaned)
-                let data = try LenientJSONParser.jsonData(from: repaired.value)
-                let decoded = try decoder.decode(type, from: data)
-                if repaired.wasRepaired {
-                    let reason = ErrorKit.userFriendlyMessage(for: error)
-                    let fallbackReason = reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        ? String(describing: error)
-                        : reason
-                    logger.warning("Recovered structured output via lenient JSON repair after strict decode failed: \(fallbackReason)")
-                }
-                return decoded
+                data = try LenientJSONParser.jsonData(from: repaired.value)
+                wasRepaired = repaired.wasRepaired
             } catch {
-                if error is DecodingError {
-                    throw StructuredOutputDecodingError.decodingFailed(String(describing: error))
-                }
                 throw StructuredOutputDecodingError.invalidJSONPayload
             }
+        }
+
+        do {
+            let decoded = try decoder.decode(type, from: data)
+            if wasRepaired {
+                logger.warning("Recovered structured output via lenient JSON repair")
+            }
+            return decoded
+        } catch {
+            let reason = ErrorKit.userFriendlyMessage(for: error)
+            let fallbackReason = reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? String(describing: error)
+                : reason
+            throw StructuredOutputDecodingError.decodingFailed(fallbackReason)
         }
     }
 

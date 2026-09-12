@@ -203,6 +203,42 @@ let turn = try await thread.startDirectTurn(
 
 Pass an explicit contributor array when a `TurnContextSource` needs a different selection.
 
+### Typed One-Shot Structured Generation
+
+Use `kit.model.generate` when the response should be decoded into a schema-backed Swift type
+without creating or updating a Thread.
+
+```swift
+import JSONSchemaBuilder
+import PositronicKit
+
+@Schemable
+struct ProjectMetadata: Decodable, Sendable {
+    let projectName: String
+    let language: String
+
+    enum CodingKeys: String, CodingKey {
+        case projectName = "project_name"
+        case language
+    }
+}
+
+let metadata = try await kit.model.generate(
+    ProjectMetadata.self,
+    from: "Extract the project metadata."
+)
+```
+
+The output type must be `Decodable`, `Sendable`, and `Schemable`. Its generated schema keys must
+agree with its `CodingKeys` and the decoder's key strategy. A schema construction failure throws
+`StructuredGenerationError.schemaConstructionFailed`. A response that remains invalid after
+lenient JSON repair throws `StructuredOutputDecodingError.invalidJSONPayload`; valid JSON that
+cannot decode as the requested type throws `.decodingFailed`, including custom decoder failures.
+Provider, idle-timeout, and cancellation errors retain their existing identities. Use the
+advanced `kit.model.generateStructured` operation when you need the raw JSON payload or a
+hand-built schema; its next breaking-release rename is tracked in
+[#176](https://github.com/phynics/PositronicKit/issues/176).
+
 ### Enabling Prompt Assembly Logs
 
 The runtime emits prompt-assembly diagnostics through `swift-log`. `PromptAssembler` and

@@ -184,6 +184,14 @@ let json = try await kit.model.generateStructured(
 )
 ```
 
+Typed structured generation reports schema construction failures as
+`StructuredGenerationError.schemaConstructionFailed` before provider execution. After a response
+arrives, `StructuredOutputDecodingError.invalidJSONPayload` means the payload was not parseable
+even after repair, while `.decodingFailed` means valid JSON could not be decoded as `Output`,
+including failures raised by custom decoding. Provider failures, idle timeouts, and cancellation
+retain their existing error identities. The raw operation's rename for the next breaking release
+is tracked in [#176](https://github.com/phynics/PositronicKit/issues/176).
+
 Errors arrive at the boundary where the work occurs:
 
 - Request and preparation failures include an invalid `maxModelRounds`, Thread hydration,

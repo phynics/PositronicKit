@@ -183,21 +183,36 @@ struct TypedStructuredGenerationTests {
     func idleTimeout() async throws {
         let llm = MockLLMService()
         llm.stubbedStream = AsyncThrowingStream { _ in }
-        let kit = makeKit(languageModel: llm)
-
-        do {
-            _ = try await kit.model.generate(
+        let clock = ManualClock()
+        let kit = PositronicKit(
+            languageModel: llm,
+            runtimeRepository: InMemoryThreadRuntimeRepository(),
+            workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+            sharedRegistry: ThreadPromptJournals(),
+            additionalStages: [],
+            clock: clock
+        )
+        let request = Task {
+            try await kit.model.generate(
                 ProjectMetadata.self,
                 from: "Extract the project metadata.",
-                idleTimeout: 0.01
+                idleTimeout: 5
             )
+        }
+        defer { request.cancel() }
+
+        try await clock.waitForSleepers()
+        await clock.advance(by: .seconds(5))
+
+        do {
+            _ = try await request.value
             Issue.record("Expected the stalled typed request to time out")
         } catch let error as TurnEngineError {
             guard case let .streamTimedOut(timeout) = error else {
                 Issue.record("Expected stream timeout, got \(error)")
                 return
             }
-            #expect(timeout == 0.01)
+            #expect(timeout == 5)
         }
     }
 

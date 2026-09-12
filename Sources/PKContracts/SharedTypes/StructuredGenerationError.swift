@@ -1,5 +1,3 @@
-import PKContracts
-
 /// Errors raised before a typed structured-generation request can reach the model.
 public enum StructuredGenerationError: PKError, Sendable, Equatable {
     /// The requested type's generated schema could not be constructed for Draft 2020-12.
