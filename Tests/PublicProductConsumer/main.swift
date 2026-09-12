@@ -83,7 +83,7 @@ func exercisePublicTurnAdmission(_ thread: ThreadHandle) async {
     _ = try? await thread.startTurn(content, systemInstructions: "Be concise.")
     _ = try? await thread.startDirectTurn(
         "Hello directly",
-        context: DirectTurnContext(systemInstructions: "Be concise.", contributor: .host),
+        context: DirectTurnContext(systemInstructions: "Be concise."),
         options: TurnOptions())
     _ = try? await thread.startDirectTurn(
         content,

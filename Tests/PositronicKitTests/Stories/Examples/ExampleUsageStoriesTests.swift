@@ -143,7 +143,7 @@ struct ExampleUsageStoriesTests {
         let thread = try await kit.threads.create(title: "Offline example")
         let turn = try await thread.startDirectTurn(
             "Hello",
-            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+            context: DirectTurnContext(systemInstructions: "")
         )
 
         var response = ""

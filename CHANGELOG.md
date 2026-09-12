@@ -50,6 +50,9 @@ for tagged releases beginning with `1.0.0`.
   existing native/synthetic structured-output path, and returns the decoded value. Schema
   construction and payload-decoding failures have stable, actionable error identities; the raw
   `generateStructured` operation remains available for advanced callers.
+- `DirectTurnContext` now defaults omitted `contributors` to `[.host]`, so common detached direct
+  Turn calls do not need to name a contributor. Explicit contributor arrays and the existing
+  convenience initializers remain unchanged.
 - **Shipped protocol conformance suites:** `PKTestSupport` now exposes explicitly invoked Swift
   Testing runners for `ThreadRuntimeRepository`, `WorkspaceStore`, `ToolPersistenceProtocol`,
   `AgentStoreProtocol`, `RequestOriginStoreProtocol`, and `WorkspaceFactory`. The toolchain-provided

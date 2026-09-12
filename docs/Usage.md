@@ -186,6 +186,23 @@ for await event in stream {
 }
 ```
 
+### Running a direct Turn
+
+Use a detached Thread for direct execution. `DirectTurnContext` uses the conventional `.host`
+contributor when you omit `contributors`.
+
+```swift
+import PositronicKit
+
+let thread = try await kit.threads.create(title: "Scratchpad")
+let turn = try await thread.startDirectTurn(
+    "Continue the summary.",
+    context: DirectTurnContext(systemInstructions: "")
+)
+```
+
+Pass an explicit contributor array when a `TurnContextSource` needs a different selection.
+
 ### Enabling Prompt Assembly Logs
 
 The runtime emits prompt-assembly diagnostics through `swift-log`. `PromptAssembler` and
