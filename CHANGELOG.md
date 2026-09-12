@@ -53,6 +53,9 @@ for tagged releases beginning with `1.0.0`.
   `ErrorKit.userFriendlyMessage(for:)`, while transient errors, cancellation outcomes, and fixed
   policy messages keep their existing behavior.
 
+- `DirectTurnContext` now defaults omitted `contributors` to `[.host]`, so common detached direct
+  Turn calls do not need to name a contributor. Explicit contributor arrays and the existing
+  convenience initializers remain unchanged.
 - **Shipped protocol conformance suites:** `PKTestSupport` now exposes explicitly invoked Swift
   Testing runners for `ThreadRuntimeRepository`, `WorkspaceStore`, `ToolPersistenceProtocol`,
   `AgentStoreProtocol`, `RequestOriginStoreProtocol`, and `WorkspaceFactory`. The toolchain-provided
