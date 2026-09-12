@@ -43,6 +43,12 @@ for tagged releases beginning with `1.0.0`.
   `CompressionNodeReport.cacheHit`/`StructuredCompressionNodeMetric.cacheHit` → `didHitCache`
   (the latter two keep their `"cacheHit"` wire/JSON key via explicit `CodingKeys`).
 
+### Changed
+
+- **TurnEvent factory parameter names (#158):** the underscored `err` and `msg` parameters in
+  the error factories are now `error` and `message` for clearer public declarations. Caller
+  syntax and runtime behavior are unchanged.
+
 ### Added
 
 - **Shipped protocol conformance suites:** `PKTestSupport` now exposes explicitly invoked Swift
