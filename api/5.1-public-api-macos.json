@@ -9866,7 +9866,7 @@
         "TurnEvent",
         "durabilityFailure(_:)"
       ],
-      "declaration": "static func durabilityFailure(_ err: any Error) -> TurnEvent"
+      "declaration": "static func durabilityFailure(_ error: any Error) -> TurnEvent"
     },
     {
       "precise": "s:11PKContracts9TurnEventO17sidecarCompletionAA07SidecarE0VSgvp",
@@ -9996,7 +9996,7 @@
         "TurnEvent",
         "error(_:)"
       ],
-      "declaration": "static func error(_ msg: String) -> TurnEvent"
+      "declaration": "static func error(_ message: String) -> TurnEvent"
     },
     {
       "precise": "s:11PKContracts9TurnEventO5erroryACs5Error_pFZ",
@@ -10006,7 +10006,7 @@
         "TurnEvent",
         "error(_:)"
       ],
-      "declaration": "static func error(_ err: any Error) -> TurnEvent"
+      "declaration": "static func error(_ error: any Error) -> TurnEvent"
     },
     {
       "precise": "s:11PKContracts9TurnEventO7sidecaryAcA12SidecarDeltaVFZ",
@@ -21813,6 +21813,16 @@
       "declaration": "var description: String { get }"
     },
     {
+      "precise": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO11errorDomainSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "ThreadRuntimeRepositoryError",
+        "errorDomain"
+      ],
+      "declaration": "var errorDomain: String { get }"
+    },
+    {
       "precise": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO12turnNotFoundyAC10Foundation4UUIDVcACmF",
       "module": "PositronicKit",
       "kind": "swift.enum.case",
@@ -21903,6 +21913,16 @@
       "declaration": "case idempotencyConflict(requestID: UUID)"
     },
     {
+      "precise": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO19userFriendlyMessageSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "ThreadRuntimeRepositoryError",
+        "userFriendlyMessage"
+      ],
+      "declaration": "var userFriendlyMessage: String { get }"
+    },
+    {
       "precise": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO20confirmationRequiredyA2CmF",
       "module": "PositronicKit",
       "kind": "swift.enum.case",
@@ -21941,6 +21961,16 @@
         "authorityCoordinatorRequired(threadID:)"
       ],
       "declaration": "case authorityCoordinatorRequired(threadID: UUID)"
+    },
+    {
+      "precise": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO9errorCodeSivp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "ThreadRuntimeRepositoryError",
+        "errorCode"
+      ],
+      "declaration": "var errorCode: Int { get }"
     },
     {
       "precise": "s:13PositronicKit28TurnContextContributionErrorO",
@@ -22509,6 +22539,16 @@
       "declaration": "var description: String { get }"
     },
     {
+      "precise": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO11errorDomainSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "WorkspaceBindingRepositoryError",
+        "errorDomain"
+      ],
+      "declaration": "var errorDomain: String { get }"
+    },
+    {
       "precise": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO15bindingNotFoundyAC10Foundation4UUIDV_AGtcACmF",
       "module": "PositronicKit",
       "kind": "swift.enum.case",
@@ -22517,6 +22557,16 @@
         "bindingNotFound(workspaceID:threadID:)"
       ],
       "declaration": "case bindingNotFound(workspaceID: UUID, threadID: UUID)"
+    },
+    {
+      "precise": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO19userFriendlyMessageSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "WorkspaceBindingRepositoryError",
+        "userFriendlyMessage"
+      ],
+      "declaration": "var userFriendlyMessage: String { get }"
     },
     {
       "precise": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO21workspaceAlreadyBoundyAC10Foundation4UUIDV_AGtcACmF",
@@ -22537,6 +22587,16 @@
         "transferSourceMismatch(workspaceID:threadID:)"
       ],
       "declaration": "case transferSourceMismatch(workspaceID: UUID, threadID: UUID)"
+    },
+    {
+      "precise": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO9errorCodeSivp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "WorkspaceBindingRepositoryError",
+        "errorCode"
+      ],
+      "declaration": "var errorCode: Int { get }"
     },
     {
       "precise": "s:13PositronicKit32AgentPrimaryThreadSummaryContextV",
@@ -38406,6 +38466,27 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO",
+      "target": "s:10Foundation14LocalizedErrorP",
+      "targetFallback": "Foundation.LocalizedError"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO",
+      "target": "s:11PKContracts7PKErrorP",
+      "targetFallback": "PKContracts.PKError"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO",
+      "target": "s:8ErrorKit9ThrowableP",
+      "targetFallback": "ErrorKit.Throwable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
@@ -38434,8 +38515,22 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO",
+      "target": "s:s8CopyableP",
+      "targetFallback": "Swift.Copyable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO",
+      "target": "s:s9EscapableP",
+      "targetFallback": "Swift.Escapable"
     },
     {
       "module": "PositronicKit",
@@ -38569,6 +38664,27 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO",
+      "target": "s:10Foundation14LocalizedErrorP",
+      "targetFallback": "Foundation.LocalizedError"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO",
+      "target": "s:11PKContracts7PKErrorP",
+      "targetFallback": "PKContracts.PKError"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO",
+      "target": "s:8ErrorKit9ThrowableP",
+      "targetFallback": "ErrorKit.Throwable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
@@ -38597,8 +38713,22 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO",
+      "target": "s:s8CopyableP",
+      "targetFallback": "Swift.Copyable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO",
+      "target": "s:s9EscapableP",
+      "targetFallback": "Swift.Escapable"
     },
     {
       "module": "PositronicKit",
@@ -54366,6 +54496,16 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO11errorDomainSSvp",
+      "target": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP11errorDomainSSvp",
+        "displayName": "PKError.errorDomain"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO12turnNotFoundyAC10Foundation4UUIDVcACmF",
       "target": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO"
     },
@@ -54420,6 +54560,16 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO19userFriendlyMessageSSvp",
+      "target": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO",
+      "sourceOrigin": {
+        "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp",
+        "displayName": "Throwable.userFriendlyMessage"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO20confirmationRequiredyA2CmF",
       "target": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO"
     },
@@ -54440,6 +54590,16 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO28authorityCoordinatorRequiredyAC10Foundation4UUIDV_tcACmF",
       "target": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO9errorCodeSivp",
+      "target": "s:13PositronicKit28ThreadRuntimeRepositoryErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp",
+        "displayName": "PKError.errorCode"
+      }
     },
     {
       "module": "PositronicKit",
@@ -54930,8 +55090,28 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO11errorDomainSSvp",
+      "target": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP11errorDomainSSvp",
+        "displayName": "PKError.errorDomain"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO15bindingNotFoundyAC10Foundation4UUIDV_AGtcACmF",
       "target": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO19userFriendlyMessageSSvp",
+      "target": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO",
+      "sourceOrigin": {
+        "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp",
+        "displayName": "Throwable.userFriendlyMessage"
+      }
     },
     {
       "module": "PositronicKit",
@@ -54944,6 +55124,16 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO22transferSourceMismatchyAC10Foundation4UUIDV_AGtcACmF",
       "target": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO9errorCodeSivp",
+      "target": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp",
+        "displayName": "PKError.errorCode"
+      }
     },
     {
       "module": "PositronicKit",

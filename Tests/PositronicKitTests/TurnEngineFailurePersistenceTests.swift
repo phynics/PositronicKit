@@ -1,4 +1,5 @@
 import Foundation
+import ErrorKit
 import Logging
 import OpenAI
 @testable import PKContracts
@@ -25,6 +26,7 @@ struct TurnEngineFailurePersistenceTests {
     private func withTurnEngineDependencies<T>(
         streamTimeout: TimeInterval = 60,
         promptHistoryRegistry: ThreadPromptJournals? = nil,
+        turnOutcomeSink: (any TurnOutcomeSink)? = nil,
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
@@ -54,6 +56,7 @@ struct TurnEngineFailurePersistenceTests {
                 runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
+                turnOutcomeSink: turnOutcomeSink,
                 promptHistoryRegistry: registry,
                 streamTimeout: streamTimeout
             )
@@ -82,6 +85,7 @@ struct TurnEngineFailurePersistenceTests {
     /// Uses the cohesive runtime repository and fails the first atomic tool-result transition.
     /// The same repository can be reopened for the retry assertion below.
     private func withToolResultPersistenceFailureDependencies<T>(
+        turnOutcomeSink: (any TurnOutcomeSink)? = nil,
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
@@ -111,6 +115,7 @@ struct TurnEngineFailurePersistenceTests {
                 runtimeRepository: persistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
+                turnOutcomeSink: turnOutcomeSink,
                 streamTimeout: 60
             )
         )
@@ -242,7 +247,8 @@ struct TurnEngineFailurePersistenceTests {
 
     @Test("A tool-result persistence failure stops the loop and leaves the call retryable")
     func toolResultPersistenceFailureStopsLoopAndLeavesPendingCall() async throws {
-        try await withToolResultPersistenceFailureDependencies { engine, mockLLM, messageStore in
+        let outcomeSink = TestTurnOutcomeRecorder()
+        try await withToolResultPersistenceFailureDependencies(turnOutcomeSink: outcomeSink) { engine, mockLLM, messageStore in
             let requestID = UUID()
             let tool = PersistenceTestTool()
             mockLLM.mockClient.nextResponses = [""]
@@ -273,6 +279,10 @@ struct TurnEngineFailurePersistenceTests {
                 return false
             }))
             #expect(mockLLM.generationCaptureHistory.count == 1)
+
+            let outcomeRecord = try #require(await outcomeSink.lastRecord())
+            let storedRecord = try #require(try await messageStore.fetchTurn(id: outcomeRecord.turnID))
+            #expect(storedRecord.outcome == .failed(message: "Tool result persistence failed."))
 
             let pendingMessages = try await messageStore.fetchMessages(for: threadID)
             #expect(pendingMessages.filter { $0.role == "assistant" }.count == 1)
@@ -475,7 +485,8 @@ struct TurnEngineFailurePersistenceTests {
 
     @Test("A stream cancelled after emitting text persists a .cancelled assistant message (STAB-1)")
     func streamCancellationAfterTextPersistsCancelledAssistant() async throws {
-        try await withTurnEngineDependencies { engine, mockLLM, mockPersistence in
+        let outcomeSink = TestTurnOutcomeRecorder()
+        try await withTurnEngineDependencies(turnOutcomeSink: outcomeSink) { engine, mockLLM, mockPersistence in
             // Simulate a provider stream that emits content then is cancelled mid-flight. A
             // stage-thrown `CancellationError` is wrapped by `Pipeline` as
             // `PipelineError.stageFailed` before reaching `runOneTurn`; `TurnEngine` unwraps it
@@ -510,6 +521,10 @@ struct TurnEngineFailurePersistenceTests {
             let assistant = try #require(assistantMessages.first)
             #expect(assistant.content == "Cancelled mid-stream")
             #expect(assistant.status == .cancelled)
+
+            let outcomeRecord = try #require(await outcomeSink.lastRecord())
+            let storedRecord = try #require(try await mockPersistence.fetchTurn(id: outcomeRecord.turnID))
+            #expect(storedRecord.outcome == .cancelled(reason: "Turn task cancelled."))
         }
     }
 
@@ -658,7 +673,8 @@ struct TurnEngineFailurePersistenceTests {
 
     @Test("A foreign provider stream error is wrapped as an LLMStreamError under PipelineError (PKLOG-004)")
     func foreignProviderErrorWrappedWithDomainAndCode() async throws {
-        try await withTurnEngineDependencies { engine, mockLLM, _ in
+        let outcomeSink = TestTurnOutcomeRecorder()
+        try await withTurnEngineDependencies(turnOutcomeSink: outcomeSink) { engine, mockLLM, mockPersistence in
             // A fully foreign error (NSError) with no PKError domain/code — the kind a provider
             // transport layer throws before the runtime wraps it.
             let foreignError = NSError(
@@ -678,10 +694,15 @@ struct TurnEngineFailurePersistenceTests {
                 )
             ))
 
+            var transientMessage: String?
             do {
                 _ = try await collect(stream)
                 Issue.record("Expected the stream to throw the wrapped provider error")
-            } catch let PipelineError.stageFailed(_, underlying) {
+            } catch let error as PipelineError {
+                guard case let .stageFailed(_, underlying) = error else {
+                    Issue.record("Expected PipelineError.stageFailed, got \(error)")
+                    return
+                }
                 // The foreign error is wrapped as LLMStreamError (PKError) at the stage leak
                 // point, before the pipeline re-wraps it — so the underlying carries a stable
                 // domain/code rather than a bare NSError.
@@ -692,9 +713,20 @@ struct TurnEngineFailurePersistenceTests {
                 let ns = streamError.underlyingError as NSError
                 #expect(ns.domain == "PKLOG004Foreign")
                 #expect(ns.code == 42)
+                transientMessage = ErrorKit.userFriendlyMessage(for: error)
             } catch {
                 Issue.record("Expected PipelineError.stageFailed wrapping LLMStreamError, got \(error)")
             }
+
+            let outcomeRecord = try #require(await outcomeSink.lastRecord())
+            let storedRecord = try #require(try await mockPersistence.fetchTurn(id: outcomeRecord.turnID))
+            guard case let .failed(message) = try #require(storedRecord.outcome) else {
+                Issue.record("Expected the provider failure to persist as a failed outcome")
+                return
+            }
+            let expectedMessage = try #require(transientMessage)
+            #expect(message == expectedMessage)
+            #expect(!message.contains("PositronicKit."))
         }
     }
 

@@ -56,7 +56,7 @@
     {
       "title": "Setup",
       "path": "docs/Setup.md",
-      "summary": "Provider-neutral configuration, readiness and health, stream timing, offline examples, persistence, customization, logging, and errors."
+      "summary": "Provider-neutral configuration, readiness and health, stream timing, offline examples, persistence, customization, logging, and stable error identity."
     },
     {
       "title": "Usage",

@@ -22,6 +22,7 @@ struct TurnEngineTerminalEventTests {
 
     /// Standard dependencies with a `.runtimeThread` workspace (tools execute locally).
     private func withTurnEngineDependencies<T>(
+        turnOutcomeSink: (any TurnOutcomeSink)? = nil,
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
@@ -50,6 +51,7 @@ struct TurnEngineTerminalEventTests {
                 runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
+                turnOutcomeSink: turnOutcomeSink,
                 streamTimeout: 60
             )
         )
@@ -163,7 +165,8 @@ struct TurnEngineTerminalEventTests {
 
     @Test("Model-round exhaustion emits exactly one maxModelRoundsReached terminal event (PKRR-011)")
     func maxModelRoundsExhaustionEmitsDistinctTerminal() async throws {
-        try await withTurnEngineDependencies { engine, mockLLM, _ in
+        let outcomeSink = TestTurnOutcomeRecorder()
+        try await withTurnEngineDependencies(turnOutcomeSink: outcomeSink) { engine, mockLLM, persistence in
             let mockTool = MockTool()
             mockLLM.mockClient.nextToolCalls = [
                 [MockToolCall(id: "c1", name: "mock_tool")],
@@ -201,6 +204,10 @@ struct TurnEngineTerminalEventTests {
                 return false
             }
             #expect(deferred.isEmpty, "Model-round exhaustion must not emit .deferredForExternalTool")
+
+            let outcomeRecord = try #require(await outcomeSink.lastRecord())
+            let storedRecord = try #require(try await persistence.fetchTurn(id: outcomeRecord.turnID))
+            #expect(storedRecord.outcome == .failed(message: "model-round-limit"))
         }
     }
 

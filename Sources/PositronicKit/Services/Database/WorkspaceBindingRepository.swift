@@ -1,4 +1,5 @@
 import Foundation
+import PKContracts
 
 /// The durable relationship between an ordinary workspace and a Thread.
 ///
@@ -30,15 +31,39 @@ public enum WorkspaceBindingRepositoryError: Error, Equatable, Sendable, CustomS
     case bindingNotFound(workspaceID: UUID, threadID: UUID)
     case transferSourceMismatch(workspaceID: UUID, threadID: UUID)
 
-    public var description: String {
+    private struct ErrorMetadata {
+        let code: Int
+        let message: String
+    }
+
+    private var errorMetadata: ErrorMetadata {
         switch self {
         case let .workspaceAlreadyBound(workspaceID, threadID):
-            return "Workspace \(workspaceID) is already bound to Thread \(threadID)."
+            return ErrorMetadata(code: 3101, message: "Workspace \(workspaceID) is already bound to Thread \(threadID).")
         case let .bindingNotFound(workspaceID, threadID):
-            return "Workspace \(workspaceID) is not bound to Thread \(threadID)."
+            return ErrorMetadata(code: 3102, message: "Workspace \(workspaceID) is not bound to Thread \(threadID).")
         case let .transferSourceMismatch(workspaceID, threadID):
-            return "Workspace \(workspaceID) cannot transfer from Thread \(threadID)."
+            return ErrorMetadata(code: 3103, message: "Workspace \(workspaceID) cannot transfer from Thread \(threadID).")
         }
+    }
+
+    public var description: String {
+        errorMetadata.message
+    }
+}
+
+/// Stable `PKError` identity for Workspace binding repository failures.
+extension WorkspaceBindingRepositoryError: PKError {
+    public var errorDomain: String {
+        PKErrorDomain.workspace
+    }
+
+    public var errorCode: Int {
+        errorMetadata.code
+    }
+
+    public var userFriendlyMessage: String {
+        errorMetadata.message
     }
 }
 

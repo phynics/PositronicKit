@@ -192,6 +192,18 @@ import ErrorKit
     }
 
     @Test
+    func durabilityFailureFactoryCarriesUserMessageAndIdentity() {
+        let event = TurnEvent.durabilityFailure(ToolError.permissionDenied("rm"))
+
+        if case let .error(.durabilityFailure(message: message, identity: identity)) = event {
+            #expect(identity == TurnEvent.ErrorIdentity(domain: PKErrorDomain.tool, code: 210))
+            #expect(message == "The tool 'rm' requires permission and was not approved.")
+        } else {
+            Issue.record("Expected .durabilityFailure(message:, identity:), got \(event)")
+        }
+    }
+
+    @Test
     func errorIdentityRoundTripsThroughCodable() throws {
         let event = TurnEvent.error(ToolError.permissionDenied("rm"))
         let encoder = JSONEncoder()
