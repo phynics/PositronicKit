@@ -92,7 +92,7 @@ public struct ModelInferenceCapability: Sendable {
     ///     60 seconds and is applied by the existing one-shot structured-output path.
     ///   - decoder: The decoder used to turn the model's JSON payload into `Output`.
     /// - Returns: The decoded structured response.
-    /// - Throws: ``PKContracts/StructuredGenerationError/schemaConstructionFailed(typeName:reason:)`` when
+    /// - Throws: `PKContracts.StructuredGenerationError.schemaConstructionFailed(typeName:reason:)` when
     ///   the generated schema cannot be constructed. Provider, timeout, cancellation, and
     ///   payload-decoding errors are thrown unchanged from their existing paths.
     public func generate<Output>(
