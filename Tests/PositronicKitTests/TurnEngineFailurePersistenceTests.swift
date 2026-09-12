@@ -247,7 +247,7 @@ struct TurnEngineFailurePersistenceTests {
 
     @Test("A tool-result persistence failure stops the loop and leaves the call retryable")
     func toolResultPersistenceFailureStopsLoopAndLeavesPendingCall() async throws {
-        let outcomeSink = TurnOutcomeRecorder()
+        let outcomeSink = TestTurnOutcomeRecorder()
         try await withToolResultPersistenceFailureDependencies(turnOutcomeSink: outcomeSink) { engine, mockLLM, messageStore in
             let requestID = UUID()
             let tool = PersistenceTestTool()
@@ -485,7 +485,7 @@ struct TurnEngineFailurePersistenceTests {
 
     @Test("A stream cancelled after emitting text persists a .cancelled assistant message (STAB-1)")
     func streamCancellationAfterTextPersistsCancelledAssistant() async throws {
-        let outcomeSink = TurnOutcomeRecorder()
+        let outcomeSink = TestTurnOutcomeRecorder()
         try await withTurnEngineDependencies(turnOutcomeSink: outcomeSink) { engine, mockLLM, mockPersistence in
             // Simulate a provider stream that emits content then is cancelled mid-flight. A
             // stage-thrown `CancellationError` is wrapped by `Pipeline` as
@@ -673,7 +673,7 @@ struct TurnEngineFailurePersistenceTests {
 
     @Test("A foreign provider stream error is wrapped as an LLMStreamError under PipelineError (PKLOG-004)")
     func foreignProviderErrorWrappedWithDomainAndCode() async throws {
-        let outcomeSink = TurnOutcomeRecorder()
+        let outcomeSink = TestTurnOutcomeRecorder()
         try await withTurnEngineDependencies(turnOutcomeSink: outcomeSink) { engine, mockLLM, mockPersistence in
             // A fully foreign error (NSError) with no PKError domain/code — the kind a provider
             // transport layer throws before the runtime wraps it.
@@ -768,18 +768,6 @@ struct TurnEngineFailurePersistenceTests {
         #expect(identity?.domain == PKErrorDomain.workspace)
         #expect(identity?.code == 3002)
         #expect(identity?.isBlocked == true, "Expected WorkspaceError.accessDenied to be blocked")
-    }
-}
-
-private actor TurnOutcomeRecorder: TurnOutcomeSink {
-    private var records: [TurnOutcomeRecord] = []
-
-    func record(_ outcome: TurnOutcomeRecord) async throws {
-        records.append(outcome)
-    }
-
-    func lastRecord() -> TurnOutcomeRecord? {
-        records.last
     }
 }
 

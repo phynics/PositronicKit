@@ -31,15 +31,24 @@ public enum WorkspaceBindingRepositoryError: Error, Equatable, Sendable, CustomS
     case bindingNotFound(workspaceID: UUID, threadID: UUID)
     case transferSourceMismatch(workspaceID: UUID, threadID: UUID)
 
-    public var description: String {
+    private struct ErrorMetadata {
+        let code: Int
+        let message: String
+    }
+
+    private var errorMetadata: ErrorMetadata {
         switch self {
         case let .workspaceAlreadyBound(workspaceID, threadID):
-            return "Workspace \(workspaceID) is already bound to Thread \(threadID)."
+            return ErrorMetadata(code: 3101, message: "Workspace \(workspaceID) is already bound to Thread \(threadID).")
         case let .bindingNotFound(workspaceID, threadID):
-            return "Workspace \(workspaceID) is not bound to Thread \(threadID)."
+            return ErrorMetadata(code: 3102, message: "Workspace \(workspaceID) is not bound to Thread \(threadID).")
         case let .transferSourceMismatch(workspaceID, threadID):
-            return "Workspace \(workspaceID) cannot transfer from Thread \(threadID)."
+            return ErrorMetadata(code: 3103, message: "Workspace \(workspaceID) cannot transfer from Thread \(threadID).")
         }
+    }
+
+    public var description: String {
+        errorMetadata.message
     }
 }
 
@@ -50,15 +59,11 @@ extension WorkspaceBindingRepositoryError: PKError {
     }
 
     public var errorCode: Int {
-        switch self {
-        case .workspaceAlreadyBound: return 3101
-        case .bindingNotFound: return 3102
-        case .transferSourceMismatch: return 3103
-        }
+        errorMetadata.code
     }
 
     public var userFriendlyMessage: String {
-        description
+        errorMetadata.message
     }
 }
 

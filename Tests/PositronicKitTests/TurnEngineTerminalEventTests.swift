@@ -165,7 +165,7 @@ struct TurnEngineTerminalEventTests {
 
     @Test("Model-round exhaustion emits exactly one maxModelRoundsReached terminal event (PKRR-011)")
     func maxModelRoundsExhaustionEmitsDistinctTerminal() async throws {
-        let outcomeSink = TerminalOutcomeRecorder()
+        let outcomeSink = TestTurnOutcomeRecorder()
         try await withTurnEngineDependencies(turnOutcomeSink: outcomeSink) { engine, mockLLM, persistence in
             let mockTool = MockTool()
             mockLLM.mockClient.nextToolCalls = [
@@ -366,18 +366,6 @@ struct TurnEngineTerminalEventTests {
         }
     }
 
-}
-
-private actor TerminalOutcomeRecorder: TurnOutcomeSink {
-    private var records: [TurnOutcomeRecord] = []
-
-    func record(_ outcome: TurnOutcomeRecord) async throws {
-        records.append(outcome)
-    }
-
-    func lastRecord() -> TurnOutcomeRecord? {
-        records.last
-    }
 }
 
 // MARK: - Test Tools
