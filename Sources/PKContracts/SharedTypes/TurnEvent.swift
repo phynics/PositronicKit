@@ -563,84 +563,107 @@ public extension TurnEvent {
         }
     }
 
-    /// Delta shortcuts
+    // MARK: - Delta Shortcuts
+
+    /// Creates a reasoning delta event containing a streamed reasoning fragment.
     static func reasoning(_ text: String) -> TurnEvent {
         .delta(.reasoning(text: text))
     }
 
+    /// Creates a generation delta event containing a streamed assistant-content fragment.
     static func generation(_ text: String) -> TurnEvent {
         .delta(.generation(text: text))
     }
 
+    /// Creates an audio delta event containing decoded audio output.
     static func audio(_ delta: LLMAudioDelta) -> TurnEvent {
         .delta(.audio(delta: delta))
     }
 
+    /// Creates a tool-call delta event for an incrementally assembled tool call.
     static func toolCall(_ delta: ToolCallDelta) -> TurnEvent {
         .delta(.toolCall(delta: delta))
     }
 
+    /// Creates a delta event reporting an asynchronous tool execution status update.
     static func toolProgress(toolCallID: String, status: ToolExecutionStatus) -> TurnEvent {
         .delta(.toolExecution(toolCallID: toolCallID, status: status))
     }
 
+    /// Creates a sidecar delta event containing a structured-output directive update.
     static func sidecar(_ delta: SidecarDelta) -> TurnEvent {
         .delta(.sidecar(delta: delta))
     }
 
-    /// Error shortcuts
+    // MARK: - Error Shortcuts
+
+    /// Creates an error event for a tool call that failed before execution.
     static func toolCallError(toolCallID: String, name: String, error: String) -> TurnEvent {
         .error(.toolCallError(toolCallID: toolCallID, name: name, error: error))
     }
 
-    static func error(_ err: Error) -> TurnEvent {
+    /// Creates an error event from `error`, using ErrorKit's user-facing message
+    /// and extracting stable error identity when available.
+    static func error(_ error: Error) -> TurnEvent {
         .error(.error(
-            message: ErrorKit.userFriendlyMessage(for: err),
-            identity: ErrorIdentity.extracting(from: err)
+            message: ErrorKit.userFriendlyMessage(for: error),
+            identity: ErrorIdentity.extracting(from: error)
         ))
     }
 
-    static func error(_ msg: String) -> TurnEvent {
-        .error(.error(message: msg, identity: nil))
+    /// Creates an error event with `message` and no structured error identity.
+    static func error(_ message: String) -> TurnEvent {
+        .error(.error(message: message, identity: nil))
     }
 
-    static func durabilityFailure(_ err: Error) -> TurnEvent {
+    /// Creates a distinct durability-failure event from `error`, using ErrorKit's
+    /// user-facing message and extracting stable error identity when available.
+    static func durabilityFailure(_ error: Error) -> TurnEvent {
         .error(.durabilityFailure(
-            message: ErrorKit.userFriendlyMessage(for: err),
-            identity: ErrorIdentity.extracting(from: err)
+            message: ErrorKit.userFriendlyMessage(for: error),
+            identity: ErrorIdentity.extracting(from: error)
         ))
     }
 
+    /// Creates an error event indicating that generation was explicitly cancelled.
     static func generationCancelled() -> TurnEvent {
         .error(.generationCancelled)
     }
 
-    /// Completion shortcuts
+    // MARK: - Completion Shortcuts
+
+    /// Creates a terminal completion event with the final message and response metadata.
     static func generationCompleted(message: Message, metadata: APIResponseMetadata) -> TurnEvent {
         .completion(.generationCompleted(message: message, metadata: metadata))
     }
 
+    /// Creates a terminal completion event for a successful response with no assistant text.
     static func completedEmpty(finishReason: String?) -> TurnEvent {
         .completion(.completedEmpty(finishReason: finishReason))
     }
 
+    /// Creates a tool-execution completion event that does not terminate the Turn.
     static func toolCompleted(toolCallID: String, status: ToolExecutionStatus) -> TurnEvent {
         .completion(.toolExecution(toolCallID: toolCallID, status: status))
     }
 
+    /// Creates a terminal completion event indicating that the model-round budget
+    /// was exhausted before a tool-free response.
     static func maxModelRoundsReached() -> TurnEvent {
         .completion(.maxModelRoundsReached)
     }
 
+    /// Creates a terminal completion event indicating that continuation proceeds through host-side tool execution.
     static func deferredForExternalTool() -> TurnEvent {
         .completion(.deferredForExternalTool)
     }
 
+    /// Creates a non-terminal completion event containing resolved sidecar directive results.
     static func sidecarsCompleted(_ completion: SidecarCompletion) -> TurnEvent {
         .completion(.sidecarsCompleted(completion))
     }
 
-    /// Compatibility factory for consumers that construct this event directly.
+    /// Creates a compatibility sidecar completion event from `results` with a generated turn identity.
     static func sidecarsCompleted(results: [SidecarResult]) -> TurnEvent {
         .sidecarsCompleted(SidecarCompletion(
             identity: TurnIdentity(turnID: UUID(), requestID: UUID(), modelRoundIndex: 0),
