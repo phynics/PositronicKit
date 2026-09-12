@@ -73,6 +73,11 @@ func exercisePublicTypedStructuredGeneration() async {
     )
 }
 
+// Ordinary-import compile coverage for the durable Thread history capability.
+func exercisePublicThreadHistory(_ threadID: UUID) async {
+    _ = try? await kit.threads.messages(for: threadID)
+}
+
 // Ordinary-import compile coverage for the canonical managed/direct admission overloads.
 func exercisePublicTurnAdmission(_ thread: ThreadHandle) async {
     let content = MessageContent(parts: [

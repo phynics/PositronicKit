@@ -52,6 +52,25 @@ struct CapabilityValuesTests {
         #expect(try await turn.outcome() == .completed)
     }
 
+    @Test("Threads capability reads direct Turn history oldest first")
+    func threadCapabilityReadsDirectTurnHistory() async throws {
+        let llm = MockLLMService()
+        llm.mockClient.nextResponse = "assistant reply"
+        let kit = PositronicKit(languageModel: llm)
+        let thread = try await kit.threads.create(title: "Direct history")
+
+        let turn = try await thread.startDirectTurn(
+            "user message",
+            context: DirectTurnContext(systemInstructions: "Be concise.")
+        )
+        _ = await turn.events().collect()
+
+        let messages = try await kit.threads.messages(for: thread.id)
+        #expect(messages.map(\.content) == ["user message", "assistant reply"])
+        #expect(messages.map(\.timestamp) == messages.map(\.timestamp).sorted())
+        #expect(try await kit.threads.messages(for: UUID()).isEmpty)
+    }
+
     @Test("attached Thread creation rejects a missing Agent before creating a Thread")
     func rejectsMissingAgentWithoutCreatingThread() async throws {
         let kit = PositronicKit(languageModel: MockLLMService())

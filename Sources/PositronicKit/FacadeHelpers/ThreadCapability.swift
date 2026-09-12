@@ -46,6 +46,14 @@ public struct ThreadCapability: Sendable {
         try await kit.threadManager.threadStore.fetchThread(id: threadID)
     }
 
+    /// Reads durable Thread messages in oldest-first order.
+    ///
+    /// An unknown Thread ID returns an empty array. The result is durable Thread history, not
+    /// the assembled prompt state observed by ``PromptJournal``.
+    public func messages(for threadID: UUID) async throws -> [ThreadMessage] {
+        try await kit.messageStore.fetchMessages(for: threadID)
+    }
+
     /// Renames a Thread while preserving its existing handle.
     public func rename(_ threadID: UUID, to title: String) async throws {
         try await kit.threadManager.updateThreadTitle(threadID, title: title)
