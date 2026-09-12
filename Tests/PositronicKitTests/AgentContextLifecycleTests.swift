@@ -61,8 +61,8 @@ struct AgentContextLifecycleTests {
 
         let retired = try #require(await kit.agents.get(agent.id))
         #expect(retired.lifecycle == .retired)
-        #expect(try await kit.threads.get(thread.id)?.attachedAgentID == nil)
-        #expect(try await kit.threads.get(agent.privateThreadID)?.isArchived == true)
+        #expect(try await kit.threads.fetch(thread.id)?.attachedAgentID == nil)
+        #expect(try await kit.threads.fetch(agent.privateThreadID)?.isArchived == true)
 
         let retirementError = await #expect(throws: AgentError.self) {
             try await kit.agents.attach(agent.id, to: thread.id)
@@ -124,7 +124,7 @@ struct AgentContextLifecycleTests {
             try await Task.sleep(for: .milliseconds(5))
         }
         #expect(try await kit.agents.get(agent.id)?.lifecycle == .retiring)
-        #expect(try await kit.threads.get(agent.privateThreadID)?.isArchived == false)
+        #expect(try await kit.threads.fetch(agent.privateThreadID)?.isArchived == false)
 
         _ = try await repository.cancelTurn(
             turnID: admission.turn.identity.turnID,
@@ -132,7 +132,7 @@ struct AgentContextLifecycleTests {
             now: Date()
         )
         try await retirement.value
-        #expect(try await kit.threads.get(agent.privateThreadID)?.isArchived == true)
+        #expect(try await kit.threads.fetch(agent.privateThreadID)?.isArchived == true)
     }
 
     @Test("managed preparation rejects a source identity mismatch")

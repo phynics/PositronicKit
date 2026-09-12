@@ -88,8 +88,8 @@ struct RuntimeToolPolicyFactoryTests {
             for: thread,
             jailRoot: "/tmp/test",
             runtimeToolPolicy: .init(
-                installFilesystemTools: false,
-                installThreadObservationTools: true,
+                installsFilesystemTools: false,
+                installsThreadObservationTools: true,
                 installsThreadSendTool: true
             ),
             threadStore: threadStore,
@@ -130,8 +130,8 @@ struct RuntimeToolPolicyFactoryTests {
             for: thread,
             jailRoot: "/tmp/test",
             runtimeToolPolicy: .init(
-                installFilesystemTools: true,
-                installThreadObservationTools: false,
+                installsFilesystemTools: true,
+                installsThreadObservationTools: false,
                 installsThreadSendTool: false
             ),
             threadStore: threadStore,

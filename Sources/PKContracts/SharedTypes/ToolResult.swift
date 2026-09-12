@@ -17,6 +17,11 @@ public struct ToolResult: Sendable, Codable {
     /// Whether workspace routing was explicit (`at` supplied) or implicit (one match).
     public let workspaceRouting: WorkspaceToolRouting?
 
+    private enum CodingKeys: String, CodingKey {
+        case isSuccess = "success"
+        case output, error, workspaceID, workspaceRouting
+    }
+
     public init(
         isSuccess: Bool,
         output: String,

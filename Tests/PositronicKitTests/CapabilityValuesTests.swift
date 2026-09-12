@@ -13,7 +13,7 @@ struct CapabilityValuesTests {
         let reopened = kit.threads.open(handle.id)
 
         #expect(reopened.id == handle.id)
-        #expect(try await kit.threads.get(handle.id)?.title == "Capability Thread")
+        #expect(try await kit.threads.fetch(handle.id)?.title == "Capability Thread")
     }
 
     @Test("Agents capability attaches an identity to a Thread")
@@ -46,7 +46,7 @@ struct CapabilityValuesTests {
             attaching: agent.id
         )
 
-        #expect(try await kit.threads.get(thread.id)?.attachedAgentID == agent.id)
+        #expect(try await kit.threads.fetch(thread.id)?.attachedAgentID == agent.id)
         let turn = try await thread.startTurn("Start immediately")
         _ = await turn.events().collect()
         #expect(try await turn.outcome() == .completed)

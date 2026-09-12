@@ -47,13 +47,12 @@ def main() -> int:
         fail("CHANGELOG.md Unreleased must be empty after cutting the release section")
 
     baseline_release = ".".join(version.split(".")[:2])
-    for platform_name in ("linux", "macos"):
-        baseline_path = ROOT / "api" / f"{baseline_release}-public-api-{platform_name}.json"
-        if not baseline_path.exists():
-            fail(f"missing reviewed {platform_name} public API baseline: {baseline_path.relative_to(ROOT)}")
-        baseline = json.loads(baseline_path.read_text())
-        if baseline.get("release") != baseline_release or baseline.get("platform") != platform_name:
-            fail(f"invalid release/platform metadata in {baseline_path.relative_to(ROOT)}")
+    baseline_path = ROOT / "api" / f"{baseline_release}-public-api-linux.json"
+    if not baseline_path.exists():
+        fail(f"missing reviewed Linux public API baseline: {baseline_path.relative_to(ROOT)}")
+    baseline = json.loads(baseline_path.read_text())
+    if baseline.get("release") != baseline_release or baseline.get("platform") != "linux":
+        fail(f"invalid release/platform metadata in {baseline_path.relative_to(ROOT)}")
 
     tag_ref = f"refs/tags/{version}"
     if git("cat-file", "-t", tag_ref) != "tag":

@@ -16792,16 +16792,6 @@
       "declaration": "func detachWorkspace(_ workspaceID: UUID, from threadID: UUID) async throws"
     },
     {
-      "precise": "s:13PositronicKit16ThreadCapabilityV3getyAA0C0VSg20FoundationEssentials4UUIDVYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ThreadCapability",
-        "get(_:)"
-      ],
-      "declaration": "func get(_ threadID: UUID) async throws -> Thread?"
-    },
-    {
       "precise": "s:13PositronicKit16ThreadCapabilityV4list15includeArchivedSayAA0C0VGSb_tYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -16820,6 +16810,16 @@
         "open(_:)"
       ],
       "declaration": "func open(_ threadID: UUID) -> ThreadHandle"
+    },
+    {
+      "precise": "s:13PositronicKit16ThreadCapabilityV5fetchyAA0C0VSg20FoundationEssentials4UUIDVYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ThreadCapability",
+        "fetch(_:)"
+      ],
+      "declaration": "func fetch(_ threadID: UUID) async throws -> Thread?"
     },
     {
       "precise": "s:13PositronicKit16ThreadCapabilityV6create5title9attachingAA0C6HandleVSS_20FoundationEssentials4UUIDVSgtYaKF",
@@ -16979,14 +16979,14 @@
       "declaration": "func createAgentWorkspace(agentID: UUID, template: AgentTemplate?) async throws -> WorkspaceReference"
     },
     {
-      "precise": "s:13PositronicKit16WorkspaceCatalogP05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "precise": "s:13PositronicKit16WorkspaceCatalogP05fetchC011workspaceID12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "WorkspaceCatalog",
-        "fetchWorkspace(id:includeTools:)"
+        "fetchWorkspace(workspaceID:includeTools:)"
       ],
-      "declaration": "func fetchWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference?"
+      "declaration": "func fetchWorkspace(workspaceID: UUID, includeTools: Bool) async throws -> WorkspaceReference?"
     },
     {
       "precise": "s:13PositronicKit16WorkspaceCatalogP06createC03uri8location8originID8rootPath11PKContracts0C9ReferenceVAI0C3URIV_AK0C8LocationO20FoundationEssentials4UUIDVSgSSSgtYaKF",
@@ -16999,14 +16999,14 @@
       "declaration": "func createWorkspace(uri: WorkspaceURI, location: WorkspaceReference.WorkspaceLocation, originID: UUID?, rootPath: String?) async throws -> WorkspaceReference"
     },
     {
-      "precise": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "precise": "s:13PositronicKit16WorkspaceCatalogP06deleteC011workspaceID18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "WorkspaceCatalog",
-        "deleteWorkspace(id:includingDirectory:)"
+        "deleteWorkspace(workspaceID:includingDirectory:)"
       ],
-      "declaration": "func deleteWorkspace(id: UUID, includingDirectory: Bool) async throws"
+      "declaration": "func deleteWorkspace(workspaceID: UUID, includingDirectory: Bool) async throws"
     },
     {
       "precise": "s:13PositronicKit16WorkspaceCatalogP06updateC0yy11PKContracts0C9ReferenceVYaKF",
@@ -17039,14 +17039,14 @@
       "declaration": "func createAgentWorkspace(agentID: UUID, template: AgentTemplate? = nil) async throws -> WorkspaceReference"
     },
     {
-      "precise": "s:13PositronicKit16WorkspaceCatalogPAAE05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "precise": "s:13PositronicKit16WorkspaceCatalogPAAE05fetchC011workspaceID12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "WorkspaceCatalog",
-        "fetchWorkspace(id:includeTools:)"
+        "fetchWorkspace(workspaceID:includeTools:)"
       ],
-      "declaration": "func fetchWorkspace(id: UUID, includeTools: Bool = true) async throws -> WorkspaceReference?"
+      "declaration": "func fetchWorkspace(workspaceID: UUID, includeTools: Bool = true) async throws -> WorkspaceReference?"
     },
     {
       "precise": "s:13PositronicKit16WorkspaceCatalogPAAE06createC03uri8location8originID8rootPath11PKContracts0C9ReferenceVAI0C3URIV_AK0C8LocationO20FoundationEssentials4UUIDVSgSSSgtYaKF",
@@ -17059,14 +17059,14 @@
       "declaration": "func createWorkspace(uri: WorkspaceURI, location: WorkspaceReference.WorkspaceLocation, originID: UUID? = nil, rootPath: String? = nil) async throws -> WorkspaceReference"
     },
     {
-      "precise": "s:13PositronicKit16WorkspaceCatalogPAAE06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "precise": "s:13PositronicKit16WorkspaceCatalogPAAE06deleteC011workspaceID18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "WorkspaceCatalog",
-        "deleteWorkspace(id:includingDirectory:)"
+        "deleteWorkspace(workspaceID:includingDirectory:)"
       ],
-      "declaration": "func deleteWorkspace(id: UUID, includingDirectory: Bool = false) async throws"
+      "declaration": "func deleteWorkspace(workspaceID: UUID, includingDirectory: Bool = false) async throws"
     },
     {
       "precise": "s:13PositronicKit16WorkspaceFactoryP",
@@ -17472,34 +17472,34 @@
       "declaration": "let installsThreadSendTool: Bool"
     },
     {
-      "precise": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemTools0f17ThreadObservationH008installsi4SendD0ACSb_S2btcfc",
+      "precise": "s:13PositronicKit17RuntimeToolPolicyV23installsFilesystemTools0f17ThreadObservationH00fi4SendD0ACSb_S2btcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "RuntimeToolPolicy",
-        "init(installFilesystemTools:installThreadObservationTools:installsThreadSendTool:)"
+        "init(installsFilesystemTools:installsThreadObservationTools:installsThreadSendTool:)"
       ],
-      "declaration": "init(installFilesystemTools: Bool = true, installThreadObservationTools: Bool = true, installsThreadSendTool: Bool = true)"
+      "declaration": "init(installsFilesystemTools: Bool = true, installsThreadObservationTools: Bool = true, installsThreadSendTool: Bool = true)"
     },
     {
-      "precise": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemToolsSbvp",
+      "precise": "s:13PositronicKit17RuntimeToolPolicyV23installsFilesystemToolsSbvp",
       "module": "PositronicKit",
       "kind": "swift.property",
       "path": [
         "RuntimeToolPolicy",
-        "installFilesystemTools"
+        "installsFilesystemTools"
       ],
-      "declaration": "let installFilesystemTools: Bool"
+      "declaration": "let installsFilesystemTools: Bool"
     },
     {
-      "precise": "s:13PositronicKit17RuntimeToolPolicyV29installThreadObservationToolsSbvp",
+      "precise": "s:13PositronicKit17RuntimeToolPolicyV30installsThreadObservationToolsSbvp",
       "module": "PositronicKit",
       "kind": "swift.property",
       "path": [
         "RuntimeToolPolicy",
-        "installThreadObservationTools"
+        "installsThreadObservationTools"
       ],
-      "declaration": "let installThreadObservationTools: Bool"
+      "declaration": "let installsThreadObservationTools: Bool"
     },
     {
       "precise": "s:13PositronicKit17RuntimeToolPolicyV7defaultACvpZ",
@@ -18807,16 +18807,6 @@
       "declaration": "struct WorkspaceCapability"
     },
     {
-      "precise": "s:13PositronicKit19WorkspaceCapabilityV3get_12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "WorkspaceCapability",
-        "get(_:includeTools:)"
-      ],
-      "declaration": "func get(_ workspaceID: UUID, includeTools: Bool = true) async throws -> WorkspaceReference?"
-    },
-    {
       "precise": "s:13PositronicKit19WorkspaceCapabilityV4listSay11PKContracts0C9ReferenceVGyYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -18825,6 +18815,16 @@
         "list()"
       ],
       "declaration": "func list() async throws -> [WorkspaceReference]"
+    },
+    {
+      "precise": "s:13PositronicKit19WorkspaceCapabilityV5fetch_12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "WorkspaceCapability",
+        "fetch(_:includeTools:)"
+      ],
+      "declaration": "func fetch(_ workspaceID: UUID, includeTools: Bool = true) async throws -> WorkspaceReference?"
     },
     {
       "precise": "s:13PositronicKit19WorkspaceCapabilityV6create3uri8location8originID8rootPath11PKContracts0C9ReferenceVAI0C3URIV_AK0C8LocationO20FoundationEssentials4UUIDVSgSSSgtYaKF",
@@ -38726,11 +38726,11 @@
     {
       "module": "PositronicKit",
       "kind": "defaultImplementationOf",
-      "source": "s:13PositronicKit16WorkspaceCatalogPAAE05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
-      "target": "s:13PositronicKit16WorkspaceCatalogP05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "source": "s:13PositronicKit16WorkspaceCatalogPAAE05fetchC011workspaceID12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "target": "s:13PositronicKit16WorkspaceCatalogP05fetchC011workspaceID12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit16WorkspaceCatalogP05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
-        "displayName": "WorkspaceCatalog.fetchWorkspace(id:includeTools:)"
+        "identifier": "s:13PositronicKit16WorkspaceCatalogP05fetchC011workspaceID12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+        "displayName": "WorkspaceCatalog.fetchWorkspace(workspaceID:includeTools:)"
       }
     },
     {
@@ -38742,11 +38742,11 @@
     {
       "module": "PositronicKit",
       "kind": "defaultImplementationOf",
-      "source": "s:13PositronicKit16WorkspaceCatalogPAAE06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
-      "target": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "source": "s:13PositronicKit16WorkspaceCatalogPAAE06deleteC011workspaceID18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "target": "s:13PositronicKit16WorkspaceCatalogP06deleteC011workspaceID18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
-        "displayName": "WorkspaceCatalog.deleteWorkspace(id:includingDirectory:)"
+        "identifier": "s:13PositronicKit16WorkspaceCatalogP06deleteC011workspaceID18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
+        "displayName": "WorkspaceCatalog.deleteWorkspace(workspaceID:includingDirectory:)"
       }
     },
     {
@@ -51354,12 +51354,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit16ThreadCapabilityV3getyAA0C0VSg20FoundationEssentials4UUIDVYaKF",
-      "target": "s:13PositronicKit16ThreadCapabilityV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit16ThreadCapabilityV4list15includeArchivedSayAA0C0VGSb_tYaKF",
       "target": "s:13PositronicKit16ThreadCapabilityV"
     },
@@ -51367,6 +51361,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit16ThreadCapabilityV4openyAA0C6HandleV20FoundationEssentials4UUIDVF",
+      "target": "s:13PositronicKit16ThreadCapabilityV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit16ThreadCapabilityV5fetchyAA0C0VSg20FoundationEssentials4UUIDVYaKF",
       "target": "s:13PositronicKit16ThreadCapabilityV"
     },
     {
@@ -51668,19 +51668,19 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemTools0f17ThreadObservationH008installsi4SendD0ACSb_S2btcfc",
+      "source": "s:13PositronicKit17RuntimeToolPolicyV23installsFilesystemTools0f17ThreadObservationH00fi4SendD0ACSb_S2btcfc",
       "target": "s:13PositronicKit17RuntimeToolPolicyV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemToolsSbvp",
+      "source": "s:13PositronicKit17RuntimeToolPolicyV23installsFilesystemToolsSbvp",
       "target": "s:13PositronicKit17RuntimeToolPolicyV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolPolicyV29installThreadObservationToolsSbvp",
+      "source": "s:13PositronicKit17RuntimeToolPolicyV30installsThreadObservationToolsSbvp",
       "target": "s:13PositronicKit17RuntimeToolPolicyV"
     },
     {
@@ -52314,13 +52314,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit19WorkspaceCapabilityV3get_12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "source": "s:13PositronicKit19WorkspaceCapabilityV4listSay11PKContracts0C9ReferenceVGyYaKF",
       "target": "s:13PositronicKit19WorkspaceCapabilityV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit19WorkspaceCapabilityV4listSay11PKContracts0C9ReferenceVGyYaKF",
+      "source": "s:13PositronicKit19WorkspaceCapabilityV5fetch_12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
       "target": "s:13PositronicKit19WorkspaceCapabilityV"
     },
     {
@@ -55328,7 +55328,7 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit16WorkspaceCatalogP05fetchC02id12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
+      "source": "s:13PositronicKit16WorkspaceCatalogP05fetchC011workspaceID12includeTools11PKContracts0C9ReferenceVSg20FoundationEssentials4UUIDV_SbtYaKF",
       "target": "s:13PositronicKit16WorkspaceCatalogP"
     },
     {
@@ -55340,7 +55340,7 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit16WorkspaceCatalogP06deleteC02id18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
+      "source": "s:13PositronicKit16WorkspaceCatalogP06deleteC011workspaceID18includingDirectoryy20FoundationEssentials4UUIDV_SbtYaKF",
       "target": "s:13PositronicKit16WorkspaceCatalogP"
     },
     {

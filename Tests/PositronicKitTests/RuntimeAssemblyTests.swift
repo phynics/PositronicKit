@@ -171,7 +171,7 @@ struct RuntimeAssemblyTests {
         let agent = try await kit.agents.create(name: "Assembly Agent", description: "custom")
         let primaryWorkspaceID = try #require(agent.primaryWorkspaceID)
         #expect(try await agentStore.fetchAgent(id: agent.id) != nil)
-        #expect(try await kit.workspaceCatalog.fetchWorkspace(id: primaryWorkspaceID, includeTools: false) != nil)
+        #expect(try await kit.workspaceCatalog.fetchWorkspace(workspaceID: primaryWorkspaceID, includeTools: false) != nil)
 
         let thread = try await kit.threads.create(title: "Customization")
         try await kit.agents.attach(agent.id, to: thread.id)

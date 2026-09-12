@@ -12,6 +12,11 @@ public struct StructuredOutputSchema: Sendable, Equatable, Codable {
     public let schema: Schema
     public let isStrict: Bool
 
+    private enum CodingKeys: String, CodingKey {
+        case name, description, schema
+        case isStrict = "strict"
+    }
+
     public init(
         name: String,
         description: String? = nil,

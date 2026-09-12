@@ -41,8 +41,8 @@ public struct ThreadCapability: Sendable {
         try await kit.threadManager.threadStore.fetchAllThreads(includeArchived: includeArchived)
     }
 
-    /// Reads one cached or persisted Thread.
-    public func get(_ threadID: UUID) async throws -> Thread? {
+    /// Fetches one cached or persisted Thread by ID.
+    public func fetch(_ threadID: UUID) async throws -> Thread? {
         try await kit.threadManager.threadStore.fetchThread(id: threadID)
     }
 

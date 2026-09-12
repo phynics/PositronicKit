@@ -9,24 +9,24 @@ import PKUtilities
 /// This is a facade configuration value. The cache-owning coordinator that applies
 /// it is intentionally not part of the consumer-facing entry point.
 public struct RuntimeToolPolicy: Sendable, Equatable {
-    public let installFilesystemTools: Bool
-    public let installThreadObservationTools: Bool
+    public let installsFilesystemTools: Bool
+    public let installsThreadObservationTools: Bool
     public let installsThreadSendTool: Bool
 
     public init(
-        installFilesystemTools: Bool = true,
-        installThreadObservationTools: Bool = true,
+        installsFilesystemTools: Bool = true,
+        installsThreadObservationTools: Bool = true,
         installsThreadSendTool: Bool = true
     ) {
-        self.installFilesystemTools = installFilesystemTools
-        self.installThreadObservationTools = installThreadObservationTools
+        self.installsFilesystemTools = installsFilesystemTools
+        self.installsThreadObservationTools = installsThreadObservationTools
         self.installsThreadSendTool = installsThreadSendTool
     }
 
     public static let `default` = RuntimeToolPolicy()
     public static let denyAll = RuntimeToolPolicy(
-        installFilesystemTools: false,
-        installThreadObservationTools: false,
+        installsFilesystemTools: false,
+        installsThreadObservationTools: false,
         installsThreadSendTool: false
     )
 }

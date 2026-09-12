@@ -22,7 +22,7 @@ package enum RuntimeToolPolicyFactory {
         // an attached agent identity is available, because it requires a sender identity.
         var availableTools: [AnyTool] = []
 
-        if runtimeToolPolicy.installFilesystemTools {
+        if runtimeToolPolicy.installsFilesystemTools {
             availableTools.append(contentsOf: [
                 AnyTool(ChangeDirectoryTool(
                     currentPath: currentWD,
@@ -39,7 +39,7 @@ package enum RuntimeToolPolicyFactory {
             ])
         }
 
-        if runtimeToolPolicy.installThreadObservationTools {
+        if runtimeToolPolicy.installsThreadObservationTools {
             availableTools.append(contentsOf: [
                 AnyTool(ThreadListTool(threadStore: threadStore)),
                 AnyTool(ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)),

@@ -462,7 +462,7 @@ actor AgentManager: AgentManagerProtocol {
 
         if let workspace {
             do {
-                try await repository.deleteWorkspace(id: workspace.id, includingDirectory: true)
+                try await repository.deleteWorkspace(workspaceID: workspace.id, includingDirectory: true)
             } catch {
                 logCreateRollbackFailure(
                     operation: "deleteWorkspace",
@@ -688,7 +688,7 @@ actor AgentManager: AgentManagerProtocol {
         // Delete primary workspace directory (high risk IO)
         if let workspaceId = agent.primaryWorkspaceID {
             do {
-                try await repository.deleteWorkspace(id: workspaceId, includingDirectory: true)
+                try await repository.deleteWorkspace(workspaceID: workspaceId, includingDirectory: true)
             } catch {
                 logger.error("Failed to delete workspace directory for agent \(id): \(error)")
             }

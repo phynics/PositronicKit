@@ -142,6 +142,13 @@ public struct TurnRecord: Codable, Equatable, Sendable {
     public let createdAt: Date
     public var updatedAt: Date
 
+    private enum CodingKeys: String, CodingKey {
+        case identity, threadID, callerIntent, executionKind, capturedAgentID, lifecycle
+        case currentModelRoundIndex, outcome, notices, correlations, retryRelation
+        case requiresRecovery = "recoveryRequired"
+        case recoveryMessage, terminalHandle, terminalMessageID, createdAt, updatedAt
+    }
+
     public init(
         identity: TurnIdentity,
         threadID: UUID,
@@ -246,6 +253,12 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
     public let workspaceID: UUID?
     public let workspaceRouting: WorkspaceToolRouting?
     public let createdAt: Date
+
+    private enum CodingKeys: String, CodingKey {
+        case id, turnID, threadID, toolCallID, output
+        case isSuccessful = "succeeded"
+        case errorMessage, workspaceID, workspaceRouting, createdAt
+    }
 
     public init(
         id: UUID = UUID(),

@@ -25,7 +25,8 @@ for tagged releases beginning with `1.0.0`.
   `TurnOutcome`. `ThreadController.send(_:)` throws `ThreadControllerError` for runtime and
   durability events and `CancellationError` for cancellation.
 - **Public naming and shape cleanup for Swift API Design Guidelines conformance (#141):**
-  `WorkspaceCatalog.getWorkspace(id:includeTools:)` is now `fetchWorkspace(id:includeTools:)`;
+  `WorkspaceCatalog.fetchWorkspace(id:includeTools:)` is now `fetchWorkspace(workspaceID:includeTools:)`;
+  `ThreadCapability.get(_:)` and `WorkspaceCapability.get(_:includeTools:)` are now `fetch`;
   `PositronicKit.openThread(_:)` is removed in favor of `ThreadCapability.open(_:)`;
   `HealthCheckable.getHealthDetails()` and `WorkspaceProvider.healthCheck()` are now the async
   properties `healthDetails` and `isHealthy`; `ThreadCapability.create(title:attaching:)` takes
@@ -38,6 +39,8 @@ for tagged releases beginning with `1.0.0`.
   properties that didn't read as assertions are renamed: `ToolResult.success` → `isSuccess`,
   `RuntimeToolResult.succeeded` → `isSuccessful`, `TurnRecord.recoveryRequired` →
   `requiresRecovery`, `RuntimeToolPolicy.installThreadSendTool` → `installsThreadSendTool`,
+  `RuntimeToolPolicy.installFilesystemTools` → `installsFilesystemTools`, and
+  `RuntimeToolPolicy.installThreadObservationTools` → `installsThreadObservationTools`,
   `StructuredOutputSchema.strict`/`LLMResponseSchema.strict`/`LLMToolDefinition.strict` →
   `isStrict`, `LenientJSONParser.ParseResult.repaired` → `wasRepaired`, and
   `CompressionNodeReport.cacheHit`/`StructuredCompressionNodeMetric.cacheHit` → `didHitCache`

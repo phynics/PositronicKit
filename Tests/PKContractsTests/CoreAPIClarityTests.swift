@@ -84,6 +84,9 @@ struct CoreAPIClarityTests {
             afterTokens: 3,
             didHitCache: false
         )
+        let toolResult = ToolResult.success("done")
+        let toolDefinition = LLMToolDefinition(name: "lookup", isStrict: true)
+        let responseSchema = LLMResponseSchema(name: "answer", isStrict: true)
 
         let values: [(data: Data, requiredKeys: Set<String>, forbiddenKeys: Set<String>)] = [
             (try JSONEncoder().encode(identity), ["turnId", "requestId", "modelRoundIndex"], ["turnID", "requestID"]),
@@ -93,6 +96,9 @@ struct CoreAPIClarityTests {
             (try JSONEncoder().encode(snapshot), ["threadId", "agentId", "availableToolIds"], ["threadID", "agentID", "availableToolIDs"]),
             (try JSONEncoder().encode(diagnostic), ["entityId"], ["entityID"]),
             (try JSONEncoder().encode(compressionMetric), ["nodeId"], ["nodeID"]),
+            (try JSONEncoder().encode(toolResult), ["success"], ["isSuccess"]),
+            (try JSONEncoder().encode(toolDefinition), ["strict"], ["isStrict"]),
+            (try JSONEncoder().encode(responseSchema), ["strict"], ["isStrict"]),
         ]
 
         for value in values {

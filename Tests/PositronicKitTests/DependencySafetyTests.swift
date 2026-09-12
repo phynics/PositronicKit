@@ -21,10 +21,10 @@ struct DependencySafetyTests {
         // proving that it is backed by the same store.
         let workspace = WorkspaceReference(uri: .threadWorkspace(UUID()), location: .runtime)
         try await runtime.persistence.saveWorkspace(workspace)
-        let resolved = try await runtime.workspaces.get(workspace.id)
+        let resolved = try await runtime.workspaces.fetch(workspace.id)
         #expect(resolved?.id == workspace.id)
 
-        #expect(try await runtime.threads.get(thread.id)?.id == thread.id)
+        #expect(try await runtime.threads.fetch(thread.id)?.id == thread.id)
     }
 
     @Test("AgentManager correctly resolves overridden agentWorkspaceService")
