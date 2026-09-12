@@ -80,7 +80,7 @@ print(answer.content) // thread-free inference
 let directThread = try await kit.threads.create(title: "Scratchpad")
 let directTurn = try await directThread.startDirectTurn(
     "Continue the summary.",
-    context: DirectTurnContext(systemInstructions: "", contributor: .host)
+    context: DirectTurnContext(systemInstructions: "")
 )
 for await event in directTurn.events() {
     // Render deltas or inspect terminal events.
@@ -136,7 +136,9 @@ because model state can change after the check.
 Thread attachment state. Per-Turn options such as sidecars, tools, and generation parameters go
 in `TurnOptions`, which does not repeat the handle's Thread identity. A detached Thread uses
 `startDirectTurn(_:context:options:)`, where the caller supplies the complete system prompt
-(including an intentional empty prompt) and contributors. Both return a `TurnHandle`:
+(including an intentional empty prompt). The context uses the conventional `.host` contributor
+when the caller omits `contributors`; pass an explicit array when a different contributor set is
+required. Both return a `TurnHandle`:
 `events()` is a nonthrowing future-event stream, `outcome()` replays the durable terminal result,
 and `cancel()` targets exactly that Turn.
 
