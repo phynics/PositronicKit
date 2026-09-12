@@ -9767,7 +9767,7 @@
         "TurnEvent",
         "durabilityFailure(_:)"
       ],
-      "declaration": "static func durabilityFailure(_ err: any Error) -> TurnEvent"
+      "declaration": "static func durabilityFailure(_ error: any Error) -> TurnEvent"
     },
     {
       "precise": "s:11PKContracts9TurnEventO17sidecarCompletionAA07SidecarE0VSgvp",
@@ -9897,7 +9897,7 @@
         "TurnEvent",
         "error(_:)"
       ],
-      "declaration": "static func error(_ msg: String) -> TurnEvent"
+      "declaration": "static func error(_ message: String) -> TurnEvent"
     },
     {
       "precise": "s:11PKContracts9TurnEventO5erroryACs5Error_pFZ",
@@ -9907,7 +9907,7 @@
         "TurnEvent",
         "error(_:)"
       ],
-      "declaration": "static func error(_ err: any Error) -> TurnEvent"
+      "declaration": "static func error(_ error: any Error) -> TurnEvent"
     },
     {
       "precise": "s:11PKContracts9TurnEventO7sidecaryAcA12SidecarDeltaVFZ",
