@@ -228,7 +228,10 @@ Long-lived runtime services log through `Logger.module(...)` in the package-inte
 For package-defined errors, PositronicKit uses `ErrorKit` through `PKContracts.PKError`:
 
 - Package error types conform to `PKError`, with stable `PKErrorDomain` and `errorCode` values.
+- `ThreadRuntimeRepositoryError` uses `PKErrorDomain.thread` codes `6101` through `6117`; `6118` is reserved.
+- `WorkspaceBindingRepositoryError` uses `PKErrorDomain.workspace` codes `3101` through `3103`.
 - `userFriendlyMessage` is the preferred surfaced message; when propagating nested failures, prefer `ErrorKit.userFriendlyMessage(for:)` over raw `localizedDescription`.
+- Durable `TurnOutcome.failed` values store the same user-facing message used to describe the original failure.
 
 ## 4. Best Practices
 

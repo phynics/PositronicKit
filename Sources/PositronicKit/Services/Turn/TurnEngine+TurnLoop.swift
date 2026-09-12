@@ -65,6 +65,15 @@ private struct TerminalDecision {
             return .event(.error(reason))
         }
     }
+
+    /// Creates a failed decision with user-facing durable text and the original stream error.
+    static func failed(because error: Error, streamError: Error) -> Self {
+        TerminalDecision(
+            outcome: .failed(message: ErrorKit.userFriendlyMessage(for: error)),
+            delivery: .none,
+            streamError: streamError
+        )
+    }
 }
 
 private enum TerminalRepositoryError: Error, Sendable {
@@ -151,9 +160,8 @@ extension TurnEngine {
                     // Snapshot failures terminate the send after preparation, so the caller may
                     // retry with the same request ID.
                     await commitTerminal(
-                        decision: TerminalDecision(
-                            outcome: .failed(message: String(describing: error)),
-                            delivery: .none,
+                        decision: .failed(
+                            because: error,
                             streamError: wrapForeignError(error)
                         ),
                         context: turnContext,
@@ -296,13 +304,13 @@ private extension TurnEngine {
             // the UI (re-thrown below); STAB-5 handles retry separately.
             let isCancellation = Self.isCancellationOrigin(error)
             await commitTerminal(
-                decision: TerminalDecision(
-                    outcome: isCancellation
-                        ? .cancelled(reason: "Turn task cancelled.")
-                        : .failed(message: String(describing: error)),
-                    delivery: .none,
-                    streamError: error
-                ),
+                decision: isCancellation
+                    ? TerminalDecision(
+                        outcome: .cancelled(reason: "Turn task cancelled."),
+                        delivery: .none,
+                        streamError: error
+                    )
+                    : .failed(because: error, streamError: error),
                 context: context,
                 continuation: continuation
             )

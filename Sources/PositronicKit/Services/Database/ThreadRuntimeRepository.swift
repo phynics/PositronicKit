@@ -408,6 +408,39 @@ public enum ThreadRuntimeRepositoryError: Error, Equatable, Sendable, CustomStri
     }
 }
 
+/// Stable `PKError` identity for Thread runtime repository failures.
+extension ThreadRuntimeRepositoryError: PKError {
+    public var errorDomain: String {
+        PKErrorDomain.thread
+    }
+
+    public var errorCode: Int {
+        switch self {
+        case .threadNotFound: return 6101
+        case .turnNotFound: return 6102
+        case .threadBusy: return 6103
+        case .idempotencyConflict: return 6104
+        case .recoveryRequired: return 6105
+        case .invalidTransition: return 6106
+        case .toolIntentRequired: return 6107
+        case .duplicateToolIntent: return 6108
+        case .duplicateToolResult: return 6109
+        case .appendOnlyViolation: return 6110
+        case .historyDeletionForbidden: return 6111
+        case .summarySourceMissing: return 6112
+        case .confirmationRequired: return 6113
+        case .runtimeRepositoryRequired: return 6114
+        case .authorityCoordinatorRequired: return 6115
+        case .inputMessageThreadMismatch: return 6116
+        case .finalMessageThreadMismatch: return 6117
+        }
+    }
+
+    public var userFriendlyMessage: String {
+        description
+    }
+}
+
 // MARK: - Repository contract
 
 /// The single behavioral owner of durable Thread history and Turn transitions.

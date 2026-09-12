@@ -1,4 +1,5 @@
 import Foundation
+import PKContracts
 
 /// The durable relationship between an ordinary workspace and a Thread.
 ///
@@ -39,6 +40,25 @@ public enum WorkspaceBindingRepositoryError: Error, Equatable, Sendable, CustomS
         case let .transferSourceMismatch(workspaceID, threadID):
             return "Workspace \(workspaceID) cannot transfer from Thread \(threadID)."
         }
+    }
+}
+
+/// Stable `PKError` identity for Workspace binding repository failures.
+extension WorkspaceBindingRepositoryError: PKError {
+    public var errorDomain: String {
+        PKErrorDomain.workspace
+    }
+
+    public var errorCode: Int {
+        switch self {
+        case .workspaceAlreadyBound: return 3101
+        case .bindingNotFound: return 3102
+        case .transferSourceMismatch: return 3103
+        }
+    }
+
+    public var userFriendlyMessage: String {
+        description
     }
 }
 

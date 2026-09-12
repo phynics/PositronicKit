@@ -45,6 +45,14 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Stable repository error identity and durable failure messages (#167):** `ThreadRuntimeRepositoryError`
+  now uses `PKErrorDomain.thread` codes `6101` through `6117`, with `6118` reserved. Each
+  `WorkspaceBindingRepositoryError` case uses `PKErrorDomain.workspace` codes `3101` through
+  `3103`. Both enums now expose those identities through `localizedDescription` and
+  `userFriendlyMessage`. Newly persisted `TurnOutcome.failed` messages use
+  `ErrorKit.userFriendlyMessage(for:)`, while transient errors, cancellation outcomes, and fixed
+  policy messages keep their existing behavior.
+
 - **Shipped protocol conformance suites:** `PKTestSupport` now exposes explicitly invoked Swift
   Testing runners for `ThreadRuntimeRepository`, `WorkspaceStore`, `ToolPersistenceProtocol`,
   `AgentStoreProtocol`, `RequestOriginStoreProtocol`, and `WorkspaceFactory`. The toolchain-provided
