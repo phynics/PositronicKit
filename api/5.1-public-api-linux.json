@@ -38853,11 +38853,7 @@
       "module": "PKContracts",
       "kind": "defaultImplementationOf",
       "source": "s:11PKContracts4ToolPAAE18requiresPermission3forSbSDySSAA10AnyCodableOG_tF",
-      "target": "s:11PKContracts4ToolP18requiresPermission3forSbSDySSAA10AnyCodableOG_tF",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts4ToolP18requiresPermission3forSbSDySSAA10AnyCodableOG_tF",
-        "displayName": "Tool.requiresPermission(for:)"
-      }
+      "target": "s:11PKContracts4ToolP18requiresPermission3forSbSDySSAA10AnyCodableOG_tF"
     },
     {
       "module": "PKContracts",
