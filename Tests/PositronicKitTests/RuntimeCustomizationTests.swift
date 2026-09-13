@@ -146,7 +146,7 @@ struct RuntimeCustomizationTests {
         customization: RuntimeCustomization
     ) async throws -> PositronicKit {
         PositronicKit(configuration: .init(
-            provider: .init(languageModel: model),
+            languageModel: model,
             persistence: .init(runtimeRepository: repository),
             runtime: .init(customization: customization)
         ))

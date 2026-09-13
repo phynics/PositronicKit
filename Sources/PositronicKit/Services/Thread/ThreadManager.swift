@@ -308,10 +308,10 @@ extension ThreadManager {
 // MARK: - Tool Management
 
 extension ThreadManager {
-    func findWorkspaceForTool(_ tool: ToolReference, in workspaceIds: [UUID]) async throws
+    func findWorkspaceForTool(_ tool: ToolReference, in workspaceIDs: [UUID]) async throws
         -> UUID?
     {
-        return try await toolPersistence.findWorkspaceId(forToolId: tool.toolID, in: workspaceIds)
+        return try await toolPersistence.findWorkspace(hostingToolNamed: tool.toolID, in: workspaceIDs)
     }
 
     /// Enabled tools for an active thread (empty if the thread has no active tool manager).
@@ -341,12 +341,12 @@ extension ThreadManager {
         return true
     }
 
-    func getToolSource(toolId: String, for threadID: UUID) async throws -> String? {
+    func getToolSource(toolName: String, for threadID: UUID) async throws -> String? {
         guard threads[threadID] != nil else { return nil }
 
         if let toolManager = toolManagers[threadID] {
             let systemTools = await toolManager.getAvailableTools()
-            if systemTools.contains(where: { $0.callName == toolId }) {
+            if systemTools.contains(where: { $0.callName == toolName }) {
                 return "System"
             }
         }
@@ -356,13 +356,13 @@ extension ThreadManager {
                 .bindings(for: threadID)
                 .map(\.workspaceID)
             return try await toolPersistence.fetchToolSource(
-                toolId: toolId,
-                workspaceIds: workspaceIDs,
-                primaryWorkspaceId: nil
+                named: toolName,
+                in: workspaceIDs,
+                preferring: nil
             )
         } catch {
             logger.error("""
-            getToolSource failed — toolId: \(toolId), thread: \(threadID.uuidString.prefix(8)), \
+            getToolSource failed — toolName: \(toolName), thread: \(threadID.uuidString.prefix(8)), \
             operation: fetchToolSource, error: \(ErrorKit.userFriendlyMessage(for: error))
             """)
             throw ThreadError.unavailable

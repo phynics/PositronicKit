@@ -29,7 +29,7 @@ struct StructuredOutputRunTests {
     func runForwardsStructuredOutputRequests() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
+        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -68,7 +68,7 @@ struct StructuredOutputRunTests {
     func runOmittingStructuredOutputUsesTheSameSingleOverload() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
+        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -91,7 +91,7 @@ struct StructuredOutputRunTests {
     func minimalTurnRequestPreservesLegacyDefaults() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
+        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -117,7 +117,7 @@ struct StructuredOutputRunTests {
     func noSidecarsPreservesNoSidecarRuntimePath() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
+        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,

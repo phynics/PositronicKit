@@ -57,7 +57,7 @@ public enum ToolPersistenceConformanceSuite {
         let workspaceID = UUID()
         let workspace = makeWorkspace(id: workspaceID, tools: [.known("existing")])
         let store = try await makeStore([workspace])
-        try await store.addToolToWorkspace(workspaceId: workspaceID, tool: .known("added"))
+        try await store.addToolToWorkspace(workspaceID: workspaceID, tool: .known("added"))
 
         let tools = try await store.fetchTools(forWorkspaces: [workspaceID])
         try #require(
@@ -72,7 +72,7 @@ public enum ToolPersistenceConformanceSuite {
     ) async throws {
         let store = try await makeStore([])
         do {
-            try await store.addToolToWorkspace(workspaceId: UUID(), tool: .known("missing"))
+            try await store.addToolToWorkspace(workspaceID: UUID(), tool: .known("missing"))
             Issue.record("tool.missing-workspace.must-fail")
             return
         } catch {
@@ -80,7 +80,7 @@ public enum ToolPersistenceConformanceSuite {
         }
 
         do {
-            try await store.syncTools(workspaceId: UUID(), tools: [.known("missing")])
+            try await store.syncTools(workspaceID: UUID(), tools: [.known("missing")])
             Issue.record("tool.missing-workspace.sync-must-fail")
             return
         } catch {
@@ -95,7 +95,7 @@ public enum ToolPersistenceConformanceSuite {
         let store = try await makeStore([
             makeWorkspace(id: workspaceID, tools: [.known("old"), .known("removed")])
         ])
-        try await store.syncTools(workspaceId: workspaceID, tools: [.known("new")])
+        try await store.syncTools(workspaceID: workspaceID, tools: [.known("new")])
 
         let tools = try await store.fetchTools(forWorkspaces: [workspaceID])
         try #require(tools.map(\.toolID) == ["new"], "tool.sync.replaces-all")
@@ -110,7 +110,7 @@ public enum ToolPersistenceConformanceSuite {
             makeWorkspace(id: UUID(), originID: UUID(), tools: [.known("other-tool")])
         ])
 
-        let tools = try await store.fetchOriginTools(originId: originID)
+        let tools = try await store.fetchOriginTools(originID: originID)
         try #require(tools.map(\.toolID) == ["origin-tool"], "tool.origin.filter")
     }
 
@@ -125,15 +125,15 @@ public enum ToolPersistenceConformanceSuite {
         ])
 
         try #require(
-            try await store.findWorkspaceId(forToolId: "echo", in: [ownerID]) == ownerID,
+            try await store.findWorkspace(hostingToolNamed: "echo", in: [ownerID]) == ownerID,
             "tool.owner.found"
         )
         try #require(
-            try await store.findWorkspaceId(forToolId: "outside", in: [ownerID]) == nil,
+            try await store.findWorkspace(hostingToolNamed: "outside", in: [ownerID]) == nil,
             "tool.owner.scope"
         )
         try #require(
-            try await store.findWorkspaceId(forToolId: "missing", in: [ownerID, outsideID]) == nil,
+            try await store.findWorkspace(hostingToolNamed: "missing", in: [ownerID, outsideID]) == nil,
             "tool.owner.unknown"
         )
     }
@@ -148,17 +148,17 @@ public enum ToolPersistenceConformanceSuite {
 
         try #require(
             try await store.fetchToolSource(
-                toolId: "echo",
-                workspaceIds: [workspaceID],
-                primaryWorkspaceId: nil
+                named: "echo",
+                in: [workspaceID],
+                preferring: nil
             ) != nil,
             "tool.source.known"
         )
         try #require(
             try await store.fetchToolSource(
-                toolId: "missing",
-                workspaceIds: [workspaceID],
-                primaryWorkspaceId: nil
+                named: "missing",
+                in: [workspaceID],
+                preferring: nil
             ) == nil,
             "tool.source.unknown"
         )
@@ -170,9 +170,9 @@ public enum ToolPersistenceConformanceSuite {
         ])
         try #require(
             try await scopedStore.fetchToolSource(
-                toolId: "outside",
-                workspaceIds: [workspaceID],
-                primaryWorkspaceId: nil
+                named: "outside",
+                in: [workspaceID],
+                preferring: nil
             ) == nil,
             "tool.source.out-of-scope"
         )

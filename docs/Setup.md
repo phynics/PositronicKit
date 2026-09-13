@@ -75,9 +75,7 @@ import PositronicKit
 import PKContracts
 
 let kit = PositronicKit(configuration: .init(
-    provider: .init(
-        languageModel: myLanguageModel
-    ),
+    languageModel: myLanguageModel,
     persistence: .init(
         runtimeRepository: myThreadRuntimeRepository,
         workspacePersistence: myWorkspaceStore,
@@ -193,7 +191,7 @@ swift run PositronicKitExamples
 ```
 
 For custom timeouts, generation parameters, attribution, or multiple model-tier clients, keep using
-the advanced `ProviderConfiguration`, `LLMClientSet`, and `LLMService` initializers. Ordinary
+the advanced `PKContracts.ProviderConfiguration`, `LLMClientSet`, and `LLMService` initializers. Ordinary
 consumers do not need to construct that client topology.
 
 Foundation Models is intentionally separate from this HTTP-provider value. Its on-device session

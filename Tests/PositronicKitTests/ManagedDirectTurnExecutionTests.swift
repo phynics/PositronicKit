@@ -101,7 +101,7 @@ struct ManagedDirectTurnExecutionTests {
         let llm = MockLLMService()
         let repository = InMemoryThreadRuntimeRepository()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .init(
                 runtimeRepository: repository,
                 workspacePersistence: persistence,
@@ -124,7 +124,7 @@ struct ManagedDirectTurnExecutionTests {
         )
         try await persistence.saveWorkspace(attachedWorkspace)
         try await persistence.addToolToWorkspace(
-            workspaceId: attachedWorkspace.id,
+            workspaceID: attachedWorkspace.id,
             tool: .known("cat")
         )
         try await kit.threads.attachWorkspace(attachedWorkspace.id, to: thread.id)
@@ -387,7 +387,7 @@ struct ManagedDirectTurnExecutionTests {
         llm.mockClient.nextResponse = "prepared reply"
         let preparation = AdmissionPreparationGate()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .inMemory(),
             runtime: .init(customization: RuntimeCustomization(turnContextSource: preparation))
         ))

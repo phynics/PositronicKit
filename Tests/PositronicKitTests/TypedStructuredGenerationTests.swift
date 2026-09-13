@@ -20,7 +20,7 @@ struct TypedStructuredGenerationTests {
             requestOriginStore: InMemoryRequestOriginStore()
         )
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: persistence,
             generationParameters: GenerationParameters(temperature: 0.4, maxTokens: 64)
         ))
@@ -242,7 +242,7 @@ struct TypedStructuredGenerationTests {
         generationParameters: GenerationParameters? = nil
     ) -> PositronicKit {
         PositronicKit(configuration: .init(
-            provider: .init(languageModel: languageModel),
+            languageModel: languageModel,
             persistence: .init(runtimeRepository: InMemoryThreadRuntimeRepository()),
             generationParameters: generationParameters
         ))

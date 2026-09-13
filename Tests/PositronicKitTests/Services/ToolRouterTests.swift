@@ -189,7 +189,7 @@ final class ToolRouterTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known(tool.callName))
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
@@ -296,7 +296,7 @@ final class ToolRouterTests {
             tools: [.known(tool.callName)]
         )
         try await persistence.saveWorkspace(second)
-        try await persistence.addToolToWorkspace(workspaceId: second.id, tool: .known(tool.callName))
+        try await persistence.addToolToWorkspace(workspaceID: second.id, tool: .known(tool.callName))
 
         let catalog = WorkspaceToolCatalog(entries: [
             .init(workspace: first, label: first.uri.description, isPrimary: true, tools: [AnyTool(tool)]),
@@ -488,7 +488,7 @@ final class ToolRouterTests {
         )
         try await persistence.saveWorkspace(workspace)
         try await threadManager.attachWorkspace(workspace.id, to: thread.id)
-        try await persistence.addToolToWorkspace(workspaceId: workspace.id, tool: .known(tool.callName))
+        try await persistence.addToolToWorkspace(workspaceID: workspace.id, tool: .known(tool.callName))
         let toolManager = try #require(await threadManager.getToolManager(for: thread.id))
         await toolManager.updateAvailableTools([AnyTool(tool)])
 
@@ -714,7 +714,7 @@ final class ToolRouterTests {
 
         // The mock persistence doesn't automatically wire tool IDs to workspaces for `findWorkspaceForTool`
         // We simulate `addToolToWorkspace` or just rely on the tool manager falling back to the candidates.
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(toolId))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known(toolId))
 
         let toolRef = ToolReference.known(toolId)
         let arguments: [String: AnyCodable] = ["param": AnyCodable("value")]
@@ -813,7 +813,7 @@ final class ToolRouterTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("never_finishes"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known("never_finishes"))
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
@@ -871,7 +871,7 @@ final class ToolRouterTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("uncooperative"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known("uncooperative"))
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
@@ -1120,7 +1120,7 @@ struct ToolTurnProjectionTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("tool"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known("tool"))
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
@@ -1171,7 +1171,7 @@ struct ToolTurnProjectionTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("tool"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known("tool"))
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
@@ -1222,7 +1222,7 @@ struct ToolTurnProjectionTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("cat"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known("cat"))
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
@@ -1330,7 +1330,7 @@ struct ToolDurabilityOrderingTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known(tool.callName))
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
@@ -1444,7 +1444,7 @@ struct ToolDurabilityOrderingTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("tool"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known("tool"))
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
@@ -1507,7 +1507,7 @@ struct ToolDurabilityOrderingTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("tool"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known("tool"))
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)

@@ -41,7 +41,7 @@ struct CustomPipelineStageInternalStoriesTests {
         persistence: MockPersistenceService
     ) -> PositronicKit {
         PositronicKit(configuration: .init(
-            provider: .init(languageModel: languageModel),
+            languageModel: languageModel,
             persistence: .init(
                 runtimeRepository: persistence,
                 workspacePersistence: persistence,

@@ -46,7 +46,7 @@ for tagged releases beginning with `1.0.0`.
   `StructuredOutputSchema.strict`/`LLMResponseSchema.strict`/`LLMToolDefinition.strict` →
   `isStrict`, `LenientJSONParser.ParseResult.repaired` → `wasRepaired`, and
   `CompressionNodeReport.cacheHit`/`StructuredCompressionNodeMetric.cacheHit` → `didHitCache`
-   (the latter two keep their `"cacheHit"` wire/JSON key via explicit `CodingKeys`).
+  (the latter two keep their `"cacheHit"` wire/JSON key via explicit `CodingKeys`).
 
 - **Single Tool erasure and identity spelling (#160):** `Tool.toAnyTool()` is removed in favor
   of the guidelines-correct `AnyTool(_:origin:)` initializer; re-erasing an `AnyTool` with the
@@ -56,6 +56,24 @@ for tagged releases beginning with `1.0.0`.
   conforming to both `Tool` and `CustomStringConvertible` compiles without a naming workaround
   and `String(describing:)` no longer returns LLM-facing prose. Erasure semantics, `origin`
   propagation, and `ToolSource.resolvedTools()` behavior are unchanged.
+- **Grouped configuration takes the language model directly (#157):** the single-field
+  `PositronicKit.ProviderConfiguration` box is removed, so `PositronicKit.Configuration`
+  now carries `languageModel: any LLMStreamClient` instead of `provider:`. Migrate
+  `Configuration(provider: .init(languageModel: myModel), ...)` to
+  `Configuration(languageModel: myModel, ...)`. `PKContracts.ProviderConfiguration` (the
+  per-provider wire configuration) is unchanged and is now the only public type of that name.
+
+- **Unified identifier casing on `ID` (#159):** `ToolPersistenceProtocol` and
+  `AgentStoreProtocol` now spell identifier suffixes `ID`/`IDs` (`workspaceID`,
+  `workspaceIDs`, `originID`, `agentID`); `findWorkspaceId(forToolId:in:)` is now
+  `findWorkspace(hostingToolNamed:in:)`, `fetchToolSource` takes
+  `named`/`in`/`preferring` with a `toolName`, and `ThreadToolRegistry.toggleTool`
+  takes a `toolName`. The `PKTestSupport` conformers (`MockToolPersistence`,
+  `FailingToolPersistence`, `MockPersistenceService`) and the
+  `WorkspaceReference.fixture(originID:)` helper match, and the `5.1` API baselines
+  are regenerated. There are no compatibility aliases; downstream implementers
+  (Monad `AgentDataRepository`, Yakamoz `SwiftDataAgentStore`) adopt the new
+  spelling and labels with the next major, coordinated with #141.
 
 ### Changed
 

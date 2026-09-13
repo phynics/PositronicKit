@@ -247,7 +247,7 @@ struct RuntimeAssemblyTests {
         try await workspaceStore.saveWorkspace(attachedWorkspace)
         toolPersistence.upsertWorkspace(attachedWorkspace)
         try await toolPersistence.addToolToWorkspace(
-            workspaceId: attachedWorkspace.id,
+            workspaceID: attachedWorkspace.id,
             tool: .known("cat")
         )
         try await kit.threads.attachWorkspace(attachedWorkspace.id, to: thread.id)
@@ -402,7 +402,7 @@ struct RuntimeAssemblyTests {
         customization: RuntimeCustomization = .default
     ) -> PositronicKit {
         PositronicKit(configuration: .init(
-            provider: .init(languageModel: model),
+            languageModel: model,
             persistence: .init(
                 runtimeRepository: runtimeRepository ?? InMemoryThreadRuntimeRepository(),
                 workspacePersistence: workspacePersistence,
@@ -426,7 +426,7 @@ struct RuntimeAssemblyTests {
         customization: RuntimeCustomization = .default
     ) -> PositronicKit {
         PositronicKit(configuration: .init(
-            provider: .init(languageModel: model),
+            languageModel: model,
             persistence: .fullyPersistent(
                 runtimeRepository: runtimeRepository,
                 workspacePersistence: workspacePersistence,

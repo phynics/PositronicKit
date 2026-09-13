@@ -12,6 +12,9 @@ overloads.
 | Turn request and identity | `turnID`, `requestID`, `modelRoundIndex` |
 | Tool calls and progress events | `toolCallID` |
 | Workspace URI factories | `agentID`, `threadID` |
+| Tool persistence and routing | `workspaceID`, `workspaceIDs`, `originID`, `toolName`, `primaryWorkspaceID` |
+| Agent-attached Thread lookup | `agentID` |
+| Thread tool toggling | `toolName` |
 
 Serialized keys follow the same v4 vocabulary (`threadId`, `agentId`, `turnId`, `requestId`, and
 `toolCallId`). No decoder accepts a retired key, and no public compatibility shim forwards from a

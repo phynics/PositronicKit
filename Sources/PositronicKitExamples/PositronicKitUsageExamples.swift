@@ -63,7 +63,7 @@ public enum PositronicKitUsageExamples {
 
     public static func makeInspectableRuntime(sink: any TurnOutcomeSink) -> PositronicKit {
         PositronicKit(configuration: .init(
-            provider: .init(languageModel: UnconfiguredLLMService()),
+            languageModel: UnconfiguredLLMService(),
             persistence: .inMemory(),
             runtime: .init(customization: .init(turnOutcomeSink: sink))
         ))
@@ -89,7 +89,7 @@ public enum PositronicKitUsageExamples {
         )
 
         return PositronicKit(configuration: .init(
-            provider: .init(languageModel: UnconfiguredLLMService()),
+            languageModel: UnconfiguredLLMService(),
             persistence: .inMemory(),
             runtime: runtime
         ))
@@ -126,7 +126,7 @@ public enum PositronicKitUsageExamples {
         )
 
         return PositronicKit(configuration: .init(
-            provider: .init(languageModel: UnconfiguredLLMService()),
+            languageModel: UnconfiguredLLMService(),
             persistence: .init(
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),

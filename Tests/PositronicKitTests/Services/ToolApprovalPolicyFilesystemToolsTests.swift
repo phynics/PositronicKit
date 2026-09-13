@@ -83,7 +83,7 @@ final class ToolApprovalPolicyFilesystemToolsTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known(tool.callName))
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)

@@ -116,10 +116,13 @@ struct LanguageModelCompositionTests {
         #expect(response.content == "injected")
     }
 
-    @Test("provider configuration exposes the injected stream client")
-    func providerConfigurationExposesStreamClient() {
+    @Test("grouped configuration exposes the injected stream client")
+    func groupedConfigurationExposesStreamClient() {
         let languageModel = MockLLMService()
-        let configuration = PositronicKit.ProviderConfiguration(languageModel: languageModel)
+        let configuration = PositronicKit.Configuration(
+            languageModel: languageModel,
+            persistence: .inMemory()
+        )
 
         #expect(configuration.languageModel is MockLLMService)
     }

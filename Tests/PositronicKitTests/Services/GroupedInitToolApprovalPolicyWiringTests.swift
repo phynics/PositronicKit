@@ -73,7 +73,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             requestOriginStore: mockPersistence
         )
         let chat = PositronicKit(configuration: .init(
-            provider: .init(languageModel: UnconfiguredLLMService()),
+            languageModel: UnconfiguredLLMService(),
             persistence: persistence,
             runtime: .init(
                 workspaceProfile: .hostManaged(root: workspace.root),
@@ -103,7 +103,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             requestOriginStore: mockPersistence
         )
         let chat = PositronicKit(configuration: .init(
-            provider: .init(languageModel: UnconfiguredLLMService()),
+            languageModel: UnconfiguredLLMService(),
             persistence: persistence,
             runtime: .init(workspaceProfile: .hostManaged(root: workspace.root), toolApprovalPolicy: gate)
         ))
@@ -128,7 +128,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await chat.threadManager.attachWorkspace(workspaceId, to: thread.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known(tool.callName))
 
         let toolManager = try #require(await chat.threadManager.getToolManager(for: thread.id))
         await toolManager.updateAvailableTools([AnyTool(tool)])
