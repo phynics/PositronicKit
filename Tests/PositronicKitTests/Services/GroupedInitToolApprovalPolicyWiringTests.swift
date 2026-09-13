@@ -22,7 +22,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
     final class PermissionedTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
-        let description = "A permissioned mock tool"
+        let toolDescription = "A permissioned mock tool"
         let requiresPermission = true
         private(set) var didExecute = false
         let parametersSchema = makeEmptyObjectSchema()
@@ -131,7 +131,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
         try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known(tool.callName))
 
         let toolManager = try #require(await chat.threadManager.getToolManager(for: thread.id))
-        await toolManager.updateAvailableTools([tool.toAnyTool()])
+        await toolManager.updateAvailableTools([AnyTool(tool)])
         return thread.id
     }
 
@@ -147,7 +147,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
                 tool: .known(tool.callName),
                 arguments: [:],
                 threadID: threadID,
-                availableTools: [tool.toAnyTool()]
+                availableTools: [AnyTool(tool)]
             )
             Issue.record("Expected permissionDenied to be thrown")
         } catch ToolError.permissionDenied(tool.name) {
@@ -169,7 +169,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             tool: .known(tool.callName),
             arguments: [:],
             threadID: threadID,
-            availableTools: [tool.toAnyTool()]
+            availableTools: [AnyTool(tool)]
         )
 
         guard case let .completed(output) = result else {
@@ -193,7 +193,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
                 tool: .known(tool.callName),
                 arguments: [:],
                 threadID: threadID,
-                availableTools: [tool.toAnyTool()]
+                availableTools: [AnyTool(tool)]
             )
             Issue.record("Expected permissionDenied to be thrown")
         } catch ToolError.permissionDenied(tool.name) {
@@ -215,7 +215,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             tool: .known(tool.callName),
             arguments: [:],
             threadID: threadID,
-            availableTools: [tool.toAnyTool()]
+            availableTools: [AnyTool(tool)]
         )
 
         guard case let .completed(output) = result else {

@@ -7,7 +7,7 @@ import JSONSchemaBuilder
 package struct ChangeDirectoryTool: Tool, Sendable {
     package let callName = "change_directory"
     package let name = "Change Directory"
-    package let description = "Change the current working directory for relative file operations."
+    package let toolDescription = "Change the current working directory for relative file operations."
     package let requiresPermission = false
 
     package var usageExample: String? {

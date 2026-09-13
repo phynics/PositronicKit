@@ -60,7 +60,7 @@ public struct TurnOptions: Sendable {
         audioOutput: AudioOutputOptions? = nil
     ) {
         self.requestID = requestID
-        self.tools = tools.map { $0.toAnyTool() }
+        self.tools = tools.map { AnyTool($0) }
         self.toolOutputs = toolOutputs
         self.maxModelRounds = maxModelRounds
         self.generationParameters = generationParameters

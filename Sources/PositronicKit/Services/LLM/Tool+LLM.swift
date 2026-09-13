@@ -9,7 +9,7 @@ public extension PKContracts.Tool {
         // so it flows through directly with no encode/decode round-trip.
         LLMToolDefinition(
             name: callName,
-            description: description,
+            description: toolDescription,
             parameters: parametersSchema
         )
     }

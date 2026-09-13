@@ -12,6 +12,10 @@ public enum ToolOrigin: Sendable, Equatable, Hashable, Codable {
     /// A tool with an arbitrary caller-supplied origin label.
     case named(String)
 
+    /// Short label identifying the tool's origin in LLM prompts, or `nil` for global tools.
+    ///
+    /// Workspace and terminal tools render as `"Workspace: <name>"` and `"Terminal: <name>"`;
+    /// named tools render their custom label. Used by ``Tool/promptString(origin:)``.
     public var promptLabel: String? {
         switch self {
         case .global:
@@ -25,17 +29,32 @@ public enum ToolOrigin: Sendable, Equatable, Hashable, Codable {
         }
     }
 
+    /// Human-readable name of the tool's origin for display surfaces.
+    ///
+    /// Falls back to `"System"` for global tools, which carry no prompt label.
     public var displayName: String {
         promptLabel ?? "System"
     }
 }
 
+/// A provider of tools that stamps them with a shared origin on resolution.
+///
+/// Conform to `ToolSource` to contribute tools from a workspace, terminal session, or
+/// other scoped context. ``resolvedTools()`` assigns ``toolOrigin`` to tools that were
+/// erased without an explicit origin, and preserves the origin of tools that already
+/// carry one.
 public protocol ToolSource: Sendable {
+    /// The origin stamped onto contributed tools that were erased with the default global origin.
     var toolOrigin: ToolOrigin { get }
+    /// The contributed tools, typically erased with `AnyTool(...)` using the default global origin.
     func tools() async -> [AnyTool]
 }
 
 public extension ToolSource {
+    /// Resolves the contributed tools, stamping ``toolOrigin`` onto globally-erased tools.
+    ///
+    /// Tools that already carry a non-global origin keep it, so an explicit per-tool
+    /// origin always wins over the provider-level origin.
     func resolvedTools() async -> [AnyTool] {
         await tools().map { tool in
             tool.origin == .global ? tool.withOrigin(toolOrigin) : tool
@@ -88,7 +107,11 @@ public protocol Tool: Sendable, PromptFormattable {
     var name: String { get }
 
     /// Clear, concise description of what the tool does and when the LLM should use it.
-    var description: String { get }
+    ///
+    /// This is the LLM-facing purpose text sent to providers and rendered in prompts.
+    /// It deliberately avoids the name `description` so conforming types remain free
+    /// to conform to `CustomStringConvertible` for debugging and logging.
+    var toolDescription: String { get }
 
     /// Whether the tool requires explicit user permission before execution.
     /// If true, the system will prompt the user to approve the tool call.
@@ -156,14 +179,12 @@ public protocol Tool: Sendable, PromptFormattable {
     ///   - result: The result of execution.
     /// - Returns: A compact summary string, e.g. "[read_file(path=...)] → 45 lines".
     func summarize(parameters: [String: AnyCodable], result: ToolResult) -> String
-
-    /// Type-erases the tool to ``AnyTool``.
-    func toAnyTool() -> AnyTool
 }
 
 // MARK: - Default Implementation
 
 public extension Tool {
+    /// Default: preserves the static ``requiresPermission`` policy for every invocation.
     func requiresPermission(for parameters: [String: AnyCodable]) -> Bool {
         _ = parameters
         return requiresPermission
@@ -211,11 +232,6 @@ public extension Tool {
 
         return "[\(callName)(\(paramSummary))] → \(resultSummary)"
     }
-
-    /// Wraps the current tool in an ``AnyTool`` container.
-    func toAnyTool() -> AnyTool {
-        AnyTool(self)
-    }
 }
 
 public extension Tool {
@@ -227,7 +243,7 @@ public extension Tool {
     /// Formatted content for inclusion in LLM prompt with optional origin (e.g. workspace name).
     func promptString(origin: ToolOrigin) -> String {
         let label = origin.promptLabel.map { " [\($0)]" } ?? ""
-        return "- `\(callName)`\(label): \(description)"
+        return "- `\(callName)`\(label): \(toolDescription)"
     }
 }
 
@@ -284,7 +300,17 @@ public struct AnyTool: Tool, Sendable {
     /// Immutable tool identity captured at erasure time.
     public let identity: ToolReference
 
+    /// Erases a tool, capturing its ``identity`` and the given origin.
+    ///
+    /// Re-erasing an already-erased tool with the default global origin is a no-op:
+    /// the existing value (including its origin and captured identity) is preserved.
+    /// Pass an explicit origin to re-stamp it — `withOrigin(_:)` does the same on
+    /// an existing value without re-wrapping.
     public init(_ tool: any Tool, origin: ToolOrigin = .global) {
+        if let erased = tool as? AnyTool, origin == .global {
+            self = erased
+            return
+        }
         wrapped = tool
         self.origin = origin
         identity = tool.identity
@@ -295,12 +321,6 @@ public struct AnyTool: Tool, Sendable {
         AnyTool(wrapped, origin: newOrigin)
     }
 
-    /// Overrides the protocol default (which would rewrap in a fresh `AnyTool` and reset
-    /// `origin` to `.global`) so re-erasing an already-erased tool is a no-op.
-    public func toAnyTool() -> AnyTool {
-        self
-    }
-
     public var callName: String {
         wrapped.callName
     }
@@ -309,8 +329,8 @@ public struct AnyTool: Tool, Sendable {
         wrapped.name
     }
 
-    public var description: String {
-        wrapped.description
+    public var toolDescription: String {
+        wrapped.toolDescription
     }
 
     public var requiresPermission: Bool {
@@ -343,10 +363,5 @@ public struct AnyTool: Tool, Sendable {
 
     public func summarize(parameters: [String: AnyCodable], result: ToolResult) -> String {
         wrapped.summarize(parameters: parameters, result: result)
-    }
-
-    /// Returns the ``ToolReference`` captured at erasure time.
-    public var toolReference: ToolReference {
-        identity
     }
 }

@@ -23,7 +23,7 @@ import PKUtilities
         }
 
         var description: String {
-            wrapped.description
+            wrapped.toolDescription
         }
 
         var parameters: GenerationSchema {
@@ -76,7 +76,7 @@ import PKUtilities
 
             let root = DynamicGenerationSchema(
                 name: "\(tool.callName)_arguments",
-                description: tool.description,
+                description: tool.toolDescription,
                 properties: dynamicProperties
             )
             guard let schema = try? GenerationSchema(root: root, dependencies: []) else {

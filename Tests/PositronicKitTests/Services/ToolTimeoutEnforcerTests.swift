@@ -75,7 +75,7 @@ struct ToolTimeoutEnforcerTests {
     private struct EchoTool: PKContracts.Tool {
         let callName = "echo"
         let name = "echo"
-        let description = "echo back the input"
+        let toolDescription = "echo back the input"
         let requiresPermission = false
         let sideEffects: ToolSideEffects = .none
         let output: String
@@ -97,7 +97,7 @@ struct ToolTimeoutEnforcerTests {
     private struct NeverFinishingTool: PKContracts.Tool {
         let callName = "never"
         let name = "never"
-        let description = "never returns unless cancelled"
+        let toolDescription = "never returns unless cancelled"
         let requiresPermission = false
         let sideEffects: ToolSideEffects = .none
         let parametersSchema = makeEmptyObjectSchema()
@@ -115,7 +115,7 @@ struct ToolTimeoutEnforcerTests {
     private struct ControlledUncooperativeTool: PKContracts.Tool, Sendable {
         let callName = "controlled_uncooperative"
         let name = "controlled_uncooperative"
-        let description = "suspends asynchronously and ignores cancellation"
+        let toolDescription = "suspends asynchronously and ignores cancellation"
         let requiresPermission = false
         let sideEffects: ToolSideEffects
         let started: AsyncLatch
@@ -139,7 +139,7 @@ struct ToolTimeoutEnforcerTests {
     private struct MutatingNeverFinishingTool: PKContracts.Tool {
         let callName = "mutating_never"
         let name = "mutating_never"
-        let description = "mutates state and never returns unless cancelled"
+        let toolDescription = "mutates state and never returns unless cancelled"
         let requiresPermission = false
         let sideEffects: ToolSideEffects = .mutating
         let parametersSchema = makeEmptyObjectSchema()
@@ -160,7 +160,7 @@ struct ToolTimeoutEnforcerTests {
     private struct ExternalProcessNeverFinishingTool: PKContracts.Tool {
         let callName = "external_never"
         let name = "external_never"
-        let description = "drives an external process and never returns unless cancelled"
+        let toolDescription = "drives an external process and never returns unless cancelled"
         let requiresPermission = false
         let sideEffects: ToolSideEffects = .externalProcess
         let parametersSchema = makeEmptyObjectSchema()
@@ -192,7 +192,7 @@ struct ToolTimeoutEnforcerTests {
         struct FailingTool: PKContracts.Tool {
             let callName = "fail"
             let name = "fail"
-            let description = "always fails"
+            let toolDescription = "always fails"
             let requiresPermission = false
             let parametersSchema = makeEmptyObjectSchema()
 
@@ -401,7 +401,7 @@ struct ToolTimeoutEnforcerTests {
         struct UndeclaredNeverFinishingTool: PKContracts.Tool {
             let callName = "undeclared_never"
             let name = "undeclared_never"
-            let description = "never returns; does not declare sideEffects"
+            let toolDescription = "never returns; does not declare sideEffects"
             let requiresPermission = false
             let parametersSchema = makeEmptyObjectSchema()
 

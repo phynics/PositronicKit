@@ -14,7 +14,7 @@ import Testing
     private struct FixtureWeatherTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "lookup_weather"
         let name = "Lookup Weather"
-        let description = "Look up the current weather for a city"
+        let toolDescription = "Look up the current weather for a city"
         let requiresPermission = false
         var usageExample: String? {
             nil
@@ -45,7 +45,7 @@ import Testing
     private struct FixtureFailingTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "always_fails"
         let name = "Always Fails"
-        let description = "A tool that always fails"
+        let toolDescription = "A tool that always fails"
         let requiresPermission = false
         var usageExample: String? {
             nil
@@ -70,7 +70,7 @@ import Testing
         @Test("Bridged tool exposes the wrapped tool's id and description")
         func bridgedToolExposesIdentity() {
             guard #available(macOS 26.0, *) else { return }
-            let bridged = PKBridgedFMTool(wrapped: FixtureWeatherTool().toAnyTool())
+            let bridged = PKBridgedFMTool(wrapped: AnyTool(FixtureWeatherTool()))
             #expect(bridged.name == "lookup_weather")
             #expect(bridged.description == "Look up the current weather for a city")
         }
@@ -78,7 +78,7 @@ import Testing
         @Test("Bridged tool's parameters schema builds without throwing")
         func bridgedToolBuildsSchema() {
             guard #available(macOS 26.0, *) else { return }
-            let bridged = PKBridgedFMTool(wrapped: FixtureWeatherTool().toAnyTool())
+            let bridged = PKBridgedFMTool(wrapped: AnyTool(FixtureWeatherTool()))
             // Accessing `.parameters` exercises `GenerationSchema(root:dependencies:)`; a bad
             // bridge would either throw (caught, falls back to empty-object) or crash. Reaching
             // this line with a schema in hand confirms it did not crash.
@@ -88,7 +88,7 @@ import Testing
         @Test("call(arguments:) decodes typed properties and executes the wrapped tool")
         func callDecodesArgumentsAndExecutes() async throws {
             guard #available(macOS 26.0, *) else { return }
-            let bridged = PKBridgedFMTool(wrapped: FixtureWeatherTool().toAnyTool())
+            let bridged = PKBridgedFMTool(wrapped: AnyTool(FixtureWeatherTool()))
             let arguments = GeneratedContent(
                 properties: ["city": "Berlin", "days": 3]
             )
@@ -100,7 +100,7 @@ import Testing
         @Test("call(arguments:) with only the required property omits the optional one")
         func callDecodesOnlyProvidedProperties() async throws {
             guard #available(macOS 26.0, *) else { return }
-            let bridged = PKBridgedFMTool(wrapped: FixtureWeatherTool().toAnyTool())
+            let bridged = PKBridgedFMTool(wrapped: AnyTool(FixtureWeatherTool()))
             let arguments = GeneratedContent(properties: ["city": "Paris"])
 
             let output = try await bridged.call(arguments: arguments)
@@ -110,7 +110,7 @@ import Testing
         @Test("A failing tool's error is returned as text, not thrown (model can see and adjust)")
         func failingToolReturnsErrorAsText() async throws {
             guard #available(macOS 26.0, *) else { return }
-            let bridged = PKBridgedFMTool(wrapped: FixtureFailingTool().toAnyTool())
+            let bridged = PKBridgedFMTool(wrapped: AnyTool(FixtureFailingTool()))
             let arguments = GeneratedContent(properties: [:] as KeyValuePairs<String, any ConvertibleToGeneratedContent>)
 
             let output = try await bridged.call(arguments: arguments)

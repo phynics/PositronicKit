@@ -74,7 +74,7 @@ struct WorkspaceToolDispatchIntegrationTests {
         let turnID: UUID?
 
         var name: String { callName }
-        let description = "A workspace dispatch test tool"
+        let toolDescription = "A workspace dispatch test tool"
         let requiresPermission = false
         let parametersSchema = makeEmptyObjectSchema()
 
@@ -158,7 +158,7 @@ struct WorkspaceToolDispatchIntegrationTests {
                 tool: resolvedTool
             )
         }
-        await toolManager.updateAvailableTools([resolvedTool.toAnyTool()])
+        await toolManager.updateAvailableTools([AnyTool(resolvedTool)])
         if let resolvedWorkspace = try await manager.workspaceResolver.workspace(id: workspace.id) {
             await toolManager.registerWorkspace(resolvedWorkspace)
         }
@@ -194,7 +194,7 @@ struct WorkspaceToolDispatchIntegrationTests {
                 workspace: workspace,
                 label: workspace.uri.description,
                 isPrimary: isPrimary,
-                tools: [tool.toAnyTool()]
+                tools: [AnyTool(tool)]
             ),
         ])
     }
@@ -347,8 +347,8 @@ struct WorkspaceToolDispatchIntegrationTests {
         try await environment.manager.attachWorkspace(secondWorkspace.id, to: environment.threadID)
         let turnID = try await admit(environment, fingerprint: "local-provenance")
         let dispatchCatalog = WorkspaceToolCatalog(entries: [
-            .init(workspace: environment.workspace, label: "runtime", isPrimary: false, tools: [environment.tool.toAnyTool()]),
-            .init(workspace: secondWorkspace, label: "runtimeThread", isPrimary: false, tools: [environment.tool.toAnyTool()]),
+            .init(workspace: environment.workspace, label: "runtime", isPrimary: false, tools: [AnyTool(environment.tool)]),
+            .init(workspace: secondWorkspace, label: "runtimeThread", isPrimary: false, tools: [AnyTool(environment.tool)]),
         ])
         let calls = [
             ParsedToolCall(

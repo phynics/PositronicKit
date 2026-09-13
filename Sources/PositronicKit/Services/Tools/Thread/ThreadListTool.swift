@@ -8,7 +8,7 @@ import PKUtilities
 public struct ThreadListTool: PKContracts.Tool, Sendable {
     public let callName = "thread_list"
     public let name = "Thread List"
-    public let description =
+    public let toolDescription =
         "List all non-private thread threads. " +
         "Use this to discover threads you can peek at or send messages to."
     public let requiresPermission = false

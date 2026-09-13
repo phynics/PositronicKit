@@ -7,7 +7,7 @@ import JSONSchemaBuilder
 package struct ReadFileTool: Tool, Sendable {
     package let callName = "cat"
     package let name = "Read File"
-    package let description = "Read the content of a file"
+    package let toolDescription = "Read the content of a file"
     package let requiresPermission = true
 
     package var usageExample: String? {

@@ -7,7 +7,7 @@ import JSONSchemaBuilder
 package struct ListDirectoryTool: Tool, Sendable {
     package let callName = "ls"
     package let name = "List Directory"
-    package let description = "List files and directories at a specific path"
+    package let toolDescription = "List files and directories at a specific path"
     package let requiresPermission = true
 
     package var usageExample: String? {

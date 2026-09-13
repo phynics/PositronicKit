@@ -372,7 +372,7 @@ struct ToolParameterSchemaExtensionTests {
 private struct EchoTool: Tool, Sendable {
     let callName = "echo"
     let name = "Echo"
-    let description = "Echoes input"
+    let toolDescription = "Echoes input"
     let requiresPermission = true
     var parametersSchema: Schema { ToolParameterSchema.object {}.schemaDefinition }
     func canExecute() async -> Bool { true }

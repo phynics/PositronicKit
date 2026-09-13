@@ -13,7 +13,7 @@ final class TurnEngineStageTests {
     struct StubTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "stub_tool"
         let name = "stub_tool"
-        let description = "Stub for testing"
+        let toolDescription = "Stub for testing"
         let requiresPermission = false
         let parametersSchema = makeEmptyObjectSchema()
         func canExecute() async -> Bool {
@@ -27,7 +27,7 @@ final class TurnEngineStageTests {
 
     @Test("Raw-text tool calls do not produce accumulators even when tools are available")
     func toolExecutionStage_TextFallback() async throws {
-        let context = createTestContext(availableTools: [StubTool().toAnyTool()])
+        let context = createTestContext(availableTools: [AnyTool(StubTool())])
         let toolCallText = #"<tool_call>{"name": "stub_tool", "arguments": {"foo": "bar"}}</tool_call>"#
         await context.outputs.appendResponse(toolCallText)
 

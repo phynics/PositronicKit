@@ -64,7 +64,7 @@ struct PublicRuntimeStoriesTests {
         mockLLM.mockClient.nextResponses = ["", "Agent response"]
         let turn = try await thread.startTurn(
             "Act",
-            options: TurnOptions(tools: [mockTool.toAnyTool()])
+            options: TurnOptions(tools: [AnyTool(mockTool)])
         )
         let events = await turn.events().collect()
 
@@ -288,7 +288,7 @@ struct PublicRuntimeStoriesTests {
 
         let turn = try await chat.threads.open(threadID).startTurn(
             "Run the tool",
-            options: TurnOptions(tools: [mockTool.toAnyTool()])
+            options: TurnOptions(tools: [AnyTool(mockTool)])
         )
         let events = await turn.events().collect()
 
@@ -447,7 +447,7 @@ struct PublicRuntimeStoriesTests {
 private struct AcceptanceMockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "mock_tool"
     let name = "mock_tool"
-    let description = "Facade acceptance test tool"
+    let toolDescription = "Facade acceptance test tool"
     let requiresPermission = false
     let parametersSchema = makeEmptyObjectSchema()
 

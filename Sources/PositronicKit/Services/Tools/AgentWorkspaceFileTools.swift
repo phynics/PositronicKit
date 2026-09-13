@@ -49,7 +49,7 @@ struct AgentWorkspaceFileTool: Tool, Sendable {
 
     var callName: String { operation.rawValue }
     var name: String { operation.displayName }
-    var description: String {
+    var toolDescription: String {
         switch operation {
         case .readFile: "Read a UTF-8 file using a path relative to the Agent workspace root."
         case .listFiles: "List files below a path relative to the Agent workspace root."

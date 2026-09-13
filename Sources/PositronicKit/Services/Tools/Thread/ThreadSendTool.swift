@@ -12,7 +12,7 @@ import PKUtilities
 public struct ThreadSendTool: PKContracts.Tool, Sendable {
     public let callName = "thread_send"
     public let name = "Thread Send"
-    public let description =
+    public let toolDescription =
         "Post a message to another thread thread without attaching to it. " +
         "The message is queued and will be visible to the next agent that processes that thread."
     public let requiresPermission = true

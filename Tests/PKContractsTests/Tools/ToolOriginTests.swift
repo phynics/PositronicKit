@@ -7,7 +7,7 @@ struct ToolOriginTests {
     struct LabelTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "label_tool"
         let name = "Label Tool"
-        let description = "A tool for testing origin labels"
+        let toolDescription = "A tool for testing origin labels"
         let requiresPermission = false
         var parametersSchema: Schema { ToolParameterSchema.object {}.schemaDefinition }
 

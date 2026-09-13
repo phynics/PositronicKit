@@ -10,7 +10,7 @@ public struct WorkspaceToolWrapper: Tool, Sendable {
 
     public var callName: String { definition.id }
     public var name: String { definition.name }
-    public var description: String { definition.description }
+    public var toolDescription: String { definition.description }
     public var requiresPermission: Bool { definition.requiresPermission }
     public var usageExample: String? { definition.usageExample }
 

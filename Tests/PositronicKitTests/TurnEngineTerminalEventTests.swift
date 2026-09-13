@@ -75,7 +75,7 @@ struct TurnEngineTerminalEventTests {
 
         if let toolManager = await threadManager.getToolManager(for: threadID) {
             var tools = await toolManager.getAvailableTools()
-            tools.append(MockTool().toAnyTool())
+            tools.append(AnyTool(MockTool()))
             await toolManager.updateAvailableTools(tools)
 
             if let ws = try? await threadManager.workspaceResolver.workspace(id: wsId) {
@@ -142,7 +142,7 @@ struct TurnEngineTerminalEventTests {
 
         if let toolManager = await threadManager.getToolManager(for: threadID) {
             var tools = await toolManager.getAvailableTools()
-            tools.append(MockTool().toAnyTool())
+            tools.append(AnyTool(MockTool()))
             await toolManager.updateAvailableTools(tools)
 
             if let ws = try? await threadManager.workspaceResolver.workspace(id: wsId) {
@@ -178,7 +178,7 @@ struct TurnEngineTerminalEventTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Infinite tools",
-                    tools: [mockTool.toAnyTool()],
+                    tools: [AnyTool(mockTool)],
                     maxModelRounds: 2
                 )
             ))
@@ -373,7 +373,7 @@ struct TurnEngineTerminalEventTests {
 private struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "mock_tool"
     let name = "mock_tool"
-    let description = "A mock tool for testing"
+    let toolDescription = "A mock tool for testing"
     let requiresPermission = false
     let parametersSchema = makeEmptyObjectSchema()
 

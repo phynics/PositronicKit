@@ -64,7 +64,7 @@ import Testing
 
         let turn = try await chat.threads.open(threadID).startTurn(
             "Run the custom tool",
-            options: TurnOptions(tools: [tool.toAnyTool()])
+            options: TurnOptions(tools: [AnyTool(tool)])
         )
         let events = await turn.events().collect()
 
@@ -168,7 +168,7 @@ private final class AcceptanceWorkspaceCreator: WorkspaceFactory, Sendable {
 private struct AcceptanceRuntimeTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "acceptance_tool"
     let name = "acceptance_tool"
-    let description = "Custom runtime tool for extension-point acceptance testing"
+    let toolDescription = "Custom runtime tool for extension-point acceptance testing"
     let requiresPermission = false
     let parametersSchema = makeEmptyObjectSchema()
 

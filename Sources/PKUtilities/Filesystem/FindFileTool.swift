@@ -7,7 +7,7 @@ import JSONSchemaBuilder
 package struct FindFileTool: Tool, Sendable {
     package let callName = "find"
     package let name = "Find File"
-    package let description = "Find files matching a pattern in a directory recursively"
+    package let toolDescription = "Find files matching a pattern in a directory recursively"
     package let requiresPermission = true
 
     package var usageExample: String? {

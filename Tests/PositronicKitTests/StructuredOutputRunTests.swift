@@ -9,7 +9,7 @@ import Testing
 private struct StructuredOutputRunTestsTool: Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "structured_output_run_tests_tool"
     let name = "Structured Output Run Tests Tool"
-    let description = "Test tool used to verify TurnRequest forwards resolved tools."
+    let toolDescription = "Test tool used to verify TurnRequest forwards resolved tools."
     let requiresPermission = false
     let parametersSchema = makeEmptyObjectSchema()
 
@@ -41,7 +41,7 @@ struct StructuredOutputRunTests {
         let request = TurnRequest(
             threadID: thread.id,
             message: "Extract tags",
-            tools: [StructuredOutputRunTestsTool().toAnyTool()],
+            tools: [AnyTool(StructuredOutputRunTestsTool())],
             systemInstructions: "Follow the structured-output instructions exactly.",
             generationParameters: GenerationParameters(temperature: 0.2, maxTokens: 128),
             structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())

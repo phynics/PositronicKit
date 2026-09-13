@@ -87,7 +87,7 @@ final class ToolApprovalPolicyFilesystemToolsTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        await toolManager?.updateAvailableTools([tool.toAnyTool()])
+        await toolManager?.updateAvailableTools([AnyTool(tool)])
 
         return (toolRouter, session.id)
     }
@@ -124,7 +124,7 @@ final class ToolApprovalPolicyFilesystemToolsTests {
                 tool: .known(tool.callName),
                 arguments: [:],
                 threadID: threadID,
-                availableTools: [tool.toAnyTool()]
+                availableTools: [AnyTool(tool)]
             )
             Issue.record("Expected permissionDenied to be thrown for \(tool.callName)")
         } catch ToolError.permissionDenied(tool.name) {
@@ -153,7 +153,7 @@ final class ToolApprovalPolicyFilesystemToolsTests {
             tool: .known(tool.callName),
             arguments: ["path": AnyCodable("hello.txt")],
             threadID: threadID,
-            availableTools: [tool.toAnyTool()]
+            availableTools: [AnyTool(tool)]
         )
 
         guard case let .completed(output) = result else {
@@ -177,7 +177,7 @@ final class ToolApprovalPolicyFilesystemToolsTests {
                 tool: .known(tool.callName),
                 arguments: ["path": AnyCodable(NSTemporaryDirectory())],
                 threadID: threadID,
-                availableTools: [tool.toAnyTool()]
+                availableTools: [AnyTool(tool)]
             )
         } catch ToolError.permissionDenied {
             Issue.record("ChangeDirectoryTool must never be blocked by the approval gate")
@@ -199,7 +199,7 @@ final class ToolApprovalPolicyFilesystemToolsTests {
                 tool: .known(tool.callName),
                 arguments: [:],
                 threadID: threadID,
-                availableTools: [tool.toAnyTool()]
+                availableTools: [AnyTool(tool)]
             )
             Issue.record("Expected permissionDenied to be thrown under the default gate")
         } catch ToolError.permissionDenied(tool.name) {

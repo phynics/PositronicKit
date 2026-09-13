@@ -56,7 +56,7 @@ struct WorkspaceToolWrapperCoverageTests {
 
         #expect(wrapper.callName == "custom_tool")
         #expect(wrapper.name == "Custom Tool")
-        #expect(wrapper.description == "A custom tool")
+        #expect(wrapper.toolDescription == "A custom tool")
         #expect(wrapper.requiresPermission == false)
         #expect(wrapper.usageExample == "custom_tool --foo bar")
     }

@@ -107,7 +107,7 @@ final class ToolRouterTests {
     struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
-        let description = "A mock tool for testing"
+        let toolDescription = "A mock tool for testing"
         let requiresPermission = false
         let parametersSchema = makeEmptyObjectSchema()
 
@@ -130,7 +130,7 @@ final class ToolRouterTests {
     final class PermissionedTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
-        let description = "A permissioned mock tool"
+        let toolDescription = "A permissioned mock tool"
         let requiresPermission = true
         private(set) var didExecute = false
         let parametersSchema = makeEmptyObjectSchema()
@@ -193,7 +193,7 @@ final class ToolRouterTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        await toolManager?.updateAvailableTools([tool.toAnyTool()])
+        await toolManager?.updateAvailableTools([AnyTool(tool)])
 
         for toolID in disabledToolIDs {
             _ = await threadManager.disableTool(id: toolID, for: session.id)
@@ -213,7 +213,7 @@ final class ToolRouterTests {
                 tool: .known("needs_permission"),
                 arguments: [:],
                 threadID: threadID,
-                availableTools: [tool.toAnyTool()]
+                availableTools: [AnyTool(tool)]
             )
             Issue.record("Expected permissionDenied to be thrown")
         } catch ToolError.permissionDenied("needs_permission") {
@@ -236,7 +236,7 @@ final class ToolRouterTests {
             tool: .known("needs_permission"),
             arguments: [:],
             threadID: threadID,
-            availableTools: [tool.toAnyTool()]
+            availableTools: [AnyTool(tool)]
         )
 
         guard case let .completed(output) = result else {
@@ -262,7 +262,7 @@ final class ToolRouterTests {
             try await router.handlePendingToolCalls(
                 threadId: threadID,
                 calls: [call],
-                availableTools: [tool.toAnyTool()],
+                availableTools: [AnyTool(tool)],
                 continuation: continuation
             )
         }
@@ -299,8 +299,8 @@ final class ToolRouterTests {
         try await persistence.addToolToWorkspace(workspaceID: second.id, tool: .known(tool.callName))
 
         let catalog = WorkspaceToolCatalog(entries: [
-            .init(workspace: first, label: first.uri.description, isPrimary: true, tools: [tool.toAnyTool()]),
-            .init(workspace: second, label: second.uri.description, isPrimary: false, tools: [tool.toAnyTool()]),
+            .init(workspace: first, label: first.uri.description, isPrimary: true, tools: [AnyTool(tool)]),
+            .init(workspace: second, label: second.uri.description, isPrimary: false, tools: [AnyTool(tool)]),
         ])
         // Ambiguity must not execute either candidate or require a live binding.
         let ambiguousCall = ParsedToolCall(
@@ -350,7 +350,7 @@ final class ToolRouterTests {
         let turnID = admission.turn.identity.turnID
         let workspace = try #require(persistence.workspaces.first)
         let catalog = WorkspaceToolCatalog(entries: [
-            .init(workspace: workspace, label: workspace.uri.description, isPrimary: true, tools: [tool.toAnyTool()]),
+            .init(workspace: workspace, label: workspace.uri.description, isPrimary: true, tools: [AnyTool(tool)]),
         ])
         let call = ParsedToolCall(
             callId: "call-success",
@@ -398,7 +398,7 @@ final class ToolRouterTests {
         )
         let workspace = try #require(persistence.workspaces.first)
         let catalog = WorkspaceToolCatalog(entries: [
-            .init(workspace: workspace, label: workspace.uri.description, isPrimary: true, tools: [tool.toAnyTool()]),
+            .init(workspace: workspace, label: workspace.uri.description, isPrimary: true, tools: [AnyTool(tool)]),
         ])
         let call = ParsedToolCall(
             callId: "call-primary-history-boundary",
@@ -441,7 +441,7 @@ final class ToolRouterTests {
         let turnID = admission.turn.identity.turnID
         let workspace = try #require(persistence.workspaces.first)
         let catalog = WorkspaceToolCatalog(entries: [
-            .init(workspace: workspace, label: workspace.uri.description, isPrimary: true, tools: [tool.toAnyTool()]),
+            .init(workspace: workspace, label: workspace.uri.description, isPrimary: true, tools: [AnyTool(tool)]),
         ])
         let call = ParsedToolCall(
             callId: "call-failure",
@@ -490,7 +490,7 @@ final class ToolRouterTests {
         try await threadManager.attachWorkspace(workspace.id, to: thread.id)
         try await persistence.addToolToWorkspace(workspaceID: workspace.id, tool: .known(tool.callName))
         let toolManager = try #require(await threadManager.getToolManager(for: thread.id))
-        await toolManager.updateAvailableTools([tool.toAnyTool()])
+        await toolManager.updateAvailableTools([AnyTool(tool)])
 
         try await runtimeRepository.saveThread(thread)
         let admission = try await runtimeRepository.admitTurn(
@@ -503,7 +503,7 @@ final class ToolRouterTests {
                 workspace: workspace,
                 label: workspace.uri.description,
                 isPrimary: false,
-                tools: [tool.toAnyTool()]
+                tools: [AnyTool(tool)]
             ),
         ])
 
@@ -549,7 +549,7 @@ final class ToolRouterTests {
             let result = try await router.handlePendingToolCalls(
                 threadId: threadID,
                 calls: [call],
-                availableTools: [tool.toAnyTool()],
+                availableTools: [AnyTool(tool)],
                 continuation: continuation
             )
 
@@ -598,7 +598,7 @@ final class ToolRouterTests {
                 tool: .known("collision"),
                 arguments: [:],
                 threadID: threadID,
-                availableTools: [dynamicTool.toAnyTool()]
+                availableTools: [AnyTool(dynamicTool)]
             )
             Issue.record("Expected toolNotFound for a disabled call name")
         } catch ToolError.toolNotFound("collision") {
@@ -623,7 +623,7 @@ final class ToolRouterTests {
             tool: .known("free_tool"),
             arguments: [:],
             threadID: threadID,
-            availableTools: [tool.toAnyTool()]
+            availableTools: [AnyTool(tool)]
         )
 
         guard case let .completed(output) = result else {
@@ -637,7 +637,7 @@ final class ToolRouterTests {
     struct NeverFinishingTool: PKContracts.Tool {
         let callName = "never_finishes"
         let name = "never_finishes"
-        let description = "A tool that never finishes unless cancelled"
+        let toolDescription = "A tool that never finishes unless cancelled"
         let requiresPermission = false
         let parametersSchema = makeEmptyObjectSchema()
 
@@ -655,7 +655,7 @@ final class ToolRouterTests {
     private struct UncooperativeTool: PKContracts.Tool {
         let callName = "uncooperative"
         let name = "uncooperative"
-        let description = "A tool that suspends and ignores cancellation"
+        let toolDescription = "A tool that suspends and ignores cancellation"
         let requiresPermission = false
         let started: AsyncLatch
         let release: AsyncLatch
@@ -710,7 +710,7 @@ final class ToolRouterTests {
 
         let toolId = "local_tool"
         let mockTool = MockTool(callName: toolId, name: toolId, result: .success("Local success"))
-        await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
+        await toolManager?.updateAvailableTools([AnyTool(mockTool)])
 
         // The mock persistence doesn't automatically wire tool IDs to workspaces for `findWorkspaceForTool`
         // We simulate `addToolToWorkspace` or just rely on the tool manager falling back to the candidates.
@@ -723,7 +723,7 @@ final class ToolRouterTests {
             tool: toolRef,
             arguments: arguments,
             threadID: session.id,
-            availableTools: [mockTool.toAnyTool()]
+            availableTools: [AnyTool(mockTool)]
         )
         guard case let .completed(output) = result else {
             Issue.record("Expected .completed outcome")
@@ -759,7 +759,7 @@ final class ToolRouterTests {
             tool: toolRef,
             arguments: arguments,
             threadID: session.id,
-            availableTools: [dynamicTool.toAnyTool()]
+            availableTools: [AnyTool(dynamicTool)]
         )
 
         guard case let .completed(output) = result else {
@@ -817,7 +817,7 @@ final class ToolRouterTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        let neverFinishingTool = NeverFinishingTool().toAnyTool()
+        let neverFinishingTool = AnyTool(NeverFinishingTool())
         await toolManager?.updateAvailableTools([neverFinishingTool])
 
         let call = ParsedToolCall(callId: "call-timeout", name: "never_finishes", argumentsJSON: "{}")
@@ -875,7 +875,7 @@ final class ToolRouterTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        let uncooperativeTool = UncooperativeTool(started: started, release: release).toAnyTool()
+        let uncooperativeTool = AnyTool(UncooperativeTool(started: started, release: release))
         await toolManager?.updateAvailableTools([uncooperativeTool])
 
         let call = ParsedToolCall(callId: "call-timeout", name: "uncooperative", argumentsJSON: "{}")
@@ -900,7 +900,7 @@ struct WorkspaceToolDispatcherTests {
     private struct MockTool: PKContracts.Tool {
         let callName: String
         var name: String { callName }
-        let description = "A mock Workspace tool"
+        let toolDescription = "A mock Workspace tool"
         let requiresPermission = false
         let parametersSchema = makeEmptyObjectSchema()
 
@@ -941,7 +941,7 @@ struct WorkspaceToolDispatcherTests {
     }
 
     private func catalog(_ workspaces: [WorkspaceReference]) -> WorkspaceToolCatalog {
-        let tool = MockTool(callName: "cat").toAnyTool()
+        let tool = AnyTool(MockTool(callName: "cat"))
         return WorkspaceToolCatalog(entries: workspaces.map {
             .init(
                 workspace: $0,
@@ -1067,7 +1067,7 @@ struct ToolTurnProjectionTests {
     private struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
-        let description = "A mock tool for testing"
+        let toolDescription = "A mock tool for testing"
         let requiresPermission = false
         let parametersSchema = makeEmptyObjectSchema()
 
@@ -1085,7 +1085,7 @@ struct ToolTurnProjectionTests {
     private struct FailingTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
-        let description = "A tool that always fails"
+        let toolDescription = "A tool that always fails"
         let requiresPermission = false
         let thrownError: any Error
         let parametersSchema = makeEmptyObjectSchema()
@@ -1124,7 +1124,7 @@ struct ToolTurnProjectionTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        let tool = MockTool(callName: "tool", name: "tool", result: .success("done")).toAnyTool()
+        let tool = AnyTool(MockTool(callName: "tool", name: "tool", result: .success("done")))
         await toolManager?.updateAvailableTools([tool])
 
         let call = ParsedToolCall(callId: "call-1", name: "tool", argumentsJSON: "{}")
@@ -1175,7 +1175,7 @@ struct ToolTurnProjectionTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        let tool = FailingTool(id: "tool", error: ToolError.executionFailed("boom")).toAnyTool()
+        let tool = AnyTool(FailingTool(id: "tool", error: ToolError.executionFailed("boom")))
         await toolManager?.updateAvailableTools([tool])
 
         let call = ParsedToolCall(callId: "call-2", name: "tool", argumentsJSON: "{}")
@@ -1227,7 +1227,7 @@ struct ToolTurnProjectionTests {
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         let error = ToolError.invalidArgument("count", expected: "Int", got: "4.7")
-        let tool = FailingTool(id: "cat", error: error).toAnyTool()
+        let tool = AnyTool(FailingTool(id: "cat", error: error))
         await toolManager?.updateAvailableTools([tool])
 
         let call = ParsedToolCall(callId: "call-3", name: "cat", argumentsJSON: "{}")
@@ -1273,7 +1273,7 @@ struct ToolDurabilityOrderingTests {
     private struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
-        let description = "A mock tool for testing"
+        let toolDescription = "A mock tool for testing"
         let requiresPermission = false
         let parametersSchema = makeEmptyObjectSchema()
 
@@ -1289,7 +1289,7 @@ struct ToolDurabilityOrderingTests {
     private struct FailingTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
-        let description = "A tool that always fails"
+        let toolDescription = "A tool that always fails"
         let requiresPermission = false
         let thrownError: any Error
         let parametersSchema = makeEmptyObjectSchema()
@@ -1334,7 +1334,7 @@ struct ToolDurabilityOrderingTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        await toolManager?.updateAvailableTools([tool.toAnyTool()])
+        await toolManager?.updateAvailableTools([AnyTool(tool)])
 
         return (toolRouter, failingStore, session.id)
     }
@@ -1350,7 +1350,7 @@ struct ToolDurabilityOrderingTests {
             let result = try await router.handlePendingToolCalls(
                 threadId: threadID,
                 calls: [call],
-                availableTools: [tool.toAnyTool()],
+                availableTools: [AnyTool(tool)],
                 continuation: continuation
             )
 
@@ -1394,7 +1394,7 @@ struct ToolDurabilityOrderingTests {
             let result = try await router.handlePendingToolCalls(
                 threadId: threadID,
                 calls: [call],
-                availableTools: [tool.toAnyTool()],
+                availableTools: [AnyTool(tool)],
                 continuation: continuation
             )
 
@@ -1448,7 +1448,7 @@ struct ToolDurabilityOrderingTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        let tool = MockTool(callName: "tool", name: "tool", result: .success("done")).toAnyTool()
+        let tool = AnyTool(MockTool(callName: "tool", name: "tool", result: .success("done")))
         await toolManager?.updateAvailableTools([tool])
 
         let call = ParsedToolCall(callId: "call-3", name: "tool", argumentsJSON: "{}")
@@ -1511,7 +1511,7 @@ struct ToolDurabilityOrderingTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        let tool = MockTool(callName: "tool", name: "tool", result: .success("ok")).toAnyTool()
+        let tool = AnyTool(MockTool(callName: "tool", name: "tool", result: .success("ok")))
         await toolManager?.updateAvailableTools([tool])
 
         let call1 = ParsedToolCall(callId: "call-a", name: "tool", argumentsJSON: "{}")

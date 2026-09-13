@@ -7,7 +7,7 @@ import JSONSchemaBuilder
 package struct SearchFilesTool: Tool, Sendable {
     package let callName = "search_files"
     package let name = "Search Files"
-    package let description = "Optimized search for text content across files in the workspace."
+    package let toolDescription = "Optimized search for text content across files in the workspace."
     package let requiresPermission = true
 
     package var usageExample: String? {

@@ -40,11 +40,11 @@ struct TurnExecutionRequest: Sendable {
             [
                 tool.callName,
                 tool.name,
-                tool.description,
+                tool.toolDescription,
                 tool.usageExample ?? "",
                 String(tool.requiresPermission),
                 String(describing: tool.sideEffects),
-                canonicalFingerprint(tool.toolReference),
+                canonicalFingerprint(tool.identity),
                 canonicalFingerprint(tool.origin),
                 canonicalFingerprint(tool.parametersSchema),
             ].joined(separator: "\u{1E}")
