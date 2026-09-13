@@ -13774,6 +13774,16 @@
       "declaration": "struct TurnHandle"
     },
     {
+      "precise": "s:13PositronicKit10TurnHandleV13generatedTextScSySSGyF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TurnHandle",
+        "generatedText()"
+      ],
+      "declaration": "func generatedText() -> AsyncStream<String>"
+    },
+    {
       "precise": "s:13PositronicKit10TurnHandleV2id20FoundationEssentials4UUIDVvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -13802,6 +13812,16 @@
         "events()"
       ],
       "declaration": "func events() -> AsyncStream<TurnEvent>"
+    },
+    {
+      "precise": "s:13PositronicKit10TurnHandleV6resultAA0C6ResultVyYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TurnHandle",
+        "result()"
+      ],
+      "declaration": "func result() async throws -> TurnResult"
     },
     {
       "precise": "s:13PositronicKit10TurnHandleV7outcomeAA0C7OutcomeOyYaKF",
@@ -14100,6 +14120,65 @@
         "updatedAt"
       ],
       "declaration": "var updatedAt: Date"
+    },
+    {
+      "precise": "s:13PositronicKit10TurnResultV",
+      "module": "PositronicKit",
+      "kind": "swift.struct",
+      "path": [
+        "TurnResult"
+      ],
+      "declaration": "struct TurnResult"
+    },
+    {
+      "precise": "s:13PositronicKit10TurnResultV6turnID06threadF07outcome7messageAC20FoundationEssentials4UUIDV_AjA0C7OutcomeO11PKContracts7MessageVSgtcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "TurnResult",
+        "init(turnID:threadID:outcome:message:)"
+      ],
+      "declaration": "init(turnID: UUID, threadID: UUID, outcome: TurnOutcome, message: Message? = nil)"
+    },
+    {
+      "precise": "s:13PositronicKit10TurnResultV6turnID20FoundationEssentials4UUIDVvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnResult",
+        "turnID"
+      ],
+      "declaration": "let turnID: UUID"
+    },
+    {
+      "precise": "s:13PositronicKit10TurnResultV7message11PKContracts7MessageVSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnResult",
+        "message"
+      ],
+      "declaration": "let message: Message?"
+    },
+    {
+      "precise": "s:13PositronicKit10TurnResultV7outcomeAA0C7OutcomeOvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnResult",
+        "outcome"
+      ],
+      "declaration": "let outcome: TurnOutcome"
+    },
+    {
+      "precise": "s:13PositronicKit10TurnResultV8threadID20FoundationEssentials4UUIDVvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnResult",
+        "threadID"
+      ],
+      "declaration": "let threadID: UUID"
     },
     {
       "precise": "s:13PositronicKit11ChatHistoryV",
@@ -35119,6 +35198,27 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
+      "source": "s:13PositronicKit10TurnResultV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit10TurnResultV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit10TurnResultV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit11ChatHistoryV",
       "target": "s:8PKPrompt6PromptP",
       "targetFallback": "PKPrompt.Prompt"
@@ -49927,6 +50027,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnHandleV13generatedTextScSySSGyF",
+      "target": "s:13PositronicKit10TurnHandleV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit10TurnHandleV2id20FoundationEssentials4UUIDVvp",
       "target": "s:13PositronicKit10TurnHandleV",
       "sourceOrigin": {
@@ -49944,6 +50050,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10TurnHandleV6eventsScSy11PKContracts0C5EventOGyF",
+      "target": "s:13PositronicKit10TurnHandleV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnHandleV6resultAA0C6ResultVyYaKF",
       "target": "s:13PositronicKit10TurnHandleV"
     },
     {
@@ -50121,6 +50233,36 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit10TurnRecordV9updatedAt20FoundationEssentials4DateVvp",
       "target": "s:13PositronicKit10TurnRecordV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnResultV6turnID06threadF07outcome7messageAC20FoundationEssentials4UUIDV_AjA0C7OutcomeO11PKContracts7MessageVSgtcfc",
+      "target": "s:13PositronicKit10TurnResultV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnResultV6turnID20FoundationEssentials4UUIDVvp",
+      "target": "s:13PositronicKit10TurnResultV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnResultV7message11PKContracts7MessageVSgvp",
+      "target": "s:13PositronicKit10TurnResultV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnResultV7outcomeAA0C7OutcomeOvp",
+      "target": "s:13PositronicKit10TurnResultV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnResultV8threadID20FoundationEssentials4UUIDVvp",
+      "target": "s:13PositronicKit10TurnResultV"
     },
     {
       "module": "PositronicKit",
