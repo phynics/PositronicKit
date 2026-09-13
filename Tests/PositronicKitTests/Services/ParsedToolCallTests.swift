@@ -1,9 +1,11 @@
 import Foundation
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
 // MARK: - ParsedToolCall decode contract tests
 
+@Suite(.tags(.unit))
 struct ParsedToolCallTests {
     @Test("Valid JSON object decodes to non-nil arguments")
     func validJSONDecodes() {

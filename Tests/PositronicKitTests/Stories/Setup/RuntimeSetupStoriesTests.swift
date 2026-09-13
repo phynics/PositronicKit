@@ -4,7 +4,7 @@ import PKTestSupport
 import PositronicKit
 import Testing
 
-@Suite("Runtime setup stories", .serialized) struct RuntimeSetupStoriesTests {
+@Suite("Runtime setup stories", .serialized, .tags(.integration)) struct RuntimeSetupStoriesTests {
     @Test("PositronicKit default initialization")
     func defaultInitialization() async {
         let chat = PositronicKit()

@@ -3,7 +3,7 @@ import PKTestSupport
 import Testing
 @testable import PositronicKit
 
-@Suite("Runtime timing seams")
+@Suite("Runtime timing seams", .tags(.unit))
 struct TimingSeamTests {
     @Test("Stream idle timeout fires at the manually advanced deadline", .timeLimit(.minutes(1)))
     func streamIdleTimeoutUsesInjectedClock() async throws {

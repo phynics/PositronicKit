@@ -11,7 +11,7 @@ import Testing
 /// `Notes/Welcome.md` + `Notes/Project.md` into a temp directory with no cleanup), then
 /// prove the new default (`.noWorkspace`) has no filesystem side effects, that
 /// `.ephemeralWorkspace` cleans up deterministically, and that seed notes are configurable.
-@Suite("Workspace profile lifecycle & retention (PKRR-029)")
+@Suite(.tags(.integration))("Workspace profile lifecycle & retention (PKRR-029)")
 struct WorkspaceProfileLifecycleTests {
     // MARK: - Regression: the pre-fix behavior, now opt-in via .hostManaged
 

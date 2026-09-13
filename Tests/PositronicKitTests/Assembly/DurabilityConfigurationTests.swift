@@ -4,7 +4,7 @@ import PKTestSupport
 import PositronicKit
 import Testing
 
-@Suite("Persistence durability validation")
+@Suite("Persistence durability validation", .tags(.unit))
 struct DurabilityConfigurationTests {
     @Test("in-memory configuration reports six ephemeral stores")
     func inMemoryStoresAreEphemeral() {

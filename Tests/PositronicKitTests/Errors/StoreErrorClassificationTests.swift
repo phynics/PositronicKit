@@ -10,7 +10,7 @@ import Testing
 /// collapse into `threadNotFound` or silent `nil`/empty results. These tests prove
 /// the fix by driving each error site with a failing store mock and asserting the
 /// typed error (or degradation) that surfaces.
-@Suite("Store error classification (PKRR-008)")
+@Suite(.tags(.unit))("Store error classification (PKRR-008)")
 struct StoreErrorClassificationTests {
 
     // MARK: - updateThreadTitle: store outage must not surface as threadNotFound
@@ -306,7 +306,7 @@ struct StoreErrorClassificationTests {
 
     // MARK: - ThreadError taxonomy contract
 
-    @Suite("ThreadError taxonomy")
+    @Suite("ThreadError taxonomy", .tags(.unit))
     struct ThreadErrorTaxonomyTests {
         @Test("Every case maps to a unique non-zero error code in the thread domain")
         func uniqueErrorCodes() {
@@ -374,7 +374,7 @@ struct StoreErrorClassificationTests {
 
     // MARK: - StoreDegradation contracts
 
-    @Suite("StoreDegradation")
+    @Suite("StoreDegradation", .tags(.unit))
     struct StoreDegradationTests {
         @Test("init captures operation, entityId, and error identity")
         func initCapturesFields() {

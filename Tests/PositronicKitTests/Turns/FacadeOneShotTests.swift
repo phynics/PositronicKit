@@ -7,8 +7,9 @@ import PKUtilities
 import Synchronization
 import Testing
 
-@Suite("Facade one-shot operations")
+@Suite("Facade one-shot operations", .tags(.integration))
 // swiftlint:disable:next type_body_length
+@Suite(.tags(.integration))
 struct FacadeOneShotTests {
     @Test("complete assembles streamed text without persisting a thread turn")
     func completeIsThreadFree() async throws {

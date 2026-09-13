@@ -5,6 +5,7 @@ import PKContracts
 import PKUtilities
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
 @Schemable
 struct OptionalTitlePayload: Codable, Equatable {
@@ -16,6 +17,7 @@ struct RequiredTitlePayload: Codable, Equatable {
     let title: String
 }
 
+@Suite(.tags(.unit))
 struct SidecarOutcomeContractTests {
     private func makeExtractor(
         directives: [SidecarDirective]

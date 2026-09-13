@@ -6,7 +6,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("Typed Agent context and lifecycle")
+@Suite("Typed Agent context and lifecycle", .tags(.integration))
 struct AgentContextLifecycleTests {
     @Test("managed admission captures typed Agent context")
     func capturesTypedContext() async throws {

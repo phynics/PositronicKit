@@ -19,6 +19,7 @@ import Testing
 /// `private` to that file's `ToolRouterTests` class and there is no shared PKTestSupport extension
 /// point for them yet; duplicating the minimal set here keeps this suite self-contained without
 /// widening the visibility of another file's test-only internals.
+@Suite(.tags(.integration))
 final class ToolApprovalPolicyFilesystemToolsTests {
     /// Records every gate consultation so a test can assert whether the gate was reached at all.
     final class RecordingGate: ToolApprovalPolicy, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)

@@ -7,7 +7,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("LLMStreamingStage sidecar routing")
+@Suite("LLMStreamingStage sidecar routing", .tags(.integration))
 struct SidecarStreamingStageTests {
     private let logger = Logger(label: "test")
 

@@ -3,7 +3,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("Runtime assembly", .serialized)
+@Suite("Runtime assembly", .serialized, .tags(.integration))
 struct RuntimeAssemblyTests {
     @Test("default facade uses one cohesive in-memory repository")
     func defaultFacadeUsesCohesiveRepository() async throws {

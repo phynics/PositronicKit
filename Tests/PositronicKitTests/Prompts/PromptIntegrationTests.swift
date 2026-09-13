@@ -4,8 +4,10 @@ import PKContracts
 import PKUtilities
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
 @MainActor
+@Suite(.tags(.integration))
 struct PromptIntegrationTests {
     @Test("testEmptyUserQueryDoesNotAppendMessage")
     func emptyUserQueryDoesNotAppendMessage() async throws {

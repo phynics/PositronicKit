@@ -4,6 +4,7 @@ import PKUtilities
 @testable import PositronicKit
 import struct PositronicKit.Thread
 import Testing
+import PKTestSupport
 
 // MARK: - Helpers
 
@@ -45,6 +46,7 @@ private func makeAgent(name: String = "TestAgent", description: String = "") -> 
 
 // MARK: - WorkspacesContext Tests
 
+@Suite(.tags(.unit))
 struct WorkspacesContextTests {
     // MARK: Empty / Nil cases
 
@@ -264,6 +266,7 @@ struct WorkspacesContextTests {
 
 // MARK: - SystemInstructions Tests
 
+@Suite(.tags(.unit))
 struct SystemInstructionsTests {
     @Test("empty instructions renders nil")
     func emptyRendersNil() async throws {
@@ -290,6 +293,7 @@ struct SystemInstructionsTests {
 
 // MARK: - AgentContext Tests
 
+@Suite(.tags(.unit))
 struct AgentContextTests {
     @Test("contains identity header and agent name")
     func headerAndName() async throws {
@@ -332,6 +336,7 @@ struct AgentContextTests {
 
 // MARK: - ThreadContext Tests
 
+@Suite(.tags(.unit))
 struct ThreadContextTests {
     @Test("canonical context exposes the thread")
     func canonicalContextExposesThread() {

@@ -36,8 +36,9 @@ struct MockComplexTool: Tool, @unchecked Sendable { // swiftlint:disable:this co
     }
 }
 
-@Suite("Tool Call Regression Tests")
+@Suite("Tool Call Regression Tests", .tags(.unit))
 @MainActor
+@Suite(.tags(.unit))
 struct ToolCallRegressionTests {
     private let logger = Logger(label: "test.tool-call-regression")
 

@@ -14,7 +14,7 @@ import Testing
 
 private typealias TestProviderTransport = ScriptedProviderHTTPTransport
 
-@Suite("Provider transport contracts")
+@Suite("Provider transport contracts", .tags(.integration))
 struct ProviderTransportContractTests {
     private func response(
         url: String,

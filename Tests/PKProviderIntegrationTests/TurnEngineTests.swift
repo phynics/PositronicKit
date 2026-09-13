@@ -6,7 +6,7 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
-@Suite(.serialized) @MainActor
+@Suite(.serialized, .tags(.integration)) @MainActor
 struct TurnEngineTests {
     private let threadID = UUID()
 

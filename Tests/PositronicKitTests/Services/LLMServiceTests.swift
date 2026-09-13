@@ -66,6 +66,7 @@ private actor DelayedConfigurationService: ConfigurationServiceProtocol {
 }
 
 @MainActor
+@Suite(.tags(.integration))
 struct LLMServiceTests {
     private let llmService: LLMService
 

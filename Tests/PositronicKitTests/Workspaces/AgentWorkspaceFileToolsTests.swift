@@ -2,8 +2,9 @@ import Foundation
 import PKContracts
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
-@Suite("Agent workspace file tools")
+@Suite("Agent workspace file tools", .tags(.integration))
 struct AgentWorkspaceFileToolsTests {
     @Test("supports generic file lifecycle and exact edits")
     func fileLifecycle() async throws {

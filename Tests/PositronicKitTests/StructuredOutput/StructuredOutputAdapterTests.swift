@@ -2,9 +2,11 @@ import Foundation
 import JSONSchemaBuilder
 import PKContracts
 import Testing
+import PKTestSupport
 
-@Suite("Structured output adapters")
+@Suite("Structured output adapters", .tags(.unit))
 @MainActor
+@Suite(.tags(.unit))
 struct StructuredOutputAdapterTests {
     private static let baseMessages = [LLMMessage(role: .user, content: "Extract tags")]
     private static let baseTool = LLMToolDefinition(name: "existing_tool", description: "existing")

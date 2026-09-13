@@ -15,7 +15,7 @@ import Testing
 /// `ToolRouterTests.swift` / `ToolApprovalPolicyFilesystemToolsTests.swift`; they are duplicated
 /// here for the same reason those suites duplicate them — the helpers are `private` to their
 /// own files and there is no shared PKTestSupport extension point for them yet.
-@Suite("Grouped init toolApprovalPolicy wiring")
+@Suite("Grouped init toolApprovalPolicy wiring", .tags(.integration))
 struct GroupedInitToolApprovalPolicyWiringTests {
     /// A permissioned tool that records whether its body ever ran, so a test can assert that an
     /// un-approved call is blocked *before* execution rather than merely failing afterwards.

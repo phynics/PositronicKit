@@ -4,8 +4,9 @@ import PKUtilities
 import PositronicKit
 import PositronicKitExamples
 import Testing
+import PKTestSupport
 
-@Suite("Example usage stories")
+@Suite("Example usage stories", .tags(.integration))
 struct ExampleUsageStoriesTests {
     @Test
     func promptExampleAssemblesReusableSections() async throws {

@@ -7,7 +7,7 @@ import Testing
 /// Contract coverage for PKV3-002: a host can hand `ThreadManager` a fully custom
 /// `WorkspaceResolver` — one that involves no `DefaultWorkspaceCatalog`/`DefaultWorkspaceResolver`
 /// internals at all — and the thread lifecycle (create, hydrate, attach) still works end to end.
-@Suite("ThreadManager + custom WorkspaceResolver contract")
+@Suite("ThreadManager + custom WorkspaceResolver contract", .tags(.unit))
 struct ThreadManagerWorkspaceResolverContractTests {
     /// A resolver that vends a single fixed, always-healthy in-memory workspace for any ID and
     /// keeps no catalog/factory collaborators of its own.

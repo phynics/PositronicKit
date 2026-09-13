@@ -122,7 +122,7 @@ private actor ConformanceFoundationModelsSession: FoundationModelsSessionProtoco
     }
 }
 
-@Suite("Stream decoding conformance")
+@Suite("Stream decoding conformance", .tags(.integration))
 struct StreamDecodingConformanceTests {
     @Test("LLMStreamChunk decodes snake_case tool-call fields directly")
     func sharedChunkDecodesSnakeCaseToolCallFields() throws {

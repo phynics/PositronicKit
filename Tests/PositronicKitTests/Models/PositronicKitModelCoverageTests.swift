@@ -3,9 +3,10 @@ import Foundation
 import PKUtilities
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
 /// Coverage for `UnconfiguredLLMService` non-throwing methods and health checks.
-@Suite("UnconfiguredLLMService non-throwing methods")
+@Suite("UnconfiguredLLMService non-throwing methods", .tags(.unit))
 struct UnconfiguredLLMServiceCoverageTests {
     private let service = UnconfiguredLLMService()
 
@@ -38,7 +39,7 @@ struct UnconfiguredLLMServiceCoverageTests {
 
 /// Coverage for `WorkspaceToolWrapper` — the adapter that wraps a workspace-provided
 /// tool definition to conform to the `Tool` protocol.
-@Suite("WorkspaceToolWrapper")
+@Suite("WorkspaceToolWrapper", .tags(.unit))
 struct WorkspaceToolWrapperCoverageTests {
 
     @Test("wrapper delegates callName, name, description to the definition")

@@ -15,8 +15,9 @@ import PKTestSupport
 import OpenAI
 import Testing
 
-@Suite("Structured output preparation order")
+@Suite("Structured output preparation order", .tags(.integration))
 @MainActor
+@Suite(.tags(.integration))
 struct StructuredOutputPreparationTests {
     @Test("Unified preparation matches provider behavior across output modes")
     func unifiedPreparationMatchesProviderBehavior() throws {

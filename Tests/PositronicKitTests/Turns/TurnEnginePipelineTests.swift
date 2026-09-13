@@ -99,6 +99,7 @@ private struct MarkerStage: PipelineStage {
 
 // MARK: - MessagePersistenceStage Tests
 
+@Suite(.tags(.integration))
 final class MessagePersistenceStageBehavior {
     @Test
     func finalTurnIsPreparedForTerminalCommit() async throws {
@@ -252,6 +253,7 @@ final class MessagePersistenceStageBehavior {
 
 // MARK: - TurnPipelineBuilder Tests
 
+@Suite(.tags(.integration))
 final class TurnPipelineBuilderTests {
     @Test
     func additionalStagesAreAppendedToDefaultTurnPipeline() async throws {
@@ -278,6 +280,7 @@ final class TurnPipelineBuilderTests {
 
 // MARK: - ToolCallExtractionStage Tests
 
+@Suite(.tags(.integration))
 final class ToolCallExtractionStageBehavior {
     @Test
     func sentinelCallsFiltered() async throws {
@@ -424,6 +427,7 @@ private struct RecordingLogHandler: LogHandler {
 
 // MARK: - LLMStreamingStage Tests
 
+@Suite(.tags(.integration))
 final class LLMStreamingStageBehavior {
     @Test
     func thinkingAndContentSeparated() async throws {

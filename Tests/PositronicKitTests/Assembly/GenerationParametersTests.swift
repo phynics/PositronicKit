@@ -5,6 +5,7 @@ import Testing
 import PKUtilities
 import PKTestSupport
 
+@Suite(.tags(.unit))
 struct GenerationParametersTests {
     @Test
     func testDefaultGenerationParametersInPositronicKit() async throws {

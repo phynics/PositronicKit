@@ -28,7 +28,7 @@ private struct StreamOnlyClient: LLMStreamClient {
     }
 }
 
-@Suite("Language model composition")
+@Suite("Language model composition", .tags(.integration))
 struct LanguageModelCompositionTests {
     @Test("the facade reports a configured language model")
     func reportsConfiguredLanguageModel() async {

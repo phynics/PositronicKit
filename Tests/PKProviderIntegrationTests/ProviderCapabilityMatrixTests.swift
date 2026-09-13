@@ -37,7 +37,7 @@ private let registeredCaseIDs: Set<String> = [
     "runtime.ollama.mixed-layout",
 ]
 
-@Suite("Provider capability matrix", .serialized)
+@Suite("Provider capability matrix", .serialized, .tags(.integration))
 struct ProviderCapabilityMatrixTests {
     @Test("every manifest row has an executable assertion")
     func everyManifestRowRuns() async throws {

@@ -5,7 +5,7 @@ import PKTestSupport
 import Synchronization
 import Testing
 
-@Suite("Workspace tool dispatch integration", .serialized)
+@Suite("Workspace tool dispatch integration", .serialized, .tags(.integration))
 struct WorkspaceToolDispatchIntegrationTests {
     private actor ExecutionProbe {
         private(set) var executionCount = 0

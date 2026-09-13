@@ -8,7 +8,7 @@ import Testing
 /// PKRR-005 lifecycle invariants: `ThreadCapability.open(_:)` opens an existing thread only. Sending
 /// to a missing ID throws before any user input is persisted. Store failure is
 /// distinguishable from not-found.
-@Suite("Thread lifecycle invariants (PKRR-005)")
+@Suite(.tags(.integration))("Thread lifecycle invariants (PKRR-005)")
 struct ThreadLifecycleInvariantTests {
     @Test("Sending to a never-created thread throws threadNotFound before persisting")
     func sendToMissingThreadThrowsBeforePersisting() async throws {

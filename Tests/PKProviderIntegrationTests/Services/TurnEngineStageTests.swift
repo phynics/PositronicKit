@@ -7,6 +7,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
+@Suite(.tags(.integration))
 final class TurnEngineStageTests {
     private let logger = Logger(label: "test")
 

@@ -1,7 +1,8 @@
 import Foundation
 import Testing
+import PKTestSupport
 
-@Suite("FoundationNetworking import audit")
+@Suite("FoundationNetworking import audit", .tags(.platformSpecific))
 struct FoundationNetworkingImportAuditTests {
     @Test("Networking sources include conditional FoundationNetworking imports")
     func networkingSourcesIncludeConditionalImports() throws {

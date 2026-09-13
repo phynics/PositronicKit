@@ -3,7 +3,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("Direct Turn context")
+@Suite("Direct Turn context", .tags(.integration))
 struct DirectTurnContextTests {
     @Test("omitted contributors use the conventional host contributor")
     func defaultsToHostContributor() {

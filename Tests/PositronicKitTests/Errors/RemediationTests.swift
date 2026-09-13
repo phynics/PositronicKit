@@ -3,7 +3,9 @@ import Foundation
 @testable import PKContracts
 import PKUtilities
 import Testing
+import PKTestSupport
 
+@Suite(.tags(.unit))
 struct RemediationTests {
     @Test("ToolError provides remediation hints")
     func toolErrorRemediation() {

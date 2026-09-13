@@ -4,7 +4,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("Managed and direct Turn execution")
+@Suite("Managed and direct Turn execution", .tags(.integration))
 struct ManagedDirectTurnExecutionTests {
     @Test("managed admission captures the attached Agent and assistant provenance")
     func managedTurnCapturesAgent() async throws {

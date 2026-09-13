@@ -4,6 +4,7 @@ import PKContracts
 import PKUtilities
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
 private func makePromptWorkspace(id: UUID = UUID(), path: String) -> WorkspaceReference {
     WorkspaceReference(
@@ -49,7 +50,7 @@ private struct ThreadSection: Prompt {
     }
 }
 
-@Suite("ThreadPromptHistory")
+@Suite("ThreadPromptHistory", .tags(.integration))
 actor ThreadPromptHistoryTests {
     @Test("Runtime metadata hashing stays aligned between prompt assembly and thread history")
     func runtimeMetadataHashingStaysAligned() async throws {
@@ -455,7 +456,7 @@ actor ThreadPromptHistoryTests {
     }
 }
 
-@Suite("ThreadPromptJournals")
+@Suite("ThreadPromptJournals", .tags(.integration))
 actor ThreadPromptJournalsTests {
     @Test("history(for:) reuses the same instance for the same thread ID")
     func historyReusesSameInstanceForSameThreadId() async {

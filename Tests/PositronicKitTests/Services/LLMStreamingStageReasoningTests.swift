@@ -9,7 +9,7 @@ import Testing
 /// End-to-end coverage for STAB-7: structured reasoning deltas (provider-emitted distinct
 /// `thinking` field) routed into `TurnOutputs.fullThinking` via `LLMStreamingStage`, plus the
 /// inline-tag fallback regression.
-@Suite("LLMStreamingStage structured reasoning routing")
+@Suite("LLMStreamingStage structured reasoning routing", .tags(.integration))
 struct LLMStreamingStageReasoningTests {
     private let logger = Logger(label: "test")
 

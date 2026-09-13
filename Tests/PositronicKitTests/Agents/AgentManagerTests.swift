@@ -6,6 +6,7 @@ import struct PositronicKit.Thread
 @testable import PositronicKit
 import Testing
 
+@Suite(.tags(.integration))
 struct AgentManagerTests {
     private let mock = MockPersistenceService()
 

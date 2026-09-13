@@ -4,7 +4,9 @@ import PKContracts
 import PKUtilities
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
+@Suite(.tags(.unit))
 struct SidecarStreamExtractorTests {
     private func makeExtractor(
         directives: [SidecarDirective] = [

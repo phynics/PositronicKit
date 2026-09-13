@@ -3,7 +3,7 @@ import PKTestSupport
 import Testing
 @testable import PositronicKit
 
-@Suite("ThreadHandle")
+@Suite("ThreadHandle", .tags(.integration))
 struct ThreadDriverTests {
     @Test("opening a thread returns a fresh handle with stable thread identity")
     func openingReturnsThreadHandleWithStableIdentity() async throws {

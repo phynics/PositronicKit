@@ -5,7 +5,7 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
-@Suite(.serialized)
+@Suite(.serialized, .tags(.integration))
 struct TurnAdmissionSeamTests {
     @Test("managed admission captures authoritative Agent context")
     func managedAdmissionCapturesAuthority() async throws {

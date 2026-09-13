@@ -1,8 +1,9 @@
 import Foundation
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
-@Suite
+@Suite(.tags(.unit))
 struct StreamingParserCodeBlockTests {
     @Test("Test tool call inside markdown code block")
     func testToolCallInCodeBlock() {

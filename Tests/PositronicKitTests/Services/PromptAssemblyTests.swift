@@ -6,6 +6,7 @@ import PKUtilities
 @testable import PositronicKit
 import Synchronization
 import Testing
+import PKTestSupport
 
 private final class PromptAssemblyLogSink: Sendable {
     private let entries = Mutex<[(Logger.Level, String)]>([])
@@ -42,7 +43,7 @@ private struct PromptAssemblyTestLogHandler: LogHandler {
     }
 }
 
-@Suite("PromptAssembly")
+@Suite("PromptAssembly", .tags(.unit))
 struct PromptAssemblyTests {
     private func makeRequest(userQuery: String = "hello") -> LLMPromptRequest {
         LLMPromptRequest(userQuery: userQuery, chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, requestOriginName: nil)

@@ -5,8 +5,9 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
-@Suite("Structured Output Service Tests")
+@Suite("Structured Output Service Tests", .tags(.integration))
 @MainActor
+@Suite(.tags(.integration))
 struct StructuredOutputServiceTests {
     private struct TagPayload: Decodable, Equatable {
         let tags: [String]

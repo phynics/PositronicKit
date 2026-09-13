@@ -10,8 +10,9 @@ import PKUtilities
 @testable import PKOpenRouterProvider
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
-@Suite("Provider HTTP Failures")
+@Suite("Provider HTTP Failures", .tags(.integration))
 struct ProviderHTTPFailureTests {
     @Test("OpenRouter omits retries for permanent HTTP failures")
     func openRouterPermanentFailureIsNotTransient() {

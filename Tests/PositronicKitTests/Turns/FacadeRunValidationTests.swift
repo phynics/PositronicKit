@@ -6,7 +6,7 @@ import struct PositronicKit.Thread
 import Synchronization
 import Testing
 
-@Suite("Facade run validation")
+@Suite("Facade run validation", .tags(.integration))
 struct FacadeRunValidationTests {
     @Test("maxModelRounds zero fails before resolver, persistence, or provider work")
     func maxModelRoundsZeroFailsBeforeIO() async throws {

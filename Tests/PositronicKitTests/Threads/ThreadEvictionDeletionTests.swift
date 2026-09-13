@@ -11,7 +11,7 @@ import Testing
 /// leaves persistence intact) and `deleteThreadPermanently` removes all persisted records
 /// or reports partial cleanup. These guard against the original leak/race where the
 /// `deleteThread` name suggested durable deletion but only evicted memory.
-@Suite("Thread eviction & permanent deletion (PKRR-023)")
+@Suite(.tags(.integration))("Thread eviction & permanent deletion (PKRR-023)")
 struct ThreadEvictionDeletionTests {
 
     // MARK: - Eviction is memory-only: cancels active work, preserves persistence

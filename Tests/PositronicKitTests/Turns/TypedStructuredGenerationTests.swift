@@ -6,7 +6,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("Typed structured generation")
+@Suite("Typed structured generation", .tags(.integration))
 struct TypedStructuredGenerationTests {
     @Test("native structured generation decodes the response and forwards the generated schema")
     func nativeStructuredGeneration() async throws {

@@ -4,6 +4,7 @@ import ErrorKit
 import PKUtilities
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
 /// Coverage for the package's `PKError`-conforming error enums.
 ///
@@ -12,11 +13,11 @@ import Testing
 /// They previously had zero direct coverage — the domain/code/message contracts were only
 /// exercised incidentally through higher-level integration paths, leaving regressions in
 /// error identity undetectable.
-@Suite("PositronicKit error contracts")
+@Suite("PositronicKit error contracts", .tags(.unit))
 struct PositronicKitErrorContractTests {
     // MARK: - TurnError
 
-    @Suite("TurnError")
+    @Suite("TurnError", .tags(.unit))
     struct TurnErrorTests {
         @Test("invalidMaxModelRounds has a stable public error identity")
         func stableErrorIdentity() {
@@ -78,7 +79,7 @@ struct PositronicKitErrorContractTests {
 
     // MARK: - AgentError
 
-    @Suite("AgentError")
+    @Suite("AgentError", .tags(.unit))
     struct AgentErrorTests {
         @Test("Every case maps to a unique non-zero error code in the agent domain")
         func uniqueErrorCodes() {
@@ -139,7 +140,7 @@ struct PositronicKitErrorContractTests {
 
     // MARK: - AgentContextError
 
-    @Suite("AgentContextError")
+    @Suite("AgentContextError", .tags(.unit))
     struct AgentContextErrorTests {
         @Test("identityMismatch exposes a structured context identity")
         func stableErrorIdentity() {
@@ -155,7 +156,7 @@ struct PositronicKitErrorContractTests {
 
     // MARK: - SidecarError
 
-    @Suite("SidecarError")
+    @Suite("SidecarError", .tags(.unit))
     struct SidecarErrorTests {
         @Test("Every case maps to a unique non-zero error code in the chat domain")
         func uniqueErrorCodes() {

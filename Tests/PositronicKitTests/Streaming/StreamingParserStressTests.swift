@@ -4,7 +4,8 @@ import Testing
 @testable import PositronicKit
 @testable import PKContracts
 import PKUtilities
-@Suite struct StreamingParserStressTests {
+import PKTestSupport
+@Suite(.tags(.slow)) struct StreamingParserStressTests {
 
     // MARK: - Code Block Protection
 

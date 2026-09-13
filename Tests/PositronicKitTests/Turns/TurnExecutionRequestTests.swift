@@ -2,8 +2,9 @@ import Foundation
 import PKContracts
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
-@Suite("Turn execution request")
+@Suite("Turn execution request", .tags(.integration))
 struct TurnExecutionRequestTests {
     @Test("normalization keeps the public request and resolves facade defaults once")
     func resolvesFacadeDefaults() {

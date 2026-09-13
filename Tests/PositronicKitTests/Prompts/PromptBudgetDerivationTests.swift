@@ -3,8 +3,9 @@ import PKPrompt
 import PKContracts
 import Testing
 @testable import PositronicKit
+import PKTestSupport
 
-@Suite("Prompt budget derivation (PKRR-001)")
+@Suite(.tags(.unit))("Prompt budget derivation (PKRR-001)")
 struct PromptBudgetDerivationTests {
     @Test("A 512-token output limit does not shrink the prompt budget toward the output limit")
     func smallOutputLimitKeepsLargeBudget() throws {

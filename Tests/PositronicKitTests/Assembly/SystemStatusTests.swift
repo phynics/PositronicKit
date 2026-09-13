@@ -3,8 +3,9 @@ import Foundation
 import PKUtilities
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
-@Suite("System Status Tests")
+@Suite("System Status Tests", .tags(.unit))
 struct SystemStatusTests {
     @Test("HealthCheckable Protocol")
     func healthCheckableProtocol() async {

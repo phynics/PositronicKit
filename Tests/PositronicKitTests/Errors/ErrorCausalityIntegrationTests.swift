@@ -3,11 +3,12 @@ import Testing
 @testable import PKContracts
 import PKUtilities
 @testable import PositronicKit
+import PKTestSupport
 
 /// Integration tests for PKRR-014: `LLMStreamError` (a purpose-built `CausalError`
 /// wrapper) retains its own `PKError` identity (llm/1005) when its underlying cause
 /// is a foreign non-`PKError` error, and that identity survives pipeline wrapping.
-@Suite struct ErrorCausalityIntegrationTests {
+@Suite(.tags(.unit)) struct ErrorCausalityIntegrationTests {
 
     @Test("LLMStreamError retains llm/1005 identity for foreign URLError cause")
     func llmStreamErrorRetainsIdentityForForeignCause() {

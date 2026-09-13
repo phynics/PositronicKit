@@ -16,7 +16,7 @@ import Testing
 /// - Cancellation → `.error(.generationCancelled)`
 /// - Provider or pipeline failure → the stream throws for the package-internal engine seam
 /// - Terminal persistence failure → `.error(.durabilityFailure)` and a normally closed stream
-@Suite(.serialized) @MainActor
+@Suite(.serialized, .tags(.integration)) @MainActor
 struct TurnEngineTerminalEventTests {
     private let threadID = UUID()
 

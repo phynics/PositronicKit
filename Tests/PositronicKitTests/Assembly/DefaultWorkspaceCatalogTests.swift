@@ -5,7 +5,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("DefaultWorkspaceCatalog Tests")
+@Suite("DefaultWorkspaceCatalog Tests", .tags(.unit))
 struct AgentWorkspaceServiceTests {
     @Test("Create Workspace")
     func testCreateWorkspace() async throws {

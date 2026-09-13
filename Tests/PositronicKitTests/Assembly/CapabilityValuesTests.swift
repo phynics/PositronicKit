@@ -3,7 +3,7 @@ import PKTestSupport
 import PositronicKit
 import Testing
 
-@Suite("Facade capability values")
+@Suite("Facade capability values", .tags(.unit))
 struct CapabilityValuesTests {
     @Test("Threads capability creates and reopens a stateful handle")
     func threadCapabilityOwnsHandleLifecycle() async throws {

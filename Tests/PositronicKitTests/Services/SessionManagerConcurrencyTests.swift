@@ -6,7 +6,7 @@ import PKTestSupport
 import struct PositronicKit.Thread
 import Testing
 
-@Suite(.serialized) struct ThreadManagerConcurrencyTests {
+@Suite(.serialized, .tags(.slow)) struct ThreadManagerConcurrencyTests {
     private func makeThreadManager() async throws -> ThreadManager {
         let workspace = TestWorkspace()
         return ThreadManager(workspaceProfile: .hostManaged(root: workspace.root))

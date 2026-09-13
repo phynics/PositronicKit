@@ -4,7 +4,9 @@ import struct PositronicKit.Thread
 @testable import PKContracts
 import PKUtilities
 import Testing
+import PKTestSupport
 
+@Suite(.tags(.unit))
 struct PersistenceProtocolTests {
     /// This test verifies that we can define a mock that conforms to all new domain protocols
     /// effectively replacing the God protocol with composed requirements.

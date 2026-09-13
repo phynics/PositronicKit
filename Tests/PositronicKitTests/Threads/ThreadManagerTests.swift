@@ -6,6 +6,7 @@ import PKTestSupport
 import Synchronization
 import Testing
 
+@Suite(.tags(.integration))
 struct ThreadManagerTests {
     @Test("manager parameter labels remain source compatible")
     func managerParameterLabels() async throws {

@@ -80,7 +80,7 @@ private final class NoNetworkURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
-@Suite("Provider initialization contracts", .serialized)
+@Suite("Provider initialization contracts", .serialized, .tags(.integration))
 struct ProviderInitializationTests {
     private func response(url: String, status: Int = 200) -> HTTPURLResponse {
         HTTPURLResponse(url: URL(string: url)!, statusCode: status, httpVersion: nil, headerFields: [:])!

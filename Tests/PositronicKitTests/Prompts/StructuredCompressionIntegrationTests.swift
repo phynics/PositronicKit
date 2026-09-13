@@ -4,6 +4,7 @@ import PKContracts
 import PKUtilities
 import Testing
 @testable import PositronicKit
+import PKTestSupport
 
 private struct CompressionMockSection: Prompt, Sendable {
     let id: String
@@ -38,7 +39,7 @@ private actor IntegrationCounter {
     func value() -> Int { calls }
 }
 
-@Suite("Structured compression integration")
+@Suite("Structured compression integration", .tags(.unit))
 struct StructuredCompressionIntegrationTests {
     @Test("Changed subtree is prioritized under token pressure")
     func changedSubtreePrioritized() async throws {

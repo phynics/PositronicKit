@@ -4,6 +4,7 @@ import PKUtilities
 @testable import PositronicKit
 import Synchronization
 import Testing
+import PKTestSupport
 
 /// A one-shot asynchronous latch. Waiting uses a continuation, so task cancellation does not
 /// resume a waiter; `open()` deterministically resumes every current and future waiter.
@@ -70,7 +71,7 @@ private final class AsyncLatch: Sendable {
 /// mutate no state — they model pure suspended work — so the pre-PKRR-004 clean-timeout
 /// assertions stay valid and exercise the preserved fast-abandon path. The mutating and
 /// external-process paths are covered by dedicated fixtures and tests further down.
-@Suite("ToolTimeoutEnforcer")
+@Suite("ToolTimeoutEnforcer", .tags(.integration))
 struct ToolTimeoutEnforcerTests {
     private struct EchoTool: PKContracts.Tool {
         let callName = "echo"

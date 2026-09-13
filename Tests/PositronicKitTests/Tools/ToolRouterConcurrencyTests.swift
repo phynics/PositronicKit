@@ -5,7 +5,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite(.serialized) struct ToolRouterConcurrencyTests {
+@Suite(.serialized, .tags(.slow)) struct ToolRouterConcurrencyTests {
     private func makeSetup() async throws -> (ToolRouter, ThreadManager, MockPersistenceService) {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()

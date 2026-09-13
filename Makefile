@@ -1,4 +1,4 @@
-.PHONY: help build clean test doctor validate-docs verify-documentation \
+.PHONY: help build clean test test-fast doctor validate-docs verify-documentation \
 	verify verify-concurrency-scan verify-runtime-architecture \
 	verify-linux-agent verify-linux-filter verify-linux-coverage \
 	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-v4-vocabulary \
@@ -14,6 +14,9 @@ AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock
 PODMAN ?= $(shell command -v podman 2>/dev/null)
 FILTER ?=
 TRAITS ?=
+# Inner-loop selection for `make test-fast`. Uses the swift-testing `tag:`
+# selector from ST-0025, so only suites carrying the matching Tag run.
+FAST_FILTER ?= tag:unit
 # Keep the repository's build and test gates strict without embedding unsafe
 # compiler flags in Package.swift, which would affect downstream consumers.
 SWIFT_BUILD_FLAGS ?= -Xswiftc -warnings-as-errors
@@ -37,6 +40,7 @@ help:
 	@echo "  make agent-test FILTER='…' Run a focused Podman Linux test"
 	@echo "  make linux-coverage         Generate Linux llvm-cov reports in .build/linux-coverage"
 	@echo "  make test                  Run tests"
+	@echo "  make test-fast             Run the tagged fast subset (FAST_FILTER='tag:unit')"
 	@echo "  make verify                Run docs, linkage, products, examples, and test gates (macOS)"
 	@echo "  make verify-concurrency-scan Run the concurrency inline-annotation scan"
 	@echo "  make verify-runtime-architecture Check enforced runtime ownership seams"
@@ -72,6 +76,10 @@ test:
 	@echo "Running tests..."
 	@swift test $(SWIFT_BUILD_FLAGS)
 
+test-fast:
+	@echo "Running fast tests (--filter $(FAST_FILTER))..."
+	@swift test $(SWIFT_BUILD_FLAGS) --filter "$(FAST_FILTER)"
+
 validate-docs: verify-documentation
 	@bash Scripts/validate-docs.sh
 
@@ -99,7 +107,7 @@ verify-runtime-architecture:
 doctor:
 	@bash Scripts/doctor.sh "$(PODMAN)"
 
-verify: verify-concurrency-scan verify-runtime-architecture verify-dependency-direction verify-test-layout validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
+verify: verify-concurrency-scan verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
 
 verify-linux-coverage:
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
@@ -188,8 +196,17 @@ verify-agent-harness:
 	@bash Tests/Scripts/public_api_baseline_test.sh
 	@bash Tests/Scripts/check_dependency_direction_test.sh
 	@bash Tests/Scripts/check_test_layout_test.sh
+	@bash Tests/Scripts/compile_doc_snippets_test.sh
+	@bash Tests/Scripts/validate_docc_test.sh
 	@python3 -B Tests/Scripts/provider_capability_matrix_test.py
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
+	@python3 -B Tests/Scripts/migrate_turn_execution_request_test.py
+	@python3 -B Tests/Scripts/check_workspace_tool_dispatch_test.py
+	@python3 -B Tests/Scripts/validate_documentation_test.py
+	@python3 -B Tests/Scripts/generate_doc_navigation_test.py
+	@python3 -B Tests/Scripts/validate_release_readiness_test.py
+	@python3 -B Tests/Scripts/check_v4_vocabulary_test.py
+	@python3 -B Tests/Scripts/check_pr_docs_impact_test.py
 
 # Linux testing intentionally has no native or Docker fallback. The shared
 # runner performs the deeper access check and prints the sandbox-escalation

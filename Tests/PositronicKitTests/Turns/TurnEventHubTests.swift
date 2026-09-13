@@ -2,8 +2,9 @@ import Foundation
 @testable import PKContracts
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
-@Suite("Turn EventHub terminal subscription")
+@Suite("Turn EventHub terminal subscription", .tags(.integration))
 struct TurnEventHubTests {
     @Test("live subscription selection is atomic with the active check")
     func subscribeIfActiveDoesNotAttachAfterFinish() async throws {

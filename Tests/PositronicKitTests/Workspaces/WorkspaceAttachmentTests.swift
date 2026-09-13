@@ -148,7 +148,7 @@ private func withFixture(
 
 // MARK: - attachWorkspace
 
-@Suite("ThreadManager.attachWorkspace")
+@Suite("ThreadManager.attachWorkspace", .tags(.integration))
 struct AttachWorkspaceTests {
     @Test("attaching creates a repository binding")
     func attach() async throws {
@@ -265,7 +265,7 @@ struct AttachWorkspaceTests {
 
 // MARK: - detachWorkspace
 
-@Suite("ThreadManager.detachWorkspace")
+@Suite("ThreadManager.detachWorkspace", .tags(.integration))
 struct DetachWorkspaceTests {
     @Test("detaching an attached workspace removes it from the list")
     func detachAttached() async throws {
@@ -399,7 +399,7 @@ struct DetachWorkspaceTests {
 
 // MARK: - getWorkspaces
 
-@Suite("ThreadManager.getWorkspaces", .serialized)
+@Suite("ThreadManager.getWorkspaces", .serialized, .tags(.integration))
 struct GetWorkspacesTests {
     @Test("throws threadNotFound for unknown thread")
     func throwsForUnknown() async throws {
@@ -554,7 +554,7 @@ struct GetWorkspacesTests {
 
 // MARK: - Attach/Detach round-trip
 
-@Suite("Workspace attach/detach round-trip")
+@Suite("Workspace attach/detach round-trip", .tags(.integration))
 struct WorkspaceRoundTripTests {
     @Test("detaching all extra workspaces removes them from attached list")
     func detachAll() async throws {

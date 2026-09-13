@@ -7,7 +7,7 @@ import Synchronization
 import Testing
 @testable import PositronicKit
 
-@Suite("Logging redaction")
+@Suite("Logging redaction", .tags(.unit))
 struct LoggingRedactionTests {
     @Test("TurnRequest description does not include the user message")
     func requestDescriptionDoesNotLeakMessage() {

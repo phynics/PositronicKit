@@ -6,8 +6,9 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("Sidecar turn integration")
+@Suite("Sidecar turn integration", .tags(.integration))
 @MainActor
+@Suite(.tags(.integration))
 struct SidecarTurnIntegrationTests {
     private var directives: [SidecarDirective] {
         [

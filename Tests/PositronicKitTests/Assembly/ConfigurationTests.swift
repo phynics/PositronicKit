@@ -5,6 +5,7 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
+@Suite(.tags(.unit))
 struct LLMConfigurationTests {
     @Test("Default configuration validity")
     func defaultConfiguration() {

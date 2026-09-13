@@ -9,6 +9,7 @@ import Testing
 /// before any user input is persisted. A brand-new, never-persisted thread throws
 /// `ThreadError.threadNotFound`; a transient store fault throws `ThreadError.unavailable`.
 /// Neither is swallowed — the turn does not proceed unhydrated.
+@Suite(.tags(.integration))
 struct HydrationFailurePropagationTests {
     @Test("run(_:) throws threadNotFound for a never-created thread ID (PKRR-005)")
     func runThrowsForMissingThread() async throws {

@@ -1,7 +1,8 @@
 import Testing
 @testable import PositronicKit
+import PKTestSupport
 
-@Suite("DefaultInstructions")
+@Suite("DefaultInstructions", .tags(.unit))
 struct DefaultInstructionsTests {
     @Test("uses neutral workspace wording")
     func usesNeutralWorkspaceWording() {

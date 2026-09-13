@@ -17,7 +17,7 @@ import Testing
 /// `runOneTurn` is exercised end to end. The helpers intentionally omit a
 /// `ThreadRuntimeRepository`, so retry assertions describe the independent-store compatibility
 /// path; atomic admission and terminal replay are covered by `TurnAdmissionSeamTests`.
-@Suite(.serialized) @MainActor
+@Suite(.serialized, .tags(.integration)) @MainActor
 struct TurnEngineFailurePersistenceTests {
     private let threadID = UUID()
 

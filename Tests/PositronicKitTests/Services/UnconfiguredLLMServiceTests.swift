@@ -5,7 +5,7 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
-@Suite("Unconfigured LLM Service")
+@Suite("Unconfigured LLM Service", .tags(.integration))
 struct UnconfiguredLLMServiceTests {
     let service = UnconfiguredLLMService()
 

@@ -4,8 +4,9 @@ import Synchronization
 @testable import PKContracts
 import PKUtilities
 import Foundation
+import PKTestSupport
 
-@Suite("Retry Policy Tests")
+@Suite("Retry Policy Tests", .tags(.unit))
 struct RetryPolicyTests {
 
     @Test("Succeeds on first attempt")

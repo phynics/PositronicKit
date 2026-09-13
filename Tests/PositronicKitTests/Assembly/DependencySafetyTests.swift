@@ -5,7 +5,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("Dependency Safety Tests")
+@Suite("Dependency Safety Tests", .tags(.unit))
 struct DependencySafetyTests {
     @Test("TestRuntime shares one persistence across its managers, services, and core")
     func runtimeSharesPersistence() async throws {

@@ -6,7 +6,7 @@ import struct PositronicKit.DirectTurnContext
 import struct PositronicKit.Thread
 import Testing
 
-@Suite("Turn terminal repository failure")
+@Suite("Turn terminal repository failure", .tags(.integration))
 struct TurnTerminalRepositoryFailureTests {
     @Test("terminal repository failure is exposed as a distinct terminal event")
     func terminalFailureExposesDurabilityFailure() async throws {

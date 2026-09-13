@@ -1,8 +1,9 @@
 import PKPrompt
 import PositronicKitExamples
 import Testing
+import PKTestSupport
 
-@Suite("Introductory stories")
+@Suite("Introductory stories", .tags(.integration))
 struct IntroductoryStoriesTests {
     @Test("Prompt journaling example shows base overlay and compaction flow")
     func promptJournalingExample() async throws {

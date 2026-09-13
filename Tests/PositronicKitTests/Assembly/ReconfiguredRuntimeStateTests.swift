@@ -4,7 +4,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("Reconfigured runtime state")
+@Suite("Reconfigured runtime state", .tags(.integration))
 struct ReconfiguredRuntimeStateTests {
     @Test("a post-reconfiguration joined handle cancels a pre-reconfiguration Turn")
     func postReconfigurationHandleCancelsExistingTurn() async throws {

@@ -4,7 +4,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("Runtime customization")
+@Suite("Runtime customization", .tags(.integration))
 struct RuntimeCustomizationTests {
     @Test("reserved namespaces and oversized values are rejected")
     func contributionBoundsAreEnforced() throws {

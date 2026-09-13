@@ -3,6 +3,7 @@ import Foundation
 import PKUtilities
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
 /// Direct coverage for the cross-thread observation tools (`thread_peek`,
 /// `thread_list`).
@@ -12,7 +13,7 @@ import Testing
 /// `RuntimeToolPolicyFactory` tool set, which left their parameter validation, privacy
 /// guards, and message-limit clamping unverified. These tests drive each tool directly
 /// against in-memory stores.
-@Suite("Thread observation tools")
+@Suite("Thread observation tools", .tags(.integration))
 struct ThreadObservationToolsTests {
 
     @Test("canonical observation tools preserve thread call names")
@@ -32,7 +33,7 @@ struct ThreadObservationToolsTests {
 
     // MARK: - ThreadPeekTool
 
-    @Suite("ThreadPeekTool")
+    @Suite("ThreadPeekTool", .tags(.integration))
     struct PeekToolTests {
         private func makeStores() -> (InMemoryThreadPersistence, InMemoryMessageStore) {
             (InMemoryThreadPersistence(), InMemoryMessageStore())
@@ -198,7 +199,7 @@ struct ThreadObservationToolsTests {
 
     // MARK: - ThreadListTool
 
-    @Suite("ThreadListTool")
+    @Suite("ThreadListTool", .tags(.integration))
     struct ListToolTests {
         @Test("Lists only non-private, non-archived threads")
         func listsNonPrivateNonArchived() async throws {

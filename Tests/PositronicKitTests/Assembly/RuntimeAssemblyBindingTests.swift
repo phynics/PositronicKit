@@ -4,7 +4,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("Runtime assembly binding selection")
+@Suite("Runtime assembly binding selection", .tags(.integration))
 struct RuntimeAssemblyBindingTests {
     @Test("custom runtime repositories keep binding authority explicit")
     func customRuntimeRepositoryKeepsBindingAuthorityExplicit() {

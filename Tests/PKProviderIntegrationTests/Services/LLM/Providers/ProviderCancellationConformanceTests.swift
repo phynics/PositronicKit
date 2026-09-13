@@ -70,7 +70,7 @@ private struct CancellationFoundationModelsSession: FoundationModelsSessionProto
     }
 }
 
-@Suite("Provider cancellation conformance")
+@Suite("Provider cancellation conformance", .tags(.integration))
 struct ProviderCancellationConformanceTests {
     @Test("OpenRouter cancellation reaches the shared transport without a delay")
     func openRouterCancellationReachesTransport() async {

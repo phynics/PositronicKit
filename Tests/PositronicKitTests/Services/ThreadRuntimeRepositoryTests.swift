@@ -2,7 +2,7 @@ import PKTestSupport
 import PositronicKit
 import Testing
 
-@Suite("ThreadRuntimeRepository conformance")
+@Suite("ThreadRuntimeRepository conformance", .tags(.integration))
 struct ThreadRuntimeRepositoryTests {
     @Test("InMemoryThreadRuntimeRepository")
     func inMemoryRepository() async throws {

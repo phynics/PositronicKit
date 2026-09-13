@@ -5,7 +5,9 @@ import PKContracts
 import PKUtilities
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
+@Suite(.tags(.unit))
 struct SidecarSchemaComposerTests {
     private let title = SidecarDirective(
         name: "title", instruction: "Short title; null to decline.",

@@ -3,8 +3,9 @@ import Foundation
 @testable import PKContracts
 import PKUtilities
 import Testing
+import PKTestSupport
 
-@Suite final class ThreadTests {
+@Suite(.tags(.unit)) final class ThreadTests {
     private func assertCodable<T: Codable>(_ value: T) throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601

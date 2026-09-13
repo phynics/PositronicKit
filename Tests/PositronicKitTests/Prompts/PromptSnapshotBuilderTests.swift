@@ -5,12 +5,13 @@ import PKContracts
 import PKUtilities
 @testable import PositronicKit
 import Testing
+import PKTestSupport
 
 /// Verifies `PromptSnapshotBuilder`'s incremental-string path (PKR-10) produces a
 /// `RenderedPrompt.string` identical to a full from-scratch re-assembly over N appended
 /// message batches. The incremental path appends each batch's text to the already-rendered
 /// accumulated string instead of re-joining every prior section each turn.
-@Suite
+@Suite(.tags(.unit))
 struct PromptSnapshotBuilderTests {
     private let builder = PromptSnapshotBuilder(logger: Logger(label: "test.snapshot"))
 
