@@ -3,7 +3,6 @@ import PKUtilities
 import Testing
 import OpenAI
 import Foundation
-import PKTestSupport
 
 @Suite(.tags(.unit)) final class APIRequestsTests {
     private func assertCodable<T: Codable & Equatable>(_ value: T) throws {

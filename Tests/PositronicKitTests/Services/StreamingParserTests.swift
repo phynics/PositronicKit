@@ -3,7 +3,6 @@ import Foundation
 import PKUtilities
 @testable import PositronicKit
 import Testing
-import PKTestSupport
 
 @Suite(.tags(.unit))
 final class StreamingParserTests {

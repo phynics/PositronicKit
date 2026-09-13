@@ -4,7 +4,6 @@ import PKUtilities
 @testable import PositronicKit
 import Synchronization
 import Testing
-import PKTestSupport
 
 /// A one-shot asynchronous latch. Waiting uses a continuation, so task cancellation does not
 /// resume a waiter; `open()` deterministically resumes every current and future waiter.

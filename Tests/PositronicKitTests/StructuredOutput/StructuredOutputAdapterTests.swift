@@ -2,7 +2,6 @@ import Foundation
 import JSONSchemaBuilder
 import PKContracts
 import Testing
-import PKTestSupport
 
 @Suite("Structured output adapters", .tags(.unit))
 @MainActor

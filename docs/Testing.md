@@ -52,9 +52,12 @@ target, so both runtime targets can use it.
 
 ## Tags and the fast loop
 
-The canonical tags are defined once in
-[TestTags.swift](../Tests/PKTestSupport/TestTags.swift) so every target shares
-one vocabulary:
+The canonical tags are defined per runtime test target, in
+`Tests/PositronicKitTests/Support/TestTags.swift` and
+`Tests/PKProviderIntegrationTests/Support/TestTags.swift`, so both targets
+share one vocabulary. (They cannot live in `PKTestSupport`: that module
+deliberately uses `internal import Testing`, while tags must be visible to
+their consumers. Keep the two definitions in sync.)
 
 | Tag | Meaning |
 | --- | --- |

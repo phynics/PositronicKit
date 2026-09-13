@@ -2,7 +2,6 @@ import Foundation
 import PKContracts
 @testable import PositronicKit
 import Testing
-import PKTestSupport
 
 @Suite("Turn execution request", .tags(.integration))
 struct TurnExecutionRequestTests {

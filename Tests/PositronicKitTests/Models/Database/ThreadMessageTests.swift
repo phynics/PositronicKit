@@ -3,7 +3,6 @@ import Testing
 @testable import PKContracts
 import PKUtilities
 import Foundation
-import PKTestSupport
 
 @Suite(.tags(.unit)) final class ThreadMessageTests {
     private func assertCodable<T: Codable>(_ value: T) throws {

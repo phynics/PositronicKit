@@ -3,7 +3,6 @@ import Foundation
 import PKUtilities
 @testable import PositronicKit
 import Testing
-import PKTestSupport
 
 /// Coverage for `UnconfiguredLLMService` non-throwing methods and health checks.
 @Suite("UnconfiguredLLMService non-throwing methods", .tags(.unit))

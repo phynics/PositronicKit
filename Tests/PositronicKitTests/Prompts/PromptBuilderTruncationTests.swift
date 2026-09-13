@@ -4,7 +4,6 @@ import Foundation
 import PKUtilities
 @testable import PositronicKit
 import Testing
-import PKTestSupport
 
 @Suite("Prompt Builder Truncation Tests", .tags(.unit))
 struct PromptBuilderTruncationTests {

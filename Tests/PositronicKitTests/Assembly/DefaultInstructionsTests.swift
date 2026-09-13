@@ -1,6 +1,5 @@
 import Testing
 @testable import PositronicKit
-import PKTestSupport
 
 @Suite("DefaultInstructions", .tags(.unit))
 struct DefaultInstructionsTests {

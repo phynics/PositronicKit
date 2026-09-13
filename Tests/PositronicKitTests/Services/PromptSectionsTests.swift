@@ -4,7 +4,6 @@ import PKUtilities
 @testable import PositronicKit
 import struct PositronicKit.Thread
 import Testing
-import PKTestSupport
 
 // MARK: - Helpers
 

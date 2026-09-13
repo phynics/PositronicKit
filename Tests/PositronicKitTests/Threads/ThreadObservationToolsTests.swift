@@ -3,7 +3,6 @@ import Foundation
 import PKUtilities
 @testable import PositronicKit
 import Testing
-import PKTestSupport
 
 /// Direct coverage for the cross-thread observation tools (`thread_peek`,
 /// `thread_list`).

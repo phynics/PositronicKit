@@ -3,7 +3,6 @@ import PKPrompt
 import PKContracts
 import Testing
 @testable import PositronicKit
-import PKTestSupport
 
 @Suite(.tags(.unit))("Prompt budget derivation (PKRR-001)")
 struct PromptBudgetDerivationTests {

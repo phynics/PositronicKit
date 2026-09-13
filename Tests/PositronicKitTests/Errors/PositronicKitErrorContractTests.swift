@@ -4,7 +4,6 @@ import ErrorKit
 import PKUtilities
 @testable import PositronicKit
 import Testing
-import PKTestSupport
 
 /// Coverage for the package's `PKError`-conforming error enums.
 ///

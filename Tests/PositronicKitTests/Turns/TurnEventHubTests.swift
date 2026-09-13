@@ -2,7 +2,6 @@ import Foundation
 @testable import PKContracts
 @testable import PositronicKit
 import Testing
-import PKTestSupport
 
 @Suite("Turn EventHub terminal subscription", .tags(.integration))
 struct TurnEventHubTests {

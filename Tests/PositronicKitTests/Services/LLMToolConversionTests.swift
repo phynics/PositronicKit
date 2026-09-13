@@ -5,7 +5,6 @@ import PKContracts
 import PKUtilities
 import Testing
 @testable import PositronicKit
-import PKTestSupport
 
 @Suite("LLM tool conversion", .tags(.unit))
 struct LLMToolConversionTests {

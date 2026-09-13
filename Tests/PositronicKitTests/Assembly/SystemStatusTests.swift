@@ -3,7 +3,6 @@ import Foundation
 import PKUtilities
 @testable import PositronicKit
 import Testing
-import PKTestSupport
 
 @Suite("System Status Tests", .tags(.unit))
 struct SystemStatusTests {

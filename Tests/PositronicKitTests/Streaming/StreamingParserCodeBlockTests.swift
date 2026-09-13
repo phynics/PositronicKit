@@ -1,7 +1,6 @@
 import Foundation
 @testable import PositronicKit
 import Testing
-import PKTestSupport
 
 @Suite(.tags(.unit))
 struct StreamingParserCodeBlockTests {

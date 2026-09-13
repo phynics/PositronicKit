@@ -141,8 +141,8 @@ for tagged releases beginning with `1.0.0`.
   `PositronicKitTests` into the new `PKProviderIntegrationTests` target, so the runtime test
   target no longer depends on any adapter, `PositronicKitExamples`, or the raw `OpenAI`
   package; `make verify-dependency-direction` enforces the boundary. Suites carry shared
-  swift-testing tags (`.unit`, `.integration`, `.slow`, `.platformSpecific`) defined once in
-  `PKTestSupport`, and `make test-fast` runs the tagged unit subset for the inner loop.
+  swift-testing tags (`.unit`, `.integration`, `.slow`, `.platformSpecific`) defined per
+  runtime test target, and `make test-fast` runs the tagged unit subset for the inner loop.
   Every gate script now has a known-bad fixture test running in `make verify-agent-harness`
   on both platform gates, the story coverage index is enforced by
   `make verify-story-coverage`, and `docs/Testing.md` defines the test layers, determinism

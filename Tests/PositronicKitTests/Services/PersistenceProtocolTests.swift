@@ -4,7 +4,6 @@ import struct PositronicKit.Thread
 @testable import PKContracts
 import PKUtilities
 import Testing
-import PKTestSupport
 
 @Suite(.tags(.unit))
 struct PersistenceProtocolTests {

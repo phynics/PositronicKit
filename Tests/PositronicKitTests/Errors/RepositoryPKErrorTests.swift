@@ -2,7 +2,6 @@ import Foundation
 import PKContracts
 @testable import PositronicKit
 import Testing
-import PKTestSupport
 
 /// Verifies stable identity and user-facing presentation for repository errors.
 @Suite("Repository PKError contracts", .tags(.unit))

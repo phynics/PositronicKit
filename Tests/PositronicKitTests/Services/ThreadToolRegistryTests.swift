@@ -3,7 +3,6 @@ import Foundation
 @testable import PKContracts
 import PKUtilities
 import Testing
-import PKTestSupport
 
 @Suite(.tags(.unit))
 final class ThreadToolRegistryTests {

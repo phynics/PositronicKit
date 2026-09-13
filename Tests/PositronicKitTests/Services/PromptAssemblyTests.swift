@@ -6,7 +6,6 @@ import PKUtilities
 @testable import PositronicKit
 import Synchronization
 import Testing
-import PKTestSupport
 
 private final class PromptAssemblyLogSink: Sendable {
     private let entries = Mutex<[(Logger.Level, String)]>([])

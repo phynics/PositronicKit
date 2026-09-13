@@ -1,7 +1,6 @@
 import PKPrompt
 import PositronicKitExamples
 import Testing
-import PKTestSupport
 
 @Suite("Introductory stories", .tags(.integration))
 struct IntroductoryStoriesTests {

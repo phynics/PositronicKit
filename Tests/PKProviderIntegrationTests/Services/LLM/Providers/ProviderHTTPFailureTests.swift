@@ -10,7 +10,6 @@ import PKUtilities
 @testable import PKOpenRouterProvider
 @testable import PositronicKit
 import Testing
-import PKTestSupport
 
 @Suite("Provider HTTP Failures", .tags(.integration))
 struct ProviderHTTPFailureTests {

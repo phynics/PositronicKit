@@ -1,6 +1,5 @@
 import Foundation
 import Testing
-import PKTestSupport
 
 @Suite("FoundationNetworking import audit", .tags(.platformSpecific))
 struct FoundationNetworkingImportAuditTests {

@@ -3,7 +3,6 @@ import Synchronization
 import Testing
 @testable import PKContracts
 @testable import PKUtilities
-import PKTestSupport
 
 /// Regression tests for PKRR-030: `RetryPolicy.retry` must reject invalid numeric
 /// values (negative, NaN, infinite, extreme) with typed errors rather than silently
