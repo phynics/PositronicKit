@@ -10,6 +10,11 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Thread history has a public, ordered facade:** use `kit.threads.messages(for:)` to read
+  durable messages in oldest-first order. A `ThreadMessageStoreProtocol` conformer must return
+  messages sorted by timestamp and preserve append order for equal timestamps; an unknown Thread
+  ID returns an empty array.
+
 - **Thread execution now admits Turns through `TurnHandle`:** use
   `ThreadHandle.startTurn(_:options:)` for managed execution and
   `ThreadHandle.startDirectTurn(_:context:options:)` for explicit detached execution. The new

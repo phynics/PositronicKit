@@ -7,6 +7,11 @@ import Foundation
 
 public protocol ThreadMessageStoreProtocol: DurabilityAware {
     func saveMessage(_ message: ThreadMessage) async throws
+
+    /// Fetches the durable messages for a Thread in transcript order.
+    ///
+    /// Results must be ordered by ascending ``ThreadMessage/timestamp``. Messages with equal
+    /// timestamps must retain their append order. An unknown Thread ID returns an empty array.
     func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage]
     func deleteMessages(for threadID: UUID) async throws
     /// Deletes (or previews deleting) messages older than `timeInterval`.

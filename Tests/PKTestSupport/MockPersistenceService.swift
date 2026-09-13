@@ -30,6 +30,7 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
         var mockIsDurable = false
         var fetchThreadFails = false
         var completeTurnFails = false
+        var unorderedMessagesForThreadID: UUID?
         var deletedMessageThreadIDs: Set<UUID> = []
         var saveMessageFailureAfter: Int?
         var saveMessageCallCount = 0
@@ -82,6 +83,13 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
     public var completeTurnFails: Bool {
         get { state.withLock { $0.completeTurnFails } }
         set { state.withLock { $0.completeTurnFails = newValue } }
+    }
+
+    /// Package-only test control that reverses fetched messages for one fixture Thread to prove
+    /// the shipped conformance suite detects an adapter that violates the ordering contract.
+    package var unorderedMessagesForThreadID: UUID? {
+        get { state.withLock { $0.unorderedMessagesForThreadID } }
+        set { state.withLock { $0.unorderedMessagesForThreadID = newValue } }
     }
 
     /// Causes message persistence to fail after the specified number of successful calls. This
@@ -175,10 +183,18 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
         var merged = focused
         let existingIDs = Set(focused.map(\.id))
         merged.append(contentsOf: cohesive.filter { !existingIDs.contains($0.id) })
-        return merged.sorted { lhs, rhs in
-            if lhs.timestamp == rhs.timestamp { return lhs.id.uuidString < rhs.id.uuidString }
-            return lhs.timestamp < rhs.timestamp
+        if state.withLock({ $0.unorderedMessagesForThreadID == threadID }) {
+            return Array(merged.reversed())
         }
+        return merged
+            .enumerated()
+            .sorted { lhs, rhs in
+                if lhs.element.timestamp != rhs.element.timestamp {
+                    return lhs.element.timestamp < rhs.element.timestamp
+                }
+                return lhs.offset < rhs.offset
+            }
+            .map { $0.element }
     }
 
     public func deleteMessages(for threadID: UUID) async throws {

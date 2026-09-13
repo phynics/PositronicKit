@@ -203,6 +203,22 @@ let turn = try await thread.startDirectTurn(
 
 Pass an explicit contributor array when a `TurnContextSource` needs a different selection.
 
+### Reading Thread history
+
+Read durable messages through `kit.threads.messages(for:)`. The result is ordered from oldest to
+newest by `ThreadMessage.timestamp`. Messages with equal timestamps keep their append order. An
+unknown Thread ID returns an empty array.
+
+```swift
+let history = try await kit.threads.messages(for: thread.id)
+for message in history {
+    print("\(message.messageRole): \(message.content)")
+}
+```
+
+`ThreadCapability.messages(for:)` reads semantic Thread history. It does not read the assembled
+prompt state observed by `PromptJournal`.
+
 ### Typed One-Shot Structured Generation
 
 Use `kit.model.generate` when the response should be decoded into a schema-backed Swift type

@@ -13,7 +13,16 @@ public actor InMemoryMessageStore: ThreadMessageStoreProtocol {
     }
 
     public func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage] {
-        messages.filter { $0.threadID == threadID }
+        messages
+            .filter { $0.threadID == threadID }
+            .enumerated()
+            .sorted { lhs, rhs in
+                if lhs.element.timestamp != rhs.element.timestamp {
+                    return lhs.element.timestamp < rhs.element.timestamp
+                }
+                return lhs.offset < rhs.offset
+            }
+            .map { $0.element }
     }
 
     public func deleteMessages(for threadID: UUID) async throws {
