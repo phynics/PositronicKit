@@ -16,6 +16,7 @@ EOF
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 podman_bin="${PODMAN:-podman}"
 linux_image="${LINUX_IMAGE:-positronickit-linux-dev}"
+git_common_dir=""
 build_only=0
 lock_path=""
 log_path=""
@@ -89,6 +90,14 @@ run_gate() {
     return 0
   fi
 
+  if [ -f "$repo_root/.git" ]; then
+    if ! git_common_dir="$(git -C "$repo_root" rev-parse --path-format=absolute --git-common-dir)" \
+      || [ ! -d "$git_common_dir" ]; then
+      printf 'run-linux-container: could not resolve the linked worktree Git directory\n' >&2
+      return 1
+    fi
+  fi
+
   run_command=(
     "$podman_path" run --rm --userns=keep-id
     --user "$(id -u):$(id -g)"
@@ -96,6 +105,11 @@ run_gate() {
     -v "$repo_root:/workspace:Z"
     -w /workspace
   )
+
+  if [ -n "$git_common_dir" ]; then
+    # Use the shared z label here; a private Z relabel would break the host checkout.
+    run_command+=(-v "$git_common_dir:$git_common_dir:ro,z")
+  fi
 
   if [ -n "${LINUX_TEST_FILTER:-}" ]; then
     run_command+=(-e "LINUX_TEST_FILTER=$LINUX_TEST_FILTER")

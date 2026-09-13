@@ -536,10 +536,9 @@ make verify-products   # Build every supported product on the current host
 make verify-documentation # Check catalog, generated navigation, links, anchors, pins, and vocabulary
 ```
 
-`make agent-verify` needs Podman on the host. The pinned image supplies Swift, Rust,
-the C/C++ toolchain, and native dependencies. If an agent sandbox blocks Podman,
-rerun the same command with escalated container-runtime permissions; do not fall back
-to host Swift.
+`make agent-verify` needs Podman on the host. The pinned image supplies Swift and Python.
+If an agent sandbox blocks Podman, rerun the same command with container-runtime permission.
+Do not fall back to host Swift.
 
 ## Linux development
 
@@ -547,10 +546,10 @@ PositronicKit uses one reproducible Linux development path: the pinned Podman im
 
 ### Podman
 
-The included Dev Container provides Swift 6.3.3, Rust stable, and all native prerequisites on Ubuntu 24.04:
+The included Dev Container provides Swift 6.3.3 and Python on Ubuntu 24.04:
 
 ```bash
-make linux-image   # Build the development image (swift:6.3.3-noble + Rust + native deps)
+make linux-image   # Build the development image (swift:6.3.3-noble)
 make linux-build   # Compile in the container (bind-mounts your checkout)
 make agent-verify  # Run the complete product, example, support, and test gate
 make agent-test FILTER='MessageContentTests' # Run one focused test selection

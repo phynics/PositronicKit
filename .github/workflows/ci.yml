@@ -21,25 +21,12 @@ jobs:
     name: "Linux — Swift 6.3.3 (Ubuntu 24.04)"
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Install native prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            pkg-config \
-            libssl-dev \
-            curl \
-            perl \
-            libdigest-sha-perl \
-            python3 \
-            git
-
       - name: Cache SwiftPM downloads
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .build/checkouts
@@ -51,7 +38,7 @@ jobs:
       - name: Install SwiftLint
         run: |
           curl -fsSL -o /tmp/swiftlint_linux.zip \
-            https://github.com/realm/SwiftLint/releases/download/0.63.2/swiftlint_linux_amd64.zip
+            https://github.com/realm/SwiftLint/releases/download/0.65.1/swiftlint_linux_amd64.zip
           unzip -o /tmp/swiftlint_linux.zip -d /tmp/swiftlint-bin
           echo "/tmp/swiftlint-bin" >> "$GITHUB_PATH"
 
@@ -70,7 +57,7 @@ jobs:
 
       - name: Publish current Linux test log
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: linux-current-test-log
           path: .build/linux-current.log
@@ -80,12 +67,12 @@ jobs:
     name: "macOS — make verify (macos-latest)"
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Cache SwiftPM downloads
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .build/checkouts
@@ -104,7 +91,7 @@ jobs:
 
       - name: Publish macOS verify log
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: macos-verify-log
           path: .build/macos-verify.log
@@ -114,25 +101,12 @@ jobs:
     name: "Linux — coverage reports (Ubuntu 24.04)"
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Install native prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            pkg-config \
-            libssl-dev \
-            curl \
-            perl \
-            libdigest-sha-perl \
-            python3 \
-            git
-
       - name: Cache SwiftPM downloads
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .build/checkouts
@@ -148,7 +122,7 @@ jobs:
 
       - name: Publish Linux coverage artifacts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: linux-coverage-reports
           path: |

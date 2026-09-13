@@ -77,6 +77,9 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **Contributor verification commands:** removed unused Make targets and obsolete Rust packages
+  from the Linux development image. Use `make verify` on macOS, `make agent-verify` on Linux,
+  and `make agent-test FILTER='...'` for focused Linux tests.
 - **TurnEvent factory parameter names (#158):** the underscored `err` and `msg` parameters in
   the error factories are now `error` and `message` for clearer public declarations. Caller
   syntax and runtime behavior are unchanged.
