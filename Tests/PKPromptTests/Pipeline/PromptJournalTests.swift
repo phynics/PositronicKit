@@ -128,7 +128,7 @@ struct PromptJournalTests {
 
         journal.recordAppend(messages: [
             Message(content: "Assistant reply", role: .assistant),
-            Message(content: "Tool output", role: .tool),
+            Message(content: "PKTool output", role: .tool),
         ])
 
         #expect(journal.shouldCompact)
@@ -230,7 +230,7 @@ struct PromptJournalTests {
 
         journal.recordAppend(messages: [
             Message(content: "Assistant reply", role: .assistant),
-            Message(content: "Tool output", role: .tool),
+            Message(content: "PKTool output", role: .tool),
         ])
         #expect(journal.shouldCompact)
 

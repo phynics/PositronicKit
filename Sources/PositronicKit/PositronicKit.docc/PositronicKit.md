@@ -1,23 +1,23 @@
-# ``PositronicKit``
+# ``PKRuntime``
 
-The transport-neutral runtime facade for PositronicKit.
+The transport-neutral runtime facade for PKRuntime.
 
 ## Overview
 
-PositronicKit provides a capability-oriented public runtime entry point for model inference,
-Thread handles, agent identity, workspace catalogs, prompt assembly, and persistence. It assembles
+PKRuntime provides a capability-oriented public runtime entry point for model inference,
+Timeline handles, agent identity, workspace catalogs, prompt assembly, and persistence. It assembles
 runtime dependencies internally from explicit initializer parameters so downstream applications
 integrate through normal Swift initializers instead of configuring a dependency container directly.
 
 ### Key Components
 
-- **PositronicKit facade**: The public entry point; `model`, `threads`, `agents`, and `workspaces`
+- **PKRuntime facade**: The public entry point; `model`, `timelines`, `agents`, and `workspaces`
   are the supported capability values.
-- **ThreadHandle**: A Thread-addressed value that starts managed or explicit direct Turns.
+- **TimelineHandle**: An identity-bound Timeline value that starts managed or explicit direct Turns.
 - **TurnHandle**: A stable admitted-Turn value exposing nonthrowing events, durable outcome replay,
   and turn-scoped cancellation.
 - **Persistence Layer**: A suite of domain-specific store protocols.
-- **Tool System**: Runtime-managed and host-attached tool routing over shared tool contracts.
+- **PKTool System**: Runtime-managed and host-attached tool routing over shared tool contracts.
 
 ### Language Model Readiness
 
@@ -44,15 +44,15 @@ fallback; implement ``LLMStreamClient/readiness`` when the client can report a m
 
 ### Run Validation And Agent Preflight
 
-`ThreadHandle.startTurn(_:options:)` and `ThreadHandle.startDirectTurn(_:context:options:)` perform all
+`TimelineHandle.startTurn(_:options:)` and `TimelineHandle.startDirectTurn(_:context:options:)` perform all
 request and preparation work before returning an admitted `TurnHandle`:
 
 - `TurnOptions.maxModelRounds` must be at least `1`. Invalid values throw
-  `TurnError.invalidMaxModelRounds` before thread lookup, persistence, or provider work.
-- Thread hydration failures throw their typed `ThreadError` before input is persisted.
-- Managed execution captures the Agent attached to the Thread immediately before durable
+  `TurnError.invalidMaxModelRounds` before timeline lookup, persistence, or provider work.
+- Timeline hydration failures throw their typed `TimelineError` before input is persisted.
+- Managed execution captures the Agent attached to the Timeline immediately before durable
   admission; detached managed execution throws `TurnError.managedExecutionRequiresAttachedAgent`.
-- Direct execution requires a detached Thread and an explicit `DirectTurnContext`.
+- Direct execution requires a detached Timeline and an explicit `DirectTurnContext`.
 - A failed preflight does not consume `requestID`; callers may retry the same request after
   repairing the dependency.
 
@@ -77,27 +77,27 @@ timeouts, and cancellation retain their existing error identities. The raw opera
 the next breaking release is tracked in
 [#176](https://github.com/phynics/PositronicKit/issues/176).
 
-### Thread history
+### Timeline history
 
-Read durable Thread messages through ``ThreadCapability/messages(for:)``. The result is ordered
-from oldest to newest by ``ThreadMessage/timestamp``. Messages with equal timestamps keep their
-append order. An unknown Thread ID returns an empty array.
+Read durable Timeline messages through ``TimelineCapability/messages(for:)``. The result is ordered
+from oldest to newest by ``TimelineMessage/timestamp``. Messages with equal timestamps keep their
+append order. An unknown Timeline ID returns an empty array.
 
 ```swift
-let history = try await kit.threads.messages(for: threadID)
+let history = try await kit.timelines.messages(for: timelineID)
 for message in history {
     print("\(message.messageRole): \(message.content)")
 }
 ```
 
-Thread history records semantic runtime messages. `PromptJournal` observes assembled prompt state
-for provider prompt reuse and does not replace Thread history.
+Timeline history records semantic runtime messages. `PromptJournal` observes assembled prompt state
+for provider prompt reuse and does not replace Timeline history.
 
 ### Error Delivery And Cancellation
 
 Errors are delivered at the boundary where their work occurs:
 
-- Request validation, thread hydration, execution-authority checks, provider-configuration
+- Request validation, timeline hydration, execution-authority checks, provider-configuration
   checks, sidecar validation, and other preparation failures throw from the awaited start call
   before it returns a `TurnHandle`.
 - After admission, `TurnHandle.events()` is nonthrowing. Provider and pipeline failures are
@@ -106,7 +106,7 @@ Errors are delivered at the boundary where their work occurs:
   provider failures throw from the one-shot call. `stream` reports provider failures during
   iteration.
 
-Cancelling a task that consumes a facade run cancels the provider task and removes the thread's
+Cancelling a task that consumes a facade run cancels the provider task and removes the timeline's
 active-task registration. Abandoning a facade `stream` iterator also cancels its provider.
 Cancellation of `complete` and `completeResult` remains `CancellationError` rather than being
 wrapped as a foreign provider failure.

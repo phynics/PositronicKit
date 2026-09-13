@@ -11,7 +11,7 @@ public enum SidecarCommitPolicy: Sendable, Codable, Equatable {
 
 /// Transport-neutral configuration for a single turn.
 struct TurnRequest: Sendable, CustomStringConvertible {
-    let threadID: UUID
+    let timelineID: UUID
     let requestID: UUID?
     let messageContent: MessageContent
     var message: String { messageContent.text }
@@ -29,10 +29,10 @@ struct TurnRequest: Sendable, CustomStringConvertible {
     let audioOutput: AudioOutputOptions?
 
     init(
-        threadID: UUID,
+        timelineID: UUID,
         requestID: UUID? = nil,
         message: String,
-        tools: [any Tool] = [],
+        tools: [any PKTool] = [],
         toolOutputs: [ToolOutputSubmission]? = nil,
         systemInstructions: String? = nil,
         maxModelRounds: Int = 5,
@@ -45,7 +45,7 @@ struct TurnRequest: Sendable, CustomStringConvertible {
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil
     ) {
-        self.threadID = threadID
+        self.timelineID = timelineID
         self.requestID = requestID
         messageContent = MessageContent(message)
         self.tools = tools.map { AnyTool($0) }
@@ -64,10 +64,10 @@ struct TurnRequest: Sendable, CustomStringConvertible {
 
     /// Creates a turn with ordered multimodal user content.
     init(
-        threadID: UUID,
+        timelineID: UUID,
         requestID: UUID? = nil,
         content: MessageContent,
-        tools: [any Tool] = [],
+        tools: [any PKTool] = [],
         toolOutputs: [ToolOutputSubmission]? = nil,
         systemInstructions: String? = nil,
         maxModelRounds: Int = 5,
@@ -80,7 +80,7 @@ struct TurnRequest: Sendable, CustomStringConvertible {
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil
     ) {
-        self.threadID = threadID
+        self.timelineID = timelineID
         self.requestID = requestID
         messageContent = content
         self.tools = tools.map { AnyTool($0) }
@@ -104,6 +104,6 @@ struct TurnRequest: Sendable, CustomStringConvertible {
         let generationParametersDescription = generationParameters.map { String(describing: $0) } ?? "nil"
         let structuredOutputDescription = structuredOutput.map { String(describing: $0) } ?? "nil"
         let promptAssemblyLoggerDescription = promptAssemblyLogger.map { $0.label } ?? "nil"
-        return "TurnRequest(threadID: \(threadID), requestID: \(requestIDDescription), message: <redacted>, mediaParts: \(messageContent.parts.count), tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), maxModelRounds: \(maxModelRounds), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), sidecarCommitPolicy: \(sidecarCommitPolicy), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
+        return "TurnRequest(timelineID: \(timelineID), requestID: \(requestIDDescription), message: <redacted>, mediaParts: \(messageContent.parts.count), tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), maxModelRounds: \(maxModelRounds), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), sidecarCommitPolicy: \(sidecarCommitPolicy), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
     }
 }

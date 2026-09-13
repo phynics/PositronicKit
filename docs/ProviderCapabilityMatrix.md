@@ -7,7 +7,7 @@ changing either the manifest or this table.
 The common request surface remains provider-neutral. Optional generation settings may degrade with
 a structured warning, but media is strict: callers must explicitly enable the model capability and
 unsupported media or an unrepresentable content order fails before prompt journaling, persistence,
-or provider I/O. PositronicKit accepts caller-resolved `Data` and never loads media from a file or
+or provider I/O. PKRuntime accepts caller-resolved `Data` and never loads media from a file or
 URL.
 
 | Provider | Image input | Audio input | Audio output | Layout notes |

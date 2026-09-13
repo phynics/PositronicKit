@@ -10,7 +10,7 @@ struct TurnExecutionRequestTests {
         let requestID = UUID()
         let defaults = GenerationParameters(temperature: 0.25, maxTokens: 512)
         let request = TurnRequest(
-            threadID: UUID(),
+            timelineID: UUID(),
             requestID: requestID,
             message: "Hello"
         )
@@ -32,17 +32,17 @@ struct TurnExecutionRequestTests {
 
     @Test("idempotency fingerprints use effective generation parameters")
     func fingerprintsEffectiveGenerationParameters() {
-        let threadID = UUID()
+        let timelineID = UUID()
         let requestID = UUID()
         let effective = GenerationParameters(temperature: 0.5, maxTokens: 256)
         let inherited = TurnExecutionRequest(
-            TurnRequest(threadID: threadID, requestID: requestID, message: "Hello"),
+            TurnRequest(timelineID: timelineID, requestID: requestID, message: "Hello"),
             defaultGenerationParameters: effective,
             executionKind: .direct
         )
         let explicit = TurnExecutionRequest(
             TurnRequest(
-                threadID: threadID,
+                timelineID: timelineID,
                 requestID: requestID,
                 message: "Hello",
                 generationParameters: effective
@@ -50,7 +50,7 @@ struct TurnExecutionRequestTests {
             executionKind: .direct
         )
         let changed = TurnExecutionRequest(
-            TurnRequest(threadID: threadID, requestID: requestID, message: "Hello"),
+            TurnRequest(timelineID: timelineID, requestID: requestID, message: "Hello"),
             defaultGenerationParameters: GenerationParameters(temperature: 0.75, maxTokens: 256),
             executionKind: .direct
         )

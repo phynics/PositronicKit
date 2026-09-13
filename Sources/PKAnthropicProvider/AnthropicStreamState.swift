@@ -5,7 +5,7 @@ import PKContracts
 
 /// Accumulates cross-event state while mapping the Anthropic event stream to `LLMStreamChunk`s.
 ///
-/// Tool-use inputs stream as `input_json_delta.partial_json` fragments scoped to a content
+/// PKTool-use inputs stream as `input_json_delta.partial_json` fragments scoped to a content
 /// block `index`; this state assigns each tool_use block an ordinal (the `LLMToolCallDelta.index`)
 /// so downstream accumulation reassembles arguments exactly like the OpenAI-family adapters.
 struct AnthropicStreamState {

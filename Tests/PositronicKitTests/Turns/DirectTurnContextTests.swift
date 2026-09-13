@@ -39,10 +39,10 @@ struct DirectTurnContextTests {
     func directTurnUsesDefaultContributor() async throws {
         let model = MockLLMService()
         model.mockClient.nextResponse = "direct reply"
-        let kit = PositronicKit(languageModel: model)
-        let thread = try await kit.threads.create(title: "Direct")
+        let kit = PKRuntime(languageModel: model)
+        let timeline = try await kit.timelines.create(title: "Direct")
 
-        let turn = try await thread.startDirectTurn(
+        let turn = try await timeline.startDirectTurn(
             "hello",
             context: DirectTurnContext(systemInstructions: "")
         )
@@ -55,18 +55,18 @@ struct DirectTurnContextTests {
     func defaultContributorPreservesFingerprint() async throws {
         let model = MockLLMService()
         model.mockClient.nextResponse = "replayed reply"
-        let kit = PositronicKit(languageModel: model)
-        let thread = try await kit.threads.create(title: "Replay")
+        let kit = PKRuntime(languageModel: model)
+        let timeline = try await kit.timelines.create(title: "Replay")
         let options = TurnOptions(requestID: UUID())
 
-        let explicit = try await thread.startDirectTurn(
+        let explicit = try await timeline.startDirectTurn(
             "same request",
             context: DirectTurnContext(systemInstructions: "", contributor: .host),
             options: options
         )
         _ = await explicit.events().collect()
 
-        let omitted = try await thread.startDirectTurn(
+        let omitted = try await timeline.startDirectTurn(
             "same request",
             context: DirectTurnContext(systemInstructions: ""),
             options: options
@@ -82,15 +82,15 @@ struct DirectTurnContextTests {
         let model = MockLLMService()
         model.mockClient.nextResponse = "context-aware reply"
         let source = RecordingTurnContextSource()
-        let repository = InMemoryThreadRuntimeRepository()
-        let kit = PositronicKit(configuration: .init(
+        let repository = InMemoryTimelineRuntimeRepository()
+        let kit = PKRuntime(configuration: .init(
             languageModel: model,
             persistence: .init(runtimeRepository: repository),
             runtime: .init(customization: RuntimeCustomization(turnContextSource: source))
         ))
-        let thread = try await kit.threads.create(title: "Context source")
+        let timeline = try await kit.timelines.create(title: "Context source")
 
-        let turn = try await thread.startDirectTurn(
+        let turn = try await timeline.startDirectTurn(
             "hello",
             context: DirectTurnContext(systemInstructions: "")
         )

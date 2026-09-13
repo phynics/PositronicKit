@@ -8,10 +8,10 @@ import Testing
 #if canImport(FoundationModels)
     import FoundationModels
 
-    /// Fixture tool mirroring the shape PositronicKit's built-in tools declare: a flat object of
+    /// Fixture tool mirroring the shape PKRuntime's built-in tools declare: a flat object of
     /// primitive-typed properties (`ToolParameterSchema.object { ... }`), described via
     /// `parametersSchema` — no framework dependency of its own.
-    private struct FixtureWeatherTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    private struct FixtureWeatherTool: PKContracts.PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "lookup_weather"
         let name = "Lookup Weather"
         let toolDescription = "Look up the current weather for a city"
@@ -42,7 +42,7 @@ import Testing
         }
     }
 
-    private struct FixtureFailingTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    private struct FixtureFailingTool: PKContracts.PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "always_fails"
         let name = "Always Fails"
         let toolDescription = "A tool that always fails"
@@ -63,7 +63,7 @@ import Testing
     }
 
     /// `PKBridgedFMTool`/`FoundationModelsSchemaBridge` tests (PKPOST-003): bridging a
-    /// PositronicKit `Tool`'s runtime JSON-Schema-shaped `parametersSchema` to the framework's
+    /// PKRuntime `PKTool`'s runtime JSON-Schema-shaped `parametersSchema` to the framework's
     /// `GenerationSchema`/`GeneratedContent`, and back again for argument decoding.
     @Suite("FoundationModels tool bridge")
     struct FoundationModelsToolBridgeTests {

@@ -12,7 +12,7 @@ import Testing
 /// They previously had zero direct coverage — the domain/code/message contracts were only
 /// exercised incidentally through higher-level integration paths, leaving regressions in
 /// error identity undetectable.
-@Suite("PositronicKit error contracts", .tags(.unit))
+@Suite("PKRuntime error contracts", .tags(.unit))
 struct PositronicKitErrorContractTests {
     // MARK: - TurnError
 
@@ -45,13 +45,13 @@ struct PositronicKitErrorContractTests {
 
         @Test("execution authority cases use stable turn identities")
         func executionAuthorityIdentities() {
-            let threadID = UUID()
+            let timelineID = UUID()
             let requestedAgentID = UUID()
             let cases: [TurnError] = [
-                .managedExecutionRequiresAttachedAgent(threadID),
-                .directExecutionRequiresDetachedThread(threadID),
+                .managedExecutionRequiresAttachedAgent(timelineID),
+                .directExecutionRequiresDetachedTimeline(timelineID),
                 .managedExecutionAgentMismatch(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     requestedAgentID: requestedAgentID,
                     attachedAgentID: nil
                 ),
@@ -59,15 +59,15 @@ struct PositronicKitErrorContractTests {
 
             #expect(cases.map(\.errorCode) == [9021, 9022, 9023])
             #expect(cases.allSatisfy { $0.errorDomain == PKErrorDomain.turn })
-            #expect(cases.allSatisfy { $0.errorDescription?.contains(threadID.uuidString) == true })
+            #expect(cases.allSatisfy { $0.errorDescription?.contains(timelineID.uuidString) == true })
         }
 
         @Test("execution authority cases provide actionable remediation")
         func executionAuthorityRemediation() {
             #expect(TurnError.managedExecutionRequiresAttachedAgent(UUID()).remediation?.contains("Attach") == true)
-            #expect(TurnError.directExecutionRequiresDetachedThread(UUID()).remediation?.contains("Detach") == true)
+            #expect(TurnError.directExecutionRequiresDetachedTimeline(UUID()).remediation?.contains("Detach") == true)
             #expect(TurnError.managedExecutionAgentMismatch(
-                threadID: UUID(),
+                timelineID: UUID(),
                 requestedAgentID: UUID(),
                 attachedAgentID: nil
             ).remediation?.contains("currently attached") == true)
@@ -85,11 +85,11 @@ struct PositronicKitErrorContractTests {
             let cases: [AgentError] = [
                 .agentNotFound(UUID()),
                 .differentAgentAlreadyAttached(UUID()),
-                .hasAttachedThreads(count: 3),
+                .hasAttachedTimelines(count: 3),
                 .nameTooShort("ab"),
                 .descriptionEmpty,
-                .cannotAttachToPrivateThread(UUID()),
-                .cannotDetachFromOwnPrivateThread(UUID()),
+                .cannotAttachToPrivateTimeline(UUID()),
+                .cannotDetachFromOwnPrivateTimeline(UUID()),
             ]
             let codes = cases.map(\.errorCode)
             #expect(Set(codes).count == codes.count)
@@ -112,11 +112,11 @@ struct PositronicKitErrorContractTests {
             #expect(!error.userFriendlyMessage.contains(id.uuidString))
         }
 
-        @Test("hasAttachedThreads surfaces the count in both descriptions")
-        func hasAttachedThreadsCount() {
-            let error = AgentError.hasAttachedThreads(count: 5)
-            #expect(error.errorDescription?.contains("5 thread(s)") == true)
-            #expect(error.userFriendlyMessage.contains("5 thread(s)"))
+        @Test("hasAttachedTimelines surfaces the count in both descriptions")
+        func hasAttachedTimelinesCount() {
+            let error = AgentError.hasAttachedTimelines(count: 5)
+            #expect(error.errorDescription?.contains("5 timeline(s)") == true)
+            #expect(error.userFriendlyMessage.contains("5 timeline(s)"))
         }
 
         @Test("nameTooShort includes the offending name in the technical description")

@@ -22,7 +22,7 @@ struct StructuredOutputSchemaTests {
     }
 }
 
-@Suite("LLM Tool Call Recovery State Tests")
+@Suite("LLM PKTool Call Recovery State Tests")
 struct LLMToolCallRecoveryStateTests {
     @Test("recovery state tracks yielded content and streamed tool calls")
     func recoveryStateTracksObservedStreamSignals() {

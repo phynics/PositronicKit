@@ -3,7 +3,7 @@ import Foundation
 import JSONSchemaBuilder
 @testable import PKContracts
 
-@Suite("Tool Parameter Schema Tests")
+@Suite("PKTool Parameter Schema Tests")
 struct ToolParameterSchemaTests {
 
     @Test("Basic Object Building")

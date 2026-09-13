@@ -5,15 +5,15 @@ import PKUtilities
 
 import Foundation
 
-public protocol ThreadMessageStoreProtocol: DurabilityAware {
-    func saveMessage(_ message: ThreadMessage) async throws
+public protocol TimelineMessageStoreProtocol: DurabilityAware {
+    func saveMessage(_ message: TimelineMessage) async throws
 
-    /// Fetches the durable messages for a Thread in transcript order.
+    /// Fetches the durable messages for a Timeline in transcript order.
     ///
-    /// Results must be ordered by ascending ``ThreadMessage/timestamp``. Messages with equal
-    /// timestamps must retain their append order. An unknown Thread ID returns an empty array.
-    func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage]
-    func deleteMessages(for threadID: UUID) async throws
+    /// Results must be ordered by ascending ``TimelineMessage/timestamp``. Messages with equal
+    /// timestamps must retain their append order. An unknown Timeline ID returns an empty array.
+    func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage]
+    func deleteMessages(for timelineID: UUID) async throws
     /// Deletes (or previews deleting) messages older than `timeInterval`.
     ///
     /// - Parameters:
@@ -27,5 +27,5 @@ public protocol ThreadMessageStoreProtocol: DurabilityAware {
     /// - Note: Conformers must not mutate persisted state when `dryRun == true`. Side effects that
     ///   don't affect persisted rows (e.g. logging the preview) are permitted in dry-run mode.
     func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int
-    func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot]
+    func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot]
 }

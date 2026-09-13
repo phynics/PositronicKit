@@ -85,10 +85,10 @@ struct WorkspaceToolDispatcher: Sendable {
 
     static let callName = "call_tool"
 
-    private let threadManager: ThreadManager
+    private let timelineManager: TimelineManager
 
-    init(threadManager: ThreadManager) {
-        self.threadManager = threadManager
+    init(timelineManager: TimelineManager) {
+        self.timelineManager = timelineManager
     }
 
     /// Resolves a provider-facing dispatcher call exclusively against the admission snapshot.
@@ -163,7 +163,7 @@ struct WorkspaceToolDispatcher: Sendable {
     /// Executes a prepared dispatch after its caller has persisted intent.
     func execute(
         _ dispatch: WorkspaceToolDispatch,
-        threadID: UUID,
+        timelineID: UUID,
         using executeLocally: @escaping LocalExecutor
     ) async throws -> ToolExecutionOutcome {
         let arguments = dispatch.arguments
@@ -180,12 +180,12 @@ struct WorkspaceToolDispatcher: Sendable {
         let route = dispatch.route
         switch try executionDisposition(
             location: route.location,
-            threadIsPrivate: await threadManager.thread(id: threadID)?.isPrivate ?? false
+            timelineIsPrivate: await timelineManager.timeline(id: timelineID)?.isPrivate ?? false
         ) {
         case .executeLocally:
-            let output = try await threadManager.withWorkspaceExecution(route.workspaceID) {
+            let output = try await timelineManager.withWorkspaceExecution(route.workspaceID) {
                 if !route.isPrimary {
-                    try await threadManager.requireWorkspaceBinding(route.workspaceID, for: threadID)
+                    try await timelineManager.requireWorkspaceBinding(route.workspaceID, for: timelineID)
                 }
                 return try await executeLocally(route.tool, nested)
             }
@@ -204,21 +204,21 @@ struct WorkspaceToolDispatcher: Sendable {
         guard case let .workspace(workspaceID, _) = tool.origin else {
             return try await executeLocally(tool, arguments)
         }
-        return try await threadManager.withWorkspaceExecution(workspaceID) {
+        return try await timelineManager.withWorkspaceExecution(workspaceID) {
             try await executeLocally(tool, arguments)
         }
     }
 
     private func executionDisposition(
         location: WorkspaceReference.WorkspaceLocation,
-        threadIsPrivate: Bool
+        timelineIsPrivate: Bool
     ) throws -> WorkspaceExecutionDisposition {
         switch location {
-        case .runtime, .runtimeThread:
+        case .runtime, .runtimeTimeline:
             return .executeLocally
         case .attached:
-            guard !threadIsPrivate else {
-                throw ToolError.attachedToolsDisallowedOnPrivateThread
+            guard !timelineIsPrivate else {
+                throw ToolError.attachedToolsDisallowedOnPrivateTimeline
             }
             return .deferExternally
         }
@@ -229,7 +229,7 @@ struct WorkspaceToolDispatcher: Sendable {
 ///
 /// The router consumes this marker before normal tool execution. Its implementation is a guard
 /// against accidental direct execution if a future call path forgets to use the dispatcher.
-private struct WorkspaceCallTool: Tool, Sendable {
+private struct WorkspaceCallTool: PKTool, Sendable {
     let callName = WorkspaceToolDispatcher.callName
     let name = "Workspace Tool"
     let toolDescription = "Call a tool in an authorized workspace. Omit 'at' only when exactly one workspace matches."
@@ -266,22 +266,22 @@ private enum WorkspaceExecutionDisposition {
     case deferExternally
 }
 
-extension ThreadManager {
+extension TimelineManager {
     private static let reservedAgentWorkspaceToolNames: Set<String> = [
         "read_file", "list_files", "search_files", "write_file", "append_file", "edit_file", "delete_file",
     ]
 
     /// Captures the authorized workspace tools used by an admitted Turn. When no Agent primary
-    /// Workspace is supplied, this contains only ordinary Workspaces bound to the Thread.
+    /// Workspace is supplied, this contains only ordinary Workspaces bound to the Timeline.
     ///
-    /// The caller invokes this from the same admission authority lane used for Agent and Thread
+    /// The caller invokes this from the same admission authority lane used for Agent and Timeline
     /// mutations. Workspace references and tool wrappers are copied into the returned value before
     /// the durable Turn admission is committed.
     func captureWorkspaceToolCatalog(
-        for threadID: UUID,
+        for timelineID: UUID,
         primaryWorkspaceID: UUID?
     ) async throws -> WorkspaceToolCatalog {
-        let query = try await getWorkspaces(for: threadID)
+        let query = try await getWorkspaces(for: timelineID)
         var references: [(WorkspaceReference, Bool)] = []
         if let primaryWorkspaceID,
            let primary = try await workspaceStore.fetchWorkspace(id: primaryWorkspaceID, includeTools: true)
@@ -298,7 +298,7 @@ extension ThreadManager {
         }
 
         guard !references.isEmpty else { return WorkspaceToolCatalog(entries: []) }
-        let registry = toolManagers[threadID]
+        let registry = toolManagers[timelineID]
         var entries: [WorkspaceToolCatalog.Entry] = []
 
         for (reference, isPrimary) in references {
@@ -307,9 +307,9 @@ extension ThreadManager {
                 tools = await registry.tools(inWorkspace: reference.id)
             }
 
-            // The primary Agent workspace is not an ordinary Thread binding, so hydrate its
+            // The primary Agent workspace is not an ordinary Timeline binding, so hydrate its
             // wrappers directly. This also fills any custom definitions unavailable in the
-            // Thread registry while preserving known system tools where applicable.
+            // Timeline registry while preserving known system tools where applicable.
             var fileProvider: (any WorkspaceFileProvider)?
             let liveWorkspace = try? await workspaceResolver.workspace(id: reference.id)
             fileProvider = liveWorkspace as? any WorkspaceFileProvider

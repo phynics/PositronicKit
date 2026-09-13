@@ -3,8 +3,8 @@ import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
-/// Tool to change the current working directory of the session
-package struct ChangeDirectoryTool: Tool, Sendable {
+/// PKTool to change the current working directory of the session
+package struct ChangeDirectoryTool: PKTool, Sendable {
     package let callName = "change_directory"
     package let name = "Change Directory"
     package let toolDescription = "Change the current working directory for relative file operations."

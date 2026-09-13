@@ -6,16 +6,16 @@ import Testing
 struct AgentStoreContractTests {
     @Test("InMemoryAgentStore")
     func inMemoryStore() async throws {
-        try await AgentStoreConformanceSuite.run { threads in
-            InMemoryAgentStore(threads: threads)
+        try await AgentStoreConformanceSuite.run { timelines in
+            InMemoryAgentStore(timelines: timelines)
         }
     }
 
     @Test("MockPersistenceService")
     func compositeMockStore() async throws {
-        try await AgentStoreConformanceSuite.run { threads in
+        try await AgentStoreConformanceSuite.run { timelines in
             let store = MockPersistenceService()
-            store.threads = threads
+            store.timelines = timelines
             return store
         }
     }

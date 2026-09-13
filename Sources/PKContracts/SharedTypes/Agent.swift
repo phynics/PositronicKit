@@ -10,7 +10,7 @@ public enum AgentLifecycleState: String, Codable, Sendable, Equatable {
     case retired
 }
 
-/// A live agent entity with its own workspace and private thread.
+/// A live agent entity with its own workspace and private timeline.
 ///
 /// `Agent` is created from an `AgentTemplate` template (which provides initial instructions),
 /// but is self-contained — it holds its own identity and durable resource ownership without
@@ -29,12 +29,12 @@ public struct Agent: Codable, Sendable, Identifiable, Equatable {
     public var lifecycle: AgentLifecycleState
 
     /// The agent's private workspace — where root SOUL.md and persistent Notes/ files live.
-    /// This is the agent's memory across threads.
+    /// This is the agent's memory across timelines.
     public var primaryWorkspaceID: UUID?
 
-    /// The agent's private thread (internal monologue / cross-agent inbox).
+    /// The agent's private timeline (internal monologue / cross-agent inbox).
     /// Created atomically with the instance. Never nil after creation.
-    public let privateThreadID: UUID
+    public let privateTimelineID: UUID
 
     /// Updated on every chat generation turn for activity tracking.
     public var lastActiveAt: Date
@@ -51,7 +51,7 @@ public struct Agent: Codable, Sendable, Identifiable, Equatable {
         description: String,
         lifecycle: AgentLifecycleState = .active,
         primaryWorkspaceID: UUID? = nil,
-        privateThreadID: UUID,
+        privateTimelineID: UUID,
         lastActiveAt: Date = Date(),
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
@@ -62,7 +62,7 @@ public struct Agent: Codable, Sendable, Identifiable, Equatable {
         self.description = description
         self.lifecycle = lifecycle
         self.primaryWorkspaceID = primaryWorkspaceID
-        self.privateThreadID = privateThreadID
+        self.privateTimelineID = privateTimelineID
         self.lastActiveAt = lastActiveAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -73,7 +73,7 @@ public struct Agent: Codable, Sendable, Identifiable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case id, name, description, lifecycle
         case primaryWorkspaceID = "primaryWorkspaceId"
-        case privateThreadID = "privateThreadId"
+        case privateTimelineID = "privateThreadId"
         case lastActiveAt, createdAt, updatedAt, metadata
     }
 
@@ -85,7 +85,7 @@ public struct Agent: Codable, Sendable, Identifiable, Equatable {
             description: try container.decode(String.self, forKey: .description),
             lifecycle: try container.decodeIfPresent(AgentLifecycleState.self, forKey: .lifecycle) ?? .active,
             primaryWorkspaceID: try container.decodeIfPresent(UUID.self, forKey: .primaryWorkspaceID),
-            privateThreadID: try container.decode(UUID.self, forKey: .privateThreadID),
+            privateTimelineID: try container.decode(UUID.self, forKey: .privateTimelineID),
             lastActiveAt: try container.decode(Date.self, forKey: .lastActiveAt),
             createdAt: try container.decode(Date.self, forKey: .createdAt),
             updatedAt: try container.decode(Date.self, forKey: .updatedAt),
@@ -100,7 +100,7 @@ public struct Agent: Codable, Sendable, Identifiable, Equatable {
         try container.encode(description, forKey: .description)
         try container.encode(lifecycle, forKey: .lifecycle)
         try container.encodeIfPresent(primaryWorkspaceID, forKey: .primaryWorkspaceID)
-        try container.encode(privateThreadID, forKey: .privateThreadID)
+        try container.encode(privateTimelineID, forKey: .privateTimelineID)
         try container.encode(lastActiveAt, forKey: .lastActiveAt)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)

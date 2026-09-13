@@ -10,39 +10,45 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
-- **Thread history has a public, ordered facade:** use `kit.threads.messages(for:)` to read
-  durable messages in oldest-first order. A `ThreadMessageStoreProtocol` conformer must return
-  messages sorted by timestamp and preserve append order for equal timestamps; an unknown Thread
+- **Timeline execution now admits Turns through `TurnHandle`:** use
+  `TimelineHandle.startTurn(_:options:)` for managed execution and
+  `TimelineHandle.startDirectTurn(_:context:options:)` for explicit detached execution. The new
+  `TurnOptions` value carries per-Turn configuration without repeating the handle's `timelineID`;
+
+- **Timeline history has a public, ordered facade:** use `kit.timelines.messages(for:)` to read
+  durable messages in oldest-first order. A `TimelineMessageStoreProtocol` conformer must return
+  messages sorted by timestamp and preserve append order for equal timestamps; an unknown Timeline
   ID returns an empty array.
 
-- **Thread execution now admits Turns through `TurnHandle`:** use
-  `ThreadHandle.startTurn(_:options:)` for managed execution and
-  `ThreadHandle.startDirectTurn(_:context:options:)` for explicit detached execution. The new
-  `TurnOptions` value carries per-Turn configuration without repeating the handle's `threadID`;
+- **Timeline execution now admits Turns through `TurnHandle`:** use
+  `TimelineHandle.startTurn(_:options:)` for managed execution and
+  `TimelineHandle.startDirectTurn(_:context:options:)` for explicit detached execution. The new
+  `TurnOptions` value carries per-Turn configuration without repeating the handle's `timelineID`;
+
   managed multimodal content uses the corresponding `MessageContent` overload, and managed
   system instructions are supplied as a required admission argument. Direct instructions remain
-  in `DirectTurnContext`; the former public stream-shaped Thread entry points and `TurnRequest`
+  in `DirectTurnContext`; the former public stream-shaped Timeline entry points and `TurnRequest`
   are no longer part of the consumer API.
 
 - **Turn failures retain their terminal event shape:** admitted Turns expose terminal provider,
   runtime, cancellation, and durability failures through `TurnHandle.events()`. A terminal
   persistence failure is now `.error(.durabilityFailure(...))` and does not fabricate a durable
-  `TurnOutcome`. `ThreadController.send(_:)` throws `ThreadControllerError` for runtime and
+  `TurnOutcome`. `TimelineController.send(_:)` throws `TimelineControllerError` for runtime and
   durability events and `CancellationError` for cancellation.
 - **Public naming and shape cleanup for Swift API Design Guidelines conformance (#141):**
   `WorkspaceCatalog.getWorkspace(id:includeTools:)` is now `fetchWorkspace(id:includeTools:)`;
-  `PositronicKit.openThread(_:)` is removed in favor of `ThreadCapability.open(_:)`;
+  `PKRuntime.openTimeline(_:)` is removed in favor of `TimelineCapability.open(_:)`;
   `HealthCheckable.getHealthDetails()` and `WorkspaceProvider.healthCheck()` are now the async
-  properties `healthDetails` and `isHealthy`; `ThreadCapability.create(title:attaching:)` takes
-  an optional `agentID` instead of two overloads, and `ThreadHandle.startTurn` collapses its
-  `systemInstructions` overloads into an optional parameter; `ThreadCapability.rename(_:title:)`
+  properties `healthDetails` and `isHealthy`; `TimelineCapability.create(title:attaching:)` takes
+  an optional `agentID` instead of two overloads, and `TimelineHandle.startTurn` collapses its
+  `systemInstructions` overloads into an optional parameter; `TimelineCapability.rename(_:title:)`
   is now `rename(_:to:)` and `WorkspaceCapability.delete(_:deleteDirectory:)` is now
   `delete(_:includingDirectory:)`; `TurnEvent.sidecarsCompleted(_:[SidecarResult])` is now the
   labeled `sidecarsCompleted(results:)`; `LLMStreamClient.generationStream` collapses its
   `responseModalities`/`audioOutput` overload into the single required signature. Boolean
   properties that didn't read as assertions are renamed: `ToolResult.success` → `isSuccess`,
   `RuntimeToolResult.succeeded` → `isSuccessful`, `TurnRecord.recoveryRequired` →
-  `requiresRecovery`, `RuntimeToolPolicy.installThreadSendTool` → `installsThreadSendTool`,
+  `requiresRecovery`, `RuntimeToolPolicy.installTimelineSendTool` → `installsTimelineSendTool`,
   `StructuredOutputSchema.strict`/`LLMResponseSchema.strict`/`LLMToolDefinition.strict` →
   `isStrict`, `LenientJSONParser.ParseResult.repaired` → `wasRepaired`, and
   `CompressionNodeReport.cacheHit`/`StructuredCompressionNodeMetric.cacheHit` → `didHitCache`
@@ -57,7 +63,7 @@ for tagged releases beginning with `1.0.0`.
   and `String(describing:)` no longer returns LLM-facing prose. Erasure semantics, `origin`
   propagation, and `ToolSource.resolvedTools()` behavior are unchanged.
 - **Grouped configuration takes the language model directly (#157):** the single-field
-  `PositronicKit.ProviderConfiguration` box is removed, so `PositronicKit.Configuration`
+  `PKRuntime.ProviderConfiguration` box is removed, so `PKRuntime.Configuration`
   now carries `languageModel: any LLMStreamClient` instead of `provider:`. Migrate
   `Configuration(provider: .init(languageModel: myModel), ...)` to
   `Configuration(languageModel: myModel, ...)`. `PKContracts.ProviderConfiguration` (the
@@ -67,7 +73,7 @@ for tagged releases beginning with `1.0.0`.
   `AgentStoreProtocol` now spell identifier suffixes `ID`/`IDs` (`workspaceID`,
   `workspaceIDs`, `originID`, `agentID`); `findWorkspaceId(forToolId:in:)` is now
   `findWorkspace(hostingToolNamed:in:)`, `fetchToolSource` takes
-  `named`/`in`/`preferring` with a `toolName`, and `ThreadToolRegistry.toggleTool`
+  `named`/`in`/`preferring` with a `toolName`, and `TimelineToolRegistry.toggleTool`
   takes a `toolName`. The `PKTestSupport` conformers (`MockToolPersistence`,
   `FailingToolPersistence`, `MockPersistenceService`) and the
   `WorkspaceReference.fixture(originID:)` helper match, and the `5.1` API baselines
@@ -90,7 +96,7 @@ for tagged releases beginning with `1.0.0`.
   streams assistant text fragments in order without nested event switching, and
   `TurnHandle.result()` awaits one consolidated, durable `TurnResult` (terminal
   `outcome` plus the final assistant `message` when the Turn recorded one). Both
-  are derived from the existing event stream and the atomic Thread runtime
+  are derived from the existing event stream and the atomic Timeline runtime
   repository, so no second execution or persistence path is created; `events()`
   remains the full-fidelity stream for advanced consumers, and every `result()`
   joiner observes the same durable outcome.
@@ -99,8 +105,8 @@ for tagged releases beginning with `1.0.0`.
   existing native/synthetic structured-output path, and returns the decoded value. Schema
   construction and payload-decoding failures have stable, actionable error identities; the raw
   `generateStructured` operation remains available for advanced callers.
-- **Stable repository error identity and durable failure messages (#167):** `ThreadRuntimeRepositoryError`
-  now uses `PKErrorDomain.thread` codes `6101` through `6117`, with `6118` reserved. Each
+- **Stable repository error identity and durable failure messages (#167):** `TimelineRuntimeRepositoryError`
+  now uses `PKErrorDomain.timeline` codes `6101` through `6117`, with `6118` reserved. Each
   `WorkspaceBindingRepositoryError` case uses `PKErrorDomain.workspace` codes `3101` through
   `3103`. Both enums now expose those identities through `localizedDescription` and
   `userFriendlyMessage`. Newly persisted `TurnOutcome.failed` messages use
@@ -110,7 +116,7 @@ for tagged releases beginning with `1.0.0`.
   Turn calls do not need to name a contributor. Explicit contributor arrays and the existing
   convenience initializers remain unchanged.
 - **Shipped protocol conformance suites:** `PKTestSupport` now exposes explicitly invoked Swift
-  Testing runners for `ThreadRuntimeRepository`, `WorkspaceStore`, `ToolPersistenceProtocol`,
+  Testing runners for `TimelineRuntimeRepository`, `WorkspaceStore`, `ToolPersistenceProtocol`,
   `AgentStoreProtocol`, `RequestOriginStoreProtocol`, and `WorkspaceFactory`. The toolchain-provided
   `Testing` module is used only by the test-support product; downstream test targets retain native
   test discovery and diagnostics. The suites define durable CRUD, scope, authority, history,
@@ -129,22 +135,22 @@ for tagged releases beginning with `1.0.0`.
   the existing 60-second streamed-response idle default, while retry, idle-timeout, and
   termination-wait timing use internal injectable seams for deterministic tests. Cancelling the
   task that consumes `TurnHandle.events()` now propagates to the admitted provider task and clears
-  its Thread registration; a consumer that joined or replayed a Turn owned by another caller can
+  its Timeline registration; a consumer that joined or replayed a Turn owned by another caller can
   still abandon its stream without cancelling that owner's generation. `streamTimeout` is clamped
   to one millisecond ... one day, so a negative or non-finite value can no longer fail every Turn
-  or trap the stream watchdog. It governs Turn execution only: the Thread-free `kit.model`
+  or trap the stream watchdog. It governs Turn execution only: the timeline-free `kit.model`
   generation, streaming, and structured-output entry points keep their own `idleTimeout`
   parameter, which still defaults to 60 seconds.
-- **Atomic managed Thread creation:** `kit.threads.create(title:attaching:)` validates an active
-  Agent before creating an ordinary Thread and returns a handle whose attachment is ready for
-  managed execution. Creation failures roll back the Thread's durable state.
+- **Atomic managed Timeline creation:** `kit.timelines.create(title:attaching:)` validates an active
+  Agent before creating an ordinary Timeline and returns a handle whose attachment is ready for
+  managed execution. Creation failures roll back the Timeline's durable state.
 - **Provider-neutral model readiness:** `kit.model.readiness()` distinguishes invalid
   configuration, a missing usable client, and local readiness without network I/O. The separate
   `kit.model.checkHealth()` operation delegates optional provider connectivity checks and reports
   unsupported custom clients with `ModelHealthError.unsupported`.
 - Added `ConfiguredLLMProvider` and provider-specific `makeConfiguredProvider(...)` factories so
   common OpenAI, OpenRouter, Ollama, and Anthropic setup can pass one value to
-  `PositronicKit(provider:)` without exposing service or client-set assembly.
+  `PKRuntime(provider:)` without exposing service or client-set assembly.
 - **Test taxonomy and runtime test split (#154):** provider-touching suites moved from
   `PositronicKitTests` into the new `PKProviderIntegrationTests` target, so the runtime test
   target no longer depends on any adapter, `PositronicKitExamples`, or the raw `OpenAI`

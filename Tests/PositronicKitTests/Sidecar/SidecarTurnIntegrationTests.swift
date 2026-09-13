@@ -16,8 +16,8 @@ struct SidecarTurnIntegrationTests {
         ]
     }
 
-    private func makeChat(llmService: MockLLMService, persistence: MockPersistenceService) -> PositronicKit {
-        PositronicKit(configuration: .init(languageModel: llmService, persistence: .init(
+    private func makeChat(llmService: MockLLMService, persistence: MockPersistenceService) -> PKRuntime {
+        PKRuntime(configuration: .init(languageModel: llmService, persistence: .init(
                 runtimeRepository: persistence,
                 workspacePersistence: persistence,
                 toolPersistence: persistence,
@@ -34,11 +34,11 @@ struct SidecarTurnIntegrationTests {
         ]]
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
-        let threadID = UUID()
-        try await persistence.saveThread(Thread(id: threadID, title: "Sidecar Turn"))
+        let timelineID = UUID()
+        try await persistence.saveTimeline(TimelineRecord(id: timelineID, title: "Sidecar Turn"))
 
         let stream = try await chat.run(TurnRequest(
-            threadID: threadID,
+            timelineID: timelineID,
             message: "hello",
             sidecars: directives
         ))
@@ -62,7 +62,7 @@ struct SidecarTurnIntegrationTests {
 
     @Test("Sidecar commit policy is Codable and defaults to every round-trip")
     func sidecarCommitPolicyCodableAndDefault() throws {
-        let defaultRequest = TurnRequest(threadID: UUID(), message: "hello")
+        let defaultRequest = TurnRequest(timelineID: UUID(), message: "hello")
         #expect(defaultRequest.sidecarCommitPolicy == .everyModelRound)
         for policy in [SidecarCommitPolicy.everyModelRound, .terminalModelRound] {
             let data = try JSONEncoder().encode(policy)
@@ -75,12 +75,12 @@ struct SidecarTurnIntegrationTests {
         let mockLLM = MockLLMService()
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
-        let threadID = UUID()
-        try await persistence.saveThread(Thread(id: threadID, title: "Sidecar Conflict"))
+        let timelineID = UUID()
+        try await persistence.saveTimeline(TimelineRecord(id: timelineID, title: "Sidecar Conflict"))
 
         await #expect(throws: SidecarError.conflictsWithExplicitStructuredOutput) {
             _ = try await chat.run(TurnRequest(
-                threadID: threadID,
+                timelineID: timelineID,
                 message: "hello",
                 structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition()),
                 sidecars: directives
@@ -96,11 +96,11 @@ struct SidecarTurnIntegrationTests {
         ]]
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
-        let threadID = UUID()
-        try await persistence.saveThread(Thread(id: threadID, title: "Instruction Block"))
+        let timelineID = UUID()
+        try await persistence.saveTimeline(TimelineRecord(id: timelineID, title: "Instruction Block"))
 
         let stream = try await chat.run(TurnRequest(
-            threadID: threadID,
+            timelineID: timelineID,
             message: "hello",
             sidecars: directives
         ))
@@ -121,15 +121,15 @@ struct SidecarTurnIntegrationTests {
         #expect(schema.name == "sidecar_turn")
 
         // System message must be byte-identical to a run without sidecars — the directive
-        // list must not leak into the cache-stable system prefix. Use the same thread ID
-        // and title so the "Current Thread" section is identical across both chats.
+        // list must not leak into the cache-stable system prefix. Use the same timeline ID
+        // and title so the "Current Timeline" section is identical across both chats.
         let mockLLMWithout = MockLLMService()
         mockLLMWithout.mockClient.nextChunks = [["ok"]]
         let persistenceWithout = MockPersistenceService()
         let chatWithout = makeChat(llmService: mockLLMWithout, persistence: persistenceWithout)
-        try await persistenceWithout.saveThread(Thread(id: threadID, title: "Instruction Block"))
+        try await persistenceWithout.saveTimeline(TimelineRecord(id: timelineID, title: "Instruction Block"))
         let streamWithout = try await chatWithout.run(TurnRequest(
-            threadID: threadID,
+            timelineID: timelineID,
             message: "hello"
         ))
         for try await _ in streamWithout {}
@@ -142,7 +142,7 @@ struct SidecarTurnIntegrationTests {
 
     @Test("Sidecar instruction block survives a tool-call turn and reaches every request")
     func multiTurnSidecarInstructionPersists() async throws {
-        struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+        struct MockTool: PKContracts.PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
             let callName = "mock_tool"
             let name = "mock_tool"
             let toolDescription = "A mock tool for testing"
@@ -154,7 +154,7 @@ struct SidecarTurnIntegrationTests {
             }
 
             func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-                .success("Tool result")
+                .success("PKTool result")
             }
         }
 
@@ -166,11 +166,11 @@ struct SidecarTurnIntegrationTests {
         ]
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
-        let threadID = UUID()
-        try await persistence.saveThread(Thread(id: threadID, title: "Multi-Turn Sidecar"))
+        let timelineID = UUID()
+        try await persistence.saveTimeline(TimelineRecord(id: timelineID, title: "Multi-Turn Sidecar"))
 
         let stream = try await chat.run(TurnRequest(
-            threadID: threadID,
+            timelineID: timelineID,
             message: "hello",
             tools: [AnyTool(MockTool())],
             sidecars: directives
@@ -189,7 +189,7 @@ struct SidecarTurnIntegrationTests {
 
     @Test("Terminal policy suppresses the tool round and identifies the final round")
     func terminalPolicyCommitsOnlyFinalRound() async throws {
-        struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+        struct MockTool: PKContracts.PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
             let callName = "mock_tool"
             let name = "mock_tool"
             let toolDescription = "A mock tool for testing"
@@ -208,12 +208,12 @@ struct SidecarTurnIntegrationTests {
         ]
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
-        let threadID = UUID()
-        try await persistence.saveThread(Thread(id: threadID, title: "Terminal policy"))
+        let timelineID = UUID()
+        try await persistence.saveTimeline(TimelineRecord(id: timelineID, title: "Terminal policy"))
         let requestId = UUID()
 
         let stream = try await chat.run(TurnRequest(
-            threadID: threadID,
+            timelineID: timelineID,
             requestID: requestId,
             message: "hello",
             tools: [AnyTool(MockTool())],
@@ -238,18 +238,18 @@ struct SidecarTurnIntegrationTests {
             .init(name: "summary", instruction: "One sentence summary.", schema: JSONString().definition(), streaming: .buffered),
         ]
 
-        // All three chats use the same thread ID and title so the "Current Thread"
+        // All three chats use the same timeline ID and title so the "Current Timeline"
         // section is byte-identical across them.
-        let sharedThreadId = UUID()
+        let sharedTimelineId = UUID()
         let sharedTitle = "Stable System"
 
         let mockLLMA = MockLLMService()
         mockLLMA.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"title": "T", "tone": "flat"}}"#]]
         let persistenceA = MockPersistenceService()
         let chatA = makeChat(llmService: mockLLMA, persistence: persistenceA)
-        try await persistenceA.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
+        try await persistenceA.saveTimeline(TimelineRecord(id: sharedTimelineId, title: sharedTitle))
         let streamA = try await chatA.run(TurnRequest(
-            threadID: sharedThreadId,
+            timelineID: sharedTimelineId,
             message: "hello",
             sidecars: directives
         ))
@@ -259,9 +259,9 @@ struct SidecarTurnIntegrationTests {
         mockLLMB.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"summary": "S"}}"#]]
         let persistenceB = MockPersistenceService()
         let chatB = makeChat(llmService: mockLLMB, persistence: persistenceB)
-        try await persistenceB.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
+        try await persistenceB.saveTimeline(TimelineRecord(id: sharedTimelineId, title: sharedTitle))
         let streamB = try await chatB.run(TurnRequest(
-            threadID: sharedThreadId,
+            timelineID: sharedTimelineId,
             message: "hello",
             sidecars: directivesB
         ))
@@ -271,9 +271,9 @@ struct SidecarTurnIntegrationTests {
         mockLLMEmpty.mockClient.nextChunks = [["ok"]]
         let persistenceEmpty = MockPersistenceService()
         let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: persistenceEmpty)
-        try await persistenceEmpty.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
+        try await persistenceEmpty.saveTimeline(TimelineRecord(id: sharedTimelineId, title: sharedTitle))
         let streamEmpty = try await chatEmpty.run(TurnRequest(
-            threadID: sharedThreadId,
+            timelineID: sharedTimelineId,
             message: "hello",
             sidecars: []
         ))
@@ -289,18 +289,18 @@ struct SidecarTurnIntegrationTests {
 
     @Test("Mechanism preamble is stable, name-free system text opt-in")
     func preambleOptInAddsStableSystemText() async throws {
-        // Both chats use the same thread ID and title so the "Current Thread"
+        // Both chats use the same timeline ID and title so the "Current Timeline"
         // section is byte-identical across them.
-        let sharedThreadId = UUID()
+        let sharedTimelineId = UUID()
         let sharedTitle = "Preamble Stability"
 
         let mockLLMWith = MockLLMService()
         mockLLMWith.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"title": "T", "tone": "flat"}}"#]]
         let persistenceWith = MockPersistenceService()
         let chatWith = makeChat(llmService: mockLLMWith, persistence: persistenceWith)
-        try await persistenceWith.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
+        try await persistenceWith.saveTimeline(TimelineRecord(id: sharedTimelineId, title: sharedTitle))
         let streamWith = try await chatWith.run(TurnRequest(
-            threadID: sharedThreadId,
+            timelineID: sharedTimelineId,
             message: "hello",
             sidecars: directives,
             includeSidecarMechanismPreamble: true
@@ -311,9 +311,9 @@ struct SidecarTurnIntegrationTests {
         mockLLMEmpty.mockClient.nextChunks = [["ok"]]
         let persistenceEmpty = MockPersistenceService()
         let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: persistenceEmpty)
-        try await persistenceEmpty.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
+        try await persistenceEmpty.saveTimeline(TimelineRecord(id: sharedTimelineId, title: sharedTitle))
         let streamEmpty = try await chatEmpty.run(TurnRequest(
-            threadID: sharedThreadId,
+            timelineID: sharedTimelineId,
             message: "hello",
             sidecars: [],
             includeSidecarMechanismPreamble: true
@@ -335,10 +335,10 @@ struct SidecarTurnIntegrationTests {
         mockLLM.mockClient.nextChunks = [["ok"]]
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
-        let threadID = UUID()
-        try await persistence.saveThread(Thread(id: threadID, title: "Preamble Default"))
+        let timelineID = UUID()
+        try await persistence.saveTimeline(TimelineRecord(id: timelineID, title: "Preamble Default"))
         let stream = try await chat.run(TurnRequest(
-            threadID: threadID,
+            timelineID: timelineID,
             message: "hello",
             includeSidecarMechanismPreamble: true
         ))
@@ -351,23 +351,23 @@ struct SidecarTurnIntegrationTests {
 
     @Test("Turn with sidecars: [] behaves identically to a turn without the parameter")
     func emptySidecarsIsANoOp() async throws {
-        let sharedThreadId = UUID()
+        let sharedTimelineId = UUID()
         let sharedTitle = "Empty Sidecar NoOp"
 
         let mockLLMWithout = MockLLMService()
         mockLLMWithout.mockClient.nextChunks = [["Hello"]]
         let persistenceWithout = MockPersistenceService()
         let chatWithout = makeChat(llmService: mockLLMWithout, persistence: persistenceWithout)
-        try await persistenceWithout.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
+        try await persistenceWithout.saveTimeline(TimelineRecord(id: sharedTimelineId, title: sharedTitle))
 
         let mockLLMWith = MockLLMService()
         mockLLMWith.mockClient.nextChunks = [["Hello"]]
         let persistenceWith = MockPersistenceService()
         let chatWith = makeChat(llmService: mockLLMWith, persistence: persistenceWith)
-        try await persistenceWith.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
+        try await persistenceWith.saveTimeline(TimelineRecord(id: sharedTimelineId, title: sharedTitle))
 
         let streamWithout = try await chatWithout.run(TurnRequest(
-            threadID: sharedThreadId,
+            timelineID: sharedTimelineId,
             message: "hi"
         ))
         var signaturesWithout: [String] = []
@@ -376,7 +376,7 @@ struct SidecarTurnIntegrationTests {
         }
 
         let streamWith = try await chatWith.run(TurnRequest(
-            threadID: sharedThreadId,
+            timelineID: sharedTimelineId,
             message: "hi",
             sidecars: []
         ))

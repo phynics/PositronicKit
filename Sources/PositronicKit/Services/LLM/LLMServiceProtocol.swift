@@ -186,7 +186,7 @@ public protocol LLMStreamClient: Sendable {
     ///
     /// - Parameters:
     ///   - messages: The prepared message history to send.
-    ///   - tools: Tool definitions to offer the model, if any.
+    ///   - tools: PKTool definitions to offer the model, if any.
     ///   - toolChoice: How the model should select among `tools`, if constrained.
     ///   - responseFormat: The expected response shape, if structured output is requested.
     ///   - generationParameters: Sampling/generation overrides for this request.

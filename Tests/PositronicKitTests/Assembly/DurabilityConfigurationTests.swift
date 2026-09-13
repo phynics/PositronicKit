@@ -8,7 +8,7 @@ import Testing
 struct DurabilityConfigurationTests {
     @Test("in-memory configuration reports six ephemeral stores")
     func inMemoryStoresAreEphemeral() {
-        let report = PositronicKit.PersistenceConfiguration.inMemory().validateDurability()
+        let report = PKRuntime.PersistenceConfiguration.inMemory().validateDurability()
         #expect(!report.isMixed)
         #expect(report.ephemeralStoreNames.count == 6)
         #expect(report.runtimeRepository == .ephemeral)
@@ -23,8 +23,8 @@ struct DurabilityConfigurationTests {
     func durableStoresAreDurable() {
         let store = MockPersistenceService()
         store.mockIsDurable = true
-        let runtimeRepository = InMemoryThreadRuntimeRepository(isDurable: true)
-        let config = PositronicKit.PersistenceConfiguration.fullyPersistent(
+        let runtimeRepository = InMemoryTimelineRuntimeRepository(isDurable: true)
+        let config = PKRuntime.PersistenceConfiguration.fullyPersistent(
             runtimeRepository: runtimeRepository,
             workspacePersistence: store,
             toolPersistence: store,
@@ -41,8 +41,8 @@ struct DurabilityConfigurationTests {
     func mixedStoresAreNamed() throws {
         let durable = MockPersistenceService()
         durable.mockIsDurable = true
-        let runtimeRepository = InMemoryThreadRuntimeRepository(isDurable: true)
-        let config = PositronicKit.PersistenceConfiguration(
+        let runtimeRepository = InMemoryTimelineRuntimeRepository(isDurable: true)
+        let config = PKRuntime.PersistenceConfiguration(
             runtimeRepository: runtimeRepository,
             workspacePersistence: durable,
             toolPersistence: InMemoryToolPersistence(),
@@ -57,7 +57,7 @@ struct DurabilityConfigurationTests {
 
     @Test("durability report remains equatable")
     func reportEquatable() {
-        let first = PositronicKit.DurabilityReport(
+        let first = PKRuntime.DurabilityReport(
             runtimeRepository: .durable,
             workspacePersistence: .durable,
             workspaceBindingRepository: .durable,
@@ -65,7 +65,7 @@ struct DurabilityConfigurationTests {
             agentStore: .ephemeral,
             requestOriginStore: .durable
         )
-        #expect(first == PositronicKit.DurabilityReport(
+        #expect(first == PKRuntime.DurabilityReport(
             runtimeRepository: .durable,
             workspacePersistence: .durable,
             workspaceBindingRepository: .durable,

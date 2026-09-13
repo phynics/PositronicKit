@@ -12,14 +12,14 @@ struct TypedStructuredGenerationTests {
     func nativeStructuredGeneration() async throws {
         let llm = MockLLMService()
         llm.mockClient.nextChunks = [[#"{"project_name":"PositronicKit","language":"Swift"}"#]]
-        let persistence = PositronicKit.PersistenceConfiguration(
-            runtimeRepository: InMemoryThreadRuntimeRepository(),
+        let persistence = PKRuntime.PersistenceConfiguration(
+            runtimeRepository: InMemoryTimelineRuntimeRepository(),
             workspacePersistence: InMemoryWorkspacePersistence(),
             toolPersistence: InMemoryToolPersistence(),
             agentStore: InMemoryAgentStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: persistence,
             generationParameters: GenerationParameters(temperature: 0.4, maxTokens: 64)
@@ -47,7 +47,7 @@ struct TypedStructuredGenerationTests {
         #expect(!encodedSchema.contains("projectName"))
         #expect(llm.mockClient.lastParameters == GenerationParameters(temperature: 0.1, maxTokens: 32))
 
-        #expect(try await persistence.runtimeRepository.fetchAllThreads(includeArchived: true).isEmpty)
+        #expect(try await persistence.runtimeRepository.fetchAllTimelines(includeArchived: true).isEmpty)
         #expect(try await persistence.runtimeRepository.fetchMessages(for: UUID()).isEmpty)
         #expect(try await persistence.workspacePersistence.fetchAllWorkspaces().isEmpty)
         #expect(try await persistence.toolPersistence.fetchTools(forWorkspaces: []).isEmpty)
@@ -184,11 +184,11 @@ struct TypedStructuredGenerationTests {
         let llm = MockLLMService()
         llm.stubbedStream = AsyncThrowingStream { _ in }
         let clock = ManualClock()
-        let kit = PositronicKit(
+        let kit = PKRuntime(
             languageModel: llm,
-            runtimeRepository: InMemoryThreadRuntimeRepository(),
+            runtimeRepository: InMemoryTimelineRuntimeRepository(),
             workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-            sharedRegistry: ThreadPromptJournals(),
+            sharedRegistry: TimelinePromptJournals(),
             additionalStages: [],
             clock: clock
         )
@@ -240,10 +240,10 @@ struct TypedStructuredGenerationTests {
     private func makeKit(
         languageModel: MockLLMService,
         generationParameters: GenerationParameters? = nil
-    ) -> PositronicKit {
-        PositronicKit(configuration: .init(
+    ) -> PKRuntime {
+        PKRuntime(configuration: .init(
             languageModel: languageModel,
-            persistence: .init(runtimeRepository: InMemoryThreadRuntimeRepository()),
+            persistence: .init(runtimeRepository: InMemoryTimelineRuntimeRepository()),
             generationParameters: generationParameters
         ))
     }

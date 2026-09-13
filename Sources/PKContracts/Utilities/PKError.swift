@@ -1,7 +1,7 @@
 import ErrorKit
 import Foundation
 
-/// A standardized error protocol for PositronicKit that extends ErrorKit.Throwable.
+/// A standardized error protocol for PKRuntime that extends ErrorKit.Throwable.
 /// Provides machine-readable identifiers (domain and code) for consistent error handling.
 public protocol PKError: Throwable {
     /// The error domain identifying the module where the error originated.
@@ -18,7 +18,7 @@ public protocol PKError: Throwable {
     /// Whether this error represents a "blocked"/approval/disallowed condition — i.e. a
     /// failure that is *not* the model's or provider's fault but the result of a deliberate
     /// permission or access gate refusing execution. Consumers classify these as a `.blocked`
-    /// thread state rather than `.failed`. Default: `false`. Override on error cases that
+    /// timeline state rather than `.failed`. Default: `false`. Override on error cases that
     /// represent blocked conditions (e.g. `ToolError.permissionDenied`,
     /// `PathError.accessDenied`, `WorkspaceError.accessDenied`).
     var isBlocked: Bool { get }
@@ -71,7 +71,7 @@ public extension CausalError {
     var usesOwnIdentityAsFallback: Bool { true }
 }
 
-/// Common error domains for PositronicKit modules.
+/// Common error domains for PKRuntime modules.
 public enum PKErrorDomain {
     public static let shared = "com.positronickit.shared"
     public static let prompt = "com.positronickit.core.prompt"
@@ -82,8 +82,8 @@ public enum PKErrorDomain {
     public static let workspace = "com.positronickit.core.workspace"
     public static let pipeline = "com.positronickit.core.pipeline"
     public static let agent = "com.positronickit.core.agent"
-    /// Stable error domain for thread persistence and runtime failures.
-    public static let thread = "com.positronickit.core.thread"
+    /// Stable error domain for timeline persistence and runtime failures.
+    public static let timeline = "com.positronickit.core.thread"
     public static let turn = "com.positronickit.core.turn"
     public static let tool = "com.positronickit.core.tool"
     public static let persistence = "com.positronickit.core.persistence"

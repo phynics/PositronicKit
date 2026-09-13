@@ -3,8 +3,8 @@ import struct JSONSchema.Schema
 import PKContracts
 import PKUtilities
 
-/// Wraps a tool from a workspace tool provider to conform to the Tool protocol.
-public struct WorkspaceToolWrapper: Tool, Sendable {
+/// Wraps a tool from a workspace tool provider to conform to the PKTool protocol.
+public struct WorkspaceToolWrapper: PKTool, Sendable {
     public let workspace: any WorkspaceToolProvider
     public let definition: WorkspaceToolDefinition
 
@@ -16,7 +16,7 @@ public struct WorkspaceToolWrapper: Tool, Sendable {
 
     public var parametersSchema: Schema {
         // WorkspaceToolDefinition stores the wire/transfer `[String: AnyCodable]` form; rebuild
-        // the typed `Schema` the Tool protocol now expects.
+        // the typed `Schema` the PKTool protocol now expects.
         Schema(definition.parametersSchema)
     }
 

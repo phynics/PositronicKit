@@ -1,7 +1,7 @@
 import Foundation
 
 /// Shared `JSONEncoder`/`JSONDecoder` instances with consistent date handling, for callers
-/// that need to encode/decode without threading their own configured coder.
+/// that need to encode/decode without timelineing their own configured coder.
 public enum SerializationUtils {
     /// A `JSONEncoder` configured to encode `Date` as ISO 8601.
     public static let jsonEncoder: JSONEncoder = {

@@ -220,20 +220,20 @@ public struct WorkspacesContext: Prompt {
 
 public struct AgentContext: Prompt {
     public let snapshot: AgentContextSnapshot
-    public let threadTitle: String?
+    public let timelineTitle: String?
 
-    public init(_ agent: Agent, threadTitle: String? = nil) {
+    public init(_ agent: Agent, timelineTitle: String? = nil) {
         self.snapshot = AgentContextSnapshot(agent: agent)
-        self.threadTitle = threadTitle
+        self.timelineTitle = timelineTitle
     }
 
-    public init(_ snapshot: AgentContextSnapshot, threadTitle: String? = nil) {
+    public init(_ snapshot: AgentContextSnapshot, timelineTitle: String? = nil) {
         self.snapshot = snapshot
-        self.threadTitle = threadTitle
+        self.timelineTitle = timelineTitle
     }
 
     public var body: some Prompt {
-        AgentIdentityContext(snapshot: snapshot, threadTitle: threadTitle)
+        AgentIdentityContext(snapshot: snapshot, timelineTitle: timelineTitle)
     }
 
     /// Retained as a compact compatibility wrapper; the runtime uses the four reserved
@@ -243,7 +243,7 @@ public struct AgentContext: Prompt {
             "## Your Identity",
             "You are **\(snapshot.identity.name)**.",
             snapshot.identity.description.isEmpty ? nil : "Description: \(snapshot.identity.description)",
-            threadTitle.map { "Currently operating on thread: \"\($0)\"" },
+            timelineTitle.map { "Currently operating on timeline: \"\($0)\"" },
         ].compactMap { $0 }.joined(separator: "\n")
     }
 }
@@ -251,11 +251,11 @@ public struct AgentContext: Prompt {
 /// Stable Agent identity section owned by the runtime.
 public struct AgentIdentityContext: Prompt {
     public let snapshot: AgentContextSnapshot
-    public let threadTitle: String?
+    public let timelineTitle: String?
 
-    public init(snapshot: AgentContextSnapshot, threadTitle: String? = nil) {
+    public init(snapshot: AgentContextSnapshot, timelineTitle: String? = nil) {
         self.snapshot = snapshot
-        self.threadTitle = threadTitle
+        self.timelineTitle = timelineTitle
     }
 
     public var body: some Prompt {
@@ -272,8 +272,8 @@ public struct AgentIdentityContext: Prompt {
         if !snapshot.identity.description.isEmpty {
             lines.append("Description: \(snapshot.identity.description)")
         }
-        if let threadTitle {
-            lines.append("Currently operating on thread: \"\(threadTitle)\"")
+        if let timelineTitle {
+            lines.append("Currently operating on timeline: \"\(timelineTitle)\"")
         }
         lines.append("Your private workspace supplies persistent continuity. Markdown resources are cataloged from `Notes/` and read on demand with workspace file tools.")
         return lines.joined(separator: "\n")
@@ -356,8 +356,8 @@ public struct AgentResourceCatalogContext: Prompt {
     }
 }
 
-/// Semi-stable optional summary of the Agent-owned primary Thread.
-public struct AgentPrimaryThreadSummaryContext: Prompt {
+/// Semi-stable optional summary of the Agent-owned primary Timeline.
+public struct AgentPrimaryTimelineSummaryContext: Prompt {
     public let summary: String?
 
     public init(_ summary: String?) {
@@ -367,7 +367,7 @@ public struct AgentPrimaryThreadSummaryContext: Prompt {
     public var body: some Prompt {
         TextPrompt(
             summary ?? "",
-            id: "agent.primary-thread-summary",
+            id: "agent.primary-timeline-summary",
             priority: 87,
             cachePolicy: .semiStable,
             estimatedTokens: TokenEstimator.estimate(text: summary ?? "")
@@ -376,25 +376,25 @@ public struct AgentPrimaryThreadSummaryContext: Prompt {
 
 }
 
-public struct ThreadContext: Prompt {
-    public let thread: Thread
-    public var threadTitle: String { thread.title }
+public struct TimelineContext: Prompt {
+    public let timeline: TimelineRecord
+    public var timelineTitle: String { timeline.title }
 
-    public init(_ thread: Thread) {
-        self.thread = thread
+    public init(_ timeline: TimelineRecord) {
+        self.timeline = timeline
     }
 
     public var body: some Prompt {
         TextPrompt(
             """
-            ## Current Thread
-            - ID: `\(thread.id.uuidString)`
-            - Title: \(thread.title)
+            ## Current Timeline
+            - ID: `\(timeline.id.uuidString)`
+            - Title: \(timeline.title)
             """,
-            id: "thread_context",
+            id: "timeline_context",
             priority: 72,
             cachePolicy: .semiStable,
-            estimatedTokens: TokenEstimator.estimate(text: thread.title) + 20
+            estimatedTokens: TokenEstimator.estimate(text: timeline.title) + 20
         )
     }
 }

@@ -6,7 +6,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-private struct StructuredOutputRunTestsTool: Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+private struct StructuredOutputRunTestsTool: PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "structured_output_run_tests_tool"
     let name = "Structured Output Run Tests Tool"
     let toolDescription = "Test tool used to verify TurnRequest forwards resolved tools."
@@ -29,7 +29,7 @@ struct StructuredOutputRunTests {
     func runForwardsStructuredOutputRequests() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
+        let chat = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -37,9 +37,9 @@ struct StructuredOutputRunTests {
                 requestOriginStore: mockPersistence
             )))
 
-        let thread = try await chat.threadManager.createThread(title: "Structured Output")
+        let timeline = try await chat.timelineManager.createTimeline(title: "Structured Output")
         let request = TurnRequest(
-            threadID: thread.id,
+            timelineID: timeline.id,
             message: "Extract tags",
             tools: [AnyTool(StructuredOutputRunTestsTool())],
             systemInstructions: "Follow the structured-output instructions exactly.",
@@ -68,7 +68,7 @@ struct StructuredOutputRunTests {
     func runOmittingStructuredOutputUsesTheSameSingleOverload() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
+        let chat = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -76,9 +76,9 @@ struct StructuredOutputRunTests {
                 requestOriginStore: mockPersistence
             )))
 
-        let thread = try await chat.threadManager.createThread(title: "No Structured Output")
+        let timeline = try await chat.timelineManager.createTimeline(title: "No Structured Output")
         let stream = try await chat.run(TurnRequest(
-            threadID: thread.id,
+            timelineID: timeline.id,
             message: "Hello"
         ))
 
@@ -91,7 +91,7 @@ struct StructuredOutputRunTests {
     func minimalTurnRequestPreservesLegacyDefaults() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
+        let chat = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -99,9 +99,9 @@ struct StructuredOutputRunTests {
                 requestOriginStore: mockPersistence
             )))
 
-        let thread = try await chat.threadManager.createThread(title: "Minimal Defaults")
+        let timeline = try await chat.timelineManager.createTimeline(title: "Minimal Defaults")
         let stream = try await chat.run(TurnRequest(
-            threadID: thread.id,
+            timelineID: timeline.id,
             message: "Hello"
         ))
 
@@ -117,7 +117,7 @@ struct StructuredOutputRunTests {
     func noSidecarsPreservesNoSidecarRuntimePath() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
+        let chat = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -125,9 +125,9 @@ struct StructuredOutputRunTests {
                 requestOriginStore: mockPersistence
             )))
 
-        let thread = try await chat.threadManager.createThread(title: "No Sidecars")
+        let timeline = try await chat.timelineManager.createTimeline(title: "No Sidecars")
         let stream = try await chat.run(TurnRequest(
-            threadID: thread.id,
+            timelineID: timeline.id,
             message: "Hello",
             sidecars: []
         ))

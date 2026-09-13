@@ -10,12 +10,12 @@ struct ReconfiguredRuntimeStateTests {
     func postReconfigurationHandleCancelsExistingTurn() async throws {
         let originalModel = MockLLMService()
         originalModel.mockClient.neverFinishingStreamCallIndices = [1]
-        let originalKit = PositronicKit(languageModel: originalModel)
-        let thread = try await originalKit.threads.create(title: "Reconfigured cancellation")
+        let originalKit = PKRuntime(languageModel: originalModel)
+        let timeline = try await originalKit.timelines.create(title: "Reconfigured cancellation")
         let requestID = UUID()
         let context = DirectTurnContext(systemInstructions: "", contributor: .host)
 
-        let original = try await originalKit.threads.open(thread.id).startDirectTurn(
+        let original = try await originalKit.timelines.open(timeline.id).startDirectTurn(
             "same request",
             context: context,
             options: TurnOptions(requestID: requestID)
@@ -26,7 +26,7 @@ struct ReconfiguredRuntimeStateTests {
 
         let replacementModel = MockLLMService()
         let reconfiguredKit = originalKit.reconfigured(languageModel: replacementModel)
-        let joined = try await reconfiguredKit.threads.open(thread.id).startDirectTurn(
+        let joined = try await reconfiguredKit.timelines.open(timeline.id).startDirectTurn(
             "same request",
             context: context,
             options: TurnOptions(requestID: requestID)
@@ -43,15 +43,15 @@ struct ReconfiguredRuntimeStateTests {
     @Test("a pre-reconfiguration joined handle cancels a post-reconfiguration Turn")
     func preReconfigurationHandleCancelsNewTurn() async throws {
         let originalModel = MockLLMService()
-        let originalKit = PositronicKit(languageModel: originalModel)
-        let thread = try await originalKit.threads.create(title: "Reverse cancellation")
+        let originalKit = PKRuntime(languageModel: originalModel)
+        let timeline = try await originalKit.timelines.create(title: "Reverse cancellation")
         let requestID = UUID()
         let context = DirectTurnContext(systemInstructions: "", contributor: .host)
 
         let replacementModel = MockLLMService()
         replacementModel.mockClient.neverFinishingStreamCallIndices = [1]
         let reconfiguredKit = originalKit.reconfigured(languageModel: replacementModel)
-        let active = try await reconfiguredKit.threads.open(thread.id).startDirectTurn(
+        let active = try await reconfiguredKit.timelines.open(timeline.id).startDirectTurn(
             "same request",
             context: context,
             options: TurnOptions(requestID: requestID)
@@ -60,7 +60,7 @@ struct ReconfiguredRuntimeStateTests {
             await Task.yield()
         }
 
-        let joined = try await originalKit.threads.open(thread.id).startDirectTurn(
+        let joined = try await originalKit.timelines.open(timeline.id).startDirectTurn(
             "same request",
             context: context,
             options: TurnOptions(requestID: requestID)
@@ -71,18 +71,18 @@ struct ReconfiguredRuntimeStateTests {
         #expect(try await active.outcome() == .cancelled(reason: "Turn task cancelled."))
     }
 
-    @Test("reconfiguration shares the Thread manager and its process-local coordinators")
+    @Test("reconfiguration shares the Timeline manager and its process-local coordinators")
     func sharesRuntimeCoordinatorIdentity() async {
-        let originalKit = PositronicKit(languageModel: MockLLMService())
+        let originalKit = PKRuntime(languageModel: MockLLMService())
         let reconfiguredKit = originalKit.reconfigured(languageModel: MockLLMService())
-        let originalTaskRegistry = await originalKit.threadManager.taskRegistry
-        let reconfiguredTaskRegistry = await reconfiguredKit.threadManager.taskRegistry
-        let originalWorkspaceCoordinator = await originalKit.threadManager.workspaceExecutionCoordinator
-        let reconfiguredWorkspaceCoordinator = await reconfiguredKit.threadManager.workspaceExecutionCoordinator
-        let originalAuthorityCoordinator = await originalKit.threadManager.threadAuthorityCoordinator
-        let reconfiguredAuthorityCoordinator = await reconfiguredKit.threadManager.threadAuthorityCoordinator
+        let originalTaskRegistry = await originalKit.timelineManager.taskRegistry
+        let reconfiguredTaskRegistry = await reconfiguredKit.timelineManager.taskRegistry
+        let originalWorkspaceCoordinator = await originalKit.timelineManager.workspaceExecutionCoordinator
+        let reconfiguredWorkspaceCoordinator = await reconfiguredKit.timelineManager.workspaceExecutionCoordinator
+        let originalAuthorityCoordinator = await originalKit.timelineManager.timelineAuthorityCoordinator
+        let reconfiguredAuthorityCoordinator = await reconfiguredKit.timelineManager.timelineAuthorityCoordinator
 
-        #expect(originalKit.threadManager === reconfiguredKit.threadManager)
+        #expect(originalKit.timelineManager === reconfiguredKit.timelineManager)
         #expect(originalTaskRegistry === reconfiguredTaskRegistry)
         #expect(originalWorkspaceCoordinator === reconfiguredWorkspaceCoordinator)
         #expect(originalAuthorityCoordinator === reconfiguredAuthorityCoordinator)

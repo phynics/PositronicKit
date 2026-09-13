@@ -12,8 +12,8 @@ final class ToolErrorSurfacesTests {
     }
 
     @Test
-    func attachedToolsDisallowedOnPrivateThread() {
-        let error = ToolError.attachedToolsDisallowedOnPrivateThread
+    func attachedToolsDisallowedOnPrivateTimeline() {
+        let error = ToolError.attachedToolsDisallowedOnPrivateTimeline
         #expect(error.errorDomain == PKErrorDomain.tool)
         #expect(error.errorCode == 207)
         #expect(!error.userFriendlyMessage.contains("attached-workspace"))
@@ -21,12 +21,12 @@ final class ToolErrorSurfacesTests {
     }
 
     @Test
-    func attachedToolsDisallowedOnPrivateThreadPreservesIdentity() {
-        let error = ToolError.attachedToolsDisallowedOnPrivateThread
+    func attachedToolsDisallowedOnPrivateTimelinePreservesIdentity() {
+        let error = ToolError.attachedToolsDisallowedOnPrivateTimeline
 
         #expect(error.errorDomain == PKErrorDomain.tool)
         #expect(error.errorCode == 207)
-        #expect(error == .attachedToolsDisallowedOnPrivateThread)
+        #expect(error == .attachedToolsDisallowedOnPrivateTimeline)
     }
 
     @Test

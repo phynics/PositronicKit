@@ -11,7 +11,7 @@ import Testing
 
 private let testLogger = Logger(label: "test.pipeline")
 
-private struct StubTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+private struct StubTool: PKContracts.PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName: String
     let name: String
     let toolDescription = "Stub"
@@ -41,7 +41,7 @@ private func makeContext(
     }
 
     return TurnContext(
-        threadID: UUID(),
+        timelineID: UUID(),
         agentId: nil,
         modelName: "test-model",
         maxModelRounds: 5,
@@ -327,24 +327,24 @@ final class ToolCallExtractionStageBehavior {
         #expect(accumulators.isEmpty)
     }
 
-    /// YAK-42: emitted records must carry the *raw* threadID as `threadID`
-    /// so PositronicKit logs correlate with Yakamoz (YAK-40) logs in Console.app.
+    /// YAK-42: emitted records must carry the *raw* timelineID as `threadID`
+    /// so PKRuntime logs correlate with Yakamoz (YAK-40) logs in Console.app.
     /// Also asserts YAK-37 redaction: no raw tool arguments / secrets leak into metadata.
     @Test
-    func emitsRawThreadIDMetadataAndRedactsSecrets() async throws {
+    func emitsRawTimelineIDMetadataAndRedactsSecrets() async throws {
         let recorder = MetadataRecorder()
         let logger = Logger(label: "test.pipeline.metadata") { _ in
             RecordingLogHandler(recorder: recorder)
         }
         let stage = ToolCallExtractionStage(logger: logger)
 
-        let threadID = UUID()
+        let timelineID = UUID()
         let outputs = TurnOutputs()
         let secretArg = #"{"api_key": "sk-super-secret-payload"}"#
         await outputs.setToolCallAccumulator(index: 0, id: "call-123", name: "lookup", args: secretArg)
 
         let context = TurnContext(
-            threadID: threadID,
+            timelineID: timelineID,
             agentId: nil,
             modelName: "test-model",
             maxModelRounds: 5,
@@ -361,10 +361,10 @@ final class ToolCallExtractionStageBehavior {
         let records = recorder.snapshot()
         #expect(!records.isEmpty)
 
-        // threadID must be present and equal to the RAW uuid string (not hashed).
-        let threadIDs = records.compactMap { $0["threadID"] }
-        #expect(!threadIDs.isEmpty)
-        #expect(threadIDs.allSatisfy { $0 == threadID.uuidString })
+        // timelineID must be present and equal to the RAW uuid string (not hashed).
+        let timelineIDs = records.compactMap { $0["threadID"] }
+        #expect(!timelineIDs.isEmpty)
+        #expect(timelineIDs.allSatisfy { $0 == timelineID.uuidString })
 
         // modelRoundIndex must reflect the model-round index.
         let modelRoundIndexes = records.compactMap { $0["modelRoundIndex"] }

@@ -71,23 +71,23 @@ actor ToolRouter {
     private let logger: Logger
     private let loggingConfiguration: LoggingConfiguration
 
-    private let threadManager: ThreadManager
+    private let timelineManager: TimelineManager
     private let workspaceDispatcher: WorkspaceToolDispatcher
-    private let runtimeRepository: any ThreadRuntimeRepository
+    private let runtimeRepository: any TimelineRuntimeRepository
     private let toolExecutionTimeout: TimeInterval
     private let approvalPolicy: any ToolApprovalPolicy
     private let sleep: @Sendable (UInt64) async throws -> Void
 
     init(
-        threadManager: ThreadManager,
-        runtimeRepository: any ThreadRuntimeRepository,
+        timelineManager: TimelineManager,
+        runtimeRepository: any TimelineRuntimeRepository,
         toolExecutionTimeout: TimeInterval = 60,
         approvalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         sleep: (@Sendable (UInt64) async throws -> Void)? = nil,
         loggingConfiguration: LoggingConfiguration = .default
     ) {
-        self.threadManager = threadManager
-        workspaceDispatcher = WorkspaceToolDispatcher(threadManager: threadManager)
+        self.timelineManager = timelineManager
+        workspaceDispatcher = WorkspaceToolDispatcher(timelineManager: timelineManager)
         self.runtimeRepository = runtimeRepository
         self.toolExecutionTimeout = toolExecutionTimeout
         self.approvalPolicy = approvalPolicy
@@ -101,11 +101,11 @@ actor ToolRouter {
     /// Processes tool calls from a completed LLM turn.
     ///
     /// Extracts streamed tool call accumulators from `TurnOutputs`, constructs the assistant
-    /// message (with tool call definitions for thread history), executes runtime-managed tools,
+    /// message (with tool call definitions for timeline history), executes runtime-managed tools,
     /// and returns a decision for the turn loop.
     func processToolCalls(
         outputs: TurnOutputs,
-        threadId: UUID,
+        timelineId: UUID,
         turnID: UUID? = nil,
         modelRoundIndex: Int = 0,
         availableTools: [AnyTool],
@@ -122,7 +122,7 @@ actor ToolRouter {
             ParsedToolCall(callId: value.callId, name: value.name, argumentsJSON: value.args)
         }
 
-        // Build the assistant message with tool_calls for thread history
+        // Build the assistant message with tool_calls for timeline history
         let toolCallsParam = sortedCalls.map { _, value in
             LLMToolCall(id: value.callId, name: value.name, arguments: value.args)
         }
@@ -149,7 +149,7 @@ actor ToolRouter {
 
         // Route and execute
         let result = try await handlePendingToolCalls(
-            threadId: threadId,
+            timelineId: timelineId,
             turnID: turnID,
             modelRoundIndex: modelRoundIndex,
             calls: parsedCalls,
@@ -169,9 +169,9 @@ actor ToolRouter {
     ///
     /// - Runtime-managed tools are executed immediately; results are persisted and returned.
     /// - External tools are skipped; the host executes and submits results asynchronously.
-    /// - Private threads may not defer to externally hosted tools — an error is thrown instead.
+    /// - Private timelines may not defer to externally hosted tools — an error is thrown instead.
     package func handlePendingToolCalls(
-        threadId: UUID,
+        timelineId: UUID,
         turnID: UUID? = nil,
         modelRoundIndex: Int = 0,
         calls: [ParsedToolCall],
@@ -217,7 +217,7 @@ actor ToolRouter {
                     if let turnID {
                         try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
                             turnID: turnID,
-                            threadID: threadId,
+                            timelineID: timelineId,
                             toolCallID: call.callId,
                             name: call.name,
                             arguments: call.argumentsJSON,
@@ -229,12 +229,12 @@ actor ToolRouter {
                     }
                     outcome = try await workspaceDispatcher.execute(
                         dispatch,
-                        threadID: threadId,
+                        timelineID: timelineId,
                         using: { [self] tool, arguments in
                             try await executeLocally(
                                 tool: tool.identity,
                                 arguments: arguments,
-                                threadId: threadId,
+                                timelineId: timelineId,
                                 dynamicTools: [tool]
                             )
                         }
@@ -243,7 +243,7 @@ actor ToolRouter {
                     if let turnID {
                         try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
                             turnID: turnID,
-                            threadID: threadId,
+                            timelineID: timelineId,
                             toolCallID: call.callId,
                             name: call.name,
                             arguments: call.argumentsJSON,
@@ -256,7 +256,7 @@ actor ToolRouter {
                     }
                     outcome = try await execute(
                         tool: toolRef, arguments: arguments,
-                        threadID: threadId, availableTools: availableTools
+                        timelineID: timelineId, availableTools: availableTools
                     )
                 }
                 let projection = try await projectOutcome(
@@ -264,7 +264,7 @@ actor ToolRouter {
                     call: call,
                     toolRef: effectiveToolRef,
                     workspaceRoute: workspaceRoute,
-                    threadId: threadId,
+                    timelineId: timelineId,
                     turnID: turnID,
                     continuation: continuation
                 )
@@ -287,7 +287,7 @@ actor ToolRouter {
                     do {
                         try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
                             turnID: turnID,
-                            threadID: threadId,
+                            timelineID: timelineId,
                             toolCallID: call.callId,
                             name: call.name,
                             arguments: call.argumentsJSON,
@@ -337,7 +337,7 @@ actor ToolRouter {
                     call: call,
                     toolRef: effectiveToolRef,
                     workspaceRoute: workspaceRoute,
-                    threadId: threadId,
+                    timelineId: timelineId,
                     turnID: turnID,
                     continuation: continuation
                 )
@@ -351,7 +351,7 @@ actor ToolRouter {
         // modelRoundIndex intentionally omitted: handlePendingToolCalls receives no model-round index, and
         // adding a parameter just for logging exceeds this ticket's blast radius.
         let batchMeta: Logger.Metadata = [
-            LogKeys.threadID: .string(threadId.uuidString),
+            LogKeys.timelineID: .string(timelineId.uuidString),
             "total": .string("\(calls.count)"),
             "deferred": .string("\(deferredCount)"),
             "resolved": .string("\(resolvedToolParams.count)"),
@@ -374,14 +374,14 @@ actor ToolRouter {
     func execute(
         tool: ToolReference,
         arguments: [String: AnyCodable],
-        threadID: UUID,
+        timelineID: UUID,
         availableTools: [AnyTool]
     ) async throws -> ToolExecutionOutcome {
         let toolName = loggingConfiguration.redactionPolicy.sanitizeStructured(tool.displayName)
-        let sid = threadID.uuidString.prefix(8).lowercased()
+        let sid = timelineID.uuidString.prefix(8).lowercased()
 
-        logger.info("Routing \(toolName) in thread \(sid)", metadata: [
-            LogKeys.threadID: .string(threadID.uuidString),
+        logger.info("Routing \(toolName) in timeline \(sid)", metadata: [
+            LogKeys.timelineID: .string(timelineID.uuidString),
             LogKeys.toolName: .string(tool.displayName),
         ])
 
@@ -400,7 +400,7 @@ actor ToolRouter {
                 try await executeLocally(
                     tool: directTool.identity,
                     arguments: directArguments,
-                    threadId: threadID,
+                    timelineId: timelineID,
                     dynamicTools: availableTools
                 )
             }
@@ -408,7 +408,7 @@ actor ToolRouter {
         return .completed(output)
     }
 
-    // MARK: - Tool Reference Resolution
+    // MARK: - PKTool Reference Resolution
 
     /// Selects the effective `ToolReference` for a parsed call: a matching dynamic tool's custom
     /// reference wins over the `.known` fallback.
@@ -427,13 +427,13 @@ actor ToolRouter {
     private func executeLocally(
         tool: ToolReference,
         arguments: [String: AnyCodable],
-        threadId: UUID,
+        timelineId: UUID,
         dynamicTools: [AnyTool]?
     ) async throws -> String {
         let toolName = loggingConfiguration.redactionPolicy.sanitizeStructured(tool.displayName)
         logger.info("Executing locally: \(toolName)")
 
-        guard let toolManager = await threadManager.getToolManager(for: threadId) else {
+        guard let toolManager = await timelineManager.getToolManager(for: timelineId) else {
             throw ToolError.toolNotFound(tool.displayName)
         }
 
@@ -482,12 +482,12 @@ actor ToolRouter {
             return result.output
         } else {
             let errorMsg = result.error ?? "Unknown error"
-            logger.error("Failed: \(toolName)", metadata: LoggingMetadata.makeMetadata(for: ToolError.executionFailed(errorMsg), correlationID: threadId.uuidString))
+            logger.error("Failed: \(toolName)", metadata: LoggingMetadata.makeMetadata(for: ToolError.executionFailed(errorMsg), correlationID: timelineId.uuidString))
             throw ToolError.executionFailed(errorMsg)
         }
     }
 
-    // MARK: - Tool Turn Projection
+    // MARK: - PKTool Turn Projection
 
     /// Yields the `.attempting` tool-progress event that precedes the execution attempt.
     private func projectAttempt(
@@ -512,7 +512,7 @@ actor ToolRouter {
         call: ParsedToolCall,
         toolRef: ToolReference,
         workspaceRoute: WorkspaceToolRoute?,
-        threadId: UUID,
+        timelineId: UUID,
         turnID: UUID?,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolProjection {
@@ -520,14 +520,14 @@ actor ToolRouter {
         switch outcome {
         case let .completed(output):
             logger.info("Tool \(toolDisplayName) succeeded")
-            let message = ThreadMessage(
-                threadID: threadId, role: .tool, content: output, toolCallID: call.callId
+            let message = TimelineMessage(
+                timelineID: timelineId, role: .tool, content: output, toolCallID: call.callId
             )
             do {
                 if let turnID {
                     try await runtimeRepository.recordToolResult(RuntimeToolResult(
                         turnID: turnID,
-                        threadID: threadId,
+                        timelineID: timelineId,
                         toolCallID: call.callId,
                         output: output,
                         workspaceID: workspaceRoute?.workspaceID,
@@ -584,7 +584,7 @@ actor ToolRouter {
         call: ParsedToolCall,
         toolRef: ToolReference,
         workspaceRoute: WorkspaceToolRoute?,
-        threadId: UUID,
+        timelineId: UUID,
         turnID: UUID?,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolProjection {
@@ -598,14 +598,14 @@ actor ToolRouter {
         if let remediation = (error as? any PKError)?.remediation, !remediation.isEmpty {
             errorOutput += "\nHow to fix: \(remediation)"
         }
-        let message = ThreadMessage(
-            threadID: threadId, role: .tool, content: errorOutput, toolCallID: call.callId
+        let message = TimelineMessage(
+            timelineID: timelineId, role: .tool, content: errorOutput, toolCallID: call.callId
         )
         do {
             if let turnID {
                 try await runtimeRepository.recordToolResult(RuntimeToolResult(
                     turnID: turnID,
-                    threadID: threadId,
+                    timelineID: timelineId,
                     toolCallID: call.callId,
                     output: errorOutput,
                     isSuccessful: false,

@@ -61,7 +61,7 @@ private final class AsyncLatch: Sendable {
 }
 
 /// Tests for `ToolTimeoutEnforcer` (PKARCH-002 AC #2): the wall-clock timeout race can be
-/// exercised with a fake tool and an injected fake clock, without a `ThreadManager`.
+/// exercised with a fake tool and an injected fake clock, without a `TimelineManager`.
 ///
 /// PKRR-004 adds side-effect-aware terminal states: a tool that declares `.none` preserves
 /// the fast-abandon clean timeout, while `.mutating`/`.externalProcess` tools report a
@@ -72,7 +72,7 @@ private final class AsyncLatch: Sendable {
 /// external-process paths are covered by dedicated fixtures and tests further down.
 @Suite("ToolTimeoutEnforcer", .tags(.integration))
 struct ToolTimeoutEnforcerTests {
-    private struct EchoTool: PKContracts.Tool {
+    private struct EchoTool: PKContracts.PKTool {
         let callName = "echo"
         let name = "echo"
         let toolDescription = "echo back the input"
@@ -94,7 +94,7 @@ struct ToolTimeoutEnforcerTests {
         }
     }
 
-    private struct NeverFinishingTool: PKContracts.Tool {
+    private struct NeverFinishingTool: PKContracts.PKTool {
         let callName = "never"
         let name = "never"
         let toolDescription = "never returns unless cancelled"
@@ -112,7 +112,7 @@ struct ToolTimeoutEnforcerTests {
         }
     }
 
-    private struct ControlledUncooperativeTool: PKContracts.Tool, Sendable {
+    private struct ControlledUncooperativeTool: PKContracts.PKTool, Sendable {
         let callName = "controlled_uncooperative"
         let name = "controlled_uncooperative"
         let toolDescription = "suspends asynchronously and ignores cancellation"
@@ -136,7 +136,7 @@ struct ToolTimeoutEnforcerTests {
     /// A never-finishing tool that mutates in-process state (declares `.mutating`).
     /// Models the PKRR-004 bug condition: after timeout the tool may still complete its
     /// writes, so the enforcer must report `timedOutButMayStillBeRunning`.
-    private struct MutatingNeverFinishingTool: PKContracts.Tool {
+    private struct MutatingNeverFinishingTool: PKContracts.PKTool {
         let callName = "mutating_never"
         let name = "mutating_never"
         let toolDescription = "mutates state and never returns unless cancelled"
@@ -157,7 +157,7 @@ struct ToolTimeoutEnforcerTests {
     /// A never-finishing tool that drives an external process/remote service (declares
     /// `.externalProcess`). Termination requires an out-of-band kill path the runtime
     /// does not own, so the enforcer must report `timedOutButMayStillBeRunning`.
-    private struct ExternalProcessNeverFinishingTool: PKContracts.Tool {
+    private struct ExternalProcessNeverFinishingTool: PKContracts.PKTool {
         let callName = "external_never"
         let name = "external_never"
         let toolDescription = "drives an external process and never returns unless cancelled"
@@ -187,9 +187,9 @@ struct ToolTimeoutEnforcerTests {
         #expect(result.output == "hello")
     }
 
-    @Test("Tool that throws surfaces the wrapped error")
+    @Test("PKTool that throws surfaces the wrapped error")
     func toolError() async throws {
-        struct FailingTool: PKContracts.Tool {
+        struct FailingTool: PKContracts.PKTool {
             let callName = "fail"
             let name = "fail"
             let toolDescription = "always fails"
@@ -394,11 +394,11 @@ struct ToolTimeoutEnforcerTests {
         }
     }
 
-    @Test("Tool with default sideEffects (no explicit declaration) reports may-still-be-running on timeout")
+    @Test("PKTool with default sideEffects (no explicit declaration) reports may-still-be-running on timeout")
     func defaultSideEffectsToolReportsMayStillBeRunning() async throws {
         // AC: the protocol default is `.mutating`. A tool that does not declare `sideEffects`
         // must get `timedOutButMayStillBeRunning` on timeout — the conservative assumption.
-        struct UndeclaredNeverFinishingTool: PKContracts.Tool {
+        struct UndeclaredNeverFinishingTool: PKContracts.PKTool {
             let callName = "undeclared_never"
             let name = "undeclared_never"
             let toolDescription = "never returns; does not declare sideEffects"

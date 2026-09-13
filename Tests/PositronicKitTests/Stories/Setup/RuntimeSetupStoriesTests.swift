@@ -5,9 +5,9 @@ import PositronicKit
 import Testing
 
 @Suite("Runtime setup stories", .serialized, .tags(.integration)) struct RuntimeSetupStoriesTests {
-    @Test("PositronicKit default initialization")
+    @Test("PKRuntime default initialization")
     func defaultInitialization() async {
-        let chat = PositronicKit()
+        let chat = PKRuntime()
         let isConfigured = await chat.model.isConfigured
         #expect(!isConfigured, "Default init should not be configured")
     }
@@ -17,7 +17,7 @@ import Testing
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
 
-        let persistence = PositronicKit.PersistenceConfiguration(
+        let persistence = PKRuntime.PersistenceConfiguration(
             runtimeRepository: mockPersistence,
             workspacePersistence: mockPersistence,
             toolPersistence: mockPersistence,
@@ -25,12 +25,12 @@ import Testing
             requestOriginStore: mockPersistence
         )
 
-        let chat = PositronicKit(configuration: .init(languageModel: UnconfiguredLLMService(), persistence: persistence, runtime: .init(workspaceProfile: .hostManaged(root: workspace.root), workspaceCreator: MockWorkspaceCreator())))
+        let chat = PKRuntime(configuration: .init(languageModel: UnconfiguredLLMService(), persistence: persistence, runtime: .init(workspaceProfile: .hostManaged(root: workspace.root), workspaceCreator: MockWorkspaceCreator())))
 
-        let thread = try await chat.threads.create(title: "Unconfigured")
+        let timeline = try await chat.timelines.create(title: "Unconfigured")
 
         do {
-            _ = try await thread.startDirectTurn(
+            _ = try await timeline.startDirectTurn(
                 "hello",
                 context: DirectTurnContext(systemInstructions: "", contributor: .host)
             )

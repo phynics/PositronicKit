@@ -88,17 +88,17 @@ public enum READMEExamples {
 
     /// README "Sidecar directives" example.
     public static func readmeSidecarDirectivesExample(
-        chat: PositronicKit,
-        threadID: UUID
+        chat: PKRuntime,
+        timelineID: UUID
     ) async throws {
         let title = SidecarDirective(
             name: "title",
-            instruction: "A short thread title (3-6 words). Return null if the thread already has a good title.",
+            instruction: "A short timeline title (3-6 words). Return null if the timeline already has a good title.",
             schema: JSONString().definition(),
             streaming: .buffered
         )
 
-        let turn = try await chat.threads.open(threadID).startTurn(
+        let turn = try await chat.timelines.open(timelineID).startTurn(
             "What's the deal with actors in Swift 6?",
             options: TurnOptions(sidecars: [title])
         )

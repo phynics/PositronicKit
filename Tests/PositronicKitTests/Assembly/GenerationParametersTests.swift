@@ -8,13 +8,13 @@ import PKTestSupport
 @Suite(.tags(.unit))
 struct GenerationParametersTests {
     @Test
-    func testDefaultGenerationParametersInPositronicKit() async throws {
+    func testDefaultGenerationParametersInPKRuntime() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
 
-        // 1. Setup PositronicKit with default generation parameters
+        // 1. Setup PKRuntime with default generation parameters
         let defaultParams = GenerationParameters(temperature: 0.7, maxTokens: 100)
-        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
+        let chat = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -22,11 +22,11 @@ struct GenerationParametersTests {
                 requestOriginStore: mockPersistence
             ), generationParameters: defaultParams))
 
-        let thread = try await chat.threadManager.createThread(title: "Default Params")
+        let timeline = try await chat.timelineManager.createTimeline(title: "Default Params")
 
         // 2. Run a turn without per-run parameters
         let stream = try await chat.run(TurnRequest(
-            threadID: thread.id,
+            timelineID: timeline.id,
             message: "Test message"
         ))
 
@@ -44,9 +44,9 @@ struct GenerationParametersTests {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
 
-        // 1. Setup PositronicKit with initial default parameters
+        // 1. Setup PKRuntime with initial default parameters
         let defaultParams = GenerationParameters(temperature: 0.7, maxTokens: 100)
-        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
+        let chat = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -54,12 +54,12 @@ struct GenerationParametersTests {
                 requestOriginStore: mockPersistence
             ), generationParameters: defaultParams))
 
-        let thread = try await chat.threadManager.createThread(title: "Override Params")
+        let timeline = try await chat.timelineManager.createTimeline(title: "Override Params")
 
         // 2. Run a turn WITH per-run parameters that override the defaults
         let overrideParams = GenerationParameters(temperature: 0.2, maxTokens: 500, topP: 0.9)
         let stream = try await chat.run(TurnRequest(
-            threadID: thread.id,
+            timelineID: timeline.id,
             message: "Test message",
             generationParameters: overrideParams
         ))
@@ -78,14 +78,14 @@ struct GenerationParametersTests {
     func testNilParametersPropagation() async throws {
         let mockLLM = MockLLMService()
 
-        // 1. Setup PositronicKit without any default parameters
-        let chat = PositronicKit(languageModel: mockLLM)
+        // 1. Setup PKRuntime without any default parameters
+        let chat = PKRuntime(languageModel: mockLLM)
 
-        let thread = try await chat.threadManager.createThread(title: "Nil Params")
+        let timeline = try await chat.timelineManager.createTimeline(title: "Nil Params")
 
         // 2. Run a turn without per-run parameters
         let stream = try await chat.run(TurnRequest(
-            threadID: thread.id,
+            timelineID: timeline.id,
             message: "Test message"
         ))
 

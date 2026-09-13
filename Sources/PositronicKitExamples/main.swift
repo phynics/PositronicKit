@@ -30,7 +30,7 @@ func runExamples() async throws {
     let sidecarDirectives = PositronicKitUsageExamples.makeSidecarDirectives()
     let cadenceDirectives = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
         modelRoundIndex: 5,
-        hasThreadTitle: true
+        hasTimelineTitle: true
     )
     let oneShotTitleRequest = PositronicKitUsageExamples.makeOneShotTitleStructuredOutputRequest()
     let oneShotTitle = try PositronicKitUsageExamples.decodeOneShotTitlePayload(
@@ -46,7 +46,7 @@ func runExamples() async throws {
     _ = PositronicKitUsageExamples.makeConfiguredRuntime()
 
     let kit = PositronicKitUsageExamples.makeOfflineRuntime()
-    let handle = try await kit.threads.create(title: "Docs agent")
+    let handle = try await kit.timelines.create(title: "Docs agent")
     let directTurn = try await handle.startDirectTurn(
         "Hello",
         context: DirectTurnContext(systemInstructions: "")
@@ -61,16 +61,16 @@ func runExamples() async throws {
     guard !offlineResponse.isEmpty else {
         throw ExampleExecutionError.offlineTurnProducedNoText
     }
-    let threadCapability = PositronicKitUsageExamples.makeThreadCapabilityExample()
-    let (managedThread, agent) = try await PositronicKitUsageExamples.makeManagedThreadExample()
+    let timelineCapability = PositronicKitUsageExamples.makeTimelineCapabilityExample()
+    let (managedTimeline, agent) = try await PositronicKitUsageExamples.makeManagedTimelineExample()
 
     print("# PKPrompt Example\n")
     print(renderedPrompt)
     print("\nPrompt sections: \(assembled.sections.map(\.id))")
-    print("\n# PositronicKit Example\n")
+    print("\n# PKRuntime Example\n")
     print("Offline Turn completed: \(offlineResponse)")
-    print("Capability examples: thread \(handle.id), thread capability \(threadCapability), managed agent \(agent.id)")
-    _ = managedThread
+    print("Capability examples: timeline \(handle.id), timeline capability \(timelineCapability), managed agent \(agent.id)")
+    _ = managedTimeline
     print(toolPrompt)
     print("\nStructured output schema: \(structuredOutput.name)")
     print("Structured output request: \(structuredOutputRequest)")
@@ -81,7 +81,7 @@ func runExamples() async throws {
     for directive in sidecarDirectives {
         print("  - \(directive.name): \(directive.instruction)")
     }
-    print("  Consume via ThreadHandle.startTurn(_:options:) — see makeSidecarDirectives() doc comment.")
+    print("  Consume via TimelineHandle.startTurn(_:options:) — see makeSidecarDirectives() doc comment.")
     print("Cadence example at turn 5 with an existing title: \(cadenceDirectives.map(\.name))")
     print("One-shot title request: \(oneShotTitleRequest)")
     print("Decoded one-shot title payload: \(oneShotTitle.title ?? "nil")")

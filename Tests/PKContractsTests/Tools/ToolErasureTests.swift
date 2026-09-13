@@ -7,7 +7,7 @@ import Testing
 /// identity name (`identity`), with the LLM-facing text on `toolDescription`
 /// so a tool can also conform to `CustomStringConvertible` without conflict.
 struct ToolErasureTests {
-    struct ErasureTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    struct ErasureTool: PKContracts.PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "erasure_tool"
         let name = "Erasure Tool"
         let toolDescription = "A tool for testing erasure semantics"
@@ -20,7 +20,7 @@ struct ToolErasureTests {
 
     /// A tool that is also `CustomStringConvertible`: this must compile without
     /// a naming workaround now that the LLM-facing text lives on `toolDescription`.
-    struct DescribableTool: PKContracts.Tool, CustomStringConvertible, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    struct DescribableTool: PKContracts.PKTool, CustomStringConvertible, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "describable_tool"
         let name = "Describable Tool"
         let toolDescription = "LLM-facing purpose"

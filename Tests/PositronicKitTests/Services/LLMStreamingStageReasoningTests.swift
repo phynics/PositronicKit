@@ -92,7 +92,7 @@ struct LLMStreamingStageReasoningTests {
 
     private func makeContext() -> TurnContext {
         TurnContext(
-            threadID: UUID(),
+            timelineID: UUID(),
             agentId: nil,
             modelName: "test-model",
             maxModelRounds: 5,

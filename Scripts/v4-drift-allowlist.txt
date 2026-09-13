@@ -1,5 +1,32 @@
 # path|line regular expression
-# Release notes are immutable history. Current source and guidance receive exact-line allowances.
-CHANGELOG.md|^- \*\*v4 deprecated API removal:\*\* removed the released v3 Timeline compatibility modules and$
-docs/adr/0001-v4-hard-domain-and-persistence-cut.md|Timeline-era
+# Only serialized compatibility spellings and model-facing identifiers belong here. Swift API
+# names, labels, filenames, and current prose must use Timeline terminology.
 Sources/PositronicKit/CONTEXT.md|^_Avoid_:
+Sources/PKUtilities/LogKeys.swift|threadID
+Sources/PKContracts/SharedTypes/Agent.swift|privateThreadId
+Sources/PKContracts/SharedTypes/TurnSnapshot.swift|threadId
+Sources/PKContracts/SharedTypes/WorkspaceReference.swift|runtimeThread
+Sources/PKContracts/SharedTypes/WorkspaceURI.swift|/threads/
+Sources/PKContracts/Tools/PKTool.swift|Thread\.sleep
+Sources/PositronicKit/Models/Agents/AgentContext.swift|primaryThreadSummary
+Sources/PositronicKit/Models/Timeline/TimelineMessage.swift|thread_send|threadId
+Sources/PositronicKit/Services/Database/WorkspaceBindingRepository.swift|threadID
+Sources/PositronicKit/Services/Database/TimelineRuntimeRepository.swift|threadID
+Sources/PositronicKit/Services/Prompting/DefaultInstructions.swift|thread_(list|peek|send)
+Sources/PositronicKit/Services/Tools/Timeline/*|thread_(list|peek|send|id)
+Sources/PositronicKit/Customization/RuntimeCustomization.swift|threadID
+Sources/PositronicKit/Services/Timeline/TimelineManager+Lifecycle.swift|"threads"
+Sources/PKContracts/Utilities/PKError.swift|com\.positronickit\.core\.thread
+Tests/PKUtilitiesTests/Utilities/ProviderHTTPTransportTests.swift|Thread\.sleep
+Tests/PKTestSupport/TestHTTPServer.swift|Thread\.sleep
+Tests/PositronicKitTests/Services/RuntimeToolPolicyFactoryTests.swift|thread_(list|peek|send)
+Tests/PositronicKitTests/TurnEnginePipelineTests.swift|threadID
+Tests/PositronicKitTests/TimelineObservationToolsTests.swift|thread_(list|peek|send|id)
+Tests/PositronicKitTests/TimelineSendToolTests.swift|thread_(send|id)
+Tests/PositronicKitTests/TimelineSerializationCompatibilityTests.swift|thread(Id|ID)|privateThreadId|primaryThreadSummary|thread_(list|peek|send|id)|runtimeThread|/threads/
+Tests/PKContractsTests/CoreAPIClarityTests.swift|thread(Id|ID)|privateThreadId
+Tests/PKContractsTests/SharedModelCoverageTests.swift|runtimeThread
+Tests/PKContractsTests/WorkspaceURITests.swift|/threads/
+docs/Setup.md|thread_send
+docs/Usage.md|privateThreadId
+docs/PublicIDParameterInventory.md|threadId

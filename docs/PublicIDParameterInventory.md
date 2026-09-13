@@ -6,16 +6,17 @@ overloads.
 
 | Surface | Canonical spelling |
 | --- | --- |
-| Workspace catalog creation | `originID`, `agentID`, `threadID` |
-| Agent manager attachment | `agentID`, `threadID` |
-| Thread and workspace lookup | `threadID`, `agentID`, `workspaceID` |
+| Workspace catalog creation | `originID`, `agentID`, `timelineID` |
+| Agent manager attachment | `agentID`, `timelineID` |
+| Timeline and workspace lookup | `timelineID`, `agentID`, `workspaceID` |
 | Turn request and identity | `turnID`, `requestID`, `modelRoundIndex` |
 | Tool calls and progress events | `toolCallID` |
-| Workspace URI factories | `agentID`, `threadID` |
+| Workspace URI factories | `agentID`, `timelineID` |
 | Tool persistence and routing | `workspaceID`, `workspaceIDs`, `originID`, `toolName`, `primaryWorkspaceID` |
-| Agent-attached Thread lookup | `agentID` |
-| Thread tool toggling | `toolName` |
+| Agent-attached Timeline lookup | `agentID` |
+| Timeline tool toggling | `toolName` |
 
-Serialized keys follow the same v4 vocabulary (`threadId`, `agentId`, `turnId`, `requestId`, and
+
+Serialized keys retain their established wire spellings (`threadId`, `agentId`, `turnId`, `requestId`, and
 `toolCallId`). No decoder accepts a retired key, and no public compatibility shim forwards from a
 retired parameter spelling.

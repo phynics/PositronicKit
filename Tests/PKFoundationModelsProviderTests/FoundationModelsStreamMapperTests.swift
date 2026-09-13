@@ -34,7 +34,7 @@ struct FoundationModelsStreamMapperTests {
         #expect(chunk == nil)
     }
 
-    @Test("Tool calls carry id, name, arguments, and an assigned ordinal index")
+    @Test("PKTool calls carry id, name, arguments, and an assigned ordinal index")
     func toolCallsCarryOrdinal() throws {
         var state = FoundationModelsStreamMapper.State()
         let chunk = FoundationModelsStreamMapper.map(
@@ -73,7 +73,7 @@ struct FoundationModelsStreamMapperTests {
         #expect(firstAgain?.choices.first?.delta.toolCalls?.first?.index == 0)
     }
 
-    @Test("Tool output events produce no chunk (framework already executed the tool)")
+    @Test("PKTool output events produce no chunk (framework already executed the tool)")
     func toolOutputProducesNoChunk() {
         var state = FoundationModelsStreamMapper.State()
         let chunk = FoundationModelsStreamMapper.map(

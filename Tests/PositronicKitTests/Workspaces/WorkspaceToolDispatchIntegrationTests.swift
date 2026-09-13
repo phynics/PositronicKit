@@ -65,12 +65,12 @@ struct WorkspaceToolDispatchIntegrationTests {
         }
     }
 
-    private struct ProbeTool: Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- test tool observes an injected runtime repository (see docs/Concurrency/exception-manifest.md)
+    private struct ProbeTool: PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- test tool observes an injected runtime repository (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let result: String
         let executionProbe: ExecutionProbe?
         let intentProbe: IntentProbe?
-        let repository: (any ThreadRuntimeRepository)?
+        let repository: (any TimelineRuntimeRepository)?
         let turnID: UUID?
 
         var name: String { callName }
@@ -91,12 +91,12 @@ struct WorkspaceToolDispatchIntegrationTests {
     }
 
     private struct Environment {
-        let manager: ThreadManager
+        let manager: TimelineManager
         let router: ToolRouter
         let persistence: MockPersistenceService
         let bindings: InMemoryWorkspaceBindingRepository
-        let repository: InMemoryThreadRuntimeRepository
-        let threadID: UUID
+        let repository: InMemoryTimelineRuntimeRepository
+        let timelineID: UUID
         let workspace: WorkspaceReference
         let tool: ProbeTool
     }
@@ -108,10 +108,10 @@ struct WorkspaceToolDispatchIntegrationTests {
     ) async throws -> Environment {
         let persistence = MockPersistenceService()
         let bindings = InMemoryWorkspaceBindingRepository()
-        let repository = InMemoryThreadRuntimeRepository()
-        let manager = ThreadManager(
+        let repository = InMemoryTimelineRuntimeRepository()
+        let manager = TimelineManager(
             stores: .init(
-                threadStore: persistence,
+                timelineStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: bindings,
@@ -122,11 +122,11 @@ struct WorkspaceToolDispatchIntegrationTests {
             workspaceCreator: MockWorkspaceCreator()
         )
         let router = ToolRouter(
-            threadManager: manager,
+            timelineManager: manager,
             runtimeRepository: repository
         )
-        let thread = try await manager.createThread(title: "Workspace dispatch")
-        try await repository.saveThread(thread)
+        let timeline = try await manager.createTimeline(title: "Workspace dispatch")
+        try await repository.saveTimeline(timeline)
 
         let workspace = WorkspaceReference(
             uri: WorkspaceURI(host: "workspace-dispatch", path: "/test"),
@@ -135,7 +135,7 @@ struct WorkspaceToolDispatchIntegrationTests {
             rootPath: "/tmp"
         )
         try await persistence.saveWorkspace(workspace)
-        try await manager.attachWorkspace(workspace.id, to: thread.id)
+        try await manager.attachWorkspace(workspace.id, to: timeline.id)
 
         let resolvedTool = tool ?? ProbeTool(
             callName: toolName,
@@ -145,15 +145,15 @@ struct WorkspaceToolDispatchIntegrationTests {
             repository: nil,
             turnID: nil
         )
-        guard let toolManager = await manager.getToolManager(for: thread.id) else {
-            Issue.record("Thread tool manager was not created")
+        guard let toolManager = await manager.getToolManager(for: timeline.id) else {
+            Issue.record("Timeline tool manager was not created")
             return Environment(
                 manager: manager,
                 router: router,
                 persistence: persistence,
                 bindings: bindings,
                 repository: repository,
-                threadID: thread.id,
+                timelineID: timeline.id,
                 workspace: workspace,
                 tool: resolvedTool
             )
@@ -169,7 +169,7 @@ struct WorkspaceToolDispatchIntegrationTests {
             persistence: persistence,
             bindings: bindings,
             repository: repository,
-            threadID: thread.id,
+            timelineID: timeline.id,
             workspace: workspace,
             tool: resolvedTool
         )
@@ -177,7 +177,7 @@ struct WorkspaceToolDispatchIntegrationTests {
 
     private func admit(_ environment: Environment, fingerprint: String) async throws -> UUID {
         let admission = try await environment.repository.admitTurn(
-            threadID: environment.threadID,
+            timelineID: environment.timelineID,
             requestID: UUID(),
             callerIntentFingerprint: fingerprint
         )
@@ -201,7 +201,7 @@ struct WorkspaceToolDispatchIntegrationTests {
 
     private static func handle(
         router: ToolRouter,
-        threadID: UUID,
+        timelineID: UUID,
         turnID: UUID,
         calls: [ParsedToolCall],
         availableTools: [AnyTool],
@@ -211,7 +211,7 @@ struct WorkspaceToolDispatchIntegrationTests {
             Task {
                 do {
                     _ = try await router.handlePendingToolCalls(
-                        threadId: threadID,
+                        timelineId: timelineID,
                         turnID: turnID,
                         calls: calls,
                         availableTools: availableTools,
@@ -236,7 +236,7 @@ struct WorkspaceToolDispatchIntegrationTests {
         let environment = try await makeEnvironment(location: .attached)
         _ = try await admit(environment, fingerprint: "catalog-snapshot")
         let captured = try await environment.manager.captureWorkspaceToolCatalog(
-            for: environment.threadID,
+            for: environment.timelineID,
             primaryWorkspaceID: nil
         )
         let capturedEntry = try #require(captured.entries.first)
@@ -249,13 +249,13 @@ struct WorkspaceToolDispatchIntegrationTests {
         )
         try await environment.persistence.saveWorkspace(environment.workspace.withTools([.known("replacement_tool")]))
         try await environment.persistence.saveWorkspace(replacement)
-        try await environment.manager.detachWorkspace(environment.workspace.id, from: environment.threadID)
-        try await environment.manager.attachWorkspace(replacement.id, to: environment.threadID)
+        try await environment.manager.detachWorkspace(environment.workspace.id, from: environment.timelineID)
+        try await environment.manager.attachWorkspace(replacement.id, to: environment.timelineID)
 
         #expect(captured.entries.count == 1)
         #expect(capturedEntry.workspace.id == environment.workspace.id)
         #expect(capturedEntry.tools.map(\.callName) == [environment.tool.callName])
-        let liveWorkspaces = try await environment.manager.getWorkspaces(for: environment.threadID)
+        let liveWorkspaces = try await environment.manager.getWorkspaces(for: environment.timelineID)
         #expect(liveWorkspaces.attached.map(\.id) == [replacement.id])
     }
 
@@ -293,11 +293,11 @@ struct WorkspaceToolDispatchIntegrationTests {
             argumentsJSON: "{\"tool\":\"workspace_probe\",\"at\":\"\(environment.workspace.id.uuidString)\",\"arguments\":{}}"
         )
         let router = environment.router
-        let threadID = environment.threadID
+        let timelineID = environment.timelineID
         let pending = Task {
             _ = try await Self.handle(
                 router: router,
-                threadID: threadID,
+                timelineID: timelineID,
                 turnID: turnID,
                 calls: [call],
                 availableTools: [catalog.callTool],
@@ -312,7 +312,7 @@ struct WorkspaceToolDispatchIntegrationTests {
         }
         try await environment.bindings.release(
             workspaceID: environment.workspace.id,
-            from: environment.threadID,
+            from: environment.timelineID,
             now: Date()
         )
         releaseLane.open()
@@ -326,7 +326,7 @@ struct WorkspaceToolDispatchIntegrationTests {
         #expect(results.first?.workspaceID == environment.workspace.id)
     }
 
-    @Test("runtime and runtimeThread Workspace calls execute locally with route provenance")
+    @Test("runtime and runtimeTimeline Workspace calls execute locally with route provenance")
     func localWorkspaceLocationsExecuteWithProvenance() async throws {
         let executionProbe = ExecutionProbe()
         let environment = try await makeEnvironment(location: .runtime, tool: ProbeTool(
@@ -338,17 +338,17 @@ struct WorkspaceToolDispatchIntegrationTests {
             turnID: nil
         ))
         let secondWorkspace = WorkspaceReference(
-            uri: WorkspaceURI(host: "workspace-dispatch", path: "/thread"),
-            location: .runtimeThread,
+            uri: WorkspaceURI(host: "workspace-dispatch", path: "/timeline"),
+            location: .runtimeTimeline,
             tools: [.known(environment.tool.callName)],
             rootPath: "/tmp"
         )
         try await environment.persistence.saveWorkspace(secondWorkspace)
-        try await environment.manager.attachWorkspace(secondWorkspace.id, to: environment.threadID)
+        try await environment.manager.attachWorkspace(secondWorkspace.id, to: environment.timelineID)
         let turnID = try await admit(environment, fingerprint: "local-provenance")
         let dispatchCatalog = WorkspaceToolCatalog(entries: [
             .init(workspace: environment.workspace, label: "runtime", isPrimary: false, tools: [AnyTool(environment.tool)]),
-            .init(workspace: secondWorkspace, label: "runtimeThread", isPrimary: false, tools: [AnyTool(environment.tool)]),
+            .init(workspace: secondWorkspace, label: "runtimeTimeline", isPrimary: false, tools: [AnyTool(environment.tool)]),
         ])
         let calls = [
             ParsedToolCall(
@@ -357,14 +357,14 @@ struct WorkspaceToolDispatchIntegrationTests {
                 argumentsJSON: "{\"tool\":\"workspace_probe\",\"at\":\"\(environment.workspace.id.uuidString)\",\"arguments\":{}}"
             ),
             ParsedToolCall(
-                callId: "call-runtime-thread",
+                callId: "call-runtime-timeline",
                 name: "call_tool",
                 argumentsJSON: "{\"tool\":\"workspace_probe\",\"at\":\"\(secondWorkspace.id.uuidString)\",\"arguments\":{}}"
             ),
         ]
         _ = try await Self.handle(
             router: environment.router,
-            threadID: environment.threadID,
+            timelineID: environment.timelineID,
             turnID: turnID,
             calls: calls,
             availableTools: [dispatchCatalog.callTool],
@@ -400,7 +400,7 @@ struct WorkspaceToolDispatchIntegrationTests {
         )
         _ = try await Self.handle(
             router: environment.router,
-            threadID: environment.threadID,
+            timelineID: environment.timelineID,
             turnID: turnID,
             calls: [call],
             availableTools: [dispatchCatalog.callTool],
@@ -413,7 +413,7 @@ struct WorkspaceToolDispatchIntegrationTests {
         #expect(intents.first?.workspaceID == environment.workspace.id)
     }
 
-    @Test("Tool Intent is durable before the Workspace side effect")
+    @Test("PKTool Intent is durable before the Workspace side effect")
     func intentPrecedesWorkspaceExecution() async throws {
         let intentProbe = IntentProbe()
         let environment = try await makeEnvironment(location: .runtime)
@@ -434,7 +434,7 @@ struct WorkspaceToolDispatchIntegrationTests {
         )
         _ = try await Self.handle(
             router: environment.router,
-            threadID: environment.threadID,
+            timelineID: environment.timelineID,
             turnID: turnID,
             calls: [call],
             availableTools: [dispatchCatalog.callTool],

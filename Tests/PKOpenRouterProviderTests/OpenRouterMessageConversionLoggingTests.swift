@@ -87,7 +87,7 @@ struct OpenRouterMessageConversionLoggingTests {
         #expect(String(decoding: encoded, as: UTF8.self).contains("AQI=") == false)
     }
 
-    @Test("Tool-role message with nil toolCallID logs a warning")
+    @Test("PKTool-role message with nil toolCallID logs a warning")
     func toolMessageWithNilToolCallIDLogsWarning() {
         let sink = CapturingLogSink()
         let logger = Logger(label: "test.openrouter.message-conversion") { _ in
@@ -103,7 +103,7 @@ struct OpenRouterMessageConversionLoggingTests {
         #expect(messages.contains(where: { $0.contains("missing toolCallID") }))
     }
 
-    @Test("Tool-role message with a toolCallID does not log a warning")
+    @Test("PKTool-role message with a toolCallID does not log a warning")
     func toolMessageWithToolCallIDDoesNotLogWarning() {
         let sink = CapturingLogSink()
         let logger = Logger(label: "test.openrouter.message-conversion") { _ in

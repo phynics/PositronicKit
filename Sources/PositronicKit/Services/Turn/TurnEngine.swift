@@ -41,9 +41,9 @@ enum TurnEngineError: PKError {
         case let .streamTimedOut(timeout):
             return "The model stream did not finish within \(Self.timeoutDescription(timeout)). Please try again."
         case let .danglingToolCall(id):
-            return "Thread history contains an assistant tool call with id '\(id)' that has no matching tool result."
+            return "Timeline history contains an assistant tool call with id '\(id)' that has no matching tool result."
         case let .danglingToolResult(id):
-            return "Thread history contains a tool result with id '\(id)' that has no matching assistant tool call."
+            return "Timeline history contains a tool result with id '\(id)' that has no matching assistant tool call."
         case let .promptHistoryInconsistent(detail):
             return "The prompt history could not record this turn safely: \(detail)"
         case let .turnReplayTimedOut(turnID):
@@ -54,7 +54,7 @@ enum TurnEngineError: PKError {
     var remediation: String? {
         switch self {
         case .danglingToolCall, .danglingToolResult:
-            return "Repair the persisted thread history so assistant tool calls and tool results are paired before retrying."
+            return "Repair the persisted timeline history so assistant tool calls and tool results are paired before retrying."
         case .llmServiceNotConfigured, .missingInput, .streamTimedOut, .promptHistoryInconsistent, .turnReplayTimedOut:
             return nil
         }
@@ -94,15 +94,15 @@ enum TurnDegradationError: PKError {
 /// Unified runtime turn orchestrator for both interactive chat and autonomous execution.
 /// Returns `AsyncThrowingStream<TurnEvent>` for all use cases — callers decide how to consume.
 ///
-/// `TurnEngine` is a thin coordinator: it validates preconditions, prepares the session
+/// `TurnEngine` is a thin coordinator: it validates preconditions, prepares the Turn
 /// (context gathering, prompt assembly, prompt-history recording), and drives the ReAct
 /// loop. Prompt follow-up synthesis (`PromptSnapshotBuilder`) and partial-assistant
 /// persistence (`PartialAssistantPersistence`) remain delegated to focused standalone
-/// helpers. Session preparation lives in `TurnEngine+TurnPreparation.swift`; the ReAct
+/// helpers. Turn preparation lives in `TurnEngine+TurnPreparation.swift`; the ReAct
 /// loop lives in `TurnEngine+TurnLoop.swift`.
 ///
 /// It is deliberately *not* the public customization surface for downstream applications;
-/// external callers are expected to integrate through `PositronicKit` and the higher-level
+/// external callers are expected to integrate through `PKRuntime` and the higher-level
 /// extension protocols rather than depending on this concrete orchestrator directly.
 struct TurnEngine {
     struct TurnExecution {
@@ -133,12 +133,12 @@ struct TurnEngine {
             return min(max(requested, streamTimeoutRange.lowerBound), streamTimeoutRange.upperBound)
         }
 
-        let threadManager: ThreadManager
+        let timelineManager: TimelineManager
         let agentStore: any AgentStoreProtocol
         let agentContextSource: any AgentContextSource
         let requestOriginStore: any RequestOriginStoreProtocol
-        let runtimeRepository: any ThreadRuntimeRepository
-        let threadAuthorityCoordinator: ThreadAuthorityCoordinator
+        let runtimeRepository: any TimelineRuntimeRepository
+        let timelineAuthorityCoordinator: TimelineAuthorityCoordinator
         let agentAuthorityCoordinator: AgentAuthorityCoordinator
         /// Streaming chat seam: the runtime turn loop, `LLMStreamingStage`, and the
         /// `isConfigured`/`configuration` precondition checks depend only on this.
@@ -150,19 +150,19 @@ struct TurnEngine {
         let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         let loggingConfiguration: LoggingConfiguration
         let degradationPolicy: TurnDegradationPolicy
-        let promptHistoryRegistry: ThreadPromptJournals
+        let promptHistoryRegistry: TimelinePromptJournals
         let eventHub: TurnEventHub
         let submissionGate: ExternalToolOutputSubmissionGate
         let streamTimeout: TimeInterval
         let clock: any RuntimeClock
 
         init(
-            threadManager: ThreadManager,
+            timelineManager: TimelineManager,
             agentStore: any AgentStoreProtocol,
             agentContextSource: (any AgentContextSource)? = nil,
             requestOriginStore: any RequestOriginStoreProtocol,
-            runtimeRepository: any ThreadRuntimeRepository,
-            threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil,
+            runtimeRepository: any TimelineRuntimeRepository,
+            timelineAuthorityCoordinator: TimelineAuthorityCoordinator? = nil,
             agentAuthorityCoordinator: AgentAuthorityCoordinator? = nil,
             llmService: any LLMStreamClient,
             toolRouter: ToolRouter,
@@ -172,18 +172,18 @@ struct TurnEngine {
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             loggingConfiguration: LoggingConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired,
-            promptHistoryRegistry: ThreadPromptJournals? = nil,
+            promptHistoryRegistry: TimelinePromptJournals? = nil,
             eventHub: TurnEventHub? = nil,
             submissionGate: ExternalToolOutputSubmissionGate? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout,
             clock: any RuntimeClock = ContinuousRuntimeClock()
         ) {
-            self.threadManager = threadManager
+            self.timelineManager = timelineManager
             self.agentStore = agentStore
             self.agentContextSource = agentContextSource ?? IdentityAgentContextSource()
             self.requestOriginStore = requestOriginStore
             self.runtimeRepository = runtimeRepository
-            self.threadAuthorityCoordinator = threadAuthorityCoordinator ?? threadManager.threadAuthorityCoordinator
+            self.timelineAuthorityCoordinator = timelineAuthorityCoordinator ?? timelineManager.timelineAuthorityCoordinator
             self.agentAuthorityCoordinator = agentAuthorityCoordinator ?? AgentAuthorityCoordinator()
             self.llmService = llmService
             self.toolRouter = toolRouter
@@ -193,7 +193,7 @@ struct TurnEngine {
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.loggingConfiguration = loggingConfiguration
             self.degradationPolicy = degradationPolicy
-            self.promptHistoryRegistry = promptHistoryRegistry ?? ThreadPromptJournals()
+            self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptJournals()
             self.eventHub = eventHub ?? TurnEventHub()
             self.submissionGate = submissionGate ?? ExternalToolOutputSubmissionGate()
             self.streamTimeout = Self.resolvedStreamTimeout(streamTimeout)
@@ -238,7 +238,7 @@ struct TurnEngine {
     }
 
     static func persistCustomizationNotice(
-        repository: any ThreadRuntimeRepository,
+        repository: any TimelineRuntimeRepository,
         logger: Logger,
         code: TurnNoticeCode,
         turnID: UUID,
@@ -286,11 +286,11 @@ struct TurnEngine {
     /// Executes one normalized Turn request and returns its event stream.
     ///
     /// Reserved for runtime-owned engine tests; public callers reach a Turn through
-    /// ``PositronicKit`` and get a `TurnHandle`. Both paths share
+    /// ``PKRuntime`` and get a `TurnHandle`. Both paths share
     /// ``ConsumerCancellationRelay`` so the cancellation policy is stated once.
     func execute(_ executionRequest: TurnExecutionRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         let execution = try await startExecution(executionRequest)
-        let relay = consumerCancellationRelay(for: execution, threadID: executionRequest.request.threadID)
+        let relay = consumerCancellationRelay(for: execution, timelineID: executionRequest.request.timelineID)
         guard relay.canCancel else { return execution.stream }
 
         let reachedTerminalState = Mutex(false)
@@ -320,12 +320,12 @@ struct TurnEngine {
     /// carries its events out to the caller.
     func consumerCancellationRelay(
         for execution: TurnExecution,
-        threadID: UUID
+        timelineID: UUID
     ) -> ConsumerCancellationRelay {
         ConsumerCancellationRelay(
-            threadManager: dependencies.threadManager,
+            timelineManager: dependencies.timelineManager,
             turnID: execution.turnID,
-            threadID: threadID,
+            timelineID: timelineID,
             ownsGeneration: execution.ownsGeneration
         )
     }
@@ -343,9 +343,9 @@ struct TurnEngine {
     ///   *before* yielding the terminal event, so a consumer cannot observe the event and break
     ///   while the relay still believes the Turn is live.
     struct ConsumerCancellationRelay: Sendable {
-        let threadManager: ThreadManager
+        let timelineManager: TimelineManager
         let turnID: UUID
-        let threadID: UUID
+        let timelineID: UUID
         let ownsGeneration: Bool
 
         /// Whether abandoning this consumer may cancel anything at all.
@@ -353,11 +353,11 @@ struct TurnEngine {
 
         func consumerAbandoned(reachedTerminalState: Bool) {
             guard canCancel, !reachedTerminalState else { return }
-            let threadManager = self.threadManager
+            let timelineManager = self.timelineManager
             let turnID = self.turnID
-            let threadID = self.threadID
+            let timelineID = self.timelineID
             Task {
-                _ = await threadManager.cancelGeneration(turnID: turnID, for: threadID)
+                _ = await timelineManager.cancelGeneration(turnID: turnID, for: timelineID)
             }
         }
     }
@@ -368,11 +368,11 @@ struct TurnEngine {
             throw TurnError.invalidMaxModelRounds(request.maxModelRounds)
         }
 
-        let threadID = request.threadID
-        let sid = threadID.uuidString.prefix(8).lowercased()
-        logger.info("Starting generation stream for thread \(sid)")
+        let timelineID = request.timelineID
+        let sid = timelineID.uuidString.prefix(8).lowercased()
+        logger.info("Starting generation stream for timeline \(sid)")
 
-        let agentPreflight = try await preflightAgent(id: executionRequest.context.agentID, threadID: threadID)
+        let agentPreflight = try await preflightAgent(id: executionRequest.context.agentID, timelineID: timelineID)
         guard await dependencies.llmService.isConfigured else { throw TurnEngineError.llmServiceNotConfigured }
         guard request.structuredOutput == nil || request.sidecars.isEmpty else {
             throw SidecarError.conflictsWithExplicitStructuredOutput
@@ -380,7 +380,7 @@ struct TurnEngine {
         try SidecarSchemaComposer.validate(request.sidecars)
 
         let turnID = UUID()
-        let prepared = try await prepareSession(
+        let prepared = try await prepareTurn(
             executionRequest,
             turnID: turnID,
             agent: agentPreflight.instance,
@@ -436,22 +436,22 @@ struct TurnEngine {
             var startIterator = startSignal.makeAsyncIterator()
             guard await startIterator.next() == true else { return }
             await runTurnLoop(continuation: continuation, context: context)
-            await dependencies.threadManager.removeTask(turnID: turnID, for: threadID)
+            await dependencies.timelineManager.removeTask(turnID: turnID, for: timelineID)
             _ = await bridge.value
         }
         // Installed before any possible `continuation.finish(...)` below so a termination that
         // races the not-registered branch can never observe the handler unset.
         continuation.onTermination = { @Sendable _ in task.cancel() }
-        let registered = await dependencies.threadManager.registerTask(task, turnID: turnID, for: threadID)
+        let registered = await dependencies.timelineManager.registerTask(task, turnID: turnID, for: timelineID)
         if !registered {
             task.cancel()
             // `task` returns before reaching `runTurnLoop`, which is the only other place that
             // finishes `continuation`. Without this, `bridge` — already iterating `sourceStream`
             // — would suspend forever waiting for an event that never comes, leaking one Task per
-            // `threadBusy` collision for the process lifetime. Finishing here with the busy error
+            // `timelineBusy` collision for the process lifetime. Finishing here with the busy error
             // makes `bridge`'s catch branch the single path that reports it to the event hub, so
-            // the external stream still surfaces `threadBusy` once `bridge` relays it.
-            continuation.finish(throwing: ThreadRuntimeRepositoryError.threadBusy(threadID: threadID, activeTurnID: turnID))
+            // the external stream still surfaces `timelineBusy` once `bridge` relays it.
+            continuation.finish(throwing: TimelineRuntimeRepositoryError.timelineBusy(timelineID: timelineID, activeTurnID: turnID))
         }
         startContinuation.yield(registered)
         startContinuation.finish()
@@ -483,7 +483,7 @@ struct TurnEngine {
                         throw TurnEngineError.turnReplayTimedOut(turnID: turnID)
                     }
                 }
-                let messages = try await repository.fetchMessages(for: record.threadID)
+                let messages = try await repository.fetchMessages(for: record.timelineID)
                 if let messageID = record.terminalMessageID,
                    let assistant = messages.first(where: { $0.id == messageID })
                 {

@@ -2,7 +2,7 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Thread-safe in-memory agent template store for prototyping and development.
+/// Timeline-safe in-memory agent template store for prototyping and development.
 public actor InMemoryAgentTemplateStore: AgentTemplateStoreProtocol {
     private var templates: [AgentTemplate] = []
 

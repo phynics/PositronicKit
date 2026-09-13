@@ -13,7 +13,7 @@ struct MockPersistenceServiceTests {
         let instance = Agent(
             name: "Test Agent",
             description: "A test agent",
-            privateThreadID: UUID()
+            privateTimelineID: UUID()
         )
         try await persistence.saveAgent(instance)
         #expect(try await persistence.fetchAllAgents().count == 1)

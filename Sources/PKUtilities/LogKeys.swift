@@ -1,7 +1,7 @@
 import PKContracts
 import Foundation
 
-/// Canonical PositronicKit loop-metadata vocabulary for `Logger.Metadata` keys.
+/// Canonical PKRuntime loop-metadata vocabulary for `Logger.Metadata` keys.
 ///
 /// All structured-log sites across the turn loop — prompt assembly, LLM stream
 /// lifecycle, loop continuation decisions, and tool routing — MUST use these keys
@@ -15,14 +15,14 @@ import Foundation
 /// (PKLOG-001/002/003). New loop components adopt these keys rather than introducing
 /// synonyms.
 package enum LogKeys {
-    /// Raw thread UUID string (not hashed) — correlates end-to-end with Yakamoz logs
-    /// (YAK-40), which log the raw `threadId`. A UUID is an id, not a payload.
-    package static let threadID = "threadID"
+    /// Raw timeline UUID string (not hashed) — correlates end-to-end with Yakamoz logs
+    /// (YAK-40), which log the raw timeline key. A UUID is an id, not a payload.
+    package static let timelineID = "threadID"
 
     /// Turn UUID — identifies one user turn independently from its request/idempotency UUID.
     package static let turnID = "turnID"
 
-    /// Request/idempotency UUID — disambiguates retries and rounds within a thread.
+    /// Request/idempotency UUID — disambiguates retries and rounds within a timeline.
     package static let requestID = "requestID"
 
     /// Model round index within the current turn (the `modelRoundIndex` on `TurnContext`).

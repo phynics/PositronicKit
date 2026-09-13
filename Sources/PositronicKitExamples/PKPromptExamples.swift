@@ -22,7 +22,7 @@ public enum PKPromptExamples {
         let toolSummary = tools.map { "- \($0)" }.joined(separator: "\n")
 
         return AnyPrompt.build {
-            SystemPrompt("You are helping with PositronicKit setup.")
+            SystemPrompt("You are helping with PKRuntime setup.")
 
             TextPrompt(
                 toolSummary,
@@ -42,7 +42,7 @@ public enum PKPromptExamples {
         userQuery: String
     ) -> some Prompt {
         AnyPrompt.build {
-            SystemPrompt("You are helping with PositronicKit setup.")
+            SystemPrompt("You are helping with PKRuntime setup.")
 
             ForEach(tools) { tool in
                 TextPrompt(
@@ -129,7 +129,7 @@ public enum PKPromptExamples {
         let updatedPlan = try journal.observe(second)
         journal.recordAppend(messages: [
             Message(content: "Use build, then verify with tests.", role: .assistant),
-            Message(content: "Tool output: build succeeded.", role: .tool),
+            Message(content: "PKTool output: build succeeded.", role: .tool),
         ])
         let autoCompactedPlan = try journal.observe(second)
         let compactedPlan = journal.compact()

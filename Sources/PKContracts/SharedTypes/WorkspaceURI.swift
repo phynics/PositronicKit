@@ -40,9 +40,9 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
         WorkspaceURI(host: "pk-runtime", path: "/agents/\(agentID.uuidString)")
     }
 
-    /// Create a thread workspace URI owned by this runtime.
-    public static func threadWorkspace(_ threadID: UUID) -> WorkspaceURI {
-        WorkspaceURI(host: "pk-runtime", path: "/threads/\(threadID.uuidString)")
+    /// Create a timeline workspace URI owned by this runtime.
+    public static func timelineWorkspace(_ timelineID: UUID) -> WorkspaceURI {
+        WorkspaceURI(host: "pk-runtime", path: "/threads/\(timelineID.uuidString)")
     }
 
     /// Create a request-origin shell workspace URI.

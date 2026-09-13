@@ -54,7 +54,7 @@ public struct AudioOutputSnapshot: Codable, Sendable, Equatable {
 /// Persisted as JSON on each assistant message for audit and replay.
 public struct TurnSnapshot: Codable, Sendable, Equatable {
     public let timestamp: Date
-    public let threadID: UUID
+    public let timelineID: UUID
     public let agentID: UUID?
     public let modelName: String
     public let modelRoundIndex: Int
@@ -64,7 +64,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
     /// Context sources used in this turn
     public let contextSnapshot: TurnContextSnapshot?
 
-    /// Tool metadata (tool objects aren't Codable, so we store IDs)
+    /// PKTool metadata (tool objects aren't Codable, so we store IDs)
     public let availableToolIDs: [String]
 
     // LLM outputs
@@ -72,7 +72,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
     public let fullThinking: String
     public let audioOutput: AudioOutputSnapshot?
 
-    // Tool activity
+    // PKTool activity
     public let toolCalls: [ToolCallRecord]
     public let toolResults: [ToolResultRecord]
 
@@ -86,7 +86,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
 
     public init(
         timestamp: Date = Date(),
-        threadID: UUID,
+        timelineID: UUID,
         agentID: UUID? = nil,
         modelName: String,
         modelRoundIndex: Int,
@@ -107,7 +107,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         cachedTokens: Int? = nil
     ) {
         self.timestamp = timestamp
-        self.threadID = threadID
+        self.timelineID = timelineID
         self.agentID = agentID
         self.modelName = modelName
         self.modelRoundIndex = modelRoundIndex
@@ -131,7 +131,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case timestamp
-        case threadID = "threadId"
+        case timelineID = "threadId"
         case agentID = "agentId"
         case modelName, modelRoundIndex, maxModelRounds, systemInstructions, contextSnapshot
         case availableToolIDs = "availableToolIds"

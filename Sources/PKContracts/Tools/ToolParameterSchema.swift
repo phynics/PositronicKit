@@ -6,7 +6,7 @@ import JSONSchemaBuilder
 ///
 /// A thin builder helper around `JSONSchemaBuilder`'s `JSONObject`/`JSONPropertySchemaBuilder` DSL:
 /// `ToolParameterSchema.object { ... }.schemaDefinition` yields the typed `Schema` that
-/// ``Tool/parametersSchema`` returns. Kept as a convenience so tool conformers don't have to spell
+/// ``PKTool/parametersSchema`` returns. Kept as a convenience so tool conformers don't have to spell
 /// out `JSONObject(with:).definition()` directly.
 public struct ToolParameterSchema: Sendable {
     public let schemaDefinition: Schema

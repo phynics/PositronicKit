@@ -1,4 +1,4 @@
-/// PositronicKit runtime story coverage index.
+/// PKRuntime runtime story coverage index.
 ///
 /// This file maps each runtime-facing story suite to the user-visible story it
 /// covers without forcing low-level contract tests into a story shape. It is
@@ -34,7 +34,7 @@
 /// - grouped persistence/runtime initialization → `PublicRuntimeStoriesTests`
 /// - tool-call execution and continuation → `PublicRuntimeStoriesTests`
 /// - externally submitted tool outputs resume a run → `PublicRuntimeStoriesTests`
-/// - thread-managed context is used by default → `PublicRuntimeStoriesTests`
+/// - timeline-managed context is used by default → `PublicRuntimeStoriesTests`
 ///
 /// Extension stories
 /// - prompt section providers inject runtime prompt content → `ExtensionStoriesTests`
@@ -49,7 +49,7 @@
 /// - README/setup/usage examples stay buildable → `ExampleUsageStoriesTests`
 ///
 /// Internal mechanism stories
-/// - direct thread tool-registry mutation for an introductory round-trip →
+/// - direct timeline tool-registry mutation for an introductory round-trip →
 ///   `IntroductoryRuntimeInternalStoriesTests`
 /// - direct custom pipeline-stage insertion → `CustomPipelineStageInternalStoriesTests`
 /// END STORY SUITE MAP
@@ -66,10 +66,10 @@
 /// - runtime cancellation / event-stream reliability → `FacadeRunValidationTests`,
 ///   `TurnEngineTests`
 /// - prompt assembly / runtime prompt history / structured compression →
-///   `PromptAssemblyTests`, `ThreadPromptHistoryTests`,
+///   `PromptAssemblyTests`, `TimelinePromptHistoryTests`,
 ///   `StructuredCompressionIntegrationTests`
-/// - thread/workspace persistence behavior → `WorkspaceAttachmentTests`,
-///   `ThreadManagerTests`
+/// - timeline/workspace persistence behavior → `WorkspaceAttachmentTests`,
+///   `TimelineManagerTests`
 enum StoryCoverageIndex {
     // Documentation-only anchor for runtime story coverage.
 }

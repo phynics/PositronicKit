@@ -37,7 +37,7 @@ public enum TurnContextContributionError: Error, Equatable, Sendable, LocalizedE
         case .emptyNamespace:
             return "Turn context contribution namespace cannot be empty."
         case let .reservedNamespace(namespace):
-            return "Turn context contribution namespace '\(namespace)' is reserved for PositronicKit."
+            return "Turn context contribution namespace '\(namespace)' is reserved for PKRuntime."
         case let .invalidNamespace(namespace):
             return "Turn context contribution namespace '\(namespace)' is invalid."
         case .emptyKey:
@@ -56,7 +56,7 @@ public enum TurnContextContributionError: Error, Equatable, Sendable, LocalizedE
 ///
 /// Contributions are rendered as bounded host-owned prompt context. They cannot replace the prompt tree,
 /// register arbitrary pipeline stages, or inject runtime tools. Namespaces beginning with a
-/// PositronicKit-reserved name are rejected so host data cannot overwrite runtime sections.
+/// PKRuntime-reserved name are rejected so host data cannot overwrite runtime sections.
 public struct TurnContextContribution: Codable, Equatable, Hashable, Sendable, Identifiable {
     public static let maximumTextCharacters = 32_768
     public static let maximumJSONBytes = 65_536
@@ -163,7 +163,7 @@ public struct TurnContextContribution: Codable, Equatable, Hashable, Sendable, I
 
 /// Immutable identity supplied to a ``TurnContextSource`` for one admitted Turn.
 public struct TurnContextRequest: Codable, Equatable, Hashable, Sendable {
-    public let threadID: UUID
+    public let timelineID: UUID
     public let turnID: UUID
     public let requestID: UUID
     public let agentID: UUID?
@@ -171,8 +171,13 @@ public struct TurnContextRequest: Codable, Equatable, Hashable, Sendable {
     public let message: String
     public let contributors: [TurnContributor]
 
+    private enum CodingKeys: String, CodingKey {
+        case timelineID = "threadID"
+        case turnID, requestID, agentID, executionKind, message, contributors
+    }
+
     public init(
-        threadID: UUID,
+        timelineID: UUID,
         turnID: UUID,
         requestID: UUID,
         agentID: UUID?,
@@ -180,7 +185,7 @@ public struct TurnContextRequest: Codable, Equatable, Hashable, Sendable {
         message: String,
         contributors: [TurnContributor] = []
     ) {
-        self.threadID = threadID
+        self.timelineID = timelineID
         self.turnID = turnID
         self.requestID = requestID
         self.agentID = agentID
@@ -212,16 +217,22 @@ public struct AgentActivity: Codable, Equatable, Hashable, Sendable {
     }
 
     public let kind: Kind
-    public let threadID: UUID
+    public let timelineID: UUID
     public let turnID: UUID
     public let requestID: UUID
     public let agentID: UUID?
     public let modelRoundIndex: Int
     public let detail: String?
 
+    private enum CodingKeys: String, CodingKey {
+        case kind
+        case timelineID = "threadID"
+        case turnID, requestID, agentID, modelRoundIndex, detail
+    }
+
     public init(
         kind: Kind,
-        threadID: UUID,
+        timelineID: UUID,
         turnID: UUID,
         requestID: UUID,
         agentID: UUID?,
@@ -229,7 +240,7 @@ public struct AgentActivity: Codable, Equatable, Hashable, Sendable {
         detail: String? = nil
     ) {
         self.kind = kind
-        self.threadID = threadID
+        self.timelineID = timelineID
         self.turnID = turnID
         self.requestID = requestID
         self.agentID = agentID
@@ -245,7 +256,7 @@ public protocol AgentActivitySink: Sendable {
 
 /// Durable terminal outcome delivered after the runtime repository accepts it.
 public struct TurnOutcomeRecord: Codable, Equatable, Hashable, Sendable {
-    public let threadID: UUID
+    public let timelineID: UUID
     public let turnID: UUID
     public let requestID: UUID
     public let agentID: UUID?
@@ -253,8 +264,13 @@ public struct TurnOutcomeRecord: Codable, Equatable, Hashable, Sendable {
     public let modelRoundIndex: Int
     public let outcome: TurnOutcome
 
+    private enum CodingKeys: String, CodingKey {
+        case timelineID = "threadID"
+        case turnID, requestID, agentID, executionKind, modelRoundIndex, outcome
+    }
+
     public init(
-        threadID: UUID,
+        timelineID: UUID,
         turnID: UUID,
         requestID: UUID,
         agentID: UUID?,
@@ -262,7 +278,7 @@ public struct TurnOutcomeRecord: Codable, Equatable, Hashable, Sendable {
         modelRoundIndex: Int,
         outcome: TurnOutcome
     ) {
-        self.threadID = threadID
+        self.timelineID = timelineID
         self.turnID = turnID
         self.requestID = requestID
         self.agentID = agentID

@@ -2,7 +2,6 @@ import Foundation
 import PKContracts
 import PKTestSupport
 import PositronicKit
-import struct PositronicKit.Thread
 import Testing
 
 @Suite("PKTestSupport conformance suites", .serialized)
@@ -41,12 +40,12 @@ struct ConformanceSuiteTests {
 
     @Test("AgentStoreProtocol runs against seeded in-tree conformers")
     func agentStoreConformers() async throws {
-        try await AgentStoreConformanceSuite.run { threads in
-            InMemoryAgentStore(threads: threads)
+        try await AgentStoreConformanceSuite.run { timelines in
+            InMemoryAgentStore(timelines: timelines)
         }
-        try await AgentStoreConformanceSuite.run { threads in
+        try await AgentStoreConformanceSuite.run { timelines in
             let store = MockPersistenceService()
-            store.threads = threads
+            store.timelines = timelines
             return store
         }
     }
@@ -69,35 +68,35 @@ struct ConformanceSuiteTests {
         )
     }
 
-    @Test("broken ThreadRuntimeRepository is reported at terminal completion")
-    func brokenThreadRuntimeRepository() async throws {
+    @Test("broken TimelineRuntimeRepository is reported at terminal completion")
+    func brokenTimelineRuntimeRepository() async throws {
         try await withKnownIssue(
             "broken fixture must be observed",
             {
-                try await ThreadRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
+                try await TimelineRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
                     let store = MockPersistenceService()
                     store.completeTurnFails = true
                     return store
                 }
             },
-            matching: Self.matchesScenario("thread.completion.outcome")
+            matching: Self.matchesScenario("timeline.completion.outcome")
         )
     }
 
-    @Test("broken ThreadRuntimeRepository ordering is reported")
-    func brokenThreadRuntimeRepositoryOrdering() async throws {
+    @Test("broken TimelineRuntimeRepository ordering is reported")
+    func brokenTimelineRuntimeRepositoryOrdering() async throws {
         try await withKnownIssue(
             "broken fixture must be observed",
             {
-                try await ThreadRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
+                try await TimelineRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
                     let store = MockPersistenceService()
-                    store.unorderedMessagesForThreadID = UUID(
+                    store.unorderedMessagesForTimelineID = UUID(
                         uuidString: "00000000-0000-0000-0000-000000000166"
                     )!
                     return store
                 }
             },
-            matching: Self.matchesScenario("thread.history.ordering")
+            matching: Self.matchesScenario("timeline.history.ordering")
         )
     }
 
@@ -132,8 +131,8 @@ struct ConformanceSuiteTests {
         try await withKnownIssue(
             "broken fixture must be observed",
             {
-                try await AgentStoreConformanceSuite.run { threads in
-                    BrokenAgentStore(threads: threads)
+                try await AgentStoreConformanceSuite.run { timelines in
+                    BrokenAgentStore(timelines: timelines)
                 }
             },
             matching: Self.matchesScenario("agent.save.fetch")
@@ -228,12 +227,12 @@ private actor BrokenToolPersistence: ToolPersistenceProtocol {
 }
 
 private actor BrokenAgentStore: AgentStoreProtocol {
-    init(threads _: [Thread]) {}
+    init(timelines _: [TimelineRecord]) {}
     func saveAgent(_: Agent) async throws {}
     func fetchAgent(id _: UUID) async throws -> Agent? { nil }
     func fetchAllAgents() async throws -> [Agent] { [] }
     func deleteAgent(id _: UUID) async throws {}
-    func fetchThreads(attachedToAgent _: UUID) async throws -> [Thread] { [] }
+    func fetchTimelines(attachedToAgent _: UUID) async throws -> [TimelineRecord] { [] }
 }
 
 private actor BrokenRequestOriginStore: RequestOriginStoreProtocol {

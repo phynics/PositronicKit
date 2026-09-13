@@ -74,7 +74,7 @@ final class StreamingParserTests {
         #expect(!(parser.isThinking))
     }
 
-    // MARK: - Tool Extraction
+    // MARK: - PKTool Extraction
 
     @Test
 

@@ -7,7 +7,7 @@ is a leaf context and does not own runtime orchestration.
 
 **Model Message**:
 A provider-neutral request or response message with ordered content and role semantics.
-_Avoid_: Thread Message, ThreadMessage
+_Avoid_: Timeline Message, TimelineMessage
 
 **Modality**:
 A supported form of model content, such as text, image, audio, or structured data.
@@ -23,16 +23,16 @@ _Avoid_: runtime policy
 
 ## Tools and structured output
 
-**Tool Definition**:
+**PKTool Definition**:
 The provider-neutral name, description, and schema for a callable capability.
 _Avoid_: Workspace binding
 
-**Tool Call**:
+**PKTool Call**:
 A model-issued request to invoke a named tool with arguments and an independent call identity.
 _Avoid_: Turn, Model Round
 
-**Tool Result**:
-The provider-neutral success or failure value returned for one Tool Call.
+**PKTool Result**:
+The provider-neutral success or failure value returned for one PKTool Call.
 _Avoid_: TurnOutcome
 
 **Structured Output**:

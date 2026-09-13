@@ -248,7 +248,7 @@ struct WorkspaceReferenceHelperTests {
     @Test("withTools returns a copy with new tools, preserving other fields")
     func withToolsPreservesFields() {
         let original = WorkspaceReference(
-            uri: .threadWorkspace(UUID()),
+            uri: .timelineWorkspace(UUID()),
             location: .runtime,
             rootPath: "/tmp",
             trustLevel: .full
@@ -264,12 +264,12 @@ struct WorkspaceReferenceHelperTests {
         #expect(copy.tools.map(\.toolID) == ["read_file", "list_dir"])
     }
 
-    @Test("primaryForThread creates a runtime workspace with full trust")
-    func primaryForThread() {
-        let threadID = UUID()
-        let ws = WorkspaceReference.makePrimary(forThread: threadID, rootPath: "/projects/x")
+    @Test("primaryForTimeline creates a runtime workspace with full trust")
+    func primaryForTimeline() {
+        let timelineID = UUID()
+        let ws = WorkspaceReference.makePrimary(forTimeline: timelineID, rootPath: "/projects/x")
 
-        #expect(ws.uri == .threadWorkspace(threadID))
+        #expect(ws.uri == .timelineWorkspace(timelineID))
         #expect(ws.location == .runtime)
         #expect(ws.rootPath == "/projects/x")
         #expect(ws.trustLevel == .full)
@@ -369,7 +369,7 @@ struct ToolParameterSchemaExtensionTests {
 
 // MARK: - Test helpers
 
-private struct EchoTool: Tool, Sendable {
+private struct EchoTool: PKTool, Sendable {
     let callName = "echo"
     let name = "Echo"
     let toolDescription = "Echoes input"

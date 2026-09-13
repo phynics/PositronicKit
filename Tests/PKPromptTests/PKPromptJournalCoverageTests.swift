@@ -170,7 +170,7 @@ struct PKPromptJournalCoverageTests {
         #expect(combined.contains("User: hi"))
         #expect(combined.contains("Assistant: ok"))
         #expect(combined.contains("System: sys"))
-        #expect(combined.contains("Tool: tool output"))
+        #expect(combined.contains("PKTool: tool output"))
         #expect(combined.contains("Summary: summary text"))
     }
 

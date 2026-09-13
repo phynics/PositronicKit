@@ -24,23 +24,23 @@ CALL = re.compile(r"\b(?:engine|reloadEngine)\.execute\(")
 SOURCE_GUARDS = (
     (
         ROOT / "Sources/PositronicKit/Services/Turn/TurnEngine.swift",
-        re.compile(r"func\s+(?:execute|startExecution)\(\s*threadID\s*:", re.DOTALL),
+        re.compile(r"func\s+(?:execute|startExecution)\(\s*timelineID\s*:", re.DOTALL),
         "TurnEngine exposes a flattened execution interface",
     ),
     (
         ROOT / "Sources/PositronicKit/Services/Turn/TurnEngine+TurnPreparation.swift",
-        re.compile(r"func\s+prepareSession\(\s*threadID\s*:", re.DOTALL),
+        re.compile(r"func\s+prepareTurn\(\s*timelineID\s*:", re.DOTALL),
         "Turn preparation exposes a flattened request interface",
     ),
     (
-        ROOT / "Sources/PositronicKit/PositronicKit.swift",
-        re.compile(r"turnEngine\.(?:execute|startExecution)\(\s*threadID\s*:", re.DOTALL),
+        ROOT / "Sources/PositronicKit/PKRuntime.swift",
+        re.compile(r"turnEngine\.(?:execute|startExecution)\(\s*timelineID\s*:", re.DOTALL),
         "the facade flattens TurnRequest before execution",
     ),
 )
 
 REQUEST_LABELS = {
-    "threadID": "threadID",
+    "timelineID": "timelineID",
     "requestId": "requestID",
     "message": "message",
     "messageContent": "content",
@@ -179,7 +179,7 @@ def replacement(source: str, call_start: int, opening: int, closing: int) -> str
             raise ValueError(f"unsupported TurnEngine.execute argument: {label}")
 
     labels = {label for label, _ in request_arguments}
-    if "threadID" not in labels or "tools" not in labels or not ({"message", "content"} & labels):
+    if "timelineID" not in labels or "tools" not in labels or not ({"message", "content"} & labels):
         raise ValueError(f"incomplete Turn request at offset {call_start}")
 
     request_lines = [

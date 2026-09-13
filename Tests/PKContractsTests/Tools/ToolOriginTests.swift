@@ -4,7 +4,7 @@ import struct JSONSchema.Schema
 import Testing
 
 struct ToolOriginTests {
-    struct LabelTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    struct LabelTool: PKContracts.PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "label_tool"
         let name = "Label Tool"
         let toolDescription = "A tool for testing origin labels"

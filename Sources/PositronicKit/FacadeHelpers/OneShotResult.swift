@@ -2,7 +2,7 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// The terminal result of a one-shot generation, without thread state.
+/// The terminal result of a one-shot generation, without timeline state.
 public struct OneShotResult: Sendable, Equatable {
     public let content: String
     public let id: String?
@@ -25,13 +25,13 @@ public struct OneShotResult: Sendable, Equatable {
     }
 }
 
-extension PositronicKit {
-    /// Generates a response for a single prompt without creating or updating a thread.
+extension PKRuntime {
+    /// Generates a response for a single prompt without creating or updating a timeline.
     func complete(_ prompt: String) async throws -> String {
         try await completeResult(prompt).content
     }
 
-    /// The idle timeout applied to the Thread-free `kit.model` paths when a caller does not
+    /// The idle timeout applied to the Timeline-free `kit.model` paths when a caller does not
     /// override it: the same `RuntimeConfiguration.streamTimeout` the Turn pipeline uses, so
     /// one-shot generation and full Turns share a single configured value.
     var configuredStreamTimeout: TimeInterval {
@@ -51,7 +51,7 @@ extension PositronicKit {
         ).content
     }
 
-    /// Generates a response and returns provider terminal metadata without creating or updating a thread.
+    /// Generates a response and returns provider terminal metadata without creating or updating a timeline.
     func completeResult(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
@@ -91,10 +91,10 @@ extension PositronicKit {
     }
 
     /// Generates a structured response for a single prompt without creating or
-    /// updating a thread. The returned string is the raw structured payload
+    /// updating a timeline. The returned string is the raw structured payload
     /// (JSON), decodable via `StructuredOutputDecoder`.
     ///
-    /// Structured output is threaded through the same provider adapter path as the
+    /// Structured output is routed through the same provider adapter path as the
     /// full chat pipeline (`StructuredOutputExecution`): the request is translated into
     /// either a native `responseFormat` or a synthetic forced tool call, and -- for the
     /// synthetic-tool path -- the underlying stream's tool-call argument deltas are
@@ -116,7 +116,7 @@ extension PositronicKit {
         )
     }
 
-    /// Streams a response for a single prompt without creating or updating a thread.
+    /// Streams a response for a single prompt without creating or updating a timeline.
     func stream(_ prompt: String) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         stream(prompt, generationParameters: nil, idleTimeout: nil)
     }

@@ -3,14 +3,13 @@ import Foundation
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
-import struct PositronicKit.Thread
 import Testing
 
 // MARK: - Test Fixture
 
-/// Sets up a ThreadManager with in-memory persistence and a workspace already seeded.
+/// Sets up a TimelineManager with in-memory persistence and a workspace already seeded.
 private struct AttachmentFixture {
-    let manager: ThreadManager
+    let manager: TimelineManager
     let persistence: MockPersistenceService
     let bindingRepository: InMemoryWorkspaceBindingRepository
     let workspaceRoot: URL
@@ -44,9 +43,9 @@ private struct AttachmentFixture {
         try await persistence.saveWorkspace(extraWS)
 
         return Self(
-            manager: ThreadManager(
+            manager: TimelineManager(
                 stores: .init(
-                    threadStore: persistence,
+                    timelineStore: persistence,
                     messageStore: persistence,
                     workspaceStore: persistence,
                     workspaceBindingRepository: bindingRepository,
@@ -67,7 +66,7 @@ private struct AttachmentFixture {
 
 /// A gate that pauses the first persistence read after it obtains its snapshot. This makes the
 /// stale-snapshot window deterministic without relying on timing or sleeps.
-private actor ThreadFetchGate {
+private actor TimelineFetchGate {
     private var entered = false
     private var released = false
     private var shouldPause = true
@@ -85,32 +84,32 @@ private actor ThreadFetchGate {
     func release() { released = true }
 }
 
-private struct GatedThreadStore: ThreadPersistenceProtocol {
-    let base: any ThreadPersistenceProtocol
-    let gate: ThreadFetchGate
+private struct GatedTimelineStore: TimelinePersistenceProtocol {
+    let base: any TimelinePersistenceProtocol
+    let gate: TimelineFetchGate
 
-    func saveThread(_ thread: Thread) async throws { try await base.saveThread(thread) }
+    func saveTimeline(_ timeline: TimelineRecord) async throws { try await base.saveTimeline(timeline) }
 
-    func fetchThread(id: UUID) async throws -> Thread? {
-        let snapshot = try await base.fetchThread(id: id)
+    func fetchTimeline(id: UUID) async throws -> TimelineRecord? {
+        let snapshot = try await base.fetchTimeline(id: id)
         await gate.pauseFirstFetch()
         return snapshot
     }
 
-    func fetchAllThreads(includeArchived: Bool) async throws -> [Thread] {
-        try await base.fetchAllThreads(includeArchived: includeArchived)
+    func fetchAllTimelines(includeArchived: Bool) async throws -> [TimelineRecord] {
+        try await base.fetchAllTimelines(includeArchived: includeArchived)
     }
 
-    func deleteThread(id: UUID) async throws { try await base.deleteThread(id: id) }
+    func deleteTimeline(id: UUID) async throws { try await base.deleteTimeline(id: id) }
 
-    func pruneThreads(
+    func pruneTimelines(
         olderThan timeInterval: TimeInterval,
-        excluding excludedThreadIDs: [UUID],
+        excluding excludedTimelineIDs: [UUID],
         dryRun: Bool
     ) async throws -> Int {
-        try await base.pruneThreads(
+        try await base.pruneTimelines(
             olderThan: timeInterval,
-            excluding: excludedThreadIDs,
+            excluding: excludedTimelineIDs,
             dryRun: dryRun
         )
     }
@@ -118,16 +117,16 @@ private struct GatedThreadStore: ThreadPersistenceProtocol {
 
 private func makeGatedManager(
     fixture: AttachmentFixture,
-    threadStore: any ThreadPersistenceProtocol
-) -> ThreadManager {
+    timelineStore: any TimelinePersistenceProtocol
+) -> TimelineManager {
     let resolver = WorkspaceResolverFactory.makeDefault(
         workspaceRoot: fixture.workspaceRoot,
         workspaceStore: fixture.persistence,
         bindingRepository: fixture.bindingRepository
     )
-    return ThreadManager(
+    return TimelineManager(
         stores: .init(
-            threadStore: threadStore,
+            timelineStore: timelineStore,
             messageStore: fixture.persistence,
             workspaceStore: fixture.persistence,
             workspaceBindingRepository: fixture.bindingRepository,
@@ -148,16 +147,16 @@ private func withFixture(
 
 // MARK: - attachWorkspace
 
-@Suite("ThreadManager.attachWorkspace", .tags(.integration))
+@Suite("TimelineManager.attachWorkspace", .tags(.integration))
 struct AttachWorkspaceTests {
     @Test("attaching creates a repository binding")
     func attach() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
+            let timeline = try await fix.manager.createTimeline()
 
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             #expect(workspaces.attached.contains { $0.id == fix.clientWS.id })
         }
     }
@@ -165,12 +164,12 @@ struct AttachWorkspaceTests {
     @Test("attaching same workspace twice does not duplicate")
     func noDuplicateAttach() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
+            let timeline = try await fix.manager.createTimeline()
 
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             let matching = workspaces.attached.filter { $0.id == fix.clientWS.id }
             #expect(matching.count == 1)
         }
@@ -179,12 +178,12 @@ struct AttachWorkspaceTests {
     @Test("multiple distinct workspaces can be attached")
     func multipleAttached() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
+            let timeline = try await fix.manager.createTimeline()
 
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
-            try await fix.manager.attachWorkspace(fix.extraWS.id, to: thread.id)
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
+            try await fix.manager.attachWorkspace(fix.extraWS.id, to: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             #expect(workspaces.attached.contains { $0.id == fix.clientWS.id })
             #expect(workspaces.attached.contains { $0.id == fix.extraWS.id })
             #expect(workspaces.attached.count >= 2)
@@ -194,13 +193,13 @@ struct AttachWorkspaceTests {
     @Test("attach persists across a fresh manager reading from DB")
     func attachPersistsToDB() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
+            let timeline = try await fix.manager.createTimeline()
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
             // New manager, same persistence — simulates runtime restart
-            let freshManager = ThreadManager(
+            let freshManager = TimelineManager(
                 stores: .init(
-                    threadStore: fix.persistence,
+                    timelineStore: fix.persistence,
                     messageStore: fix.persistence,
                     workspaceStore: fix.persistence,
                     workspaceBindingRepository: fix.bindingRepository,
@@ -209,13 +208,13 @@ struct AttachWorkspaceTests {
                 ),
                 workspaceProfile: .hostManaged(root: fix.workspaceRoot)
             )
-            let workspaces = try await freshManager.getWorkspaces(for: thread.id)
+            let workspaces = try await freshManager.getWorkspaces(for: timeline.id)
             #expect(workspaces.attached.contains { $0.id == fix.clientWS.id })
         }
     }
 
-    @Test("attaching to unknown thread throws")
-    func unknownThreadThrows() async throws {
+    @Test("attaching to unknown timeline throws")
+    func unknownTimelineThrows() async throws {
         try await withFixture { fix in
             await #expect(throws: (any Error).self) {
                 try await fix.manager.attachWorkspace(fix.clientWS.id, to: UUID())
@@ -223,15 +222,15 @@ struct AttachWorkspaceTests {
         }
     }
 
-    @Test("attach to a non-cached thread still resolves from persistence")
-    func attachUncachedThread() async throws {
+    @Test("attach to a non-cached timeline still resolves from persistence")
+    func attachUncachedTimeline() async throws {
         try await withFixture { fix in
-            let thread = Thread()
-            try await fix.persistence.saveThread(thread)
+            let timeline = TimelineRecord()
+            try await fix.persistence.saveTimeline(timeline)
 
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
-            let bindings = try await fix.bindingRepository.bindings(for: thread.id)
+            let bindings = try await fix.bindingRepository.bindings(for: timeline.id)
             #expect(bindings.map(\.workspaceID).contains(fix.clientWS.id))
         }
     }
@@ -239,43 +238,43 @@ struct AttachWorkspaceTests {
     @Test("attach preserves metadata committed during its authoritative refresh")
     func attachPreservesConcurrentMetadata() async throws {
         let fix = try await AttachmentFixture.make()
-        let thread = Thread()
-        try await fix.persistence.saveThread(thread)
+        let timeline = TimelineRecord()
+        try await fix.persistence.saveTimeline(timeline)
 
-        let gate = ThreadFetchGate()
+        let gate = TimelineFetchGate()
         let manager = makeGatedManager(
             fixture: fix,
-            threadStore: GatedThreadStore(base: fix.persistence, gate: gate)
+            timelineStore: GatedTimelineStore(base: fix.persistence, gate: gate)
         )
         let attachTask = Task {
-            try await manager.attachWorkspace(fix.clientWS.id, to: thread.id)
+            try await manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
         }
 
         while !(await gate.hasEntered()) { await Task.yield() }
-        var renamed = try #require(await fix.persistence.fetchThread(id: thread.id))
+        var renamed = try #require(await fix.persistence.fetchTimeline(id: timeline.id))
         renamed.title = "renamed while attaching"
-        try await fix.persistence.saveThread(renamed)
+        try await fix.persistence.saveTimeline(renamed)
         await gate.release()
         try await attachTask.value
 
-        let persisted = try #require(await fix.persistence.fetchThread(id: thread.id))
+        let persisted = try #require(await fix.persistence.fetchTimeline(id: timeline.id))
         #expect(persisted.title == "renamed while attaching")
     }
 }
 
 // MARK: - detachWorkspace
 
-@Suite("ThreadManager.detachWorkspace", .tags(.integration))
+@Suite("TimelineManager.detachWorkspace", .tags(.integration))
 struct DetachWorkspaceTests {
     @Test("detaching an attached workspace removes it from the list")
     func detachAttached() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
+            let timeline = try await fix.manager.createTimeline()
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
-            try await fix.manager.detachWorkspace(fix.clientWS.id, from: thread.id)
+            try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             #expect(!workspaces.attached.contains { $0.id == fix.clientWS.id })
         }
     }
@@ -283,41 +282,41 @@ struct DetachWorkspaceTests {
     @Test("detach preserves metadata committed during its authoritative refresh")
     func detachPreservesConcurrentMetadata() async throws {
         let fix = try await AttachmentFixture.make()
-        let thread = Thread()
-        try await fix.persistence.saveThread(thread)
+        let timeline = TimelineRecord()
+        try await fix.persistence.saveTimeline(timeline)
         _ = try await fix.bindingRepository.claim(
             workspaceID: fix.clientWS.id,
-            for: thread.id
+            for: timeline.id
         )
 
-        let gate = ThreadFetchGate()
+        let gate = TimelineFetchGate()
         let manager = makeGatedManager(
             fixture: fix,
-            threadStore: GatedThreadStore(base: fix.persistence, gate: gate)
+            timelineStore: GatedTimelineStore(base: fix.persistence, gate: gate)
         )
         let detachTask = Task {
-            try await manager.detachWorkspace(fix.clientWS.id, from: thread.id)
+            try await manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
         }
 
         while !(await gate.hasEntered()) { await Task.yield() }
-        var renamed = try #require(await fix.persistence.fetchThread(id: thread.id))
+        var renamed = try #require(await fix.persistence.fetchTimeline(id: timeline.id))
         renamed.title = "renamed while detaching"
-        try await fix.persistence.saveThread(renamed)
+        try await fix.persistence.saveTimeline(renamed)
         await gate.release()
         try await detachTask.value
 
-        let persisted = try #require(await fix.persistence.fetchThread(id: thread.id))
+        let persisted = try #require(await fix.persistence.fetchTimeline(id: timeline.id))
         #expect(persisted.title == "renamed while detaching")
     }
 
     @Test("detaching workspace not in list does not throw")
     func detachUnknownIsNoOp() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
+            let timeline = try await fix.manager.createTimeline()
 
-            try await fix.manager.detachWorkspace(fix.clientWS.id, from: thread.id)
+            try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             #expect(workspaces.attached.isEmpty)
         }
     }
@@ -325,13 +324,13 @@ struct DetachWorkspaceTests {
     @Test("detaching one workspace leaves others intact")
     func detachLeavesOthers() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
-            try await fix.manager.attachWorkspace(fix.extraWS.id, to: thread.id)
+            let timeline = try await fix.manager.createTimeline()
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
+            try await fix.manager.attachWorkspace(fix.extraWS.id, to: timeline.id)
 
-            try await fix.manager.detachWorkspace(fix.clientWS.id, from: thread.id)
+            try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             #expect(!workspaces.attached.contains { $0.id == fix.clientWS.id })
             #expect(workspaces.attached.contains { $0.id == fix.extraWS.id })
         }
@@ -340,13 +339,13 @@ struct DetachWorkspaceTests {
     @Test("detach persists across a fresh manager reading from DB")
     func detachPersistsToDB() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
-            try await fix.manager.detachWorkspace(fix.clientWS.id, from: thread.id)
+            let timeline = try await fix.manager.createTimeline()
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
+            try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
 
-            let freshManager = ThreadManager(
+            let freshManager = TimelineManager(
                 stores: .init(
-                    threadStore: fix.persistence,
+                    timelineStore: fix.persistence,
                     messageStore: fix.persistence,
                     workspaceStore: fix.persistence,
                     workspaceBindingRepository: fix.bindingRepository,
@@ -355,18 +354,18 @@ struct DetachWorkspaceTests {
                 ),
                 workspaceProfile: .hostManaged(root: fix.workspaceRoot)
             )
-            let workspaces = try await freshManager.getWorkspaces(for: thread.id)
+            let workspaces = try await freshManager.getWorkspaces(for: timeline.id)
             #expect(!workspaces.attached.contains { $0.id == fix.clientWS.id })
         }
     }
 
-    @Test("legacy Thread workspace data is not imported during lookup")
+    @Test("legacy Timeline workspace data is not imported during lookup")
     func legacyProjectionIsNotImported() async throws {
         try await withFixture { fix in
-            let legacyThreadID = UUID()
+            let legacyTimelineID = UUID()
             let legacyObject: [String: Any] = [
-                "id": legacyThreadID.uuidString,
-                "title": "Legacy thread",
+                "id": legacyTimelineID.uuidString,
+                "title": "Legacy timeline",
                 "createdAt": "2026-08-24T00:00:00Z",
                 "updatedAt": "2026-08-24T00:00:00Z",
                 "isArchived": false,
@@ -376,19 +375,19 @@ struct DetachWorkspaceTests {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             let legacyData = try JSONSerialization.data(withJSONObject: legacyObject)
-            let legacyThread = try decoder.decode(Thread.self, from: legacyData)
-            try await fix.persistence.saveThread(legacyThread)
+            let legacyTimeline = try decoder.decode(TimelineRecord.self, from: legacyData)
+            try await fix.persistence.saveTimeline(legacyTimeline)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: legacyThreadID)
+            let workspaces = try await fix.manager.getWorkspaces(for: legacyTimelineID)
 
             #expect(workspaces.primary == nil)
             #expect(workspaces.attached.isEmpty)
-            #expect(try await fix.bindingRepository.bindings(for: legacyThreadID).isEmpty)
+            #expect(try await fix.bindingRepository.bindings(for: legacyTimelineID).isEmpty)
         }
     }
 
-    @Test("detaching from unknown thread throws")
-    func unknownThreadThrows() async throws {
+    @Test("detaching from unknown timeline throws")
+    func unknownTimelineThrows() async throws {
         try await withFixture { fix in
             await #expect(throws: (any Error).self) {
                 try await fix.manager.detachWorkspace(fix.clientWS.id, from: UUID())
@@ -399,12 +398,12 @@ struct DetachWorkspaceTests {
 
 // MARK: - getWorkspaces
 
-@Suite("ThreadManager.getWorkspaces", .serialized, .tags(.integration))
+@Suite("TimelineManager.getWorkspaces", .serialized, .tags(.integration))
 struct GetWorkspacesTests {
-    @Test("throws threadNotFound for unknown thread")
+    @Test("throws timelineNotFound for unknown timeline")
     func throwsForUnknown() async throws {
         try await withFixture { fix in
-            await #expect(throws: ThreadError.threadNotFound) {
+            await #expect(throws: TimelineError.timelineNotFound) {
                 _ = try await fix.manager.getWorkspaces(for: UUID())
             }
         }
@@ -413,21 +412,21 @@ struct GetWorkspacesTests {
     @Test("returns empty attached when nothing is attached")
     func emptyAfterCreate() async throws {
         try await withFixture { fix in
-            let thread = Thread()
-            try await fix.persistence.saveThread(thread)
+            let timeline = TimelineRecord()
+            try await fix.persistence.saveTimeline(timeline)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             #expect(workspaces.primary == nil)
             #expect(workspaces.attached.isEmpty)
         }
     }
 
-    @Test("createThread exposes its runtime workspace as primary")
-    func createThreadPrimaryWorkspace() async throws {
+    @Test("createTimeline exposes its runtime workspace as primary")
+    func createTimelinePrimaryWorkspace() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
+            let timeline = try await fix.manager.createTimeline()
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
 
             #expect(workspaces.primary != nil)
             #expect(workspaces.primary?.location == .runtime)
@@ -435,22 +434,22 @@ struct GetWorkspacesTests {
         }
     }
 
-    @Test("canonical runtimeThread workspace is exposed as primary")
-    func canonicalRuntimeThreadWorkspaceIsPrimary() async throws {
+    @Test("canonical runtimeTimeline workspace is exposed as primary")
+    func canonicalRuntimeTimelineWorkspaceIsPrimary() async throws {
         try await withFixture { fix in
-            let thread = Thread()
+            let timeline = TimelineRecord()
             let canonicalWorkspace = WorkspaceReference(
-                uri: .threadWorkspace(thread.id),
-                location: .runtimeThread
+                uri: .timelineWorkspace(timeline.id),
+                location: .runtimeTimeline
             )
             try await fix.persistence.saveWorkspace(canonicalWorkspace)
             _ = try await fix.bindingRepository.claim(
                 workspaceID: canonicalWorkspace.id,
-                for: thread.id
+                for: timeline.id
             )
-            try await fix.persistence.saveThread(thread)
+            try await fix.persistence.saveTimeline(timeline)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
 
             #expect(workspaces.primary?.id == canonicalWorkspace.id)
             #expect(workspaces.attached.isEmpty)
@@ -460,14 +459,14 @@ struct GetWorkspacesTests {
     @Test("reflects attach then detach in sequence")
     func attachThenDetach() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
+            let timeline = try await fix.manager.createTimeline()
 
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
-            let afterAttach = try await fix.manager.getWorkspaces(for: thread.id)
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
+            let afterAttach = try await fix.manager.getWorkspaces(for: timeline.id)
             #expect(afterAttach.attached.contains { $0.id == fix.clientWS.id } == true)
 
-            try await fix.manager.detachWorkspace(fix.clientWS.id, from: thread.id)
-            let afterDetach = try await fix.manager.getWorkspaces(for: thread.id)
+            try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
+            let afterDetach = try await fix.manager.getWorkspaces(for: timeline.id)
             #expect(afterDetach.attached.contains { $0.id == fix.clientWS.id } == false)
         }
     }
@@ -482,10 +481,10 @@ struct GetWorkspacesTests {
             )
             try await fix.persistence.saveWorkspace(missingWS)
 
-            let thread = try await fix.manager.createThread()
-            try await fix.manager.attachWorkspace(missingWS.id, to: thread.id)
+            let timeline = try await fix.manager.createTimeline()
+            try await fix.manager.attachWorkspace(missingWS.id, to: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             let ws = workspaces.attached.first { $0.id == missingWS.id }
             #expect(ws?.status == .missing)
         }
@@ -501,10 +500,10 @@ struct GetWorkspacesTests {
             )
             try await fix.persistence.saveWorkspace(clientWithPath)
 
-            let thread = try await fix.manager.createThread()
-            try await fix.manager.attachWorkspace(clientWithPath.id, to: thread.id)
+            let timeline = try await fix.manager.createTimeline()
+            try await fix.manager.attachWorkspace(clientWithPath.id, to: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             let ws = workspaces.attached.first { $0.id == clientWithPath.id }
             #expect(ws?.status != .missing, "Attached workspace paths are not validated runtime")
         }
@@ -523,10 +522,10 @@ struct GetWorkspacesTests {
             )
             try await fix.persistence.saveWorkspace(ws)
 
-            let thread = try await fix.manager.createThread()
-            try await fix.manager.attachWorkspace(ws.id, to: thread.id)
+            let timeline = try await fix.manager.createTimeline()
+            try await fix.manager.attachWorkspace(ws.id, to: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             let found = workspaces.attached.first { $0.id == ws.id }
             #expect(found?.status == .active)
         }
@@ -542,10 +541,10 @@ struct GetWorkspacesTests {
             )
             try await fix.persistence.saveWorkspace(wsNoPath)
 
-            let thread = try await fix.manager.createThread()
-            try await fix.manager.attachWorkspace(wsNoPath.id, to: thread.id)
+            let timeline = try await fix.manager.createTimeline()
+            try await fix.manager.attachWorkspace(wsNoPath.id, to: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             let found = workspaces.attached.first { $0.id == wsNoPath.id }
             #expect(found?.status != .missing)
         }
@@ -559,16 +558,16 @@ struct WorkspaceRoundTripTests {
     @Test("detaching all extra workspaces removes them from attached list")
     func detachAll() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
-            try await fix.manager.attachWorkspace(fix.runtimeWS.id, to: thread.id)
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
-            try await fix.manager.attachWorkspace(fix.extraWS.id, to: thread.id)
+            let timeline = try await fix.manager.createTimeline()
+            try await fix.manager.attachWorkspace(fix.runtimeWS.id, to: timeline.id)
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
+            try await fix.manager.attachWorkspace(fix.extraWS.id, to: timeline.id)
 
-            try await fix.manager.detachWorkspace(fix.runtimeWS.id, from: thread.id)
-            try await fix.manager.detachWorkspace(fix.clientWS.id, from: thread.id)
-            try await fix.manager.detachWorkspace(fix.extraWS.id, from: thread.id)
+            try await fix.manager.detachWorkspace(fix.runtimeWS.id, from: timeline.id)
+            try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
+            try await fix.manager.detachWorkspace(fix.extraWS.id, from: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             #expect(workspaces.primary?.location == .runtime)
             let attached = workspaces.attached
             #expect(!attached.contains { $0.id == fix.runtimeWS.id })
@@ -580,13 +579,13 @@ struct WorkspaceRoundTripTests {
     @Test("re-attaching a previously detached workspace works")
     func reattach() async throws {
         try await withFixture { fix in
-            let thread = try await fix.manager.createThread()
+            let timeline = try await fix.manager.createTimeline()
 
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
-            try await fix.manager.detachWorkspace(fix.clientWS.id, from: thread.id)
-            try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
+            try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
-            let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
             #expect(workspaces.attached.contains { $0.id == fix.clientWS.id } == true)
         }
     }

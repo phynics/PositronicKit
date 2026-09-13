@@ -8,13 +8,13 @@ import PKUtilities
 ///
 /// Handles workspace CRUD (delegating to `workspacePersistence`) and agent-specific
 /// provisioning: creating sandboxed directories and seeding them from template files.
-/// This is the default local/runtime provisioning service shipped with PositronicKit, not a
+/// This is the default local/runtime provisioning service shipped with PKRuntime, not a
 /// universal workspace model that hosts are required to adopt.
 actor DefaultWorkspaceCatalog: WorkspaceCatalog {
     private let persistenceService: any WorkspaceStore
     private let bindingRepository: (any WorkspaceBindingRepository)?
-    private let runtimeRepository: (any ThreadRuntimeRepository)?
-    private let threadAuthorityCoordinator: ThreadAuthorityCoordinator?
+    private let runtimeRepository: (any TimelineRuntimeRepository)?
+    private let timelineAuthorityCoordinator: TimelineAuthorityCoordinator?
     private let workspaceRoot: URL
     private let logger = Logger.module(named: "workspace-catalog")
 
@@ -22,8 +22,8 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
         workspaceRoot: URL,
         workspacePersistence: any WorkspaceStore,
         bindingRepository: (any WorkspaceBindingRepository)? = nil,
-        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
-        threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil
+        runtimeRepository: (any TimelineRuntimeRepository)? = nil,
+        timelineAuthorityCoordinator: TimelineAuthorityCoordinator? = nil
     ) {
         persistenceService = workspacePersistence
         // The binding repository is resolved exactly once, by `PersistenceConfiguration`
@@ -33,7 +33,7 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
         // one explicitly.
         self.bindingRepository = bindingRepository
         self.runtimeRepository = runtimeRepository
-        self.threadAuthorityCoordinator = threadAuthorityCoordinator
+        self.timelineAuthorityCoordinator = timelineAuthorityCoordinator
         self.workspaceRoot = workspaceRoot
     }
 
@@ -169,7 +169,7 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
     """
 
     private static func defaultSoulContent(template: AgentTemplate?) -> String {
-        let identity = template?.composedInstructions ?? "You are a helpful PositronicKit Agent."
+        let identity = template?.composedInstructions ?? "You are a helpful PKRuntime Agent."
         return """
         \(identity)
 
@@ -177,7 +177,7 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
         Persistent memory lives in Markdown files under `Notes/`. The runtime provides a compact
         catalog of those files; read a file with `read_file` when its contents are relevant, and
         use `write_file`, `append_file`, or `edit_file` to maintain durable state. Keep notes
-        concise, factual, and scoped to information that should survive future Threads.
+        concise, factual, and scoped to information that should survive future Timelines.
 
         ## Self-modification
         This file defines the Agent's identity and operating guidance. Changes to `SOUL.md` require
@@ -285,21 +285,21 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
         guard let bindingRepository,
-              let threadAuthorityCoordinator,
-              let threadID = try await bindingRepository.threadID(for: workspaceID)
+              let timelineAuthorityCoordinator,
+              let timelineID = try await bindingRepository.timelineID(for: workspaceID)
         else {
             return try await operation()
         }
-        return try await threadAuthorityCoordinator.withThread(threadID, operation: operation)
+        return try await timelineAuthorityCoordinator.withTimeline(timelineID, operation: operation)
     }
 
     private func requireWorkspaceMutationAllowed(id: UUID) async throws {
         guard let bindingRepository, let runtimeRepository,
-              let threadID = try await bindingRepository.threadID(for: id),
-              let activeTurn = try await runtimeRepository.fetchActiveTurn(for: threadID)
+              let timelineID = try await bindingRepository.timelineID(for: id),
+              let activeTurn = try await runtimeRepository.fetchActiveTurn(for: timelineID)
         else { return }
-        throw ThreadRuntimeRepositoryError.threadBusy(
-            threadID: threadID,
+        throw TimelineRuntimeRepositoryError.timelineBusy(
+            timelineID: timelineID,
             activeTurnID: activeTurn.identity.turnID
         )
     }

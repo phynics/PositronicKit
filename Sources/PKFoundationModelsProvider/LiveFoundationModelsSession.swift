@@ -11,7 +11,7 @@ import PKUtilities
     ///
     /// Confirmed against the SDK (macOS 26.5): `LanguageModelSession.streamResponse(to:)`
     /// snapshots are *cumulative* (each snapshot is the full response so far, not a delta), and
-    /// the framework executes any registered `Tool.call(arguments:)` itself while producing the
+    /// the framework executes any registered `PKTool.call(arguments:)` itself while producing the
     /// response — tool calls/outputs are only observable after the fact via `session.transcript`,
     /// not as an intermediate "please execute this" signal like the HTTP-family adapters. This
     /// wrapper accounts for both: it diffs snapshots into deltas, and emits `toolCall`/
