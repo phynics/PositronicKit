@@ -1,6 +1,7 @@
 FROM swift:6.3.3-noble
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
         make \
         python3 \
     && rm -rf /var/lib/apt/lists/*

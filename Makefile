@@ -51,7 +51,7 @@ help:
 	@echo "  make verify-v4-vocabulary  Check the v4 Thread/Turn/Agent vocabulary"
 	@echo "  make verify-documentation  Check docs catalog, navigation, links, pins, products, and vocabulary"
 	@echo "  make verify-agent-harness Run agent test-entrypoint regression tests"
-	@echo "  make doctor                Report missing prerequisites (Swift, container runtime, ...)"
+	@echo "  make doctor                Report missing Swift and Podman prerequisites"
 	@echo ""
 	@echo "Linux (Podman):"
 	@echo "  make linux-image           Build the Linux development Podman image"
@@ -79,7 +79,6 @@ verify-documentation:
 	@python3 Scripts/generate-doc-navigation.py --check
 	@python3 Scripts/validate-documentation.py
 	@python3 Scripts/validate-provider-capability-matrix.py
-	@python3 Tests/Scripts/provider_capability_matrix_test.py
 	@bash Scripts/check-v4-vocabulary.sh
 	@bash Scripts/compile-doc-snippets.sh
 
@@ -103,7 +102,7 @@ doctor:
 verify: verify-concurrency-scan verify-runtime-architecture verify-dependency-direction validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
 
 verify-linux-coverage:
-	@python3 Tests/Scripts/linux_coverage_report_test.py
+	@python3 -B Tests/Scripts/linux_coverage_report_test.py
 	@bash Scripts/run-linux-coverage.sh
 
 # The inner Linux gate used by both GitHub Actions and the outer Podman agent
@@ -184,7 +183,8 @@ verify-agent-harness:
 	@bash Tests/Scripts/doctor_test.sh
 	@bash Tests/Scripts/run_linux_container_test.sh
 	@bash Tests/Scripts/public_api_baseline_test.sh
-	@python3 Tests/Scripts/linux_coverage_report_test.py
+	@python3 -B Tests/Scripts/provider_capability_matrix_test.py
+	@python3 -B Tests/Scripts/linux_coverage_report_test.py
 
 # Linux testing intentionally has no native or Docker fallback. The shared
 # runner performs the deeper access check and prints the sandbox-escalation

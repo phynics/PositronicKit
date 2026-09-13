@@ -22,14 +22,6 @@ lock_path=""
 log_path=""
 scratch_path=""
 
-if [ -f "$repo_root/.git" ]; then
-  if ! git_common_dir="$(git -C "$repo_root" rev-parse --path-format=absolute --git-common-dir)" \
-    || [ ! -d "$git_common_dir" ]; then
-    printf 'run-linux-container: could not resolve the linked worktree Git directory\n' >&2
-    exit 1
-  fi
-fi
-
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --build-only)
@@ -98,6 +90,14 @@ run_gate() {
     return 0
   fi
 
+  if [ -f "$repo_root/.git" ]; then
+    if ! git_common_dir="$(git -C "$repo_root" rev-parse --path-format=absolute --git-common-dir)" \
+      || [ ! -d "$git_common_dir" ]; then
+      printf 'run-linux-container: could not resolve the linked worktree Git directory\n' >&2
+      return 1
+    fi
+  fi
+
   run_command=(
     "$podman_path" run --rm --userns=keep-id
     --user "$(id -u):$(id -g)"
@@ -107,6 +107,7 @@ run_gate() {
   )
 
   if [ -n "$git_common_dir" ]; then
+    # Use the shared z label here; a private Z relabel would break the host checkout.
     run_command+=(-v "$git_common_dir:$git_common_dir:ro,z")
   fi
 

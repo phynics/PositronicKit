@@ -68,6 +68,28 @@ printf '%s\n' '#!/usr/bin/env bash' \
   'esac' > "$fake_podman"
 chmod +x "$fake_podman"
 
+no_git_bin="$tmp_dir/no-git-bin"
+mkdir -p "$no_git_bin"
+bash_path="$(command -v bash)"
+ln -s "$bash_path" "$no_git_bin/bash"
+ln -s "$(command -v cat)" "$no_git_bin/cat"
+ln -s "$(command -v dirname)" "$no_git_bin/dirname"
+ln -s "$(command -v mktemp)" "$no_git_bin/mktemp"
+ln -s "$(command -v rm)" "$no_git_bin/rm"
+PATH="$no_git_bin" "$bash_path" "$linked_worktree/Scripts/run-linux-container.sh" --help >/dev/null
+PODMAN="$fake_podman" PATH="$no_git_bin" \
+  "$bash_path" "$linked_worktree/Scripts/run-linux-container.sh" --build-only
+printf 'ok: help and image build do not require host Git\n'
+
+PODMAN="$fake_podman" PODMAN_ARGS_OUT="$podman_args" \
+  bash "$linked_repo/Scripts/run-linux-container.sh" -- true
+plain_common_dir="$(git -C "$linked_repo" rev-parse --path-format=absolute --git-common-dir)"
+if grep -Fx "$plain_common_dir:$plain_common_dir:ro,z" "$podman_args" >/dev/null; then
+  printf 'FAIL: plain checkout Git directory was mounted separately\n' >&2
+  exit 1
+fi
+printf 'ok: does not mount the Git directory separately for a plain checkout\n'
+
 PODMAN="$fake_podman" PODMAN_ARGS_OUT="$podman_args" \
   bash "$linked_worktree/Scripts/run-linux-container.sh" -- true
 common_dir="$(git -C "$linked_worktree" rev-parse --path-format=absolute --git-common-dir)"
