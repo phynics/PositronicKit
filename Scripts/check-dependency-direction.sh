@@ -70,6 +70,28 @@ do
     fi
 done
 
+# The test graph must respect the same boundary. The runtime test target must
+# not depend on provider adapters, the examples executable, or the raw OpenAI
+# package; provider-touching tests live in PKProviderIntegrationTests so the
+# runtime target rebuilds independently of every adapter.
+positronic_block="$(target_block "PositronicKitTests")"
+if [[ -z "$positronic_block" ]]; then
+    report_failure "could not locate target declaration for PositronicKitTests"
+else
+    for forbidden in \
+        PKOpenAIProvider PKOpenRouterProvider PKOllamaProvider \
+        PKAnthropicProvider PKFoundationModelsProvider \
+        PositronicKitExamples
+    do
+        if grep -q "\"$forbidden\"" <<<"$positronic_block"; then
+            report_failure "PositronicKitTests target depends on $forbidden (move provider-touching tests to PKProviderIntegrationTests)"
+        fi
+    done
+    if grep -q '"OpenAI"' <<<"$positronic_block"; then
+        report_failure "PositronicKitTests target depends on the raw OpenAI package (move provider-touching tests to PKProviderIntegrationTests)"
+    fi
+fi
+
 if (( failed != 0 )); then
     exit 1
 fi

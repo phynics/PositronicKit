@@ -8,7 +8,7 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
-struct STAB8ReasoningEchoTests {
+struct ReasoningEchoConformanceTests {
     // MARK: - LLMMessage field + history reconstruction
 
     @Test("LLMMessage.reasoning is optional and defaults to nil (byte-identical regression)")

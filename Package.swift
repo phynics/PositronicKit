@@ -211,6 +211,22 @@ let package = Package(
             name: "PositronicKitTests",
             dependencies: [
                 "PositronicKit",
+                "PKContracts",
+                "PKUtilities",
+                "PKPrompt",
+                "PKTestSupport",
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "ErrorKit", package: "ErrorKit"),
+                .product(name: "JSONSchema", package: "swift-json-schema"),
+                .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
+            ],
+            path: "Tests/PositronicKitTests",
+            swiftSettings: approachableConcurrency
+        ),
+        .testTarget(
+            name: "PKProviderIntegrationTests",
+            dependencies: [
+                "PositronicKit",
                 "PKOpenAIProvider",
                 "PKOpenRouterProvider",
                 "PKOllamaProvider",
@@ -219,10 +235,15 @@ let package = Package(
                 "PositronicKitExamples",
                 "PKContracts",
                 "PKUtilities",
+                "PKPrompt",
                 "PKTestSupport",
                 .product(name: "OpenAI", package: "OpenAI"),
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "ErrorKit", package: "ErrorKit"),
+                .product(name: "JSONSchema", package: "swift-json-schema"),
+                .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
-            path: "Tests/PositronicKitTests",
+            path: "Tests/PKProviderIntegrationTests",
             swiftSettings: approachableConcurrency
         ),
         .testTarget(

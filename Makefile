@@ -1,7 +1,7 @@
 .PHONY: help build clean test doctor validate-docs verify-documentation \
 	verify verify-concurrency-scan verify-runtime-architecture \
 	verify-linux-agent verify-linux-filter verify-linux-coverage \
-	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-v4-vocabulary \
+	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-v4-vocabulary \
 	verify-public-api update-public-api-baseline verify-release \
 	agent-verify agent-test linux-image linux-build linux-coverage require-podman
 
@@ -99,7 +99,7 @@ verify-runtime-architecture:
 doctor:
 	@bash Scripts/doctor.sh "$(PODMAN)"
 
-verify: verify-concurrency-scan verify-runtime-architecture verify-dependency-direction validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
+verify: verify-concurrency-scan verify-runtime-architecture verify-dependency-direction verify-test-layout validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
 
 verify-linux-coverage:
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
@@ -110,7 +110,7 @@ verify-linux-coverage:
 # example, support, and test command so callers cannot accidentally omit it.
 verify-linux-agent:
 	@echo "Running agent/CI Linux verification contract..."
-	@$(MAKE) verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
+	@$(MAKE) verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
 
 verify-linux-filter:
 	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \
@@ -176,6 +176,9 @@ verify-release:
 verify-dependency-direction:
 	@bash Scripts/check-dependency-direction.sh
 
+verify-test-layout:
+	@bash Scripts/check-test-layout.sh
+
 verify-v4-vocabulary:
 	@bash Scripts/check-v4-vocabulary.sh
 
@@ -183,6 +186,8 @@ verify-agent-harness:
 	@bash Tests/Scripts/doctor_test.sh
 	@bash Tests/Scripts/run_linux_container_test.sh
 	@bash Tests/Scripts/public_api_baseline_test.sh
+	@bash Tests/Scripts/check_dependency_direction_test.sh
+	@bash Tests/Scripts/check_test_layout_test.sh
 	@python3 -B Tests/Scripts/provider_capability_matrix_test.py
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
 
