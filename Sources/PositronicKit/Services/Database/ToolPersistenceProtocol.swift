@@ -20,6 +20,6 @@ public protocol ToolPersistenceProtocol: DurabilityAware {
     func syncTools(workspaceID: UUID, tools: [ToolReference]) async throws
     func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference]
     func fetchOriginTools(originID: UUID) async throws -> [ToolReference]
-    func findWorkspaceID(forToolID toolID: String, in workspaceIDs: [UUID]) async throws -> UUID?
-    func fetchToolSource(toolID: String, workspaceIDs: [UUID], primaryWorkspaceID: UUID?) async throws -> String?
+    func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID?
+    func fetchToolSource(named toolName: String, in workspaceIDs: [UUID], preferring primaryWorkspaceID: UUID?) async throws -> String?
 }

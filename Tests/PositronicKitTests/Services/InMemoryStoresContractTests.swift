@@ -30,7 +30,7 @@ struct InMemoryStoresContractTests {
             try await store.addToolToWorkspace(workspaceID: wsID, tool: .known("t"))
 
             let source = try await store.fetchToolSource(
-                toolID: "t", workspaceIDs: [wsID], primaryWorkspaceID: UUID()
+                named: "t", in: [wsID], preferring: UUID()
             )
             #expect(source == "Additional Workspace")
         }
@@ -43,7 +43,7 @@ struct InMemoryStoresContractTests {
             try await store.addToolToWorkspace(workspaceID: wsID, tool: .known("t"))
 
             let source = try await store.fetchToolSource(
-                toolID: "t", workspaceIDs: [wsID], primaryWorkspaceID: wsID
+                named: "t", in: [wsID], preferring: wsID
             )
             #expect(source == "Primary Workspace")
         }
@@ -59,7 +59,7 @@ struct InMemoryStoresContractTests {
             try await store.addToolToWorkspace(workspaceID: wsID, tool: .known("t"))
 
             let source = try await store.fetchToolSource(
-                toolID: "t", workspaceIDs: [wsID], primaryWorkspaceID: UUID()
+                named: "t", in: [wsID], preferring: UUID()
             )
             #expect(source?.hasPrefix("Workspace:") == true)
             #expect(source?.contains("/projects/extra") == true)

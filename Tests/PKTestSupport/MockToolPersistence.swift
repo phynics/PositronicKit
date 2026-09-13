@@ -69,10 +69,10 @@ public final class MockToolPersistence: ToolPersistenceProtocol {
         }
     }
 
-    public func findWorkspaceID(forToolID toolID: String, in workspaceIDs: [UUID]) async throws -> UUID? {
+    public func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID? {
         workspacesState.withLock {
             for workspace in $0 where workspaceIDs.contains(workspace.id) {
-                if workspace.tools.contains(where: { $0.toolID == toolID }) {
+                if workspace.tools.contains(where: { $0.toolID == toolName }) {
                     return workspace.id
                 }
             }
@@ -80,11 +80,11 @@ public final class MockToolPersistence: ToolPersistenceProtocol {
         }
     }
 
-    public func fetchToolSource(toolID: String, workspaceIDs: [UUID], primaryWorkspaceID: UUID?) async throws -> String? {
+    public func fetchToolSource(named toolName: String, in workspaceIDs: [UUID], preferring primaryWorkspaceID: UUID?) async throws -> String? {
         workspacesState.withLock {
             guard let workspace = $0.first(where: { workspace in
                 workspaceIDs.contains(workspace.id)
-                    && workspace.tools.contains { $0.toolID == toolID }
+                    && workspace.tools.contains { $0.toolID == toolName }
             }) else {
                 return nil
             }

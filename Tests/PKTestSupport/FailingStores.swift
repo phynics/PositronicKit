@@ -238,21 +238,21 @@ public final class FailingToolPersistence: ToolPersistenceProtocol, @unchecked S
         try await backing.fetchOriginTools(originID: originID)
     }
 
-    public func findWorkspaceID(forToolID toolID: String, in workspaceIDs: [UUID]) async throws -> UUID? {
-        try await backing.findWorkspaceID(forToolID: toolID, in: workspaceIDs)
+    public func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID? {
+        try await backing.findWorkspace(hostingToolNamed: toolName, in: workspaceIDs)
     }
 
     public func fetchToolSource(
-        toolID: String,
-        workspaceIDs: [UUID],
-        primaryWorkspaceID: UUID?
+        named toolName: String,
+        in workspaceIDs: [UUID],
+        preferring primaryWorkspaceID: UUID?
     ) async throws -> String? {
         fetchSourceAttemptState.withLock { $0 += 1 }
         if fetchSourceFails { throw FailingStoreError.fetchFailed }
         return try await backing.fetchToolSource(
-            toolID: toolID,
-            workspaceIDs: workspaceIDs,
-            primaryWorkspaceID: primaryWorkspaceID
+            named: toolName,
+            in: workspaceIDs,
+            preferring: primaryWorkspaceID
         )
     }
 }

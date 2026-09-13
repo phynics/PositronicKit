@@ -36,9 +36,9 @@ public actor InMemoryToolPersistence: ToolPersistenceProtocol {
         workspaces.filter { $0.originID == originID }.flatMap(\.tools)
     }
 
-    public func findWorkspaceID(forToolID toolID: String, in workspaceIDs: [UUID]) async throws -> UUID? {
+    public func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID? {
         for workspace in workspaces where workspaceIDs.contains(workspace.id) {
-            if workspace.tools.contains(where: { $0.toolID == toolID }) {
+            if workspace.tools.contains(where: { $0.toolID == toolName }) {
                 return workspace.id
             }
         }
@@ -46,9 +46,9 @@ public actor InMemoryToolPersistence: ToolPersistenceProtocol {
     }
 
     public func fetchToolSource(
-        toolID: String, workspaceIDs: [UUID], primaryWorkspaceID: UUID?
+        named toolName: String, in workspaceIDs: [UUID], preferring primaryWorkspaceID: UUID?
     ) async throws -> String? {
-        guard let wsId = try await findWorkspaceID(forToolID: toolID, in: workspaceIDs),
+        guard let wsId = try await findWorkspace(hostingToolNamed: toolName, in: workspaceIDs),
               let workspace = workspaces.first(where: { $0.id == wsId })
         else { return nil }
 

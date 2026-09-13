@@ -125,15 +125,15 @@ public enum ToolPersistenceConformanceSuite {
         ])
 
         try #require(
-            try await store.findWorkspaceID(forToolID: "echo", in: [ownerID]) == ownerID,
+            try await store.findWorkspace(hostingToolNamed: "echo", in: [ownerID]) == ownerID,
             "tool.owner.found"
         )
         try #require(
-            try await store.findWorkspaceID(forToolID: "outside", in: [ownerID]) == nil,
+            try await store.findWorkspace(hostingToolNamed: "outside", in: [ownerID]) == nil,
             "tool.owner.scope"
         )
         try #require(
-            try await store.findWorkspaceID(forToolID: "missing", in: [ownerID, outsideID]) == nil,
+            try await store.findWorkspace(hostingToolNamed: "missing", in: [ownerID, outsideID]) == nil,
             "tool.owner.unknown"
         )
     }
@@ -148,17 +148,17 @@ public enum ToolPersistenceConformanceSuite {
 
         try #require(
             try await store.fetchToolSource(
-                toolID: "echo",
-                workspaceIDs: [workspaceID],
-                primaryWorkspaceID: nil
+                named: "echo",
+                in: [workspaceID],
+                preferring: nil
             ) != nil,
             "tool.source.known"
         )
         try #require(
             try await store.fetchToolSource(
-                toolID: "missing",
-                workspaceIDs: [workspaceID],
-                primaryWorkspaceID: nil
+                named: "missing",
+                in: [workspaceID],
+                preferring: nil
             ) == nil,
             "tool.source.unknown"
         )
@@ -170,9 +170,9 @@ public enum ToolPersistenceConformanceSuite {
         ])
         try #require(
             try await scopedStore.fetchToolSource(
-                toolID: "outside",
-                workspaceIDs: [workspaceID],
-                primaryWorkspaceID: nil
+                named: "outside",
+                in: [workspaceID],
+                preferring: nil
             ) == nil,
             "tool.source.out-of-scope"
         )

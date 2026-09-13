@@ -311,7 +311,7 @@ extension ThreadManager {
     func findWorkspaceForTool(_ tool: ToolReference, in workspaceIDs: [UUID]) async throws
         -> UUID?
     {
-        return try await toolPersistence.findWorkspaceID(forToolID: tool.toolID, in: workspaceIDs)
+        return try await toolPersistence.findWorkspace(hostingToolNamed: tool.toolID, in: workspaceIDs)
     }
 
     /// Enabled tools for an active thread (empty if the thread has no active tool manager).
@@ -341,12 +341,12 @@ extension ThreadManager {
         return true
     }
 
-    func getToolSource(toolID: String, for threadID: UUID) async throws -> String? {
+    func getToolSource(toolName: String, for threadID: UUID) async throws -> String? {
         guard threads[threadID] != nil else { return nil }
 
         if let toolManager = toolManagers[threadID] {
             let systemTools = await toolManager.getAvailableTools()
-            if systemTools.contains(where: { $0.callName == toolID }) {
+            if systemTools.contains(where: { $0.callName == toolName }) {
                 return "System"
             }
         }
@@ -356,13 +356,13 @@ extension ThreadManager {
                 .bindings(for: threadID)
                 .map(\.workspaceID)
             return try await toolPersistence.fetchToolSource(
-                toolID: toolID,
-                workspaceIDs: workspaceIDs,
-                primaryWorkspaceID: nil
+                named: toolName,
+                in: workspaceIDs,
+                preferring: nil
             )
         } catch {
             logger.error("""
-            getToolSource failed — toolID: \(toolID), thread: \(threadID.uuidString.prefix(8)), \
+            getToolSource failed — toolName: \(toolName), thread: \(threadID.uuidString.prefix(8)), \
             operation: fetchToolSource, error: \(ErrorKit.userFriendlyMessage(for: error))
             """)
             throw ThreadError.unavailable

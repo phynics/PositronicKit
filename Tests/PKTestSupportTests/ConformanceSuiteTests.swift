@@ -223,8 +223,8 @@ private actor BrokenToolPersistence: ToolPersistenceProtocol {
     func syncTools(workspaceID _: UUID, tools _: [ToolReference]) async throws {}
     func fetchTools(forWorkspaces _: [UUID]) async throws -> [ToolReference] { [] }
     func fetchOriginTools(originID _: UUID) async throws -> [ToolReference] { [] }
-    func findWorkspaceID(forToolID _: String, in _: [UUID]) async throws -> UUID? { nil }
-    func fetchToolSource(toolID _: String, workspaceIDs _: [UUID], primaryWorkspaceID _: UUID?) async throws -> String? { nil }
+    func findWorkspace(hostingToolNamed _: String, in _: [UUID]) async throws -> UUID? { nil }
+    func fetchToolSource(named _: String, in _: [UUID], preferring _: UUID?) async throws -> String? { nil }
 }
 
 private actor BrokenAgentStore: AgentStoreProtocol {

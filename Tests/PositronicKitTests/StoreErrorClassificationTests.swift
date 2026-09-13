@@ -243,7 +243,7 @@ struct StoreErrorClassificationTests {
         let thread = try await manager.createThread()
 
         do {
-            _ = try await manager.getToolSource(toolId: "some_tool", for: thread.id)
+            _ = try await manager.getToolSource(toolName: "some_tool", for: thread.id)
             Issue.record("Expected ThreadError.unavailable")
         } catch ThreadError.unavailable {
             // Correct — store outage throws rather than returning nil.
@@ -272,7 +272,7 @@ struct StoreErrorClassificationTests {
 
         let thread = try await manager.createThread()
 
-        let source = try await manager.getToolSource(toolId: "nonexistent_tool", for: thread.id)
+        let source = try await manager.getToolSource(toolName: "nonexistent_tool", for: thread.id)
         #expect(source == nil, "A genuinely unknown tool should return nil, not throw")
     }
 

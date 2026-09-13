@@ -345,14 +345,14 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
         return try await toolsMock.fetchOriginTools(originID: originID)
     }
 
-    public func findWorkspaceID(forToolID toolID: String, in workspaceIDs: [UUID]) async throws -> UUID? {
+    public func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID? {
         defer { recordPersistenceAccess() }
-        return try await toolsMock.findWorkspaceID(forToolID: toolID, in: workspaceIDs)
+        return try await toolsMock.findWorkspace(hostingToolNamed: toolName, in: workspaceIDs)
     }
 
-    public func fetchToolSource(toolID: String, workspaceIDs: [UUID], primaryWorkspaceID: UUID?) async throws -> String? {
+    public func fetchToolSource(named toolName: String, in workspaceIDs: [UUID], preferring primaryWorkspaceID: UUID?) async throws -> String? {
         defer { recordPersistenceAccess() }
-        return try await toolsMock.fetchToolSource(toolID: toolID, workspaceIDs: workspaceIDs, primaryWorkspaceID: primaryWorkspaceID)
+        return try await toolsMock.fetchToolSource(named: toolName, in: workspaceIDs, preferring: primaryWorkspaceID)
     }
 
     // MARK: - RequestOriginStoreProtocol

@@ -105,11 +105,11 @@ final class MockPersistenceStore:
         []
     }
 
-    func findWorkspaceID(forToolID _: String, in _: [UUID]) async throws -> UUID? {
+    func findWorkspace(hostingToolNamed _: String, in _: [UUID]) async throws -> UUID? {
         nil
     }
 
-    func fetchToolSource(toolID _: String, workspaceIDs _: [UUID], primaryWorkspaceID _: UUID?) async throws -> String? {
+    func fetchToolSource(named _: String, in _: [UUID], preferring _: UUID?) async throws -> String? {
         nil
     }
 }

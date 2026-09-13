@@ -13,17 +13,17 @@ package actor ThreadToolRegistry {
     /// Registered workspace providers; tool-capable providers contribute their tools.
     private var workspaces: [UUID: any WorkspaceProvider] = [:]
 
-    /// Cached workspace tools: toolID -> (wrapper, origin)
+    /// Cached workspace tools: toolName -> (wrapper, origin)
     private var workspaceTools: [String: (tool: WorkspaceToolWrapper, origin: ToolOrigin)] = [:]
 
-    /// Cached known-tool overrides from workspaces: toolID -> Set of origin tags.
+    /// Cached known-tool overrides from workspaces: toolName -> Set of origin tags.
     private var knownToolOrigin: [String: Set<ToolOrigin>] = [:]
 
     /// Explicitly registered tool providers (global or workspace-bound). Assembled alongside
     /// workspace-derived tools so the runtime has a single canonical source for turn tools.
     private var toolProviders: [UUID: any ToolSource] = [:]
 
-    /// Cached provider tools: toolID -> tool.
+    /// Cached provider tools: toolName -> tool.
     private var providerTools: [String: AnyTool] = [:]
 
     private let logger = Logger.module(named: "thread-tool-manager")
@@ -88,13 +88,13 @@ package actor ThreadToolRegistry {
                 let refs = try await toolProvider.listTools()
                 for ref in refs {
                     switch ref {
-                    case let .known(toolID):
+                    case let .known(toolName):
                         // Tag the system tool with this workspace's origin
-                        if availableTools.contains(where: { $0.callName == toolID }) {
-                            newKnownOrigin[toolID, default: []].insert(originTag)
+                        if availableTools.contains(where: { $0.callName == toolName }) {
+                            newKnownOrigin[toolName, default: []].insert(originTag)
                         } else {
                             logger.warning(
-                                "Workspace declared .known tool '\(toolID)' but it is not a registered system tool"
+                                "Workspace declared .known tool '\(toolName)' but it is not a registered system tool"
                             )
                         }
                     case let .custom(def):
@@ -215,9 +215,9 @@ package actor ThreadToolRegistry {
         }
 
         // `.known` system tools this workspace has declared (tagged via knownToolOrigin).
-        for (toolID, originSet) in knownToolOrigin {
+        for (toolName, originSet) in knownToolOrigin {
             if originSet.contains(where: { Self.originBelongsTo($0, workspaceID) }),
-               let tool = availableTools.first(where: { $0.callName == toolID })
+               let tool = availableTools.first(where: { $0.callName == toolName })
             {
                 tools.append(toolWithResolvedOrigin(tool))
             }
@@ -237,11 +237,11 @@ package actor ThreadToolRegistry {
     }
 
     /// Toggle tool enabled state
-    public func toggleTool(_ toolID: String) {
-        if enabledTools.contains(toolID) {
-            enabledTools.remove(toolID)
+    public func toggleTool(_ toolName: String) {
+        if enabledTools.contains(toolName) {
+            enabledTools.remove(toolName)
         } else {
-            enabledTools.insert(toolID)
+            enabledTools.insert(toolName)
         }
     }
 
