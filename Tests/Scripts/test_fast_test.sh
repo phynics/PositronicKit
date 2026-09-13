@@ -28,21 +28,21 @@ chmod +x "$fake_bin/swift"
 log="$tmp_dir/swift.log"
 PATH="$fake_bin:$PATH" FAST_TEST_LOG="$log" \
     make -C "$repo_root" test-fast FAST_SKIP_TAGS="integration slow" > "$tmp_dir/pass.log"
-if ! grep -q -- '--skip tag:integration' "$log" || ! grep -q -- '--skip tag:slow' "$log"; then
-    printf 'FAIL: test-fast did not pass both tag exclusions to swift test\n' >&2
+if ! grep -q -- '--filter ' "$log"; then
+    printf 'FAIL: test-fast did not pass its generated filter to swift test\n' >&2
     cat "$log" >&2
     exit 1
 fi
-printf 'ok: test-fast passes tag exclusions and executes the selected tests\n'
+printf 'ok: test-fast passes the generated filter and executes the selected tests\n'
 
-if PATH="$fake_bin:$PATH" FAST_TEST_LOG="$log" FAST_TEST_EMPTY=1 \
-    make -C "$repo_root" test-fast FAST_SKIP_TAGS="integration" > "$tmp_dir/empty.log" 2>&1; then
-    printf 'FAIL: test-fast accepted a zero-test selection\n' >&2
+if PATH="$fake_bin:$PATH" FAST_TEST_LOG="$log" \
+    make -C "$repo_root" test-fast FAST_FILTER="" > "$tmp_dir/empty.log" 2>&1; then
+    printf 'FAIL: test-fast accepted an empty generated filter\n' >&2
     exit 1
 fi
-if ! grep -q 'matched zero tests' "$tmp_dir/empty.log"; then
-    printf 'FAIL: test-fast did not explain the zero-test failure\n' >&2
+if ! grep -q 'generated test filter is empty' "$tmp_dir/empty.log"; then
+    printf 'FAIL: test-fast did not explain the empty-filter failure\n' >&2
     cat "$tmp_dir/empty.log" >&2
     exit 1
 fi
-printf 'ok: test-fast rejects a zero-test selection\n'
+printf 'ok: test-fast rejects an empty generated filter\n'

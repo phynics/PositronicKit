@@ -14,10 +14,11 @@ AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock
 PODMAN ?= $(shell command -v podman 2>/dev/null)
 FILTER ?=
 TRAITS ?=
-# Inner-loop selection for `make test-fast`. Swift Testing's ST-0025 `tag:`
-# selector is used with --skip so untagged module suites remain useful while
-# integration and slow suites are excluded as taxonomy coverage expands.
-FAST_SKIP_TAGS ?= integration slow
+# Inner-loop selection for `make test-fast`. Swift 6.3.3 does not support
+# Swift Testing's ST-0025 `tag:` command-line selector, so this regex is
+# generated from the source tags and stable test names instead. It includes
+# the untagged module test targets and excludes runtime integration/slow suites.
+FAST_FILTER ?= $(shell python3 Scripts/generate-test-fast-filter.py)
 # Keep the repository's build and test gates strict without embedding unsafe
 # compiler flags in Package.swift, which would affect downstream consumers.
 SWIFT_BUILD_FLAGS ?= -Xswiftc -warnings-as-errors
@@ -41,7 +42,7 @@ help:
 	@echo "  make agent-test FILTER='…' Run a focused Podman Linux test"
 	@echo "  make linux-coverage         Generate Linux llvm-cov reports in .build/linux-coverage"
 	@echo "  make test                  Run tests"
-	@echo "  make test-fast             Run fast tests (skip integration and slow tags)"
+	@echo "  make test-fast             Run generated fast test filter"
 	@echo "  make verify                Run docs, linkage, products, examples, and test gates (macOS)"
 	@echo "  make verify-concurrency-scan Run the concurrency inline-annotation scan"
 	@echo "  make verify-runtime-architecture Check enforced runtime ownership seams"
@@ -79,15 +80,12 @@ test:
 
 test-fast:
 	@set -eu; \
-	 skip_args=""; \
-	 for tag in $(FAST_SKIP_TAGS); do skip_args="$$skip_args --skip tag:$$tag"; done; \
-	 listed="$$(swift test $(SWIFT_BUILD_FLAGS) $$skip_args --list-tests 2>/dev/null | awk '/^[[:space:]]*[[:alnum:]_]+\./ { count++ } END { print count + 0 }')"; \
-	 if [ "$$listed" -eq 0 ]; then \
-	   echo "make test-fast: tag selector matched zero tests; use a toolchain with Swift Testing tag filtering (ST-0025)." >&2; \
+	 if [ -z "$(FAST_FILTER)" ]; then \
+	   echo "make test-fast: generated test filter is empty; check the test taxonomy." >&2; \
 	   exit 1; \
 	 fi; \
-	 echo "Running fast tests ($$listed tests; skipping tags: $(FAST_SKIP_TAGS))..."; \
-	 swift test $(SWIFT_BUILD_FLAGS) $$skip_args
+	 echo "Running fast tests (--filter $(FAST_FILTER))..."; \
+	 swift test $(SWIFT_BUILD_FLAGS) --filter "$(FAST_FILTER)"
 
 validate-docs: verify-documentation
 	@bash Scripts/validate-docs.sh
