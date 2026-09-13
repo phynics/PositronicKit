@@ -14112,6 +14112,16 @@
       "declaration": "var lifecycle: TurnLifecycle"
     },
     {
+      "precise": "s:13PositronicKit10TurnRecordV9updatedAt10Foundation4DateVvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnRecord",
+        "updatedAt"
+      ],
+      "declaration": "var updatedAt: Date"
+    },
+    {
       "precise": "s:13PositronicKit10TurnResultV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -14169,16 +14179,6 @@
         "threadID"
       ],
       "declaration": "let threadID: UUID"
-    },
-    {
-      "precise": "s:13PositronicKit10TurnRecordV9updatedAt10Foundation4DateVvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRecord",
-        "updatedAt"
-      ],
-      "declaration": "var updatedAt: Date"
     },
     {
       "precise": "s:13PositronicKit11ChatHistoryV",
@@ -50604,6 +50604,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnRecordV9updatedAt10Foundation4DateVvp",
+      "target": "s:13PositronicKit10TurnRecordV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit10TurnResultV6turnID06threadF07outcome7messageAC10Foundation4UUIDV_AjA0C7OutcomeO11PKContracts7MessageVSgtcfc",
       "target": "s:13PositronicKit10TurnResultV"
     },
@@ -50630,12 +50636,6 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit10TurnResultV8threadID10Foundation4UUIDVvp",
       "target": "s:13PositronicKit10TurnResultV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10TurnRecordV9updatedAt10Foundation4DateVvp",
-      "target": "s:13PositronicKit10TurnRecordV"
     },
     {
       "module": "PositronicKit",
