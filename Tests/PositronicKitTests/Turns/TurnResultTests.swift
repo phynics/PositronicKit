@@ -11,7 +11,7 @@ import Testing
 /// switching; `TurnHandle.result()` returns one consolidated, durable
 /// `TurnResult` (outcome + final assistant message) read from the Thread
 /// runtime repository. The full `events()` stream remains available.
-@Suite("Turn result and generated-text helpers (#143)", .serialized, .timeLimit(.minutes(2)))
+@Suite("Turn result and generated-text helpers (#143)", .serialized, .timeLimit(.minutes(2)), .tags(.integration))
 struct TurnResultTests {
     private func makeKit(_ llm: MockLLMService) -> PositronicKit {
         PositronicKit(languageModel: llm)
