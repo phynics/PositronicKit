@@ -402,7 +402,7 @@ struct RuntimeAssemblyTests {
         customization: RuntimeCustomization = .default
     ) -> PositronicKit {
         PositronicKit(configuration: .init(
-            provider: .init(languageModel: model),
+            languageModel: model,
             persistence: .init(
                 runtimeRepository: runtimeRepository ?? InMemoryThreadRuntimeRepository(),
                 workspacePersistence: workspacePersistence,
@@ -426,7 +426,7 @@ struct RuntimeAssemblyTests {
         customization: RuntimeCustomization = .default
     ) -> PositronicKit {
         PositronicKit(configuration: .init(
-            provider: .init(languageModel: model),
+            languageModel: model,
             persistence: .fullyPersistent(
                 runtimeRepository: runtimeRepository,
                 workspacePersistence: workspacePersistence,

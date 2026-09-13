@@ -84,7 +84,7 @@ struct DirectTurnContextTests {
         let source = RecordingTurnContextSource()
         let repository = InMemoryThreadRuntimeRepository()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: model),
+            languageModel: model,
             persistence: .init(runtimeRepository: repository),
             runtime: .init(customization: RuntimeCustomization(turnContextSource: source))
         ))

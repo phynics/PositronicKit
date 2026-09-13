@@ -13,7 +13,7 @@ struct GenerationParametersTests {
 
         // 1. Setup PositronicKit with default generation parameters
         let defaultParams = GenerationParameters(temperature: 0.7, maxTokens: 100)
-        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
+        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -45,7 +45,7 @@ struct GenerationParametersTests {
 
         // 1. Setup PositronicKit with initial default parameters
         let defaultParams = GenerationParameters(temperature: 0.7, maxTokens: 100)
-        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
+        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,

@@ -47,6 +47,12 @@ for tagged releases beginning with `1.0.0`.
   `isStrict`, `LenientJSONParser.ParseResult.repaired` → `wasRepaired`, and
   `CompressionNodeReport.cacheHit`/`StructuredCompressionNodeMetric.cacheHit` → `didHitCache`
   (the latter two keep their `"cacheHit"` wire/JSON key via explicit `CodingKeys`).
+- **Grouped configuration takes the language model directly (#157):** the single-field
+  `PositronicKit.ProviderConfiguration` box is removed, so `PositronicKit.Configuration`
+  now carries `languageModel: any LLMStreamClient` instead of `provider:`. Migrate
+  `Configuration(provider: .init(languageModel: myModel), ...)` to
+  `Configuration(languageModel: myModel, ...)`. `PKContracts.ProviderConfiguration` (the
+  per-provider wire configuration) is unchanged and is now the only public type of that name.
 
 - **Unified identifier casing on `ID` (#159):** `ToolPersistenceProtocol` and
   `AgentStoreProtocol` now spell identifier suffixes `ID`/`IDs` (`workspaceID`,

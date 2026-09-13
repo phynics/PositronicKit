@@ -45,7 +45,7 @@ import PositronicKit
             self.persistence = persistence
             self.llm = llm
 
-            core = PositronicKit(configuration: .init(provider: .init(languageModel: llm), persistence: .init(
+            core = PositronicKit(configuration: .init(languageModel: llm, persistence: .init(
                     runtimeRepository: persistence,
                     workspacePersistence: persistence,
                     toolPersistence: persistence,

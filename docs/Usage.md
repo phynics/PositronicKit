@@ -101,9 +101,7 @@ import PositronicKit
 import PKContracts
 
 let kit = PositronicKit(configuration: .init(
-    provider: .init(
-        languageModel: streamClient
-    ),
+    languageModel: streamClient,
     persistence: .init(
         runtimeRepository: myRuntimeRepository,
         workspacePersistence: myWorkspacePersistence,

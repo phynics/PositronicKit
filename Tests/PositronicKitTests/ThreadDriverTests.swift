@@ -58,7 +58,7 @@ struct ThreadDriverTests {
             deleteFails: true
         )
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: UnconfiguredLLMService()),
+            languageModel: UnconfiguredLLMService(),
             persistence: .init(runtimeRepository: InMemoryThreadRuntimeRepository())
         ))
 

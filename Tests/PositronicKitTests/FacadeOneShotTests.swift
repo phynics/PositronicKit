@@ -22,7 +22,7 @@ struct FacadeOneShotTests {
             requestOriginStore: InMemoryRequestOriginStore()
         )
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: persistence
         ))
 
@@ -44,7 +44,7 @@ struct FacadeOneShotTests {
         let messageStore = InMemoryMessageStore()
         let threadPersistence = InMemoryThreadPersistence()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .init(
                 runtimeRepository: InMemoryThreadRuntimeRepository()
             )
@@ -99,7 +99,7 @@ struct FacadeOneShotTests {
             )
         ]]
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .init(
                 runtimeRepository: InMemoryThreadRuntimeRepository()
             )
@@ -121,7 +121,7 @@ struct FacadeOneShotTests {
         let llm = MockLLMService()
         llm.stubbedStream = AsyncThrowingStream { _ in }
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .init(
                 runtimeRepository: InMemoryThreadRuntimeRepository()
             )
@@ -145,7 +145,7 @@ struct FacadeOneShotTests {
         let llm = MockLLMService()
         llm.stubbedStream = Self.cancellableProviderStream(probe: probe)
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .init(
                 runtimeRepository: InMemoryThreadRuntimeRepository()
             )
@@ -202,7 +202,7 @@ struct FacadeOneShotTests {
         try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         llm.mockClient.nextChunks = [[#"{"tags":["swift"]}"#]]
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: PositronicKit.PersistenceConfiguration(
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
@@ -358,7 +358,7 @@ struct FacadeOneShotTests {
         try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         llm.mockClient.nextChunks = [[#"{"tags":["#, #""swift"]}"#]]
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: PositronicKit.PersistenceConfiguration(
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
@@ -387,7 +387,7 @@ struct FacadeOneShotTests {
             ]),
         ]]
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: PositronicKit.PersistenceConfiguration(
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
@@ -413,7 +413,7 @@ struct FacadeOneShotTests {
         try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         llm.mockClient.nextChunks = [[]]
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: PositronicKit.PersistenceConfiguration(
                 runtimeRepository: InMemoryThreadRuntimeRepository()
             )
@@ -445,7 +445,7 @@ struct FacadeOneShotTests {
         generationParameters: GenerationParameters? = nil
     ) -> PositronicKit {
         PositronicKit(configuration: .init(
-            provider: .init(languageModel: languageModel),
+            languageModel: languageModel,
             persistence: .init(
                 runtimeRepository: InMemoryThreadRuntimeRepository()
             ),

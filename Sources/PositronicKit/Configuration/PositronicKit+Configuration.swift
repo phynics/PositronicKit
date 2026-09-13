@@ -4,34 +4,35 @@ import PKContracts
 import PKUtilities
 
 public extension PositronicKit {
-    /// Groups provider-facing services used by the runtime.
-    /// Provider configuration for the language model used by the runtime.
-    struct ProviderConfiguration: Sendable {
-        public let languageModel: any LLMStreamClient
-
-        public init(
-            languageModel: any LLMStreamClient
-        ) {
-            self.languageModel = languageModel
-        }
-    }
-
-    /// Groups provider, persistence, runtime, and generation concerns for construction.
+    /// Groups the language model, persistence, runtime, and generation concerns for construction.
     struct Configuration: Sendable {
-        public let provider: ProviderConfiguration
+        /// The language model the runtime uses for generation and streaming.
+        public let languageModel: any LLMStreamClient
+        /// The persistence stores the runtime writes to.
         public let persistence: PersistenceConfiguration
+        /// The non-store runtime knobs and bounded customization roles.
         public let runtime: RuntimeConfiguration
+        /// The default generation parameters applied when a Turn carries no explicit override.
         public let generationParameters: GenerationParameters?
+        /// The logging configuration used for runtime diagnostics.
         public let logging: LoggingConfiguration
 
+        /// Creates a grouped configuration for the supported production entry point.
+        ///
+        /// - Parameters:
+        ///   - languageModel: The language model the runtime uses for generation and streaming.
+        ///   - persistence: The persistence stores the runtime writes to.
+        ///   - runtime: The non-store runtime knobs and bounded customization roles.
+        ///   - generationParameters: The default generation parameters, or `nil` for provider defaults.
+        ///   - logging: The logging configuration used for runtime diagnostics.
         public init(
-            provider: ProviderConfiguration,
+            languageModel: any LLMStreamClient,
             persistence: PersistenceConfiguration,
             runtime: RuntimeConfiguration = .default,
             generationParameters: GenerationParameters? = nil,
             logging: LoggingConfiguration = .default
         ) {
-            self.provider = provider
+            self.languageModel = languageModel
             self.persistence = persistence
             self.runtime = runtime
             self.generationParameters = generationParameters
@@ -49,12 +50,18 @@ public extension PositronicKit {
     struct PersistenceConfiguration: Sendable {
         /// Cohesive owner for Thread history and Turn lifecycle.
         public let runtimeRepository: any ThreadRuntimeRepository
+        /// The durable store for Workspace file and metadata state.
         public let workspacePersistence: any WorkspaceStore
+        /// The durable authority for ordinary Workspace-to-Thread bindings.
         public let workspaceBindingRepository: any WorkspaceBindingRepository
+        /// The durable store for tool execution records.
         public let toolPersistence: any ToolPersistenceProtocol
+        /// The durable store for Agent identities.
         public let agentStore: any AgentStoreProtocol
+        /// The durable store for request-origin records.
         public let requestOriginStore: any RequestOriginStoreProtocol
 
+        /// Creates a persistence configuration, defaulting omitted stores to in-memory.
         public init(
             runtimeRepository: any ThreadRuntimeRepository,
             workspacePersistence: (any WorkspaceStore)? = nil,
@@ -134,13 +141,20 @@ public extension PositronicKit {
     /// stores — a data-consistency risk because durable stores may reference entities
     /// (threads, workspaces, agents) that will be missing after restart.
     struct DurabilityReport: Sendable, Equatable {
+        /// The durability classification of the Thread history and Turn lifecycle owner.
         public let runtimeRepository: StoreDurability
+        /// The durability classification of the Workspace file and metadata store.
         public let workspacePersistence: StoreDurability
+        /// The durability classification of the Workspace-to-Thread binding authority.
         public let workspaceBindingRepository: StoreDurability
+        /// The durability classification of the tool execution record store.
         public let toolPersistence: StoreDurability
+        /// The durability classification of the Agent identity store.
         public let agentStore: StoreDurability
+        /// The durability classification of the request-origin record store.
         public let requestOriginStore: StoreDurability
 
+        /// Creates a cross-store durability classification from per-store values.
         public init(
             runtimeRepository: StoreDurability,
             workspacePersistence: StoreDurability,
@@ -157,6 +171,7 @@ public extension PositronicKit {
             self.requestOriginStore = requestOriginStore
         }
 
+        /// Whether the configuration mixes durable and ephemeral stores.
         public var isMixed: Bool {
             let all: [StoreDurability] = [
                 runtimeRepository, workspacePersistence, workspaceBindingRepository,
@@ -187,12 +202,19 @@ public extension PositronicKit {
 
     /// Groups the non-store runtime knobs and the four bounded customization roles.
     struct RuntimeConfiguration: Sendable {
+        /// How the per-thread filesystem workspace is provisioned.
         public let workspaceProfile: WorkspaceProfile
+        /// Creates per-thread workspace directories when the selected profile requires them.
         public let workspaceCreator: any WorkspaceFactory
+        /// The bounded Agent context, Turn context, activity, and outcome roles.
         public let customization: RuntimeCustomization
+        /// Controls which tools the runtime may expose and execute.
         public let runtimeToolPolicy: RuntimeToolPolicy
+        /// Controls whether runtime tool calls require approval.
         public let toolApprovalPolicy: any ToolApprovalPolicy
+        /// Controls diagnostic response snapshots.
         public let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
+        /// Controls whether required turn degradations fail the turn.
         public let degradationPolicy: TurnDegradationPolicy
 
         /// Maximum idle time, in seconds, between streamed model chunks before a Turn fails
@@ -254,7 +276,7 @@ public extension PositronicKit {
     /// accidentally losing threads, workspaces, agents, or tool state on restart.
     convenience init(configuration: Configuration) {
         self.init(
-            languageModel: configuration.provider.languageModel,
+            languageModel: configuration.languageModel,
             runtimeRepository: configuration.persistence.runtimeRepository,
             workspaceBindingRepository: configuration.persistence.workspaceBindingRepository,
             agentStore: configuration.persistence.agentStore,

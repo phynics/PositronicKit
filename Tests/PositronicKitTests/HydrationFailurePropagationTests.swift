@@ -14,7 +14,7 @@ struct HydrationFailurePropagationTests {
     func runThrowsForMissingThread() async throws {
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: mockLLM),
+            languageModel: mockLLM,
             persistence: .inMemory()
         ))
 
@@ -36,7 +36,7 @@ struct HydrationFailurePropagationTests {
         let persistence = MockPersistenceService()
         persistence.fetchThreadFails = true
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: mockLLM),
+            languageModel: mockLLM,
             persistence: .init(runtimeRepository: persistence)
         ))
 
@@ -61,7 +61,7 @@ struct HydrationFailurePropagationTests {
             continuation.finish(throwing: foreignError)
         }
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: mockLLM),
+            languageModel: mockLLM,
             persistence: .inMemory()
         ))
         let thread = try await kit.threadManager.createThread()

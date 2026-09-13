@@ -14,7 +14,7 @@ struct TurnTerminalRepositoryFailureTests {
         llm.mockClient.nextResponse = "must not be delivered"
         let repository = FailingTerminalRepository()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .init(runtimeRepository: repository)
         ))
         let thread = try await kit.threads.create(title: "Terminal failure")

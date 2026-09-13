@@ -141,7 +141,7 @@ public final class PositronicKit: Sendable {
     ) {
         self.init(
             configuration: .init(
-                provider: .init(languageModel: languageModel),
+                languageModel: languageModel,
                 persistence: .inMemory()
             )
         )

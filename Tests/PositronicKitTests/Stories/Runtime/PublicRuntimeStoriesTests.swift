@@ -388,7 +388,7 @@ struct PublicRuntimeStoriesTests {
 
             if useGroupedRuntime {
                 chat = PositronicKit(configuration: .init(
-                    provider: .init(languageModel: mockLLM),
+                    languageModel: mockLLM,
                     persistence: persistence,
                     runtime: .init(
                         workspaceProfile: .hostManaged(root: workspace.root),
@@ -397,14 +397,14 @@ struct PublicRuntimeStoriesTests {
                 ))
             } else {
                 chat = PositronicKit(configuration: .init(
-                    provider: .init(languageModel: mockLLM),
+                    languageModel: mockLLM,
                     persistence: persistence,
                     runtime: .init(workspaceProfile: .hostManaged(root: workspace.root))
                 ))
             }
         } else {
             chat = PositronicKit(configuration: .init(
-                provider: .init(languageModel: mockLLM),
+                languageModel: mockLLM,
                 persistence: .init(
                     runtimeRepository: mockPersistence,
                     workspacePersistence: mockPersistence,

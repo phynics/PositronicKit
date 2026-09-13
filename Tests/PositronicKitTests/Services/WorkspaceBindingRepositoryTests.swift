@@ -77,7 +77,7 @@ final class WorkspaceBindingRepositoryTests: XCTestCase {
     func testAgentPrimaryWorkspaceIsNotAnOrdinaryThreadBinding() async throws {
         let bindings = InMemoryWorkspaceBindingRepository()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: UnconfiguredLLMService()),
+            languageModel: UnconfiguredLLMService(),
             persistence: .init(
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 workspaceBindingRepository: bindings

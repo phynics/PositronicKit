@@ -86,7 +86,7 @@ import Testing
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
 
-        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
+        let chat = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,

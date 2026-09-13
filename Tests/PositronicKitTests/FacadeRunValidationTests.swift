@@ -141,7 +141,7 @@ struct FacadeRunValidationTests {
             continuation.yield(GenerationStreamResultFactory.textChunk("provider-started"))
         }
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: languageModel),
+            languageModel: languageModel,
             persistence: .inMemory(),
         ))
         let thread = try await kit.threadManager.createThread()
@@ -182,7 +182,7 @@ struct FacadeRunValidationTests {
         let messageStore = FailingMessageStore()
         let threadStore = FailingThreadPersistence(fetchFails: true)
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: languageModel),
+            languageModel: languageModel,
             persistence: .init(
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
             ),
@@ -210,7 +210,7 @@ struct FacadeRunValidationTests {
         let persistence = MockPersistenceService()
         let agentStore = CountingAgentStore(agent: agent)
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: languageModel),
+            languageModel: languageModel,
             persistence: .init(
                 runtimeRepository: persistence,
                 workspacePersistence: persistence,

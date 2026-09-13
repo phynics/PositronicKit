@@ -101,7 +101,7 @@ struct ManagedDirectTurnExecutionTests {
         let llm = MockLLMService()
         let repository = InMemoryThreadRuntimeRepository()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .init(
                 runtimeRepository: repository,
                 workspacePersistence: persistence,
@@ -387,7 +387,7 @@ struct ManagedDirectTurnExecutionTests {
         llm.mockClient.nextResponse = "prepared reply"
         let preparation = AdmissionPreparationGate()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .inMemory(),
             runtime: .init(customization: RuntimeCustomization(turnContextSource: preparation))
         ))
