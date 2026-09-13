@@ -29713,7 +29713,7 @@
       "kind": "conformsTo",
       "source": "s:11PKContracts15LLMServiceErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKContracts",
@@ -30370,7 +30370,7 @@
       "kind": "conformsTo",
       "source": "s:11PKContracts18ConfigurationErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKContracts",
@@ -31238,7 +31238,7 @@
       "kind": "conformsTo",
       "source": "s:11PKContracts22MultimodalContentErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKContracts",
@@ -31363,7 +31363,7 @@
       "kind": "conformsTo",
       "source": "s:11PKContracts23LenientJSONParsingErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKContracts",
@@ -31641,7 +31641,7 @@
       "kind": "conformsTo",
       "source": "s:11PKContracts25LLMMessageValidationErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKContracts",
@@ -31766,7 +31766,7 @@
       "kind": "conformsTo",
       "source": "s:11PKContracts25StructuredGenerationErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKContracts",
@@ -31939,7 +31939,7 @@
       "kind": "conformsTo",
       "source": "s:11PKContracts29StructuredOutputDecodingErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKContracts",
@@ -32415,7 +32415,7 @@
       "kind": "conformsTo",
       "source": "s:11PKContracts7PKErrorP",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKContracts",
@@ -32499,7 +32499,7 @@
       "kind": "conformsTo",
       "source": "s:11PKContracts9ToolErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKContracts",
@@ -32722,7 +32722,7 @@
       "kind": "conformsTo",
       "source": "s:26PKFoundationModelsProvider010FoundationB13PlatformErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKFoundationModelsProvider",
@@ -32862,7 +32862,7 @@
       "kind": "conformsTo",
       "source": "s:26PKFoundationModelsProvider010FoundationB17AvailabilityErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKFoundationModelsProvider",
@@ -33677,7 +33677,7 @@
       "kind": "conformsTo",
       "source": "s:8PKPrompt16TokenBudgetErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKPrompt",
@@ -34097,7 +34097,7 @@
       "kind": "conformsTo",
       "source": "s:8PKPrompt19PromptAssemblyErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKPrompt",
@@ -34265,7 +34265,7 @@
       "kind": "conformsTo",
       "source": "s:8PKPrompt22PromptCompressionErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKPrompt",
@@ -34391,7 +34391,7 @@
       "kind": "conformsTo",
       "source": "s:8PKPrompt28PromptJournalValidationErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PKPrompt",
@@ -35271,7 +35271,7 @@
       "kind": "conformsTo",
       "source": "s:13PositronicKit10AgentErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PositronicKit",
@@ -35583,7 +35583,7 @@
       "kind": "conformsTo",
       "source": "s:13PositronicKit12SidecarErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PositronicKit",
@@ -35758,7 +35758,7 @@
       "kind": "conformsTo",
       "source": "s:13PositronicKit13TimelineErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PositronicKit",
@@ -36024,7 +36024,7 @@
       "kind": "conformsTo",
       "source": "s:13PositronicKit14WorkspaceErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PositronicKit",
@@ -36429,7 +36429,7 @@
       "kind": "conformsTo",
       "source": "s:13PositronicKit16ModelHealthErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PositronicKit",
@@ -36723,7 +36723,7 @@
       "kind": "conformsTo",
       "source": "s:13PositronicKit17AgentContextErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PositronicKit",
@@ -38545,7 +38545,7 @@
       "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnContextContributionErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PositronicKit",
@@ -38622,7 +38622,7 @@
       "kind": "conformsTo",
       "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PositronicKit",
@@ -38692,7 +38692,7 @@
       "kind": "conformsTo",
       "source": "s:13PositronicKit31WorkspaceBindingRepositoryErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PositronicKit",
@@ -39070,7 +39070,7 @@
       "kind": "conformsTo",
       "source": "s:13PositronicKit9TurnErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PositronicKit",
