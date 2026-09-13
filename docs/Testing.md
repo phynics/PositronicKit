@@ -1,0 +1,131 @@
+# Testing PositronicKit
+
+This guide defines the repository's test layers, the tagging taxonomy, the
+determinism rules every suite follows, and the inner-loop commands. The
+development environments and the full platform gates are covered in
+[Development](Development.md); the module boundaries the tests respect are
+covered in [Architecture](Architecture.md).
+
+## Test targets
+
+The runtime suites are split so the test graph respects the same dependency
+boundaries as the source graph. `make verify-dependency-direction` enforces
+this; a provider dependency reintroduced into the runtime target fails the
+gate.
+
+| Target | Holds | May depend on |
+| --- | --- | --- |
+| `PositronicKitTests` | Runtime suites only: Turns, Threads, Workspaces, Agents, assembly, prompts, errors, policies, structured output, sidecar, streaming, tools, services, models, stories | `PositronicKit`, `PKContracts`, `PKUtilities`, `PKPrompt`, `PKTestSupport` |
+| `PKProviderIntegrationTests` | Provider-touching suites: TurnEngine behavior, provider transport/initialization/failure/cancellation conformance, the capability matrix, request encoding, example stories | Everything the runtime target takes, plus the five provider adapters, `PositronicKitExamples`, and the `OpenAI` package |
+| `PKOpenAIProviderTests`, `PKOpenRouterProviderTests`, `PKOllamaProviderTests`, `PKAnthropicProviderTests`, `PKFoundationModelsProviderTests` | Per-adapter unit suites | Their adapter, contracts, utilities, support |
+| `PKContractsTests`, `PKPromptTests`, `PKUtilitiesTests`, `PKObservableTests`, `PKTestSupportTests` | Module unit suites | Their module plus support |
+
+Shared doubles and fixtures (`TestRuntime`, `MockLLMService`, scripted
+transports, `ManualClock`) live in `Tests/PKTestSupport`, which every test
+target already depends on. Put a new shared helper there, not in a test
+target, so both runtime targets can use it.
+
+## Test layers
+
+- **Contract.** Store, model, and protocol contracts, including the
+  conformance suites under `Tests/PKTestSupport/Conformance` and the
+  `*ContractTests` suites. A conformance suite must pass against every store
+  implementation it covers.
+- **Unit.** Fast, deterministic single-type behavior, tagged `.unit` (see
+  below). Pure functions, Codable shapes, policy validation, prompt assembly.
+- **Story.** User-visible behavior told as stories under
+  `Tests/PositronicKitTests/Stories/`, mechanism variants under
+  `Tests/PositronicKitTests/InternalStories/`, and example stories under
+  `Tests/PKProviderIntegrationTests/Stories/`. Stories import package products
+  normally, exercising the same visibility downstream consumers get. Every
+  story suite must be mapped by
+  `Tests/PositronicKitTests/Stories/StoryCoverageIndex.swift`;
+  `make verify-story-coverage` enforces the mapping.
+- **Conformance.** Provider behavior contracts: stream decoding,
+  initialization, HTTP failure, cancellation, and transport suites in the
+  provider-integration target, plus the executable capability matrix
+  (`Tests/PKProviderIntegrationTests/ProviderCapabilityMatrixTests.swift`
+  registered against `Tests/PKTestSupport/Fixtures/ProviderCapabilityMatrix.json`).
+- **Gate.** The executable checks in `Scripts/` and their fixture tests in
+  `Tests/Scripts/`. Gate scripts fail closed: a pattern that silently stops
+  matching must read as a violation, never as success.
+
+## Tags and the fast loop
+
+The canonical tags are defined once in
+[TestTags.swift](../Tests/PKTestSupport/TestTags.swift) so every target shares
+one vocabulary:
+
+| Tag | Meaning |
+| --- | --- |
+| `.unit` | Fast, deterministic single-type contracts. This is the inner-loop subset. |
+| `.integration` | Multi-component runtime behavior: Turns, Threads, Workspaces, stores, stories, providers, examples. |
+| `.slow` | Long-running stress and concurrency suites. |
+| `.platformSpecific` | Behavior that differs by platform, such as conditional FoundationNetworking imports. |
+
+Annotate every suite: `@Suite("Name", .tags(.unit))`, or a bare
+`@Suite(.tags(.unit))` when the suite keeps its default name. Tags are
+orthogonal to targets: a pure unit suite that must import a provider (for
+example message-mapping conformance) lives in the provider-integration target
+but still carries `.unit`.
+
+Run the fast subset with:
+
+```bash
+make test-fast
+```
+
+`FAST_FILTER` overrides the selector (`make test-fast FAST_FILTER='tag:slow'`);
+the selector syntax is the swift-testing `tag:` filter, so it needs a
+toolchain with tag-based filtering support. If `test-fast` reports zero
+tests, upgrade the toolchain rather than working around it. The Linux
+equivalent runs through the repository-owned runner:
+
+```bash
+make agent-test FILTER='tag:unit'
+```
+
+The full gates (`make verify` on macOS, `make agent-verify` on Linux) always
+run every suite, including legacy XCTest classes, which cannot carry
+swift-testing tags and are therefore outside the tagged subset by
+construction. Do not migrate a legacy XCTest class to swift-testing just to
+tag it; that is a rewrite, and test splits here are moves, not rewrites.
+
+## Determinism rules
+
+- No live network and no live provider services. Provider suites use the
+  scripted HTTP transport; OpenAI suites use `TestHTTPServer`.
+- No wall-clock sleeps or polling. Advance the actor-owned `ManualClock`
+  instead; cancellation suites use the shared fixture's event-driven
+  termination signal.
+- Filesystem access goes through a unique temporary directory per suite.
+- Randomness is seeded or scripted; concurrency suites synchronize on events,
+  not on timeouts, wherever the API allows it.
+
+## File layout rules
+
+- No `.swift` file sits directly in `Tests/PositronicKitTests/`. Put each
+  suite in its domain subtree (`Turns/`, `Threads/`, `Workspaces/`, `Agents/`,
+  `Assembly/`, `Prompts/`, `Errors/`, `Policies/`, `StructuredOutput/`,
+  `Sidecar/`, `Streaming/`, `Tools/`, `Services/`, `Models/`, `Stories/`,
+  `InternalStories/`).
+- No test filename contains a ticket identifier. Name files for the behavior
+  they cover.
+- `make verify-test-layout` enforces both rules via
+  [check-test-layout.sh](../Scripts/check-test-layout.sh).
+
+## Gate scripts
+
+Every script in `Scripts/` is either wired into a Make gate (and CI through
+it) or removed. `check-canonical-turn-api.sh` was removed for this reason;
+`validate-docc.sh` runs inside `validate-docs.sh` on the macOS gate because
+its later stages need an Apple toolchain.
+
+Every gate script has a fixture test in `Tests/Scripts/` that feeds it a
+violating input and asserts a non-zero exit. Shell harnesses end in
+`_test.sh`, Python harnesses in `_test.py`, and all of them run in
+`make verify-agent-harness`, which both platform gates execute. When adding a
+gate script, add its fixture test and its `verify-agent-harness` line in the
+same change; helpers with no violation semantics (build-output parsers,
+manual runners) are the only scripts exempt, and the exemption is documented
+in the change that introduces them.

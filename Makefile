@@ -1,7 +1,7 @@
 .PHONY: help build clean test test-fast doctor validate-docs verify-documentation \
 	verify verify-concurrency-scan verify-runtime-architecture \
 	verify-linux-agent verify-linux-filter verify-linux-coverage \
-	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-v4-vocabulary \
+	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-story-coverage verify-v4-vocabulary \
 	verify-public-api update-public-api-baseline verify-release \
 	agent-verify agent-test linux-image linux-build linux-coverage require-podman
 
@@ -107,7 +107,7 @@ verify-runtime-architecture:
 doctor:
 	@bash Scripts/doctor.sh "$(PODMAN)"
 
-verify: verify-concurrency-scan verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
+verify: verify-concurrency-scan verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-story-coverage validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
 
 verify-linux-coverage:
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
@@ -118,7 +118,7 @@ verify-linux-coverage:
 # example, support, and test command so callers cannot accidentally omit it.
 verify-linux-agent:
 	@echo "Running agent/CI Linux verification contract..."
-	@$(MAKE) verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
+	@$(MAKE) verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-story-coverage verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
 
 verify-linux-filter:
 	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \
@@ -187,6 +187,9 @@ verify-dependency-direction:
 verify-test-layout:
 	@bash Scripts/check-test-layout.sh
 
+verify-story-coverage:
+	@python3 Scripts/check-story-coverage.py
+
 verify-v4-vocabulary:
 	@bash Scripts/check-v4-vocabulary.sh
 
@@ -207,6 +210,7 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/validate_release_readiness_test.py
 	@python3 -B Tests/Scripts/check_v4_vocabulary_test.py
 	@python3 -B Tests/Scripts/check_pr_docs_impact_test.py
+	@python3 -B Tests/Scripts/check_story_coverage_test.py
 
 # Linux testing intentionally has no native or Docker fallback. The shared
 # runner performs the deeper access check and prints the sandbox-escalation

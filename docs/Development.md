@@ -28,7 +28,9 @@ refresh it with `make linux-image`; compile in it with `make linux-build`.
 
 ## Focused checks
 
-Use `make agent-test FILTER='…'` for a focused Linux test.
+Use `make agent-test FILTER='…'` for a focused Linux test. The test layers,
+tagging taxonomy, determinism rules, and the `make test-fast` inner loop are
+defined in [Testing.md](Testing.md).
 
 Provider conformance tests use the package-scoped `ScriptedProviderHTTPTransport` for Anthropic,
 OpenRouter, Ollama, and runtime transport checks. OpenAI tests use `TestHTTPServer`; Foundation
