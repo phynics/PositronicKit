@@ -82,7 +82,8 @@ public enum PKErrorDomain {
     public static let workspace = "com.positronickit.core.workspace"
     public static let pipeline = "com.positronickit.core.pipeline"
     public static let agent = "com.positronickit.core.agent"
-    /// Stable error domain for timeline persistence and runtime failures.
+    /// Stable error domain for timeline persistence and runtime failures. The raw value is frozen
+    /// wire identity and must not change with the Swift vocabulary.
     public static let timeline = "com.positronickit.core.thread"
     public static let turn = "com.positronickit.core.turn"
     public static let tool = "com.positronickit.core.tool"

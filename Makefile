@@ -95,6 +95,7 @@ verify-documentation:
 	@python3 Scripts/validate-documentation.py
 	@python3 Scripts/validate-provider-capability-matrix.py
 	@bash Scripts/check-v4-vocabulary.sh
+	@bash Scripts/check-canonical-turn-api.sh
 	@bash Scripts/compile-doc-snippets.sh
 
 # Enforce the concurrency exception manifest: fail on any un-annotated

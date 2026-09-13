@@ -1,6 +1,6 @@
 # ``PKRuntime``
 
-The transport-neutral runtime facade for PKRuntime.
+The transport-neutral runtime facade for PositronicKit.
 
 ## Overview
 

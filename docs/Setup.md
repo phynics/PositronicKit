@@ -201,7 +201,7 @@ reports unsupported platforms and unavailable model sessions through its typed e
 
 ## 3. Logging And Errors
 
-PKRuntime uses `swift-log` as its only logging API. Library code never calls `LoggingSystem.bootstrap(...)` — the downstream app, CLI, or test owns bootstrap and log-level selection:
+PositronicKit uses `swift-log` as its only logging API. Library code never calls `LoggingSystem.bootstrap(...)` — the downstream app, CLI, or test owns bootstrap and log-level selection:
 
 ```swift
 import Logging
@@ -223,7 +223,7 @@ let core = PKRuntime(provider: provider)
 
 Long-lived runtime services log through `Logger.module(...)` in the package-internal utility layer; prompt-assembly diagnostics are opt-in per turn via `promptAssemblyLogger` (see above).
 
-For package-defined errors, PKRuntime uses `ErrorKit` through `PKContracts.PKError`:
+For package-defined errors, PositronicKit uses `ErrorKit` through `PKContracts.PKError`:
 
 - Package error types conform to `PKError`, with stable `PKErrorDomain` and `errorCode` values.
 - `TimelineRuntimeRepositoryError` uses `PKErrorDomain.timeline` codes `6101` through `6117`; `6118` is reserved.

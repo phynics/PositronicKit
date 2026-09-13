@@ -40,7 +40,7 @@ originating Turn ID, and the interrupted source Turn cannot accept a result with
 terminal lifecycle. `fetchToolResults` therefore describes runtime-executed calls only; this contract
 avoids inventing a second lifecycle or weakening the atomic local result boundary.
 
-PKRuntime does not ship a canonical database backend. Hosts provide the storage implementation that fits their environment, whether that is in-memory state, SQLite, cloud storage, or another persistence layer that conforms to the store protocols.
+PositronicKit does not ship a canonical database backend. Hosts provide the storage implementation that fits their environment, whether that is in-memory state, SQLite, cloud storage, or another persistence layer that conforms to the store protocols.
 
 ### Composition
 

@@ -5,7 +5,7 @@ import PKContracts
 import PKUtilities
 import Synchronization
 
-/// The public facade for PKRuntime's agent runtime subsystem.
+/// The public facade for PositronicKit's agent runtime subsystem.
 ///
 /// Accepts all required services as init parameters and wires them internally,
 /// so consumers never need to assemble a shared dependency container.

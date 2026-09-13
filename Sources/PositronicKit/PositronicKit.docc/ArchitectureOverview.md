@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Deep dive into the current PKRuntime runtime design.
+Deep dive into the current PositronicKit runtime design.
 
 ## Modularity
 

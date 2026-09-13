@@ -22,3 +22,7 @@ identifiers remain unchanged; renamed Swift properties use explicit `CodingKeys`
 No compatibility aliases, dual reads, schema migration, fallback decoders, or parallel Thread entry
 points are permitted. Historical ADR text and immutable release material may retain the old term,
 but current Swift declarations, active documentation, and filenames use Timeline vocabulary.
+
+The `PK` prefix is reserved for names that need disambiguation in ordinary imports or that identify
+the PositronicKit surface itself. Collision-free domain values keep their descriptive names, so the
+API uses `PKRuntime` and `PKTool` alongside `TimelineHandle`, `AnyTool`, and `ToolResult`.

@@ -10,10 +10,12 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
-- **Timeline execution now admits Turns through `TurnHandle`:** use
-  `TimelineHandle.startTurn(_:options:)` for managed execution and
-  `TimelineHandle.startDirectTurn(_:context:options:)` for explicit detached execution. The new
-  `TurnOptions` value carries per-Turn configuration without repeating the handle's `timelineID`;
+- **Public naming hard cut (#156):** the runtime facade is now `PKRuntime`; the provider factory
+  namespaces are `PKOpenAI`, `PKOpenRouter`, `PKOllama`, and `PKAnthropic`; the durable history
+  family is `TimelineRecord`/`TimelineHandle`/`TimelineCapability`; and the executable contract is
+  `PKTool`. The empty `PKFoundationModelsProvider` enum is removed; use its module's concrete
+  `FoundationModelsClient`. There are no compatibility aliases or parallel entry points. Persisted
+  keys, storage paths, error domains, and model-facing `thread_*` tool identifiers are unchanged.
 
 - **Timeline history has a public, ordered facade:** use `kit.timelines.messages(for:)` to read
   durable messages in oldest-first order. A `TimelineMessageStoreProtocol` conformer must return
@@ -24,7 +26,6 @@ for tagged releases beginning with `1.0.0`.
   `TimelineHandle.startTurn(_:options:)` for managed execution and
   `TimelineHandle.startDirectTurn(_:context:options:)` for explicit detached execution. The new
   `TurnOptions` value carries per-Turn configuration without repeating the handle's `timelineID`;
-
   managed multimodal content uses the corresponding `MessageContent` overload, and managed
   system instructions are supplied as a required admission argument. Direct instructions remain
   in `DirectTurnContext`; the former public stream-shaped Timeline entry points and `TurnRequest`
@@ -54,12 +55,12 @@ for tagged releases beginning with `1.0.0`.
   `CompressionNodeReport.cacheHit`/`StructuredCompressionNodeMetric.cacheHit` → `didHitCache`
   (the latter two keep their `"cacheHit"` wire/JSON key via explicit `CodingKeys`).
 
-- **Single Tool erasure and identity spelling (#160):** `Tool.toAnyTool()` is removed in favor
+- **Single Tool erasure and identity spelling (#160):** `PKTool.toAnyTool()` is removed in favor
   of the guidelines-correct `AnyTool(_:origin:)` initializer; re-erasing an `AnyTool` with the
   default global origin is still a no-op that preserves `origin` and `identity`, and an explicit
   origin still re-stamps the value. `AnyTool.toolReference` is removed in favor of the
-  documented `identity` requirement. `Tool.description` is now `toolDescription`, so a type
-  conforming to both `Tool` and `CustomStringConvertible` compiles without a naming workaround
+  documented `identity` requirement. `PKTool.description` is now `toolDescription`, so a type
+  conforming to both `PKTool` and `CustomStringConvertible` compiles without a naming workaround
   and `String(describing:)` no longer returns LLM-facing prose. Erasure semantics, `origin`
   propagation, and `ToolSource.resolvedTools()` behavior are unchanged.
 - **Grouped configuration takes the language model directly (#157):** the single-field

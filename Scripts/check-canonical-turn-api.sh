@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -u
+set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd)"
 failures=0
@@ -8,7 +8,7 @@ failures=0
 check_absent() {
     local pattern="$1"
     shift
-    if rg -n -- "$pattern" "$@"; then
+    if grep -REn -- "$pattern" "$@"; then
         printf 'Unexpected canonical Turn API match: %s\n' "$pattern" >&2
         failures=1
     fi
@@ -17,7 +17,7 @@ check_absent() {
 check_present() {
     local pattern="$1"
     shift
-    if ! rg -n -- "$pattern" "$@" >/dev/null; then
+    if ! grep -REn -- "$pattern" "$@" >/dev/null; then
         printf 'Missing canonical Turn API match: %s\n' "$pattern" >&2
         failures=1
     fi

@@ -7,9 +7,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ALLOWLIST="$ROOT/Scripts/v4-drift-allowlist.txt"
 
+# All path matching below is intentionally repository-relative so the checker behaves the same
+# when invoked directly, from Make, or by a CI wrapper.
+cd "$ROOT"
+
 is_historical_path() {
     case "$1" in
-        docs/adr/*|docs/stable/*|docs/TicketAssessment150-151.md) return 0 ;;
+        docs/adr/000[1-7]-*.md|docs/stable/*|docs/TicketAssessment150-151.md) return 0 ;;
         *) return 1 ;;
     esac
 }

@@ -17,6 +17,10 @@ Sources/PositronicKit/Services/Tools/Timeline/*|thread_(list|peek|send|id)
 Sources/PositronicKit/Customization/RuntimeCustomization.swift|threadID
 Sources/PositronicKit/Services/Timeline/TimelineManager+Lifecycle.swift|"threads"
 Sources/PKContracts/Utilities/PKError.swift|com\.positronickit\.core\.thread
+docs/adr/0008-timeline-naming-hard-cut.md|former `Thread` terminology
+docs/adr/0008-timeline-naming-hard-cut.md|Foundation\.Thread
+docs/adr/0008-timeline-naming-hard-cut.md|`ThreadHandle` becomes
+docs/adr/0008-timeline-naming-hard-cut.md|parallel Thread entry
 Tests/PKUtilitiesTests/Utilities/ProviderHTTPTransportTests.swift|Thread\.sleep
 Tests/PKTestSupport/TestHTTPServer.swift|Thread\.sleep
 Tests/PositronicKitTests/Services/RuntimeToolPolicyFactoryTests.swift|thread_(list|peek|send)
