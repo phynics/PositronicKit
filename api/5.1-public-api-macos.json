@@ -39228,7 +39228,7 @@
       "kind": "defaultImplementationOf",
       "source": "s:11PKContracts7PKErrorPAAE16errorDescriptionSSSgvp",
       "target": "s:10Foundation14LocalizedErrorP16errorDescriptionSSSgvp",
-      "targetFallback": "FoundationEssentials.LocalizedError.errorDescription"
+      "targetFallback": "Foundation.LocalizedError.errorDescription"
     },
     {
       "module": "PKContracts",
