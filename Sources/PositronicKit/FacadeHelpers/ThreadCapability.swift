@@ -49,7 +49,7 @@ public struct ThreadCapability: Sendable {
     /// Reads durable Thread messages in oldest-first order.
     ///
     /// An unknown Thread ID returns an empty array. The result is durable Thread history, not
-    /// the assembled prompt state observed by ``PromptJournal``.
+    /// the assembled prompt state observed by `PromptJournal`.
     public func messages(for threadID: UUID) async throws -> [ThreadMessage] {
         try await kit.messageStore.fetchMessages(for: threadID)
     }

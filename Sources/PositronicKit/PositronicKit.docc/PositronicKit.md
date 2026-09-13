@@ -90,7 +90,7 @@ for message in history {
 }
 ```
 
-Thread history records semantic runtime messages. ``PromptJournal`` observes assembled prompt state
+Thread history records semantic runtime messages. `PromptJournal` observes assembled prompt state
 for provider prompt reuse and does not replace Thread history.
 
 ### Error Delivery And Cancellation
