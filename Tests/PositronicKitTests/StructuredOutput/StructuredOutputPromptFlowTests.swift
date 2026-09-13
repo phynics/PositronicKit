@@ -6,7 +6,6 @@ import PKUtilities
 
 @Suite("Structured Output Prompt Flow Tests", .tags(.integration))
 @MainActor
-@Suite(.tags(.integration))
 struct StructuredOutputPromptFlowTests {
     @Test("generationStreamWithContext preserves prompt context with json object output")
     func generationStreamWithContextPreservesPromptContext() async throws {

@@ -99,7 +99,7 @@ private actor BlockingWorkspaceStore: WorkspaceStore {
 ///
 /// These tests inject failures at each step and assert no orphan directories, workspace
 /// rows, cached managers, or persisted attachment IDs remain.
-@Suite(.tags(.integration))("Thread lifecycle fault injection (PKRR-007)")
+@Suite("Thread lifecycle fault injection (PKRR-007)", .tags(.integration))
 struct ThreadLifecycleFaultInjectionTests {
 
     @Test("attachWorkspace does not resurrect a permanently deleted thread")

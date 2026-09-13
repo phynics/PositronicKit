@@ -14,7 +14,7 @@ import Testing
 /// before the fix" regression guard required by the acceptance criteria: before
 /// PKRR-030, `retry(maxRetries: -1, baseDelay: .nan)` was silently accepted and
 /// would trap or loop; now it throws `RetryConfigurationError`.
-@Suite(.tags(.unit))("RetryPolicy validation and budgets (PKRR-030)")
+@Suite("RetryPolicy validation and budgets (PKRR-030)", .tags(.unit))
 struct RetryPolicyValidationTests {
 
     // MARK: - Invalid values fail with typed errors (regression guards)

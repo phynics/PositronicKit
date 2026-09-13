@@ -24,7 +24,6 @@ private struct StructuredOutputRunTestsTool: Tool, @unchecked Sendable { // swif
 
 @Suite("Structured Output Run", .tags(.integration))
 @MainActor
-@Suite(.tags(.integration))
 struct StructuredOutputRunTests {
     @Test("run forwards structured output requests to the LLM transport")
     func runForwardsStructuredOutputRequests() async throws {

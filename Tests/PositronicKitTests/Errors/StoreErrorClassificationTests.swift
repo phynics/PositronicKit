@@ -10,7 +10,7 @@ import Testing
 /// collapse into `threadNotFound` or silent `nil`/empty results. These tests prove
 /// the fix by driving each error site with a failing store mock and asserting the
 /// typed error (or degradation) that surfaces.
-@Suite(.tags(.unit))("Store error classification (PKRR-008)")
+@Suite("Store error classification (PKRR-008)", .tags(.unit))
 struct StoreErrorClassificationTests {
 
     // MARK: - updateThreadTitle: store outage must not surface as threadNotFound
