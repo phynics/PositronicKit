@@ -48577,7 +48577,7 @@
       "target": "s:13PKTestSupport19MockToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP03addC11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0C9ReferenceOtYaKF",
-        "displayName": "ToolPersistenceProtocol.addToolToWorkspace(workspaceId:tool:)"
+        "displayName": "ToolPersistenceProtocol.addToolToWorkspace(workspaceID:tool:)"
       }
     },
     {
@@ -48587,7 +48587,7 @@
       "target": "s:13PKTestSupport19MockToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP05fetchC6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchToolSource(toolId:workspaceIds:primaryWorkspaceId:)"
+        "displayName": "ToolPersistenceProtocol.fetchToolSource(named:in:preferring:)"
       }
     },
     {
@@ -48613,7 +48613,7 @@
       "target": "s:13PKTestSupport19MockToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP13findWorkspace07hostingC5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-        "displayName": "ToolPersistenceProtocol.findWorkspaceId(forToolId:in:)"
+        "displayName": "ToolPersistenceProtocol.findWorkspace(hostingToolNamed:in:)"
       }
     },
     {
@@ -48629,7 +48629,7 @@
       "target": "s:13PKTestSupport19MockToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP16fetchOriginTools8originIDSay11PKContracts0C9ReferenceOG10Foundation4UUIDV_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originId:)"
+        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originID:)"
       }
     },
     {
@@ -48639,7 +48639,7 @@
       "target": "s:13PKTestSupport19MockToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0C9ReferenceOGtYaKF",
-        "displayName": "ToolPersistenceProtocol.syncTools(workspaceId:tools:)"
+        "displayName": "ToolPersistenceProtocol.syncTools(workspaceID:tools:)"
       }
     },
     {
@@ -48797,7 +48797,7 @@
       "target": "s:13PKTestSupport22FailingToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP03addC11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0C9ReferenceOtYaKF",
-        "displayName": "ToolPersistenceProtocol.addToolToWorkspace(workspaceId:tool:)"
+        "displayName": "ToolPersistenceProtocol.addToolToWorkspace(workspaceID:tool:)"
       }
     },
     {
@@ -48807,7 +48807,7 @@
       "target": "s:13PKTestSupport22FailingToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP05fetchC6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchToolSource(toolId:workspaceIds:primaryWorkspaceId:)"
+        "displayName": "ToolPersistenceProtocol.fetchToolSource(named:in:preferring:)"
       }
     },
     {
@@ -48827,7 +48827,7 @@
       "target": "s:13PKTestSupport22FailingToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP13findWorkspace07hostingC5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-        "displayName": "ToolPersistenceProtocol.findWorkspaceId(forToolId:in:)"
+        "displayName": "ToolPersistenceProtocol.findWorkspace(hostingToolNamed:in:)"
       }
     },
     {
@@ -48837,7 +48837,7 @@
       "target": "s:13PKTestSupport22FailingToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP16fetchOriginTools8originIDSay11PKContracts0C9ReferenceOG10Foundation4UUIDV_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originId:)"
+        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originID:)"
       }
     },
     {
@@ -48859,7 +48859,7 @@
       "target": "s:13PKTestSupport22FailingToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0C9ReferenceOGtYaKF",
-        "displayName": "ToolPersistenceProtocol.syncTools(workspaceId:tools:)"
+        "displayName": "ToolPersistenceProtocol.syncTools(workspaceID:tools:)"
       }
     },
     {
@@ -49171,7 +49171,7 @@
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP13findWorkspace07hostingC5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-        "displayName": "ToolPersistenceProtocol.findWorkspaceId(forToolId:in:)"
+        "displayName": "ToolPersistenceProtocol.findWorkspace(hostingToolNamed:in:)"
       }
     },
     {
@@ -49339,7 +49339,7 @@
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP05fetchC6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchToolSource(toolId:workspaceIds:primaryWorkspaceId:)"
+        "displayName": "ToolPersistenceProtocol.fetchToolSource(named:in:preferring:)"
       }
     },
     {
@@ -49349,7 +49349,7 @@
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP16fetchOriginTools8originIDSay11PKContracts0C9ReferenceOG10Foundation4UUIDV_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originId:)"
+        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originID:)"
       }
     },
     {
@@ -49473,7 +49473,7 @@
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP03addC11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0C9ReferenceOtYaKF",
-        "displayName": "ToolPersistenceProtocol.addToolToWorkspace(workspaceId:tool:)"
+        "displayName": "ToolPersistenceProtocol.addToolToWorkspace(workspaceID:tool:)"
       }
     },
     {
@@ -49623,7 +49623,7 @@
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0C9ReferenceOGtYaKF",
-        "displayName": "ToolPersistenceProtocol.syncTools(workspaceId:tools:)"
+        "displayName": "ToolPersistenceProtocol.syncTools(workspaceID:tools:)"
       }
     },
     {
@@ -53756,7 +53756,7 @@
       "target": "s:13PositronicKit23InMemoryToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP03addC11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0C9ReferenceOtYaKF",
-        "displayName": "ToolPersistenceProtocol.addToolToWorkspace(workspaceId:tool:)"
+        "displayName": "ToolPersistenceProtocol.addToolToWorkspace(workspaceID:tool:)"
       }
     },
     {
@@ -53766,7 +53766,7 @@
       "target": "s:13PositronicKit23InMemoryToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP05fetchC6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchToolSource(toolId:workspaceIds:primaryWorkspaceId:)"
+        "displayName": "ToolPersistenceProtocol.fetchToolSource(named:in:preferring:)"
       }
     },
     {
@@ -53786,7 +53786,7 @@
       "target": "s:13PositronicKit23InMemoryToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP13findWorkspace07hostingC5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-        "displayName": "ToolPersistenceProtocol.findWorkspaceId(forToolId:in:)"
+        "displayName": "ToolPersistenceProtocol.findWorkspace(hostingToolNamed:in:)"
       }
     },
     {
@@ -53796,7 +53796,7 @@
       "target": "s:13PositronicKit23InMemoryToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP16fetchOriginTools8originIDSay11PKContracts0C9ReferenceOG10Foundation4UUIDV_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originId:)"
+        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originID:)"
       }
     },
     {
@@ -53806,7 +53806,7 @@
       "target": "s:13PositronicKit23InMemoryToolPersistenceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0C9ReferenceOGtYaKF",
-        "displayName": "ToolPersistenceProtocol.syncTools(workspaceId:tools:)"
+        "displayName": "ToolPersistenceProtocol.syncTools(workspaceID:tools:)"
       }
     },
     {
