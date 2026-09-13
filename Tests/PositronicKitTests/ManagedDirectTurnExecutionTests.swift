@@ -124,7 +124,7 @@ struct ManagedDirectTurnExecutionTests {
         )
         try await persistence.saveWorkspace(attachedWorkspace)
         try await persistence.addToolToWorkspace(
-            workspaceId: attachedWorkspace.id,
+            workspaceID: attachedWorkspace.id,
             tool: .known("cat")
         )
         try await kit.threads.attachWorkspace(attachedWorkspace.id, to: thread.id)

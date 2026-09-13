@@ -69,7 +69,7 @@ struct TurnEngineTerminalEventTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(wsId, to: threadID)
-        try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: wsId, tool: .known("mock_tool"))
 
         try await threadManager.hydrateThread(id: threadID)
 
@@ -136,7 +136,7 @@ struct TurnEngineTerminalEventTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(wsId, to: threadID)
-        try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: wsId, tool: .known("mock_tool"))
 
         try await threadManager.hydrateThread(id: threadID)
 

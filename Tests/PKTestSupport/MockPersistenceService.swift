@@ -325,34 +325,34 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
 
     // MARK: - ToolPersistenceProtocol
 
-    public func addToolToWorkspace(workspaceId: UUID, tool: ToolReference) async throws {
+    public func addToolToWorkspace(workspaceID: UUID, tool: ToolReference) async throws {
         defer { recordPersistenceAccess() }
-        try await toolsMock.addToolToWorkspace(workspaceId: workspaceId, tool: tool)
+        try await toolsMock.addToolToWorkspace(workspaceID: workspaceID, tool: tool)
     }
 
-    public func syncTools(workspaceId: UUID, tools: [ToolReference]) async throws {
+    public func syncTools(workspaceID: UUID, tools: [ToolReference]) async throws {
         defer { recordPersistenceAccess() }
-        try await toolsMock.syncTools(workspaceId: workspaceId, tools: tools)
+        try await toolsMock.syncTools(workspaceID: workspaceID, tools: tools)
     }
 
-    public func fetchTools(forWorkspaces workspaceIds: [UUID]) async throws -> [ToolReference] {
+    public func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference] {
         defer { recordPersistenceAccess() }
-        return try await toolsMock.fetchTools(forWorkspaces: workspaceIds)
+        return try await toolsMock.fetchTools(forWorkspaces: workspaceIDs)
     }
 
-    public func fetchOriginTools(originId: UUID) async throws -> [ToolReference] {
+    public func fetchOriginTools(originID: UUID) async throws -> [ToolReference] {
         defer { recordPersistenceAccess() }
-        return try await toolsMock.fetchOriginTools(originId: originId)
+        return try await toolsMock.fetchOriginTools(originID: originID)
     }
 
-    public func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID? {
+    public func findWorkspaceID(forToolID toolID: String, in workspaceIDs: [UUID]) async throws -> UUID? {
         defer { recordPersistenceAccess() }
-        return try await toolsMock.findWorkspaceId(forToolId: toolId, in: workspaceIds)
+        return try await toolsMock.findWorkspaceID(forToolID: toolID, in: workspaceIDs)
     }
 
-    public func fetchToolSource(toolId: String, workspaceIds: [UUID], primaryWorkspaceId: UUID?) async throws -> String? {
+    public func fetchToolSource(toolID: String, workspaceIDs: [UUID], primaryWorkspaceID: UUID?) async throws -> String? {
         defer { recordPersistenceAccess() }
-        return try await toolsMock.fetchToolSource(toolId: toolId, workspaceIds: workspaceIds, primaryWorkspaceId: primaryWorkspaceId)
+        return try await toolsMock.fetchToolSource(toolID: toolID, workspaceIDs: workspaceIDs, primaryWorkspaceID: primaryWorkspaceID)
     }
 
     // MARK: - RequestOriginStoreProtocol
@@ -419,9 +419,9 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
         state.withLock { $0.agents.removeAll { $0.id == id } }
     }
 
-    public func fetchThreads(attachedToAgent agentId: UUID) async throws -> [Thread] {
+    public func fetchThreads(attachedToAgent agentID: UUID) async throws -> [Thread] {
         defer { recordPersistenceAccess() }
-        return threads.filter { $0.attachedAgentID == agentId }
+        return threads.filter { $0.attachedAgentID == agentID }
     }
 
     public func resetDatabase() async throws {

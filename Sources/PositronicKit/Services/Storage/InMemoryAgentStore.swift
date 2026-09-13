@@ -35,7 +35,7 @@ public actor InMemoryAgentStore: AgentStoreProtocol {
         instances.removeAll { $0.id == id }
     }
 
-    public func fetchThreads(attachedToAgent agentId: UUID) async throws -> [Thread] {
-        threads.filter { $0.attachedAgentID == agentId }
+    public func fetchThreads(attachedToAgent agentID: UUID) async throws -> [Thread] {
+        threads.filter { $0.attachedAgentID == agentID }
     }
 }

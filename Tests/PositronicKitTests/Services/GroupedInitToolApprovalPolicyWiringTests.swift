@@ -128,7 +128,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await chat.threadManager.attachWorkspace(workspaceId, to: thread.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known(tool.callName))
 
         let toolManager = try #require(await chat.threadManager.getToolManager(for: thread.id))
         await toolManager.updateAvailableTools([tool.toAnyTool()])

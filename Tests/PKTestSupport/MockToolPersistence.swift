@@ -33,10 +33,10 @@ public final class MockToolPersistence: ToolPersistenceProtocol {
         }
     }
 
-    public func addToolToWorkspace(workspaceId: UUID, tool: ToolReference) async throws {
+    public func addToolToWorkspace(workspaceID: UUID, tool: ToolReference) async throws {
         try workspacesState.withLock {
-            guard let index = $0.firstIndex(where: { $0.id == workspaceId }) else {
-                throw ToolError.workspaceNotFound(workspaceId)
+            guard let index = $0.firstIndex(where: { $0.id == workspaceID }) else {
+                throw ToolError.workspaceNotFound(workspaceID)
             }
 
             var workspace = $0[index]
@@ -45,10 +45,10 @@ public final class MockToolPersistence: ToolPersistenceProtocol {
         }
     }
 
-    public func syncTools(workspaceId: UUID, tools: [ToolReference]) async throws {
+    public func syncTools(workspaceID: UUID, tools: [ToolReference]) async throws {
         try workspacesState.withLock {
-            guard let index = $0.firstIndex(where: { $0.id == workspaceId }) else {
-                throw ToolError.workspaceNotFound(workspaceId)
+            guard let index = $0.firstIndex(where: { $0.id == workspaceID }) else {
+                throw ToolError.workspaceNotFound(workspaceID)
             }
 
             var workspace = $0[index]
@@ -57,22 +57,22 @@ public final class MockToolPersistence: ToolPersistenceProtocol {
         }
     }
 
-    public func fetchTools(forWorkspaces workspaceIds: [UUID]) async throws -> [ToolReference] {
+    public func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference] {
         workspacesState.withLock {
-            $0.filter { workspaceIds.contains($0.id) }.flatMap(\.tools)
+            $0.filter { workspaceIDs.contains($0.id) }.flatMap(\.tools)
         }
     }
 
-    public func fetchOriginTools(originId: UUID) async throws -> [ToolReference] {
+    public func fetchOriginTools(originID: UUID) async throws -> [ToolReference] {
         workspacesState.withLock {
-            $0.filter { $0.originID == originId }.flatMap(\.tools)
+            $0.filter { $0.originID == originID }.flatMap(\.tools)
         }
     }
 
-    public func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID? {
+    public func findWorkspaceID(forToolID toolID: String, in workspaceIDs: [UUID]) async throws -> UUID? {
         workspacesState.withLock {
-            for workspace in $0 where workspaceIds.contains(workspace.id) {
-                if workspace.tools.contains(where: { $0.toolID == toolId }) {
+            for workspace in $0 where workspaceIDs.contains(workspace.id) {
+                if workspace.tools.contains(where: { $0.toolID == toolID }) {
                     return workspace.id
                 }
             }
@@ -80,18 +80,18 @@ public final class MockToolPersistence: ToolPersistenceProtocol {
         }
     }
 
-    public func fetchToolSource(toolId: String, workspaceIds: [UUID], primaryWorkspaceId: UUID?) async throws -> String? {
+    public func fetchToolSource(toolID: String, workspaceIDs: [UUID], primaryWorkspaceID: UUID?) async throws -> String? {
         workspacesState.withLock {
             guard let workspace = $0.first(where: { workspace in
-                workspaceIds.contains(workspace.id)
-                    && workspace.tools.contains { $0.toolID == toolId }
+                workspaceIDs.contains(workspace.id)
+                    && workspace.tools.contains { $0.toolID == toolID }
             }) else {
                 return nil
             }
 
             if workspace.location == .attached {
                 return "Additional Workspace"
-            } else if workspace.id == primaryWorkspaceId {
+            } else if workspace.id == primaryWorkspaceID {
                 return "Primary Workspace"
             } else {
                 return "Workspace: \(workspace.uri.description)"

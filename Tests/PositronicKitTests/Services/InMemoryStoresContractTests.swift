@@ -27,10 +27,10 @@ struct InMemoryStoresContractTests {
             let store = InMemoryToolPersistence()
             let wsID = UUID()
             await store.replaceWorkspaces([makeWorkspace(id: wsID, location: .attached)])
-            try await store.addToolToWorkspace(workspaceId: wsID, tool: .known("t"))
+            try await store.addToolToWorkspace(workspaceID: wsID, tool: .known("t"))
 
             let source = try await store.fetchToolSource(
-                toolId: "t", workspaceIds: [wsID], primaryWorkspaceId: UUID()
+                toolID: "t", workspaceIDs: [wsID], primaryWorkspaceID: UUID()
             )
             #expect(source == "Additional Workspace")
         }
@@ -40,10 +40,10 @@ struct InMemoryStoresContractTests {
             let store = InMemoryToolPersistence()
             let wsID = UUID()
             await store.replaceWorkspaces([makeWorkspace(id: wsID, location: .runtimeThread)])
-            try await store.addToolToWorkspace(workspaceId: wsID, tool: .known("t"))
+            try await store.addToolToWorkspace(workspaceID: wsID, tool: .known("t"))
 
             let source = try await store.fetchToolSource(
-                toolId: "t", workspaceIds: [wsID], primaryWorkspaceId: wsID
+                toolID: "t", workspaceIDs: [wsID], primaryWorkspaceID: wsID
             )
             #expect(source == "Primary Workspace")
         }
@@ -56,10 +56,10 @@ struct InMemoryStoresContractTests {
             await store.replaceWorkspaces([
                 makeWorkspace(id: wsID, location: .runtimeThread, uri: uri)
             ])
-            try await store.addToolToWorkspace(workspaceId: wsID, tool: .known("t"))
+            try await store.addToolToWorkspace(workspaceID: wsID, tool: .known("t"))
 
             let source = try await store.fetchToolSource(
-                toolId: "t", workspaceIds: [wsID], primaryWorkspaceId: UUID()
+                toolID: "t", workspaceIDs: [wsID], primaryWorkspaceID: UUID()
             )
             #expect(source?.hasPrefix("Workspace:") == true)
             #expect(source?.contains("/projects/extra") == true)

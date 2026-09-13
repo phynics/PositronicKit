@@ -28,7 +28,7 @@ import Testing
             description: "Echoes a fixed workspace-owned result"
         )
         try await mockPersistence.saveWorkspace(reference)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .custom(workspaceTool))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .custom(workspaceTool))
         try await threads.attachWorkspace(workspaceId, to: threadID)
 
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(
@@ -109,7 +109,7 @@ import Testing
                 rootPath: workspace.root.path
             )
             try await mockPersistence.saveWorkspace(workspaceRef)
-            try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("acceptance_tool"))
+            try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known("acceptance_tool"))
             try await threads.attachWorkspace(workspaceId, to: thread.id)
         }
         let agent = try await chat.agents.create(name: "Extension Agent", description: "test")
