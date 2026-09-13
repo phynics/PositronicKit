@@ -86,6 +86,14 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Common Turn result and generated-text helpers (#143):** `TurnHandle.generatedText()`
+  streams assistant text fragments in order without nested event switching, and
+  `TurnHandle.result()` awaits one consolidated, durable `TurnResult` (terminal
+  `outcome` plus the final assistant `message` when the Turn recorded one). Both
+  are derived from the existing event stream and the atomic Thread runtime
+  repository, so no second execution or persistence path is created; `events()`
+  remains the full-fidelity stream for advanced consumers, and every `result()`
+  joiner observes the same durable outcome.
 - **Typed one-shot structured generation (#142):** `kit.model.generate(_:from:generationParameters:idleTimeout:decoder:)`
   derives a Draft 2020-12 schema from a `Schemable` `Decodable & Sendable` output type, uses the
   existing native/synthetic structured-output path, and returns the decoded value. Schema

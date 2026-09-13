@@ -184,6 +184,39 @@ for await event in stream {
 }
 ```
 
+### Streaming generated text and awaiting one result
+
+The common path needs no nested event switch. `generatedText()` streams assistant
+text fragments in order, and `result()` awaits one consolidated, durable
+`TurnResult` with the terminal `outcome` and the final assistant `message` when
+the Turn recorded one:
+
+```swift
+let turn = try await kit.threads.open(threadID).startTurn("Summarize the thread.")
+
+for await text in turn.generatedText() {
+    render(text)
+}
+
+let result = try await turn.result()
+print(result.message?.content ?? "")
+```
+
+- `generatedText()` and `events()` are alternative views over one shared stream:
+  consume the Turn through one of them, not both concurrently. The full event
+  stream stays available for advanced consumers.
+- `result()` reads the atomic Thread runtime repository after the Turn is
+  terminal, so every joiner observes the same durable result — including
+  joiners that never consumed the stream. Distinguish empty, deferred,
+  cancelled, and failed Turns via `result.outcome`, not via message presence:
+  deferred Turns are `.interrupted` with no message, while empty output keeps
+  its (empty) assistant row under `.completed`.
+- Cancelling the task that awaits `result()` throws `CancellationError` without
+  recording an outcome; a bounded wait that elapses first throws
+  `TurnOutcomeTimedOut`. Neither is a durable outcome — the Turn may still be
+  running. Abandoning `generatedText()` follows the same owner-only
+  cancellation rule as abandoning `events()`.
+
 ### Running a direct Turn
 
 Use a detached Thread for direct execution. `DirectTurnContext` uses the conventional `.host`
