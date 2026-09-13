@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # doctor.sh — preflight prerequisite check for PositronicKit.
 #
-# Reports the presence (and version, where useful) of every tool the Makefile
-# gates depend on. Linux verification is intentionally Podman-only, so host
-# Swift and native dependencies are informational there; macOS verification
-# requires a complete native Swift toolchain.
+# Reports the presence and version of tools the Makefile gates depend on.
+# Linux verification is Podman-only, so host Swift is ignored there. macOS
+# verification requires a complete native Swift toolchain.
 #
 # Invoked by `make doctor`, which passes its Podman path so the report reflects
 # the Makefile's own configuration. The script itself does not require Swift to run.

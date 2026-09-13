@@ -1,11 +1,9 @@
-.PHONY: help build clean test test-parallel harden doctor validate-docs verify-documentation verify-doc-snippets \
-	verify verify-concurrency-scan verify-runtime-architecture verify-macos-default \
-	verify-linux verify-linux-agent verify-linux-base verify-linux-current verify-linux-filter \
-	verify-linux-scratch verify-linux-suites verify-linux-coverage \
-	verify-agent-harness verify-products verify-examples verify-tests verify-pktestsupport verify-public-consumers verify-dependency-direction verify-v4-vocabulary \
+.PHONY: help build clean test doctor validate-docs verify-documentation \
+	verify verify-concurrency-scan verify-runtime-architecture \
+	verify-linux-agent verify-linux-filter verify-linux-coverage \
+	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-v4-vocabulary \
 	verify-public-api update-public-api-baseline verify-release \
-	agent-verify agent-test linux-image linux-build linux-test linux-test-scratch linux-coverage \
-	linux-test-filter require-podman
+	agent-verify agent-test linux-image linux-build linux-coverage require-podman
 
 LINUX_IMAGE ?= positronickit-linux-dev
 LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/agent-scratch/swift-6.3.3
@@ -39,18 +37,11 @@ help:
 	@echo "  make agent-test FILTER='…' Run a focused Podman Linux test"
 	@echo "  make linux-coverage         Generate Linux llvm-cov reports in .build/linux-coverage"
 	@echo "  make test                  Run tests"
-	@echo "  make test-parallel         Run tests in parallel"
-	@echo "  make harden                Run build and parallel hardening test gate"
 	@echo "  make verify                Run docs, linkage, products, examples, and test gates (macOS)"
 	@echo "  make verify-concurrency-scan Run the concurrency inline-annotation scan"
 	@echo "  make verify-runtime-architecture Check enforced runtime ownership seams"
-	@echo "  make verify-macos-default  Run the default macOS gate"
-	@echo "  make verify-linux          Run the current Linux gate"
-	@echo "  make verify-linux-base     Run the shared Linux verification body"
-	@echo "  make verify-linux-current  Run the current Linux gate"
 	@echo "  make verify-products       Build every library product declared by Package.swift"
 	@echo "  make verify-examples       Build and run the PositronicKitExamples executable"
-	@echo "  make verify-tests          Run the test suite"
 	@echo "  make verify-pktestsupport  Build PKTestSupport and an ordinary-import consumer in release mode"
 	@echo "  make verify-public-consumers  Compile ordinary imports for every public library product"
 	@echo "  make verify-public-api    Compare public Swift symbols with the reviewed Next / v5 baseline"
@@ -65,9 +56,6 @@ help:
 	@echo "Linux (Podman):"
 	@echo "  make linux-image           Build the Linux development Podman image"
 	@echo "  make linux-build           Build in a Linux container (bind-mounted)"
-	@echo "  make linux-test            Run the full Linux gate in a container"
-	@echo "  make linux-test-scratch    Run both Linux suites in a reusable isolated scratch"
-	@echo "  make linux-test-filter LINUX_TEST_FILTER='…'  Run a focused Linux test in reusable scratch"
 
 build:
 	@echo "Building PositronicKit..."
@@ -84,15 +72,6 @@ test:
 	@echo "Running tests..."
 	@swift test $(SWIFT_BUILD_FLAGS)
 
-test-parallel:
-	@echo "Running tests in parallel..."
-	@swift test $(SWIFT_BUILD_FLAGS) --parallel --num-workers 2
-
-harden:
-	@echo "Running hardening gate..."
-	@swift build $(SWIFT_BUILD_FLAGS)
-	@swift test $(SWIFT_BUILD_FLAGS) --parallel --num-workers 2
-
 validate-docs: verify-documentation
 	@bash Scripts/validate-docs.sh
 
@@ -100,11 +79,8 @@ verify-documentation:
 	@python3 Scripts/generate-doc-navigation.py --check
 	@python3 Scripts/validate-documentation.py
 	@python3 Scripts/validate-provider-capability-matrix.py
+	@python3 Tests/Scripts/provider_capability_matrix_test.py
 	@bash Scripts/check-v4-vocabulary.sh
-	@bash Scripts/compile-doc-snippets.sh
-
-verify-doc-snippets:
-	@echo "Syntax-checking Swift fenced blocks in docs/..."
 	@bash Scripts/compile-doc-snippets.sh
 
 # Enforce the concurrency exception manifest: fail on any un-annotated
@@ -120,25 +96,11 @@ verify-runtime-architecture:
 	@python3 Scripts/migrate-turn-execution-request.py --check
 	@python3 Scripts/check-workspace-tool-dispatch.py
 
-# Preflight: report every prerequisite the Makefile gates depend on (Swift,
-# OpenSSL, curl, shasum, container runtime, host platform) with actionable hints for anything missing.
+# Preflight: report the Swift and Podman prerequisites for the current platform.
 doctor:
 	@bash Scripts/doctor.sh "$(PODMAN)"
 
-verify-macos-default: verify
-
-verify: verify-concurrency-scan verify-runtime-architecture verify-dependency-direction validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers verify-tests
-
-verify-linux-suites:
-	@echo "Running comprehensive Linux test suite..."
-	@swift test $(SWIFT_BUILD_FLAGS)
-
-verify-linux-base:
-	@$(MAKE) verify-linux-suites
-
-verify-linux-current: verify-linux-base
-
-verify-linux: verify-linux-current
+verify: verify-concurrency-scan verify-runtime-architecture verify-dependency-direction validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
 
 verify-linux-coverage:
 	@python3 Tests/Scripts/linux_coverage_report_test.py
@@ -149,7 +111,7 @@ verify-linux-coverage:
 # example, support, and test command so callers cannot accidentally omit it.
 verify-linux-agent:
 	@echo "Running agent/CI Linux verification contract..."
-	@$(MAKE) verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers verify-linux-suites
+	@$(MAKE) verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
 
 verify-linux-filter:
 	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \
@@ -161,9 +123,6 @@ verify-linux-filter:
 	else \
 		swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --filter "$(LINUX_TEST_FILTER)"; \
 	fi
-
-verify-linux-scratch:
-	@swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1
 
 verify-products:
 	@set -eu; \
@@ -221,8 +180,6 @@ verify-dependency-direction:
 verify-v4-vocabulary:
 	@bash Scripts/check-v4-vocabulary.sh
 
-verify-tests: test
-
 verify-agent-harness:
 	@bash Tests/Scripts/doctor_test.sh
 	@bash Tests/Scripts/run_linux_container_test.sh
@@ -274,8 +231,6 @@ linux-build: require-podman
 	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
 		bash Scripts/run-linux-container.sh --lock "$(AGENT_LOCK_FILE)" -- make build
 
-linux-test: agent-verify
-
 linux-coverage: require-podman
 	@mkdir -p "$(LINUX_COVERAGE_SCRATCH_DIR)"
 	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
@@ -283,22 +238,3 @@ linux-coverage: require-podman
 		--lock "$(AGENT_LOCK_FILE)" \
 		--scratch "$(LINUX_COVERAGE_SCRATCH_DIR)" \
 		-- env LINUX_COVERAGE_SCRATCH_PATH=/scratch make verify-linux-coverage
-
-# Run both canonical Linux suites without using the checkout's shared SwiftPM
-# build database. Reusing LINUX_SCRATCH_DIR makes subsequent gates much faster.
-linux-test-scratch: require-podman
-	@mkdir -p "$(LINUX_SCRATCH_DIR)"
-	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
-		bash Scripts/run-linux-container.sh \
-		--lock "$(AGENT_LOCK_FILE)" \
-		--scratch "$(LINUX_SCRATCH_DIR)" \
-		-- make verify-linux-scratch
-
-# Run a focused Linux filter without contending for the checkout's shared
-# .build/build.db. Set a unique LINUX_SCRATCH_DIR for concurrent invocations.
-linux-test-filter:
-	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \
-		echo "make: LINUX_TEST_FILTER is required (for example: TestHTTPServerTests)." >&2; \
-		exit 2; \
-	fi
-	@$(MAKE) agent-test FILTER="$(LINUX_TEST_FILTER)" TRAITS="$(LINUX_TEST_TRAITS)"

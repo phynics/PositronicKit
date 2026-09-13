@@ -13,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "Scripts" / "linux-coverage-report.py"
+sys.dont_write_bytecode = True
 SPEC = importlib.util.spec_from_file_location("linux_coverage_report", SCRIPT)
 assert SPEC and SPEC.loader
 coverage = importlib.util.module_from_spec(SPEC)
