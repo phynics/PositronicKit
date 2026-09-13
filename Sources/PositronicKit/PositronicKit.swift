@@ -509,6 +509,46 @@ public final class PositronicKit: Sendable {
         }
     }
 
+    /// Waits for the Turn's terminal record, then resolves its consolidated result.
+    ///
+    /// Uses the same push-then-bounded-poll waiter as ``waitForTurnOutcome(id:)``,
+    /// but fetches the full terminal `TurnRecord` and resolves
+    /// `terminalMessageID` through the runtime repository's durable messages.
+    /// A missing terminal message row yields `message == nil`; the outcome
+    /// remains authoritative either way. Observation sinks and the prompt
+    /// journal are never consulted.
+    func waitForTurnResult(id turnID: UUID) async throws -> TurnResult {
+        let waiter = TurnTerminationWaiter(
+            hub: runtimeState.eventHub,
+            clock: turnEngine.dependencies.clock
+        )
+        let observation = try await waiter.awaitResult(turnID: turnID) {
+            let record = try await self.runtimeRepository.fetchTurn(id: turnID)
+            return record.flatMap { $0.isTerminal ? $0 : nil }
+        }
+        switch observation {
+        case let .value(record):
+            guard let outcome = record.outcome else {
+                throw TurnOutcomeTimedOut(turnID: turnID)
+            }
+            let message: Message?
+            if let messageID = record.terminalMessageID {
+                let messages = try await self.runtimeRepository.fetchMessages(for: record.threadID)
+                message = messages.first(where: { $0.id == messageID })?.toMessage()
+            } else {
+                message = nil
+            }
+            return TurnResult(
+                turnID: turnID,
+                threadID: record.threadID,
+                outcome: outcome,
+                message: message
+            )
+        case .timedOut:
+            throw TurnOutcomeTimedOut(turnID: turnID)
+        }
+    }
+
     func cancelTurn(id turnID: UUID, threadID: UUID) async {
         _ = await threadManager.cancelGeneration(turnID: turnID, for: threadID)
     }

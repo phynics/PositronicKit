@@ -142,6 +142,19 @@ public enum PositronicKitUsageExamples {
         [ToolOutputSubmission(toolCallID: "call_123", output: "File contents...")]
     }
 
+    /// Renders the common Turn path from `docs/Usage.md` without nested event
+    /// switching: stream generated text, then await one consolidated durable
+    /// result. Compiles the documented `generatedText()` / `result()` shape
+    /// against the real `TurnHandle` API, so docs drift is caught by
+    /// `make verify-examples`.
+    public static func renderCommonTurn(_ turn: TurnHandle) async throws {
+        for await text in turn.generatedText() {
+            print(text, terminator: "")
+        }
+        let result = try await turn.result()
+        print("\nDone: \(result.message?.content ?? "")")
+    }
+
     /// Consumes a `TurnEvent` stream with the canonical event switch from `docs/Usage.md`.
     /// Compiles the documented handling shape — `delta`/`completion`/`error` branches,
     /// the PKRR-011 terminal events (`.maxModelRoundsReached`, `.deferredForExternalTool`), and
