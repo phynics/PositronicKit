@@ -1,0 +1,131 @@
+import Foundation
+@testable import PKContracts
+import PKUtilities
+@testable import PositronicKit
+import Testing
+
+/// Coverage for `UnconfiguredLLMService` non-throwing methods and health checks.
+@Suite("UnconfiguredLLMService non-throwing methods", .tags(.unit))
+struct UnconfiguredLLMServiceCoverageTests {
+    private let service = UnconfiguredLLMService()
+
+    @Test("isConfigured returns false")
+    func isConfiguredIsFalse() async {
+        #expect(await service.isConfigured == false)
+    }
+
+    @Test("configuration returns a minimal default config")
+    func configurationReturnsMinimal() async {
+        let config = await service.configuration
+        #expect(config.activeProvider == .openAI)
+        #expect(config.memoryContextLimit == 0)
+        #expect(config.documentContextLimit == 0)
+        #expect(config.version == 1)
+    }
+
+    @Test("healthDetails reports the unconfigured error")
+    func healthDetailsReportsError() async {
+        let details = await service.healthDetails
+        #expect(details?["error"] == "Unconfigured")
+    }
+
+    @Test("checkHealth returns .down")
+    func checkHealthIsDown() async {
+        #expect(await service.checkHealth() == .down)
+    }
+
+}
+
+/// Coverage for `WorkspaceToolWrapper` — the adapter that wraps a workspace-provided
+/// tool definition to conform to the `Tool` protocol.
+@Suite("WorkspaceToolWrapper", .tags(.unit))
+struct WorkspaceToolWrapperCoverageTests {
+
+    @Test("wrapper delegates callName, name, description to the definition")
+    func delegatesMetadata() async throws {
+        let workspace = StubWorkspace()
+        let definition = WorkspaceToolDefinition(
+            id: "custom_tool",
+            name: "Custom Tool",
+            description: "A custom tool",
+            parametersSchema: [:],
+            usageExample: "custom_tool --foo bar",
+            requiresPermission: false
+        )
+        let wrapper = WorkspaceToolWrapper(workspace: workspace, definition: definition)
+
+        #expect(wrapper.callName == "custom_tool")
+        #expect(wrapper.name == "Custom Tool")
+        #expect(wrapper.toolDescription == "A custom tool")
+        #expect(wrapper.requiresPermission == false)
+        #expect(wrapper.usageExample == "custom_tool --foo bar")
+    }
+
+    @Test("canExecute delegates to workspace.isHealthy")
+    func canExecuteDelegatesToHealthCheck() async throws {
+        let healthy = StubWorkspace(healthy: true)
+        let definition = WorkspaceToolDefinition(
+            id: "tool", name: "T", description: "D",
+            parametersSchema: [:], requiresPermission: false
+        )
+        let wrapper = WorkspaceToolWrapper(workspace: healthy, definition: definition)
+        #expect(await wrapper.canExecute() == true)
+
+        let unhealthy = StubWorkspace(healthy: false)
+        let unhealthyWrapper = WorkspaceToolWrapper(workspace: unhealthy, definition: definition)
+        #expect(await unhealthyWrapper.canExecute() == false)
+    }
+
+    @Test("execute delegates to workspace and returns success on success")
+    func executeReturnsSuccess() async throws {
+        let workspace = StubWorkspace(toolResult: .success("done"))
+        let definition = WorkspaceToolDefinition(
+            id: "my_tool", name: "My Tool", description: "Does things",
+            parametersSchema: [:], requiresPermission: false
+        )
+        let wrapper = WorkspaceToolWrapper(workspace: workspace, definition: definition)
+        let result = try await wrapper.execute(parameters: ["x": .string("y")])
+        #expect(result.isSuccess)
+        #expect(result.output == "done")
+    }
+
+    @Test("execute returns failure when workspace returns failure")
+    func executeReturnsFailure() async throws {
+        let workspace = StubWorkspace(toolResult: .failure("boom"))
+        let definition = WorkspaceToolDefinition(
+            id: "my_tool", name: "My Tool", description: "Does things",
+            parametersSchema: [:], requiresPermission: false
+        )
+        let wrapper = WorkspaceToolWrapper(workspace: workspace, definition: definition)
+        let result = try await wrapper.execute(parameters: [:])
+        #expect(!result.isSuccess)
+        #expect(result.error == "boom")
+    }
+}
+
+// MARK: - Stub workspace
+
+private struct StubWorkspace: WorkspaceToolProvider, WorkspaceFileProvider {
+    let reference: WorkspaceReference
+    let id: UUID
+    let healthy: Bool
+    let toolResult: ToolResult
+
+    init(healthy: Bool = true, toolResult: ToolResult = .success("")) {
+        self.reference = WorkspaceReference(
+            uri: WorkspaceURI(host: "stub", path: "/stub"),
+            location: .runtime
+        )
+        self.id = reference.id
+        self.healthy = healthy
+        self.toolResult = toolResult
+    }
+
+    func listTools() async throws -> [ToolReference] { [] }
+    func executeTool(id _: String, parameters _: [String: AnyCodable]) async throws -> ToolResult { toolResult }
+    func readFile(path _: String) async throws -> String { "" }
+    func writeFile(path _: String, content _: String) async throws {}
+    func listFiles(path _: String) async throws -> [String] { [] }
+    func deleteFile(path _: String) async throws {}
+    var isHealthy: Bool { get async { healthy } }
+}

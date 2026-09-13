@@ -6,7 +6,7 @@ import PKUtilities
 import Testing
 @testable import PositronicKit
 
-@Suite("LLM tool conversion")
+@Suite("LLM tool conversion", .tags(.unit))
 struct LLMToolConversionTests {
     struct ComplexMockTool: PKContracts.Tool {
         let callName = "complex_tool"

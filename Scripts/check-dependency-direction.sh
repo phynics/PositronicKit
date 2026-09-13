@@ -52,9 +52,11 @@ fi
 target_block() {
     local target="$1"
     awk -v target="$target" '
-        $0 == "            name: \"" target "\"," { capture = 1 }
+        $0 ~ "^[[:space:]]*name: \"" target "\"," { capture = 1 }
         capture { print }
-        capture && /path:/ { exit }
+        # Capture the complete declaration rather than assuming `path:` comes
+        # after `dependencies:`. SwiftPM accepts either order.
+        capture && /^[[:space:]]*\),[[:space:]]*$/ { exit }
     ' Package.swift
 }
 
@@ -69,6 +71,28 @@ do
         report_failure "$target target depends on PositronicKit"
     fi
 done
+
+# The test graph must respect the same boundary. The runtime test target must
+# not depend on provider adapters, the examples executable, or the raw OpenAI
+# package; provider-touching tests live in PKProviderIntegrationTests so the
+# runtime target rebuilds independently of every adapter.
+positronic_block="$(target_block "PositronicKitTests")"
+if [[ -z "$positronic_block" ]]; then
+    report_failure "could not locate target declaration for PositronicKitTests"
+else
+    for forbidden in \
+        PKOpenAIProvider PKOpenRouterProvider PKOllamaProvider \
+        PKAnthropicProvider PKFoundationModelsProvider \
+        PositronicKitExamples
+    do
+        if grep -q "\"$forbidden\"" <<<"$positronic_block"; then
+            report_failure "PositronicKitTests target depends on $forbidden (move provider-touching tests to PKProviderIntegrationTests)"
+        fi
+    done
+    if grep -q '"OpenAI"' <<<"$positronic_block"; then
+        report_failure "PositronicKitTests target depends on the raw OpenAI package (move provider-touching tests to PKProviderIntegrationTests)"
+    fi
+fi
 
 if (( failed != 0 )); then
     exit 1

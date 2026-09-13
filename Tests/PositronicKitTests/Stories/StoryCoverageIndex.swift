@@ -1,19 +1,28 @@
 /// PositronicKit runtime story coverage index.
 ///
-/// This file is intentionally documentation-first: it helps contributors browse the runtime-facing
-/// test stories without forcing low-level contract tests into a story shape.
+/// This file maps each runtime-facing story suite to the user-visible story it
+/// covers without forcing low-level contract tests into a story shape. It is
+/// gate-checked, not merely documentary: `Scripts/check-story-coverage.py`
+/// (via `make verify-story-coverage`) fails when a story suite on disk is
+/// missing from this map or when this map names a suite that no longer
+/// exists. Keep story-suite references inside the marked map as backtick-quoted
+/// basenames so the gate can parse them. The mechanism-level notes below are
+/// intentionally descriptive and are not part of the story-suite inventory.
 ///
 /// Primary story suites:
 /// - `Stories/Setup/RuntimeSetupStoriesTests.swift`
 /// - `Stories/Runtime/PublicRuntimeStoriesTests.swift`
 /// - `Stories/Extensions/ExtensionStoriesTests.swift`
-/// - `Stories/Examples/IntroductoryStoriesTests.swift`
-/// - `Stories/Examples/ExampleUsageStoriesTests.swift`
+/// - `PKProviderIntegrationTests/Stories/Examples/IntroductoryStoriesTests.swift`
+/// - `PKProviderIntegrationTests/Stories/Examples/ExampleUsageStoriesTests.swift`
 ///
-/// Every suite above imports package products normally, so this directory exercises the same
-/// visibility available to downstream consumers. Tests that intentionally exercise internal
-/// runtime mechanisms live separately under `InternalStories/`.
+/// Every suite above imports package products normally, so these directories
+/// exercise the same visibility available to downstream consumers. The example
+/// stories live in the provider-integration target because they construct
+/// provider adapters. Tests that intentionally exercise internal runtime
+/// mechanisms live separately under `InternalStories/`.
 ///
+/// BEGIN STORY SUITE MAP
 /// Supported story map:
 ///
 /// Setup stories
@@ -43,6 +52,7 @@
 /// - direct thread tool-registry mutation for an introductory round-trip →
 ///   `IntroductoryRuntimeInternalStoriesTests`
 /// - direct custom pipeline-stage insertion → `CustomPipelineStageInternalStoriesTests`
+/// END STORY SUITE MAP
 ///
 /// Supported stories that intentionally remain covered by mechanism-level suites:
 /// - structured output across providers → `StructuredOutputServiceTests`

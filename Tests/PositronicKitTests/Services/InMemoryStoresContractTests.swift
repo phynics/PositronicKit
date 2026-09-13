@@ -10,9 +10,9 @@ import Testing
 /// Generic tool persistence behavior is exercised through the public
 /// ``ToolPersistenceConformanceSuite``. These checks retain only the in-memory source-label
 /// presentation, which is intentionally outside that protocol's universal contract.
-@Suite("In-memory stores")
+@Suite("In-memory stores", .tags(.unit))
 struct InMemoryStoresContractTests {
-    @Suite("InMemoryToolPersistence source labels")
+    @Suite("InMemoryToolPersistence source labels", .tags(.unit))
     struct ToolPersistenceTests {
         private func makeWorkspace(
             id: UUID = UUID(),
@@ -68,7 +68,7 @@ struct InMemoryStoresContractTests {
 
     // MARK: - InMemoryMessageStore
 
-    @Suite("InMemoryMessageStore")
+    @Suite("InMemoryMessageStore", .tags(.unit))
     struct MessageStoreTests {
         @Test("saveMessage and fetchMessages round-trip per thread")
         func saveAndFetchPerThread() async throws {
@@ -152,7 +152,7 @@ struct InMemoryStoresContractTests {
 
     // MARK: - InMemoryAgentTemplateStore
 
-    @Suite("InMemoryAgentTemplateStore")
+    @Suite("InMemoryAgentTemplateStore", .tags(.unit))
     struct AgentTemplateStoreTests {
         private func makeTemplate(id: UUID = UUID(), name: String = "Agent") -> AgentTemplate {
             AgentTemplate(id: id, name: name, description: "desc", systemPrompt: "You are helpful.")
@@ -230,7 +230,7 @@ struct InMemoryStoresContractTests {
 
     // MARK: - InMemoryConfigurationService
 
-    @Suite("InMemoryConfigurationService")
+    @Suite("InMemoryConfigurationService", .tags(.unit))
     struct ConfigurationServiceTests {
         @Test("load returns the default configuration when uninitialized")
         func loadReturnsDefault() async throws {

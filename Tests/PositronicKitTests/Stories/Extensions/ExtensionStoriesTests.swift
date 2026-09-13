@@ -6,7 +6,7 @@ import PositronicKit
 import Synchronization
 import Testing
 
-@Suite("Extension stories") struct ExtensionStoriesTests {
+@Suite("Extension stories", .tags(.integration)) struct ExtensionStoriesTests {
     @Test("WorkspaceFactory can provide a custom executable workspace tool")
     func workspaceCreatingSupportsCustomWorkspaceTool() async throws {
         let creator = AcceptanceWorkspaceCreator()

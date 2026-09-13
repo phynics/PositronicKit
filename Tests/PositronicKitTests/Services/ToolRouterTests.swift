@@ -103,6 +103,7 @@ private func captureProjectedToolEventsResult<R: Sendable>(
     return try #require(await holder.value)
 }
 
+@Suite(.tags(.integration))
 final class ToolRouterTests {
     struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
@@ -895,7 +896,7 @@ final class ToolRouterTests {
 
 // MARK: - Workspace dispatcher interface tests
 
-@Suite("Workspace tool dispatcher")
+@Suite("Workspace tool dispatcher", .tags(.integration))
 struct WorkspaceToolDispatcherTests {
     private struct MockTool: PKContracts.Tool {
         let callName: String
@@ -1046,6 +1047,7 @@ struct WorkspaceToolDispatcherTests {
 
 // MARK: - Recasted tool-turn projection tests (formerly ToolTurnProjector isolation tests)
 
+@Suite(.tags(.integration))
 struct ToolTurnProjectionTests {
     private func setupThreadManager() async throws -> (ThreadManager, MockPersistenceService) {
         let mockPersistence = MockPersistenceService()
@@ -1252,6 +1254,7 @@ struct ToolTurnProjectionTests {
 
 // MARK: - Tool durability ordering tests (PKRR-016)
 
+@Suite(.tags(.integration))
 struct ToolDurabilityOrderingTests {
     private func setupThreadManager() async throws -> (ThreadManager, MockPersistenceService) {
         let mockPersistence = MockPersistenceService()

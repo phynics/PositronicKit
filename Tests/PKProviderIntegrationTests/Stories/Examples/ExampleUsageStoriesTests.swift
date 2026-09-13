@@ -1,0 +1,166 @@
+import Foundation
+import PKContracts
+import PKUtilities
+import PositronicKit
+import PositronicKitExamples
+import Testing
+
+@Suite("Example usage stories", .tags(.integration))
+struct ExampleUsageStoriesTests {
+    @Test
+    func promptExampleAssemblesReusableSections() async throws {
+        let prompt = PKPromptExamples.makeToolingPrompt(
+            tools: ["build", "test", "lint"],
+            history: [
+                Message(content: "Summarize the package layout.", role: .user),
+                Message(content: "The package is split into three main targets.", role: .assistant),
+            ],
+            userQuery: "Which step should I run next?"
+        )
+
+        let assembled = try prompt.assemblePrompt()
+        let sections = assembled.sections
+
+        #expect(sections.map(\.id) == ["system", "available_tools", "chat_history", "user_query"])
+        #expect(sections.map(\.role) == [.system, .context, .chatHistory, .userQuery])
+
+        let rendered = await assembled.render().string
+        #expect(rendered.contains("You are helping with PositronicKit setup."))
+        #expect(rendered.contains("- build"))
+        #expect(rendered.contains("Which step should I run next?"))
+    }
+
+    @Test
+    func toolExampleFormatsForPrompt() async throws {
+        let tools = PositronicKitUsageExamples.makeTools()
+        let formatted = await tools.formattedForPrompt()
+
+        #expect(formatted.contains("`example_greet`"))
+        #expect(formatted.contains("Greet a user by name"))
+
+        let schema = tools[0].parametersSchema
+        let schemaDict = schema.asDictionary
+        #expect(schemaDict["type"]?.asString == "object")
+        #expect(schemaDict["properties"]?.asDictionary?["name"]?.asDictionary?["type"]?.asString == "string")
+
+        let result = try await tools[0].execute(parameters: ["name": "Taylor"])
+        #expect(result.isSuccess)
+        #expect(result.output == "Hello, Taylor!")
+    }
+
+    @Test
+    func structuredOutputExampleUsesSchemableGeneratedSchema() throws {
+        let structuredOutput = PositronicKitUsageExamples.makeStructuredOutputSchema()
+        let encoded = try JSONEncoder().encode(structuredOutput.schema)
+        let encodedString = String(decoding: encoded, as: UTF8.self)
+        let decoded = try PositronicKitUsageExamples.decodeStructuredOutputExample(
+            from: #"{"tags":["swift","docs"]}"#
+        )
+
+        #expect(structuredOutput.name == "tag_payload")
+        #expect(encodedString.contains("\"type\":\"object\""))
+        #expect(encodedString.contains("\"tags\""))
+        #expect(decoded == ExampleTagPayload(tags: ["swift", "docs"]))
+    }
+
+    @Test
+    func sidecarExamplesCoverDeclinableCadenceAndOneShotPatterns() throws {
+        let declinable = PositronicKitUsageExamples.makeDeclinableTitleDirective()
+        let tone = PositronicKitUsageExamples.makeToneDirective()
+        let turnOne = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
+            modelRoundIndex: 1,
+            hasThreadTitle: false
+        )
+        let turnThree = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
+            modelRoundIndex: 3,
+            hasThreadTitle: true
+        )
+        let turnFive = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
+            modelRoundIndex: 5,
+            hasThreadTitle: true
+        )
+        let oneShotRequest = PositronicKitUsageExamples.makeOneShotTitleStructuredOutputRequest()
+        let oneShotValue = try PositronicKitUsageExamples.decodeOneShotTitlePayload(
+            from: #"{"title":"Planning Session"}"#
+        )
+        let oneShotDecline = try PositronicKitUsageExamples.decodeOneShotTitlePayload(
+            from: #"{"title":null}"#
+        )
+
+        let declinableSchema = try String(decoding: JSONEncoder().encode(declinable.schema), as: UTF8.self)
+        let toneSchema = try String(decoding: JSONEncoder().encode(tone.schema), as: UTF8.self)
+        let oneShotSchema = try #require({
+            if case let .jsonSchema(schema) = oneShotRequest {
+                return try String(decoding: JSONEncoder().encode(schema.schema), as: UTF8.self)
+            }
+            return nil
+        }())
+
+        #expect(declinable.name == "title")
+        #expect(declinableSchema.contains("\"null\""))
+        #expect(tone.name == "tone")
+        #expect(toneSchema.contains("\"enum\""))
+        #expect(turnOne.map(\.name) == ["title", "tone"])
+        #expect(turnThree.map(\.name) == ["tone"])
+        #expect(turnFive.map(\.name) == ["title", "tone"])
+        #expect(oneShotSchema.contains("\"title\""))
+        #expect(oneShotValue == ExampleOneShotTitlePayload(title: "Planning Session"))
+        #expect(oneShotDecline == ExampleOneShotTitlePayload(title: nil))
+    }
+
+    @Test
+    func runtimeExamplesBuildPrototypeAndConfiguredCores() {
+        let prototype = PositronicKitUsageExamples.makePrototypeRuntime()
+        let openAI = PositronicKitUsageExamples.makeOpenAIRuntime()
+        let ollama = PositronicKitUsageExamples.makeOllamaRuntime()
+        let configured = PositronicKitUsageExamples.makeConfiguredRuntime()
+        let production = PositronicKitUsageExamples.makeProductionRuntime()
+        let toolOutputs = PositronicKitUsageExamples.makeToolOutputContinuation()
+
+        _ = prototype
+        _ = openAI
+        _ = ollama
+        _ = configured
+        _ = production
+
+        #expect(toolOutputs.count == 1)
+        #expect(toolOutputs[0].toolCallID == "call_123")
+        #expect(toolOutputs[0].output == "File contents...")
+    }
+
+    @Test
+    func readmeQuickStartProviderExamplesBuild() {
+        let convenienceCore = PositronicKitUsageExamples.makeOpenAIRuntime()
+        let providerNeutralCore = PositronicKitUsageExamples.makeConfiguredOpenAIRuntime()
+
+        _ = convenienceCore
+        _ = providerNeutralCore
+    }
+
+    @Test
+    func offlineRuntimeCompletesATurnWithoutNetwork() async throws {
+        let kit = PositronicKitUsageExamples.makeOfflineRuntime()
+        let thread = try await kit.threads.create(title: "Offline example")
+        let turn = try await thread.startDirectTurn(
+            "Hello",
+            context: DirectTurnContext(systemInstructions: "")
+        )
+
+        var response = ""
+        for await event in turn.events() {
+            response += event.textContent ?? ""
+        }
+
+        #expect(try await turn.outcome() == .completed)
+        #expect(response == "PositronicKit is running offline.")
+    }
+
+    @Test
+    func setupGuideMinimalAndProductionExamplesBuild() {
+        let minimal = PositronicKitUsageExamples.makePrototypeRuntime()
+        let production = PositronicKitUsageExamples.makeProductionRuntime()
+
+        _ = minimal
+        _ = production
+    }
+}

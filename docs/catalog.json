@@ -84,6 +84,11 @@
       "summary": "Supported platform gates, Podman workflow, Linux coverage reports, and dependency checks."
     },
     {
+      "title": "Testing",
+      "path": "docs/Testing.md",
+      "summary": "Test targets, layers, tagging taxonomy, determinism rules, and gate-script policy."
+    },
+    {
       "title": "Context map",
       "path": "CONTEXT-MAP.md",
       "summary": "Canonical Thread, Turn, Agent, Workspace, prompt, and contract vocabulary."

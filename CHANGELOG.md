@@ -145,6 +145,16 @@ for tagged releases beginning with `1.0.0`.
 - Added `ConfiguredLLMProvider` and provider-specific `makeConfiguredProvider(...)` factories so
   common OpenAI, OpenRouter, Ollama, and Anthropic setup can pass one value to
   `PositronicKit(provider:)` without exposing service or client-set assembly.
+- **Test taxonomy and runtime test split (#154):** provider-touching suites moved from
+  `PositronicKitTests` into the new `PKProviderIntegrationTests` target, so the runtime test
+  target no longer depends on any adapter, `PositronicKitExamples`, or the raw `OpenAI`
+  package; `make verify-dependency-direction` enforces the boundary. Suites carry shared
+  swift-testing tags (`.unit`, `.integration`, `.slow`, `.platformSpecific`) defined per
+  runtime test target, and `make test-fast` runs the tagged unit subset for the inner loop.
+  Every gate script now has a known-bad fixture test running in `make verify-agent-harness`
+  on both platform gates, the story coverage index is enforced by
+  `make verify-story-coverage`, and `docs/Testing.md` defines the test layers, determinism
+  rules, and gate policy.
 
 ## [5.1.0] - 2026-09-08
 

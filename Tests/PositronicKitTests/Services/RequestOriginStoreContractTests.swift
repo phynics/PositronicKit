@@ -4,7 +4,7 @@ import PKTestSupport
 import PositronicKit
 import Testing
 
-@Suite("RequestOriginStoreProtocol conformance")
+@Suite("RequestOriginStoreProtocol conformance", .tags(.unit))
 struct RequestOriginStoreContractTests {
     @Test("InMemoryRequestOriginStore")
     func inMemoryStore() async throws {

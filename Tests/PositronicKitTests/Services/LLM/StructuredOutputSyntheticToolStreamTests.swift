@@ -5,7 +5,7 @@ import PKUtilities
 import Testing
 @testable import PositronicKit
 
-@Suite("Structured output synthetic tool stream parsing")
+@Suite("Structured output synthetic tool stream parsing", .tags(.integration))
 @MainActor
 struct StructuredOutputSyntheticToolStreamTests {
     private let syntheticToolName = "emit_structured_response"

@@ -5,7 +5,7 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
-@Suite("Custom pipeline stage internal stories")
+@Suite("Custom pipeline stage internal stories", .tags(.integration))
 struct CustomPipelineStageInternalStoriesTests {
     @Test
     func customPipelineStage() async throws {

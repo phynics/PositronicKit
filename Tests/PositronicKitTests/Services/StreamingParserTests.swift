@@ -4,6 +4,7 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
+@Suite(.tags(.unit))
 final class StreamingParserTests {
     // MARK: - Thinking Tag Parsing
 

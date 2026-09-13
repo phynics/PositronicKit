@@ -5,7 +5,7 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
-@Suite("Introductory runtime internal stories")
+@Suite("Introductory runtime internal stories", .tags(.integration))
 struct IntroductoryRuntimeInternalStoriesTests {
     @Test("Runtime example creates a thread executes a tool and returns a final reply")
     func runtimeToolRoundTripExample() async throws {

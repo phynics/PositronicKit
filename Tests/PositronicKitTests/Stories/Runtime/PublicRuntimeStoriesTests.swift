@@ -46,7 +46,7 @@ private struct CapturingLogHandler: LogHandler {
     }
 }
 
-@Suite("Public runtime stories", .serialized)
+@Suite("Public runtime stories", .serialized, .tags(.integration))
 struct PublicRuntimeStoriesTests {
     @Test("Thread handle delegates managed execution to the facade")
     func managedThreadRunsAnAgentTurn() async throws {
@@ -444,6 +444,7 @@ struct PublicRuntimeStoriesTests {
     }
 }
 
+@Suite(.tags(.integration))
 private struct AcceptanceMockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "mock_tool"
     let name = "mock_tool"

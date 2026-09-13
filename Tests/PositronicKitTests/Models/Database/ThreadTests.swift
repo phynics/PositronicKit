@@ -4,7 +4,7 @@ import Foundation
 import PKUtilities
 import Testing
 
-@Suite final class ThreadTests {
+@Suite(.tags(.unit)) final class ThreadTests {
     private func assertCodable<T: Codable>(_ value: T) throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601

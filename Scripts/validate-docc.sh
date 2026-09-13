@@ -34,10 +34,13 @@ else
 fi
 
 if grep -R -n -E '^[[:space:]]*@testable[[:space:]]+import([[:space:]]|$)' \
-  "$ROOT/Tests/PositronicKitTests/Stories"; then
+  "$ROOT/Tests/PositronicKitTests/Stories" \
+  "$ROOT/Tests/PKProviderIntegrationTests/Stories"; then
   echo "Public Stories must compile with ordinary imports; move internal-only cases to InternalStories." >&2
   exit 1
 fi
+
+echo "DocC public story import checks passed."
 
 DOCC_BIN="$(xcrun --find docc)"
 SYMBOLGRAPH_BIN="$(xcrun --find swift-symbolgraph-extract)"

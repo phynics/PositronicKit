@@ -121,7 +121,7 @@ private func makeManager(
 
 // MARK: - Tests
 
-@Suite("DefaultWorkspaceResolver Tests")
+@Suite("DefaultWorkspaceResolver Tests", .tags(.unit))
 struct WorkspaceManagerTests {
     @Test("activeWorkspaceCount starts at zero")
     func startsEmpty() async throws {

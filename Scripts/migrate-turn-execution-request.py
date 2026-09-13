@@ -16,9 +16,9 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_FILES = (
-    ROOT / "Tests/PositronicKitTests/TurnEngineTests.swift",
-    ROOT / "Tests/PositronicKitTests/TurnEngineTerminalEventTests.swift",
-    ROOT / "Tests/PositronicKitTests/TurnEngineFailurePersistenceTests.swift",
+    ROOT / "Tests/PKProviderIntegrationTests/Turns/TurnEngineTests.swift",
+    ROOT / "Tests/PKProviderIntegrationTests/Turns/TurnEngineTerminalEventTests.swift",
+    ROOT / "Tests/PKProviderIntegrationTests/Turns/TurnEngineFailurePersistenceTests.swift",
 )
 CALL = re.compile(r"\b(?:engine|reloadEngine)\.execute\(")
 SOURCE_GUARDS = (

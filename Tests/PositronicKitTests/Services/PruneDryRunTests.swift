@@ -14,7 +14,7 @@ import Testing
 /// That trivially satisfies "dry run never deletes," but these tests pin the behavior down
 /// explicitly so a future real implementation (or a stub that starts actually deleting rows)
 /// can't silently violate the dry-run contract.
-@Suite("Prune dryRun contract")
+@Suite("Prune dryRun contract", .tags(.integration))
 struct PruneDryRunTests {
     @Test("MockMessageStore: pruneMessages(dryRun: true) does not delete messages")
     func mockMessageStoreDryRunPreservesMessages() async throws {

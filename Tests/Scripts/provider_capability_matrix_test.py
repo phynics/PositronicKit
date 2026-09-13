@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "Scripts/validate-provider-capability-matrix.py"
 MANIFEST = ROOT / "Tests/PKTestSupport/Fixtures/ProviderCapabilityMatrix.json"
 DOCS = ROOT / "docs/ProviderCapabilityMatrix.md"
-REGISTRATION = ROOT / "Tests/PositronicKitTests/ProviderCapabilityMatrixTests.swift"
+REGISTRATION = ROOT / "Tests/PKProviderIntegrationTests/Services/LLM/Providers/ProviderCapabilityMatrixTests.swift"
 
 
 def run_validator(manifest: Path, docs: Path, registration: Path) -> subprocess.CompletedProcess[str]:
