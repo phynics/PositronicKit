@@ -58,7 +58,7 @@ struct TurnEngineTests {
         let workspaceRef = WorkspaceReference(id: wsId, uri: WorkspaceURI(parsing: "pk://local")!, location: .runtimeThread, originID: nil, rootPath: "/tmp")
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(wsId, to: threadID)
-        try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: wsId, tool: .known("mock_tool"))
 
         try await threadManager.hydrateThread(id: threadID)
 
@@ -1259,7 +1259,7 @@ struct TurnEngineTests {
         )
         try await persistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(wsId, to: threadID)
-        try await persistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
+        try await persistence.addToolToWorkspace(workspaceID: wsId, tool: .known("mock_tool"))
         try await threadManager.hydrateThread(id: threadID)
 
         if let toolManager = await threadManager.getToolManager(for: threadID) {

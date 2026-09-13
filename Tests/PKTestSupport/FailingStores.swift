@@ -222,37 +222,37 @@ public final class FailingToolPersistence: ToolPersistenceProtocol, @unchecked S
 
     public var fetchSourceAttemptCount: Int { fetchSourceAttemptState.withLock { $0 } }
 
-    public func addToolToWorkspace(workspaceId: UUID, tool: ToolReference) async throws {
-        try await backing.addToolToWorkspace(workspaceId: workspaceId, tool: tool)
+    public func addToolToWorkspace(workspaceID: UUID, tool: ToolReference) async throws {
+        try await backing.addToolToWorkspace(workspaceID: workspaceID, tool: tool)
     }
 
-    public func syncTools(workspaceId: UUID, tools: [ToolReference]) async throws {
-        try await backing.syncTools(workspaceId: workspaceId, tools: tools)
+    public func syncTools(workspaceID: UUID, tools: [ToolReference]) async throws {
+        try await backing.syncTools(workspaceID: workspaceID, tools: tools)
     }
 
-    public func fetchTools(forWorkspaces workspaceIds: [UUID]) async throws -> [ToolReference] {
-        try await backing.fetchTools(forWorkspaces: workspaceIds)
+    public func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference] {
+        try await backing.fetchTools(forWorkspaces: workspaceIDs)
     }
 
-    public func fetchOriginTools(originId: UUID) async throws -> [ToolReference] {
-        try await backing.fetchOriginTools(originId: originId)
+    public func fetchOriginTools(originID: UUID) async throws -> [ToolReference] {
+        try await backing.fetchOriginTools(originID: originID)
     }
 
-    public func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID? {
-        try await backing.findWorkspaceId(forToolId: toolId, in: workspaceIds)
+    public func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID? {
+        try await backing.findWorkspace(hostingToolNamed: toolName, in: workspaceIDs)
     }
 
     public func fetchToolSource(
-        toolId: String,
-        workspaceIds: [UUID],
-        primaryWorkspaceId: UUID?
+        named toolName: String,
+        in workspaceIDs: [UUID],
+        preferring primaryWorkspaceID: UUID?
     ) async throws -> String? {
         fetchSourceAttemptState.withLock { $0 += 1 }
         if fetchSourceFails { throw FailingStoreError.fetchFailed }
         return try await backing.fetchToolSource(
-            toolId: toolId,
-            workspaceIds: workspaceIds,
-            primaryWorkspaceId: primaryWorkspaceId
+            named: toolName,
+            in: workspaceIDs,
+            preferring: primaryWorkspaceID
         )
     }
 }

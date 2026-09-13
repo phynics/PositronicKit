@@ -48,6 +48,18 @@ for tagged releases beginning with `1.0.0`.
   `CompressionNodeReport.cacheHit`/`StructuredCompressionNodeMetric.cacheHit` → `didHitCache`
   (the latter two keep their `"cacheHit"` wire/JSON key via explicit `CodingKeys`).
 
+- **Unified identifier casing on `ID` (#159):** `ToolPersistenceProtocol` and
+  `AgentStoreProtocol` now spell identifier suffixes `ID`/`IDs` (`workspaceID`,
+  `workspaceIDs`, `originID`, `agentID`); `findWorkspaceId(forToolId:in:)` is now
+  `findWorkspace(hostingToolNamed:in:)`, `fetchToolSource` takes
+  `named`/`in`/`preferring` with a `toolName`, and `ThreadToolRegistry.toggleTool`
+  takes a `toolName`. The `PKTestSupport` conformers (`MockToolPersistence`,
+  `FailingToolPersistence`, `MockPersistenceService`) and the
+  `WorkspaceReference.fixture(originID:)` helper match, and the `5.1` API baselines
+  are regenerated. There are no compatibility aliases; downstream implementers
+  (Monad `AgentDataRepository`, Yakamoz `SwiftDataAgentStore`) adopt the new
+  spelling and labels with the next major, coordinated with #141.
+
 ### Changed
 
 - **TurnEvent factory parameter names (#158):** the underscored `err` and `msg` parameters in

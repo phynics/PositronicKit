@@ -326,8 +326,8 @@ its stream freely, and the owner's generation keeps running. A `TurnHandle` also
 stream consumer.
 
 ### Agent Persistence
-Agents are persistent. Their primary Workspace (`primaryWorkspaceId`) supplies continuity through
-the configured `AgentContextSource`, while their primary Thread (`privateThreadId`) stores the
+Agents are persistent. Their primary Workspace (`primaryWorkspaceID`) supplies continuity through
+the configured `AgentContextSource`, while their primary Thread (`privateThreadID`) stores the
 Agent-owned history boundary. Managed Turn preparation fails closed when a required custom context
 source fails; direct Turns do not load Agent context. Other runtime integrations belong in
 `RuntimeConfiguration.customization`: `TurnContextSource` contributes bounded namespaced notes,

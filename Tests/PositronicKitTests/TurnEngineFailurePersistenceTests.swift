@@ -75,7 +75,7 @@ struct TurnEngineFailurePersistenceTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(wsId, to: threadID)
-        try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: wsId, tool: .known("mock_tool"))
 
         try await threadManager.hydrateThread(id: threadID)
 
@@ -133,7 +133,7 @@ struct TurnEngineFailurePersistenceTests {
         )
         try await persistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(wsId, to: threadID)
-        try await persistence.addToolToWorkspace(workspaceId: wsId, tool: .known(PersistenceTestTool.toolID))
+        try await persistence.addToolToWorkspace(workspaceID: wsId, tool: .known(PersistenceTestTool.toolID))
         try await threadManager.hydrateThread(id: threadID)
         if let toolManager = await threadManager.getToolManager(for: threadID) {
             await toolManager.updateAvailableTools([PersistenceTestTool().toAnyTool()])

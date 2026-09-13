@@ -778,8 +778,8 @@ private actor AgentCreationFaultStore: WorkspaceStore, ThreadPersistenceProtocol
         instances.removeValue(forKey: id)
     }
 
-    func fetchThreads(attachedToAgent agentId: UUID) async throws -> [Thread] {
-        threads.values.filter { $0.attachedAgentID == agentId }
+    func fetchThreads(attachedToAgent agentID: UUID) async throws -> [Thread] {
+        threads.values.filter { $0.attachedAgentID == agentID }
     }
 
     func allInstances() -> [Agent] {

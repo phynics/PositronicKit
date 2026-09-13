@@ -13,17 +13,17 @@ package actor ThreadToolRegistry {
     /// Registered workspace providers; tool-capable providers contribute their tools.
     private var workspaces: [UUID: any WorkspaceProvider] = [:]
 
-    /// Cached workspace tools: toolId -> (wrapper, origin)
+    /// Cached workspace tools: toolName -> (wrapper, origin)
     private var workspaceTools: [String: (tool: WorkspaceToolWrapper, origin: ToolOrigin)] = [:]
 
-    /// Cached known-tool overrides from workspaces: toolId -> Set of origin tags.
+    /// Cached known-tool overrides from workspaces: toolName -> Set of origin tags.
     private var knownToolOrigin: [String: Set<ToolOrigin>] = [:]
 
     /// Explicitly registered tool providers (global or workspace-bound). Assembled alongside
     /// workspace-derived tools so the runtime has a single canonical source for turn tools.
     private var toolProviders: [UUID: any ToolSource] = [:]
 
-    /// Cached provider tools: toolId -> tool.
+    /// Cached provider tools: toolName -> tool.
     private var providerTools: [String: AnyTool] = [:]
 
     private let logger = Logger.module(named: "thread-tool-manager")
@@ -38,10 +38,10 @@ package actor ThreadToolRegistry {
     public func updateAvailableTools(_ tools: [AnyTool]) {
         availableTools = tools
         // Keep enabledTools set in sync with available tools (don't remove enabled status if tool still exists)
-        let newIds = Set(tools.map { $0.callName })
-        enabledTools = enabledTools.intersection(newIds)
+        let newIDs = Set(tools.map { $0.callName })
+        enabledTools = enabledTools.intersection(newIDs)
         // Auto-enable new tools? Let's say yes for now to avoid breaking changes.
-        for id in newIds where !enabledTools.contains(id) {
+        for id in newIDs where !enabledTools.contains(id) {
             self.enabledTools.insert(id)
         }
     }
@@ -88,13 +88,13 @@ package actor ThreadToolRegistry {
                 let refs = try await toolProvider.listTools()
                 for ref in refs {
                     switch ref {
-                    case let .known(toolId):
+                    case let .known(toolName):
                         // Tag the system tool with this workspace's origin
-                        if availableTools.contains(where: { $0.callName == toolId }) {
-                            newKnownOrigin[toolId, default: []].insert(originTag)
+                        if availableTools.contains(where: { $0.callName == toolName }) {
+                            newKnownOrigin[toolName, default: []].insert(originTag)
                         } else {
                             logger.warning(
-                                "Workspace declared .known tool '\(toolId)' but it is not a registered system tool"
+                                "Workspace declared .known tool '\(toolName)' but it is not a registered system tool"
                             )
                         }
                     case let .custom(def):
@@ -149,10 +149,10 @@ package actor ThreadToolRegistry {
         }
     }
 
-    /// True iff `origin` tags a tool as belonging to `workspaceId` (i.e. it is the
+    /// True iff `origin` tags a tool as belonging to `workspaceID` (i.e. it is the
     /// `.workspace(id:name:)` case with a matching id). `.global`/`.named` never match.
-    private static func originBelongsTo(_ origin: ToolOrigin, _ workspaceId: UUID) -> Bool {
-        if case let .workspace(id, _) = origin { return id == workspaceId }
+    private static func originBelongsTo(_ origin: ToolOrigin, _ workspaceID: UUID) -> Bool {
+        if case let .workspace(id, _) = origin { return id == workspaceID }
         return false
     }
 
@@ -206,18 +206,18 @@ package actor ThreadToolRegistry {
     /// This is the read-side counterpart to the per-workspace grouping `ToolRouter.resolveWorkspace`
     /// uses to route calls — the grouping data already exists internally; this exposes it as a
     /// query so a consumer need not fetch the flat list and filter by `origin` client-side.
-    public func tools(inWorkspace workspaceId: UUID) -> [AnyTool] {
+    public func tools(inWorkspace workspaceID: UUID) -> [AnyTool] {
         var tools: [AnyTool] = []
 
         // Custom workspace tools whose origin matches this workspace.
-        for entry in workspaceTools.values where Self.originBelongsTo(entry.origin, workspaceId) {
+        for entry in workspaceTools.values where Self.originBelongsTo(entry.origin, workspaceID) {
             tools.append(AnyTool(entry.tool, origin: entry.origin))
         }
 
         // `.known` system tools this workspace has declared (tagged via knownToolOrigin).
-        for (toolId, originSet) in knownToolOrigin {
-            if originSet.contains(where: { Self.originBelongsTo($0, workspaceId) }),
-               let tool = availableTools.first(where: { $0.callName == toolId })
+        for (toolName, originSet) in knownToolOrigin {
+            if originSet.contains(where: { Self.originBelongsTo($0, workspaceID) }),
+               let tool = availableTools.first(where: { $0.callName == toolName })
             {
                 tools.append(toolWithResolvedOrigin(tool))
             }
@@ -230,18 +230,18 @@ package actor ThreadToolRegistry {
     /// (not workspace-bound) are excluded; only registered workspaces appear as keys.
     public func toolsGroupedByWorkspace() -> [UUID: [AnyTool]] {
         var grouped: [UUID: [AnyTool]] = [:]
-        for workspaceId in workspaces.keys {
-            grouped[workspaceId] = tools(inWorkspace: workspaceId)
+        for workspaceID in workspaces.keys {
+            grouped[workspaceID] = tools(inWorkspace: workspaceID)
         }
         return grouped
     }
 
     /// Toggle tool enabled state
-    public func toggleTool(_ toolId: String) {
-        if enabledTools.contains(toolId) {
-            enabledTools.remove(toolId)
+    public func toggleTool(_ toolName: String) {
+        if enabledTools.contains(toolName) {
+            enabledTools.remove(toolName)
         } else {
-            enabledTools.insert(toolId)
+            enabledTools.insert(toolName)
         }
     }
 

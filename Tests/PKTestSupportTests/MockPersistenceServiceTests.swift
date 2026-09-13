@@ -34,7 +34,7 @@ struct MockPersistenceServiceTests {
             location: .runtime
         )
         try await persistence.saveWorkspace(workspace)
-        try await persistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("echo"))
+        try await persistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known("echo"))
 
         // Sanity check: tools are visible via fetchWorkspace(includeTools: true) before reset.
         let before = try await persistence.fetchWorkspace(id: workspaceId, includeTools: true)

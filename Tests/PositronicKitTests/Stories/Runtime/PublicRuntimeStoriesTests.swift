@@ -428,7 +428,7 @@ struct PublicRuntimeStoriesTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await chat.threads.attachWorkspace(workspaceId, to: thread.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("mock_tool"))
+        try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known("mock_tool"))
         if attachAgent {
             let agent = try await chat.agents.create(name: "Acceptance Agent", description: "test")
             try await chat.agents.attach(agent.id, to: thread.id)

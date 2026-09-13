@@ -20,7 +20,7 @@ import PositronicKit
             id: UUID = UUID(),
             uri: WorkspaceURI = .threadWorkspace(UUID()),
             location: WorkspaceLocation = .runtime,
-            originId: UUID? = nil,
+            originID: UUID? = nil,
             rootPath: String? = nil,
             tools: [ToolReference] = [],
             status: WorkspaceStatus = .active
@@ -29,7 +29,7 @@ import PositronicKit
                 id: id,
                 uri: uri,
                 location: location,
-                originID: originId,
+                originID: originID,
                 tools: tools,
                 rootPath: rootPath,
                 trustLevel: .full,

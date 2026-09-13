@@ -16,7 +16,7 @@ struct ThreadManagerTests {
         _ = await manager.enabledTools(for: thread.id)
         _ = await manager.enableTool(id: "missing", for: thread.id)
         _ = await manager.disableTool(id: "missing", for: thread.id)
-        #expect(try await manager.getToolSource(toolId: "missing", for: thread.id) == nil)
+        #expect(try await manager.getToolSource(toolName: "missing", for: thread.id) == nil)
 
         let task = Task<Void, Never> {}
         let requestID = UUID()

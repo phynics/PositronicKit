@@ -58,7 +58,7 @@ struct IntroductoryRuntimeInternalStoriesTests {
             rootPath: workspace.root.path
         )
         try await persistence.saveWorkspace(workspaceRef)
-        try await persistence.addToolToWorkspace(workspaceId: workspaceId, tool: tool.toolReference)
+        try await persistence.addToolToWorkspace(workspaceID: workspaceId, tool: tool.toolReference)
         try await threadManager.attachWorkspace(workspaceId, to: thread.id)
 
         let toolManager = await threadManager.getToolManager(for: thread.id)

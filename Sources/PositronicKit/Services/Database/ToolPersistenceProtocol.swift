@@ -13,13 +13,13 @@ import PKUtilities
 import Foundation
 
 public protocol ToolPersistenceProtocol: DurabilityAware {
-    func addToolToWorkspace(workspaceId: UUID, tool: ToolReference) async throws
+    func addToolToWorkspace(workspaceID: UUID, tool: ToolReference) async throws
     /// Atomically replaces all tools for a workspace with the provided set.
     /// Use this when a workspace provider connects to push its current tool list.
     /// Existing tool IDs not present in the new list are removed; new ones are inserted.
-    func syncTools(workspaceId: UUID, tools: [ToolReference]) async throws
-    func fetchTools(forWorkspaces workspaceIds: [UUID]) async throws -> [ToolReference]
-    func fetchOriginTools(originId: UUID) async throws -> [ToolReference]
-    func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID?
-    func fetchToolSource(toolId: String, workspaceIds: [UUID], primaryWorkspaceId: UUID?    ) async throws -> String?
+    func syncTools(workspaceID: UUID, tools: [ToolReference]) async throws
+    func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference]
+    func fetchOriginTools(originID: UUID) async throws -> [ToolReference]
+    func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID?
+    func fetchToolSource(named toolName: String, in workspaceIDs: [UUID], preferring primaryWorkspaceID: UUID?) async throws -> String?
 }
