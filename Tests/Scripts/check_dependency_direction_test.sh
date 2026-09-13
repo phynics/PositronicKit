@@ -42,6 +42,16 @@ make_fixture() {
             ],
             path: "Tests/PositronicKitTests"
         ),'
+    elif [ "$variant" = "path-first-violation" ]; then
+        runtime_tests_block='        .testTarget(
+            name: "PositronicKitTests",
+            path: "Tests/PositronicKitTests",
+            dependencies: [
+                "PositronicKit",
+                "PKOpenAIProvider",
+                "PKTestSupport",
+            ]
+        ),'
     else
         runtime_tests_block='        .testTarget(
             name: "PositronicKitTests",
@@ -95,6 +105,7 @@ run_case() {
 
 run_case "clean-graph-passes" "clean" 0 "Dependency direction checks passed."
 run_case "provider-dep-in-runtime-tests-fails" "violation" 1 "PositronicKitTests target depends on PKOpenAIProvider"
+run_case "path-before-dependencies-still-fails" "path-first-violation" 1 "PositronicKitTests target depends on PKOpenAIProvider"
 
 printf 'check_dependency_direction_test: %s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

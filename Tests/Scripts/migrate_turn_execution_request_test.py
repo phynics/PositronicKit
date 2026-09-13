@@ -18,9 +18,9 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "Scripts/migrate-turn-execution-request.py"
 
 TEST_FILES = (
-    "Tests/PKProviderIntegrationTests/TurnEngineTests.swift",
-    "Tests/PKProviderIntegrationTests/TurnEngineTerminalEventTests.swift",
-    "Tests/PKProviderIntegrationTests/TurnEngineFailurePersistenceTests.swift",
+    "Tests/PKProviderIntegrationTests/Turns/TurnEngineTests.swift",
+    "Tests/PKProviderIntegrationTests/Turns/TurnEngineTerminalEventTests.swift",
+    "Tests/PKProviderIntegrationTests/Turns/TurnEngineFailurePersistenceTests.swift",
 )
 SOURCE_GUARDS = (
     "Sources/PositronicKit/Services/Turn/TurnEngine.swift",

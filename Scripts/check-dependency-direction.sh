@@ -52,9 +52,11 @@ fi
 target_block() {
     local target="$1"
     awk -v target="$target" '
-        $0 == "            name: \"" target "\"," { capture = 1 }
+        $0 ~ "^[[:space:]]*name: \"" target "\"," { capture = 1 }
         capture { print }
-        capture && /path:/ { exit }
+        # Capture the complete declaration rather than assuming `path:` comes
+        # after `dependencies:`. SwiftPM accepts either order.
+        capture && /^[[:space:]]*\),[[:space:]]*$/ { exit }
     ' Package.swift
 }
 

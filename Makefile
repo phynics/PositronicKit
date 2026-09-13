@@ -14,9 +14,10 @@ AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock
 PODMAN ?= $(shell command -v podman 2>/dev/null)
 FILTER ?=
 TRAITS ?=
-# Inner-loop selection for `make test-fast`. Uses the swift-testing `tag:`
-# selector from ST-0025, so only suites carrying the matching Tag run.
-FAST_FILTER ?= tag:unit
+# Inner-loop selection for `make test-fast`. Swift Testing's ST-0025 `tag:`
+# selector is used with --skip so untagged module suites remain useful while
+# integration and slow suites are excluded as taxonomy coverage expands.
+FAST_SKIP_TAGS ?= integration slow
 # Keep the repository's build and test gates strict without embedding unsafe
 # compiler flags in Package.swift, which would affect downstream consumers.
 SWIFT_BUILD_FLAGS ?= -Xswiftc -warnings-as-errors
@@ -40,7 +41,7 @@ help:
 	@echo "  make agent-test FILTER='…' Run a focused Podman Linux test"
 	@echo "  make linux-coverage         Generate Linux llvm-cov reports in .build/linux-coverage"
 	@echo "  make test                  Run tests"
-	@echo "  make test-fast             Run the tagged fast subset (FAST_FILTER='tag:unit')"
+	@echo "  make test-fast             Run fast tests (skip integration and slow tags)"
 	@echo "  make verify                Run docs, linkage, products, examples, and test gates (macOS)"
 	@echo "  make verify-concurrency-scan Run the concurrency inline-annotation scan"
 	@echo "  make verify-runtime-architecture Check enforced runtime ownership seams"
@@ -77,8 +78,16 @@ test:
 	@swift test $(SWIFT_BUILD_FLAGS)
 
 test-fast:
-	@echo "Running fast tests (--filter $(FAST_FILTER))..."
-	@swift test $(SWIFT_BUILD_FLAGS) --filter "$(FAST_FILTER)"
+	@set -eu; \
+	 skip_args=""; \
+	 for tag in $(FAST_SKIP_TAGS); do skip_args="$$skip_args --skip tag:$$tag"; done; \
+	 listed="$$(swift test $(SWIFT_BUILD_FLAGS) $$skip_args --list-tests 2>/dev/null | awk '/^[[:space:]]*[[:alnum:]_]+\./ { count++ } END { print count + 0 }')"; \
+	 if [ "$$listed" -eq 0 ]; then \
+	   echo "make test-fast: tag selector matched zero tests; use a toolchain with Swift Testing tag filtering (ST-0025)." >&2; \
+	   exit 1; \
+	 fi; \
+	 echo "Running fast tests ($$listed tests; skipping tags: $(FAST_SKIP_TAGS))..."; \
+	 swift test $(SWIFT_BUILD_FLAGS) $$skip_args
 
 validate-docs: verify-documentation
 	@bash Scripts/validate-docs.sh
@@ -107,7 +116,7 @@ verify-runtime-architecture:
 doctor:
 	@bash Scripts/doctor.sh "$(PODMAN)"
 
-verify: verify-concurrency-scan verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-story-coverage validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
+verify: verify-concurrency-scan verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-story-coverage validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test-fast test
 
 verify-linux-coverage:
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
@@ -118,7 +127,7 @@ verify-linux-coverage:
 # example, support, and test command so callers cannot accidentally omit it.
 verify-linux-agent:
 	@echo "Running agent/CI Linux verification contract..."
-	@$(MAKE) verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-story-coverage verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test
+	@$(MAKE) verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-story-coverage verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test-fast test
 
 verify-linux-filter:
 	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \
@@ -201,6 +210,7 @@ verify-agent-harness:
 	@bash Tests/Scripts/check_test_layout_test.sh
 	@bash Tests/Scripts/compile_doc_snippets_test.sh
 	@bash Tests/Scripts/validate_docc_test.sh
+	@bash Tests/Scripts/test_fast_test.sh
 	@python3 -B Tests/Scripts/provider_capability_matrix_test.py
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
 	@python3 -B Tests/Scripts/migrate_turn_execution_request_test.py

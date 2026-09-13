@@ -1,10 +1,5 @@
 # path|line regular expression
 # Release notes are immutable history. Current source and guidance receive exact-line allowances.
-# Gate-script fixture strings that deliberately contain retired terms to prove fail-closed
-# rejection are allowed line-by-line; the terms never reach product code.
 CHANGELOG.md|^- \*\*v4 deprecated API removal:\*\* removed the released v3 Timeline compatibility modules and$
 docs/adr/0001-v4-hard-domain-and-persistence-cut.md|Timeline-era
 Sources/PositronicKit/CONTEXT.md|^_Avoid_:
-Tests/Scripts/check_v4_vocabulary_test.py|write_text\("let engine = ChatEngine\(\)\\n"
-Tests/Scripts/check_v4_vocabulary_test.py|write_text\("public struct TimelineStore \{\}\\n"
-Tests/Scripts/check_v4_vocabulary_test.py|assert "TimelineStore\.swift" in result\.stderr

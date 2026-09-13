@@ -17,9 +17,27 @@ report_failure() {
     failed=1
 }
 
-while IFS= read -r file; do
-    report_failure "$(basename "$file") sits directly in Tests/PositronicKitTests/; move it into a domain subtree"
-done < <(find Tests/PositronicKitTests -maxdepth 1 -name '*.swift' -print 2>/dev/null)
+for target in Tests/PositronicKitTests Tests/PKProviderIntegrationTests; do
+    if [[ ! -d "$target" ]]; then
+        report_failure "$target is missing; test-target layout cannot be checked"
+        continue
+    fi
+    while IFS= read -r file; do
+        report_failure "$(basename "$file") sits directly in $target/; move it into a domain subtree"
+    done < <(find "$target" -maxdepth 1 -name '*.swift' -print)
+done
+
+runtime_tags="Tests/PositronicKitTests/Support/TestTags.swift"
+provider_tags="Tests/PKProviderIntegrationTests/Support/TestTags.swift"
+if [[ ! -f "$runtime_tags" || ! -f "$provider_tags" ]]; then
+    report_failure "both runtime test targets must define synchronized TestTags.swift files"
+else
+    runtime_tag_declarations="$(grep -E '^[[:space:]]*@Tag static var (unit|integration|slow|platformSpecific)' "$runtime_tags" || true)"
+    provider_tag_declarations="$(grep -E '^[[:space:]]*@Tag static var (unit|integration|slow|platformSpecific)' "$provider_tags" || true)"
+    if [[ -z "$runtime_tag_declarations" || "$runtime_tag_declarations" != "$provider_tag_declarations" ]]; then
+        report_failure "runtime test target tag definitions differ between $runtime_tags and $provider_tags"
+    fi
+fi
 
 while IFS= read -r path; do
     basename=${path##*/}

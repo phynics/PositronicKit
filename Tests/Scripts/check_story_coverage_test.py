@@ -24,12 +24,17 @@ def make_fixture(root: Path) -> Path:
     shutil.copyfile(SCRIPT, scripts / SCRIPT.name)
     stories = root / "Tests/PositronicKitTests/Stories/Runtime"
     stories.mkdir(parents=True, exist_ok=True)
+    (root / "Tests/PositronicKitTests/InternalStories").mkdir(parents=True, exist_ok=True)
+    (root / "Tests/PKProviderIntegrationTests/Stories").mkdir(parents=True, exist_ok=True)
     (stories / "PublicRuntimeStoriesTests.swift").write_text(
         "import Testing\nstruct PublicRuntimeStoriesTests {}\n", encoding="utf-8"
     )
     index = root / "Tests/PositronicKitTests/Stories/StoryCoverageIndex.swift"
     index.write_text(
+        "/// BEGIN STORY SUITE MAP\n"
         "/// - one-turn chat through the facade -> `PublicRuntimeStoriesTests`\n"
+        "/// END STORY SUITE MAP\n"
+        "/// Mechanism coverage may mention `DeletedMechanismTests` without requiring that file.\n"
         "enum StoryCoverageIndex {}\n",
         encoding="utf-8",
     )
@@ -73,8 +78,10 @@ def test_stale_reference_is_rejected() -> None:
         script = make_fixture(root)
         index = root / "Tests/PositronicKitTests/Stories/StoryCoverageIndex.swift"
         index.write_text(
+            "/// BEGIN STORY SUITE MAP\n"
             "/// - one-turn chat -> `PublicRuntimeStoriesTests`\n"
             "/// - retired story -> `DeletedStoriesTests`\n"
+            "/// END STORY SUITE MAP\n"
             "enum StoryCoverageIndex {}\n",
             encoding="utf-8",
         )
@@ -83,11 +90,22 @@ def test_stale_reference_is_rejected() -> None:
         assert "DeletedStoriesTests, which no longer exists" in result.stderr, result.stderr
 
 
+def test_missing_story_root_is_rejected() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = make_fixture(root)
+        shutil.rmtree(root / "Tests/PKProviderIntegrationTests/Stories")
+        result = run_gate(script)
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "story root Tests/PKProviderIntegrationTests/Stories is missing" in result.stderr, result.stderr
+
+
 if __name__ == "__main__":
     tests = [
         test_mapped_tree_passes,
         test_unmapped_suite_is_rejected,
         test_stale_reference_is_rejected,
+        test_missing_story_root_is_rejected,
     ]
     for test in tests:
         test()

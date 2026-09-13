@@ -33,11 +33,20 @@ def main() -> int:
     except OSError as exc:
         print(f"story coverage: could not read {INDEX.relative_to(ROOT)}: {exc}", file=sys.stderr)
         return 1
-    referenced = set(re.findall(r"`([A-Za-z0-9_]+Tests)`", index))
+    story_map = re.search(
+        r"BEGIN STORY SUITE MAP\s*(.*?)\s*END STORY SUITE MAP",
+        index,
+        flags=re.DOTALL,
+    )
+    if story_map is None:
+        print("story coverage: StoryCoverageIndex.swift is missing its story-suite map markers", file=sys.stderr)
+        return 1
+    referenced = set(re.findall(r"`([A-Za-z0-9_]+Tests)`", story_map.group(1)))
 
     on_disk: set[str] = set()
     for story_root in STORY_ROOTS:
         if not story_root.is_dir():
+            failures.append(f"story root {story_root.relative_to(ROOT)} is missing")
             continue
         for path in sorted(story_root.rglob("*.swift")):
             if path == INDEX:

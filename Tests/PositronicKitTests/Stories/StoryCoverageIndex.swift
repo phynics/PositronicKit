@@ -5,8 +5,9 @@
 /// gate-checked, not merely documentary: `Scripts/check-story-coverage.py`
 /// (via `make verify-story-coverage`) fails when a story suite on disk is
 /// missing from this map or when this map names a suite that no longer
-/// exists. Keep suite references as backtick-quoted basenames so the gate can
-/// parse them.
+/// exists. Keep story-suite references inside the marked map as backtick-quoted
+/// basenames so the gate can parse them. The mechanism-level notes below are
+/// intentionally descriptive and are not part of the story-suite inventory.
 ///
 /// Primary story suites:
 /// - `Stories/Setup/RuntimeSetupStoriesTests.swift`
@@ -21,6 +22,7 @@
 /// provider adapters. Tests that intentionally exercise internal runtime
 /// mechanisms live separately under `InternalStories/`.
 ///
+/// BEGIN STORY SUITE MAP
 /// Supported story map:
 ///
 /// Setup stories
@@ -50,6 +52,7 @@
 /// - direct thread tool-registry mutation for an introductory round-trip →
 ///   `IntroductoryRuntimeInternalStoriesTests`
 /// - direct custom pipeline-stage insertion → `CustomPipelineStageInternalStoriesTests`
+/// END STORY SUITE MAP
 ///
 /// Supported stories that intentionally remain covered by mechanism-level suites:
 /// - structured output across providers → `StructuredOutputServiceTests`

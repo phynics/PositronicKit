@@ -12,8 +12,8 @@ flag any `@unchecked Sendable`, `NSLock`, stored continuation, stored task, or
 this manifest as the source of truth; any occurrence without an annotation fails
 `make verify-concurrency-scan` (part of `make verify`, and a step in CI) via
 `swiftlint lint --strict`. This file and the inline annotations must stay in
-sync; re-run `Scripts/annotate-guardrail-exceptions.py` after reviewing new sites
-to regenerate annotations (it skips lines that already carry one).
+sync; review and annotate new sites directly before running the concurrency
+gate.
 
 ## Production boundaries (retained)
 

@@ -2,7 +2,7 @@
 # check_test_layout_test.sh — fail-closed tests for Scripts/check-test-layout.sh.
 #
 # Copies the gate script into synthetic fixture repositories and asserts it
-# exits non-zero when a Swift file sits directly in Tests/PositronicKitTests/
+# exits non-zero when a Swift file sits directly in either runtime test target
 # or when a test filename carries a ticket identifier.
 set -euo pipefail
 
@@ -18,12 +18,45 @@ fail=0
 make_fixture() {
     local fixture="$1"
     local kind="$2"
-    mkdir -p "$fixture/Scripts" "$fixture/Tests/PositronicKitTests/Services"
+    mkdir -p "$fixture/Scripts" "$fixture/Tests/PositronicKitTests/Services" \
+        "$fixture/Tests/PositronicKitTests/Support"
+    if [ "$kind" != "missing-provider-target" ]; then
+        mkdir -p "$fixture/Tests/PKProviderIntegrationTests/Services" \
+            "$fixture/Tests/PKProviderIntegrationTests/Support"
+    fi
+    if [ "$kind" != "missing-provider-target" ]; then
+        mkdir -p "$fixture/Tests/PKProviderIntegrationTests/Services"
+    fi
     cp "$repo_root/Scripts/check-test-layout.sh" "$fixture/Scripts/"
     : > "$fixture/Tests/PositronicKitTests/Services/SomeServiceTests.swift"
+    if [ "$kind" != "missing-provider-target" ]; then
+        : > "$fixture/Tests/PKProviderIntegrationTests/Services/SomeProviderTests.swift"
+    fi
+    printf '%s\n' \
+        '@Tag static var unit: Self' \
+        '@Tag static var integration: Self' \
+        '@Tag static var slow: Self' \
+        '@Tag static var platformSpecific: Self' \
+        > "$fixture/Tests/PositronicKitTests/Support/TestTags.swift"
+    if [ "$kind" != "missing-provider-target" ]; then
+        if [ "$kind" = "tag-mismatch" ]; then
+            printf '%s\n' \
+                '@Tag static var unit: Self' \
+                '@Tag static var integration: Self' \
+                '@Tag static var slow: Self' \
+                '@Tag static var changedPlatformSpecific: Self' \
+                > "$fixture/Tests/PKProviderIntegrationTests/Support/TestTags.swift"
+        else
+            cp "$fixture/Tests/PositronicKitTests/Support/TestTags.swift" \
+                "$fixture/Tests/PKProviderIntegrationTests/Support/TestTags.swift"
+        fi
+    fi
     case "$kind" in
         root-file)
             : > "$fixture/Tests/PositronicKitTests/StrayRootTests.swift"
+            ;;
+        provider-root-file)
+            : > "$fixture/Tests/PKProviderIntegrationTests/StrayProviderTests.swift"
             ;;
         ticket-name)
             : > "$fixture/Tests/PositronicKitTests/Services/STAB8SomethingTests.swift"
@@ -58,7 +91,10 @@ run_case() {
 
 run_case "clean-layout-passes" "clean" 0 "Test layout checks passed."
 run_case "root-file-fails" "root-file" 1 "sits directly in Tests/PositronicKitTests"
+run_case "provider-root-file-fails" "provider-root-file" 1 "sits directly in Tests/PKProviderIntegrationTests"
 run_case "ticket-name-fails" "ticket-name" 1 "ticket identifier"
+run_case "tag-definitions-differ" "tag-mismatch" 1 "tag definitions differ"
+run_case "missing-provider-target-fails" "missing-provider-target" 1 "PKProviderIntegrationTests is missing"
 
 printf 'check_test_layout_test: %s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -13,7 +13,7 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_PATH = ROOT / "Tests/PKTestSupport/Fixtures/ProviderCapabilityMatrix.json"
 DOC_PATH = ROOT / "docs/ProviderCapabilityMatrix.md"
-REGISTRATION_PATH = ROOT / "Tests/PKProviderIntegrationTests/ProviderCapabilityMatrixTests.swift"
+REGISTRATION_PATH = ROOT / "Tests/PKProviderIntegrationTests/Services/LLM/Providers/ProviderCapabilityMatrixTests.swift"
 PROVIDERS = {"OpenAI", "OpenRouter", "Anthropic", "Ollama", "Foundation Models"}
 CAPABILITIES = {"image-input", "audio-input", "audio-output", "mixed-text-image-layout"}
 OUTCOMES = {"accepted", "rejected", "disabled"}

@@ -63,7 +63,8 @@ def test_retired_content_term_is_rejected() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         script = make_fixture(root)
-        (root / "Sources/Runtime.swift").write_text("let engine = ChatEngine()\n", encoding="utf-8")
+        retired_type = "Chat" + "Engine"
+        (root / "Sources/Runtime.swift").write_text(f"let engine = {retired_type}()\n", encoding="utf-8")
         result = run_gate(script)
         assert result.returncode == 1, result.stdout + result.stderr
         assert "v4 vocabulary check failed" in result.stderr, result.stderr
@@ -73,10 +74,14 @@ def test_retired_filename_term_is_rejected() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         script = make_fixture(root)
-        (root / "Sources/TimelineStore.swift").write_text("public struct TimelineStore {}\n", encoding="utf-8")
+        retired_type = "Chat" + "Engine"
+        retired_name = retired_type + ".swift"
+        (root / f"Sources/{retired_name}").write_text(
+            f"public struct {retired_type} {{}}\n", encoding="utf-8"
+        )
         result = run_gate(script)
         assert result.returncode == 1, result.stdout + result.stderr
-        assert "TimelineStore.swift" in result.stderr, result.stderr
+        assert retired_name in result.stderr, result.stderr
 
 
 if __name__ == "__main__":

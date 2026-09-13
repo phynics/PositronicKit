@@ -20,11 +20,15 @@ fail=0
 make_fixture() {
     local fixture="$1"
     local kind="$2"
-    mkdir -p "$fixture/Scripts" "$fixture/Tests/PositronicKitTests/Stories"
+    mkdir -p "$fixture/Scripts" "$fixture/Tests/PositronicKitTests/Stories" \
+        "$fixture/Tests/PKProviderIntegrationTests/Stories"
     cp "$repo_root/Scripts/validate-docc.sh" "$fixture/Scripts/"
     if [ "$kind" = "internal-import" ]; then
         printf '%s\n' '@testable import PositronicKit' 'import Testing' > \
             "$fixture/Tests/PositronicKitTests/Stories/InternalStoriesTests.swift"
+    elif [ "$kind" = "provider-internal-import" ]; then
+        printf '%s\n' '@testable import PositronicKit' 'import Testing' > \
+            "$fixture/Tests/PKProviderIntegrationTests/Stories/InternalStoriesTests.swift"
     else
         printf '%s\n' 'import PositronicKit' 'import Testing' > \
             "$fixture/Tests/PositronicKitTests/Stories/PublicStoriesTests.swift"
@@ -57,16 +61,21 @@ run_case() {
 }
 
 run_case "internal-import-fails" "internal-import" 1 "ordinary imports"
+run_case "provider-internal-import-fails" "provider-internal-import" 1 "ordinary imports"
 
 # Clean tree: the Stories rule must not fire. Later DocC stages need an Apple
 # toolchain, so any remaining failure must come from those stages, not the
 # Stories rule. Encode that as "exit 0, or exit non-zero without the Stories
-# diagnostic".
+# diagnostic". The script also emits a marker after this stage so a clean
+# fixture proves the stage actually ran before the Apple-only tools are needed.
 clean_fixture="$tmp_dir/clean-tree-passes-stories-rule"
 make_fixture "$clean_fixture" "clean"
 clean_output="$(bash "$clean_fixture/Scripts/validate-docc.sh" 2>&1)" && clean_exit=0 || clean_exit=$?
 if printf '%s\n' "$clean_output" | grep -qF "ordinary imports"; then
     printf 'FAIL clean-tree-passes-stories-rule: Stories rule fired on a clean tree:\n%s\n' "$clean_output"
+    fail=$((fail + 1))
+elif ! printf '%s\n' "$clean_output" | grep -qF "DocC public story import checks passed."; then
+    printf 'FAIL clean-tree-passes-stories-rule: expected the public story check marker:\n%s\n' "$clean_output"
     fail=$((fail + 1))
 else
     printf 'ok clean-tree-passes-stories-rule (exit %s)\n' "$clean_exit"

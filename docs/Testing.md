@@ -44,7 +44,7 @@ target, so both runtime targets can use it.
 - **Conformance.** Provider behavior contracts: stream decoding,
   initialization, HTTP failure, cancellation, and transport suites in the
   provider-integration target, plus the executable capability matrix
-  (`Tests/PKProviderIntegrationTests/ProviderCapabilityMatrixTests.swift`
+  (`Tests/PKProviderIntegrationTests/Services/LLM/Providers/ProviderCapabilityMatrixTests.swift`
   registered against `Tests/PKTestSupport/Fixtures/ProviderCapabilityMatrix.json`).
 - **Gate.** The executable checks in `Scripts/` and their fixture tests in
   `Tests/Scripts/`. Gate scripts fail closed: a pattern that silently stops
@@ -78,18 +78,19 @@ Run the fast subset with:
 make test-fast
 ```
 
-`FAST_FILTER` overrides the selector (`make test-fast FAST_FILTER='tag:slow'`);
-the selector syntax is the swift-testing `tag:` filter, so it needs a
-toolchain with tag-based filtering support. If `test-fast` reports zero
-tests, upgrade the toolchain rather than working around it. The Linux
-equivalent runs through the repository-owned runner:
+`FAST_SKIP_TAGS` overrides the excluded tags (`make test-fast FAST_SKIP_TAGS=slow`).
+The selector syntax is the swift-testing `tag:` filter, so it needs a
+toolchain with tag-based filtering support. `test-fast` first lists the
+selected tests and fails if the selector returns zero, rather than silently
+reporting success. The Linux equivalent runs through the repository-owned runner:
 
 ```bash
 make agent-test FILTER='tag:unit'
 ```
 
-The full gates (`make verify` on macOS, `make agent-verify` on Linux) always
-run every suite, including legacy XCTest classes, which cannot carry
+The full gates (`make verify` on macOS, `make agent-verify` on Linux) exercise
+`make test-fast` before the complete test run and always run every suite,
+including legacy XCTest classes, which cannot carry
 swift-testing tags and are therefore outside the tagged subset by
 construction. Do not migrate a legacy XCTest class to swift-testing just to
 tag it; that is a rewrite, and test splits here are moves, not rewrites.
@@ -120,7 +121,8 @@ tag it; that is a rewrite, and test splits here are moves, not rewrites.
 ## Gate scripts
 
 Every script in `Scripts/` is either wired into a Make gate (and CI through
-it) or removed. `check-canonical-turn-api.sh` was removed for this reason;
+it) or removed. `check-canonical-turn-api.sh` and the unused
+`annotate-guardrail-exceptions.py` helper were removed for this reason;
 `validate-docc.sh` runs inside `validate-docs.sh` on the macOS gate because
 its later stages need an Apple toolchain.
 
@@ -129,6 +131,4 @@ violating input and asserts a non-zero exit. Shell harnesses end in
 `_test.sh`, Python harnesses in `_test.py`, and all of them run in
 `make verify-agent-harness`, which both platform gates execute. When adding a
 gate script, add its fixture test and its `verify-agent-harness` line in the
-same change; helpers with no violation semantics (build-output parsers,
-manual runners) are the only scripts exempt, and the exemption is documented
-in the change that introduces them.
+same change.
