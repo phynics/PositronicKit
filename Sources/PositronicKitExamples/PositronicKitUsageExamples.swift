@@ -110,7 +110,7 @@ public enum PositronicKitUsageExamples {
     /// API key, endpoint, or network provider configuration. It bypasses `LLMConfiguration`
     /// directly; see `PKFoundationModelsProvider.swift` for the platform-specific behavior.
     public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PositronicKit {
-        let client = FoundationModelsClient(tools: tools.map { $0.toAnyTool() })
+        let client = FoundationModelsClient(tools: tools.map { AnyTool($0) })
         let languageModel = LLMService(
             configuration: .default,
             clients: .init(primary: client, utility: client, fast: client)
@@ -201,7 +201,7 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makeTools() -> [AnyTool] {
-        [ExampleGreetingTool().toAnyTool()]
+        [AnyTool(ExampleGreetingTool())]
     }
 
     /// PKPOST-004: `ToolSource` is the canonical surface for grouping tools under a
@@ -359,7 +359,7 @@ public struct ExampleOneShotTitlePayload: Codable, Sendable, Equatable {
 public struct ExampleGreetingTool: Tool {
     public let callName = "example_greet"
     public let name = "Example Greeting"
-    public let description = "Greet a user by name so the runtime can expose a simple tool."
+    public let toolDescription = "Greet a user by name so the runtime can expose a simple tool."
     public let requiresPermission = false
 
     public init() {}
@@ -395,6 +395,6 @@ public struct ExampleWorkspaceToolProvider: ToolSource {
     public func tools() async -> [AnyTool] {
         // Tools default to `.global` origin; the `ToolSource.resolvedTools()`
         // extension re-stamps them with this provider's `toolOrigin`.
-        [ExampleGreetingTool().toAnyTool()]
+        [AnyTool(ExampleGreetingTool())]
     }
 }

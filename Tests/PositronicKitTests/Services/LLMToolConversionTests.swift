@@ -11,7 +11,7 @@ struct LLMToolConversionTests {
     struct ComplexMockTool: PKContracts.Tool {
         let callName = "complex_tool"
         let name = "Complex Tool"
-        let description = "A tool with nested parameters"
+        let toolDescription = "A tool with nested parameters"
         let requiresPermission = false
 
         var parametersSchema: Schema {

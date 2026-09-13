@@ -12,7 +12,7 @@ extension WorkspaceToolDefinition {
         self.init(
             id: tool.callName,
             name: tool.name,
-            description: tool.description,
+            description: tool.toolDescription,
             parametersSchema: tool.parametersSchema.asDictionary,
             usageExample: tool.usageExample,
             requiresPermission: tool.requiresPermission

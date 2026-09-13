@@ -13,7 +13,7 @@ struct ToolSideEffectsTests {
     private struct UndeclaredTool: PKContracts.Tool {
         let callName = "undeclared"
         let name = "undeclared"
-        let description = "does not declare sideEffects"
+        let toolDescription = "does not declare sideEffects"
         let requiresPermission = false
         let parametersSchema = makeEmptyObjectSchema()
 
@@ -29,7 +29,7 @@ struct ToolSideEffectsTests {
     private struct NoneTool: PKContracts.Tool {
         let callName = "none_tool"
         let name = "none_tool"
-        let description = "declares .none"
+        let toolDescription = "declares .none"
         let requiresPermission = false
         let sideEffects: ToolSideEffects = .none
         let parametersSchema = makeEmptyObjectSchema()
@@ -46,7 +46,7 @@ struct ToolSideEffectsTests {
     private struct ExternalProcessTool: PKContracts.Tool {
         let callName = "external_tool"
         let name = "external_tool"
-        let description = "declares .externalProcess"
+        let toolDescription = "declares .externalProcess"
         let requiresPermission = false
         let sideEffects: ToolSideEffects = .externalProcess
         let parametersSchema = makeEmptyObjectSchema()

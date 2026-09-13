@@ -16,7 +16,7 @@ struct IntroductoryRuntimeInternalStoriesTests {
         struct IntroGreetingTool: Tool {
             let callName = "intro_greet"
             let name = "Intro Greeting"
-            let description = "Greets a user by name for the introductory runtime example."
+            let toolDescription = "Greets a user by name for the introductory runtime example."
             let requiresPermission = false
 
             let parametersSchema = makeEmptyObjectSchema()
@@ -49,7 +49,7 @@ struct IntroductoryRuntimeInternalStoriesTests {
         let threadManager = runtime.threadManager
 
         let thread = try await threadManager.createThread(title: "Intro Example")
-        let tool = IntroGreetingTool().toAnyTool()
+        let tool = AnyTool(IntroGreetingTool())
         let workspaceId = UUID()
         let workspaceRef = WorkspaceReference(
             id: workspaceId,
@@ -58,7 +58,7 @@ struct IntroductoryRuntimeInternalStoriesTests {
             rootPath: workspace.root.path
         )
         try await persistence.saveWorkspace(workspaceRef)
-        try await persistence.addToolToWorkspace(workspaceId: workspaceId, tool: tool.toolReference)
+        try await persistence.addToolToWorkspace(workspaceId: workspaceId, tool: tool.identity)
         try await threadManager.attachWorkspace(workspaceId, to: thread.id)
 
         let toolManager = await threadManager.getToolManager(for: thread.id)

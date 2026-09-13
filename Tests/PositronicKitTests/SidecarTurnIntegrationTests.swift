@@ -145,7 +145,7 @@ struct SidecarTurnIntegrationTests {
         struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
             let callName = "mock_tool"
             let name = "mock_tool"
-            let description = "A mock tool for testing"
+            let toolDescription = "A mock tool for testing"
             let requiresPermission = false
             let parametersSchema = makeEmptyObjectSchema()
 
@@ -172,7 +172,7 @@ struct SidecarTurnIntegrationTests {
         let stream = try await chat.run(TurnRequest(
             threadID: threadID,
             message: "hello",
-            tools: [MockTool().toAnyTool()],
+            tools: [AnyTool(MockTool())],
             sidecars: directives
         ))
         for try await _ in stream {}
@@ -192,7 +192,7 @@ struct SidecarTurnIntegrationTests {
         struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
             let callName = "mock_tool"
             let name = "mock_tool"
-            let description = "A mock tool for testing"
+            let toolDescription = "A mock tool for testing"
             let requiresPermission = false
             let parametersSchema = makeEmptyObjectSchema()
 
@@ -216,7 +216,7 @@ struct SidecarTurnIntegrationTests {
             threadID: threadID,
             requestID: requestId,
             message: "hello",
-            tools: [MockTool().toAnyTool()],
+            tools: [AnyTool(MockTool())],
             sidecars: directives,
             sidecarCommitPolicy: .terminalModelRound
         ))

@@ -213,7 +213,7 @@ actor ToolRouter {
                         catalog: workspaceToolCatalog
                     )
                     workspaceRoute = dispatch.route
-                    effectiveToolRef = dispatch.route.tool.toolReference
+                    effectiveToolRef = dispatch.route.tool.identity
                     if let turnID {
                         try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
                             turnID: turnID,
@@ -232,7 +232,7 @@ actor ToolRouter {
                         threadID: threadId,
                         using: { [self] tool, arguments in
                             try await executeLocally(
-                                tool: tool.toolReference,
+                                tool: tool.identity,
                                 arguments: arguments,
                                 threadId: threadId,
                                 dynamicTools: [tool]
@@ -388,7 +388,7 @@ actor ToolRouter {
         // A direct provider call can execute only a runtime/request-scoped tool that preparation
         // exposed by name. Workspace tools remain behind the captured call_tool dispatcher.
         guard let directTool = availableTools.first(where: {
-            $0.toolReference == tool || $0.callName == tool.toolID
+            $0.identity == tool || $0.callName == tool.toolID
         })
         else {
             throw ToolError.toolNotFound(tool.displayName)
@@ -398,7 +398,7 @@ actor ToolRouter {
             arguments: arguments,
             using: { [self] directTool, directArguments in
                 try await executeLocally(
-                    tool: directTool.toolReference,
+                    tool: directTool.identity,
                     arguments: directArguments,
                     threadId: threadID,
                     dynamicTools: availableTools
@@ -416,7 +416,7 @@ actor ToolRouter {
         for call: ParsedToolCall,
         availableTools: [AnyTool]
     ) -> ToolReference {
-        availableTools.first(where: { $0.callName == call.name })?.toolReference
+        availableTools.first(where: { $0.callName == call.name })?.identity
             ?? ToolReference.known(id: call.name)
     }
 
@@ -445,7 +445,7 @@ actor ToolRouter {
         }
 
         guard let resolvedTool = toolList.first(where: {
-            $0.toolReference == tool || $0.callName == tool.toolID
+            $0.identity == tool || $0.callName == tool.toolID
         }) else {
             throw ToolError.toolNotFound(tool.displayName)
         }

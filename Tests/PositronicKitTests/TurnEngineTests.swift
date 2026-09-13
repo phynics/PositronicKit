@@ -64,7 +64,7 @@ struct TurnEngineTests {
 
         if let toolManager = await threadManager.getToolManager(for: threadID) {
             var tools = await toolManager.getAvailableTools()
-            tools.append(MockTool().toAnyTool())
+            tools.append(AnyTool(MockTool()))
             await toolManager.updateAvailableTools(tools)
 
             if let ws = try? await threadManager.workspaceResolver.workspace(id: wsId) {
@@ -321,7 +321,7 @@ struct TurnEngineTests {
     struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "mock_tool"
         let name = "mock_tool"
-        let description = "A mock tool for testing"
+        let toolDescription = "A mock tool for testing"
         let requiresPermission = false
         let parametersSchema = makeEmptyObjectSchema()
 
@@ -354,7 +354,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Run tool",
-                    tools: [mockTool.toAnyTool()]
+                    tools: [AnyTool(mockTool)]
                 )
             ))
 
@@ -395,7 +395,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Run tool then hang",
-                    tools: [mockTool.toAnyTool()]
+                    tools: [AnyTool(mockTool)]
                 )
             ))
 
@@ -515,7 +515,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Run sentinel",
-                    tools: [MockTool().toAnyTool()]
+                    tools: [AnyTool(MockTool())]
                 )
             ))
 
@@ -538,7 +538,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Run unknown",
-                    tools: [MockTool().toAnyTool()]
+                    tools: [AnyTool(MockTool())]
                 )
             ))
 
@@ -572,7 +572,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Run attached tool",
-                    tools: [mockTool.toAnyTool()]
+                    tools: [AnyTool(mockTool)]
                 )
             ))
 
@@ -616,7 +616,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Fail tool",
-                    tools: [mockTool.toAnyTool()]
+                    tools: [AnyTool(mockTool)]
                 )
             ))
 
@@ -648,7 +648,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Run XML tool",
-                    tools: [mockTool.toAnyTool()]
+                    tools: [AnyTool(mockTool)]
                 )
             ))
 
@@ -716,7 +716,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Run fragmented tool",
-                    tools: [mockTool.toAnyTool()]
+                    tools: [AnyTool(mockTool)]
                 )
             ))
 
@@ -801,7 +801,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Recover omitted tool call",
-                    tools: [mockTool.toAnyTool()]
+                    tools: [AnyTool(mockTool)]
                 )
             ))
 
@@ -864,7 +864,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "No recovered tool call",
-                    tools: [mockTool.toAnyTool()]
+                    tools: [AnyTool(mockTool)]
                 )
             ))
 
@@ -904,7 +904,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Infinite tools",
-                    tools: [mockTool.toAnyTool()],
+                    tools: [AnyTool(mockTool)],
                     maxModelRounds: 2 // Limit to 2 turns
                 )
             ))
@@ -1198,7 +1198,7 @@ struct TurnEngineTests {
                     TurnRequest(
                         threadID: threadID,
                         message: "Follow up",
-                        tools: [MockTool().toAnyTool()]
+                        tools: [AnyTool(MockTool())]
                     )
                 ))
                 Issue.record("Expected dangling tool call error")
@@ -1264,7 +1264,7 @@ struct TurnEngineTests {
 
         if let toolManager = await threadManager.getToolManager(for: threadID) {
             var tools = await toolManager.getAvailableTools()
-            tools.append(MockTool().toAnyTool())
+            tools.append(AnyTool(MockTool()))
             await toolManager.updateAvailableTools(tools)
 
             if let ws = try? await threadManager.workspaceResolver.workspace(id: wsId) {
@@ -1468,7 +1468,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Run two tools",
-                    tools: [mockTool.toAnyTool()]
+                    tools: [AnyTool(mockTool)]
                 )
             ))
 
@@ -1517,7 +1517,7 @@ struct TurnEngineTests {
                 TurnRequest(
                     threadID: threadID,
                     message: "Use tool",
-                    tools: [mockTool.toAnyTool()]
+                    tools: [AnyTool(mockTool)]
                 )
             ))
 

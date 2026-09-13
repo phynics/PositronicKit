@@ -48,7 +48,7 @@ struct TurnRequest: Sendable, CustomStringConvertible {
         self.threadID = threadID
         self.requestID = requestID
         messageContent = MessageContent(message)
-        self.tools = tools.map { $0.toAnyTool() }
+        self.tools = tools.map { AnyTool($0) }
         self.toolOutputs = toolOutputs
         self.systemInstructions = systemInstructions
         self.maxModelRounds = maxModelRounds
@@ -83,7 +83,7 @@ struct TurnRequest: Sendable, CustomStringConvertible {
         self.threadID = threadID
         self.requestID = requestID
         messageContent = content
-        self.tools = tools.map { $0.toAnyTool() }
+        self.tools = tools.map { AnyTool($0) }
         self.toolOutputs = toolOutputs
         self.systemInstructions = systemInstructions
         self.maxModelRounds = maxModelRounds

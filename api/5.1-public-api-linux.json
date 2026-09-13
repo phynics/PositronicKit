@@ -8041,16 +8041,6 @@
       "declaration": "protocol Tool : PromptFormattable"
     },
     {
-      "precise": "s:11PKContracts4ToolP05toAnyB0AA0dB0VyF",
-      "module": "PKContracts",
-      "kind": "swift.method",
-      "path": [
-        "Tool",
-        "toAnyTool()"
-      ],
-      "declaration": "func toAnyTool() -> AnyTool"
-    },
-    {
       "precise": "s:11PKContracts4ToolP10canExecuteSbyYaF",
       "module": "PKContracts",
       "kind": "swift.method",
@@ -8059,16 +8049,6 @@
         "canExecute()"
       ],
       "declaration": "func canExecute() async -> Bool"
-    },
-    {
-      "precise": "s:11PKContracts4ToolP11descriptionSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Tool",
-        "description"
-      ],
-      "declaration": "var description: String { get }"
     },
     {
       "precise": "s:11PKContracts4ToolP11sideEffectsAA0b4SideD0Ovp",
@@ -8099,6 +8079,16 @@
         "toLLMToolDefinition()"
       ],
       "declaration": "func toLLMToolDefinition() -> LLMToolDefinition"
+    },
+    {
+      "precise": "s:11PKContracts4ToolP15toolDescriptionSSvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "Tool",
+        "toolDescription"
+      ],
+      "declaration": "var toolDescription: String { get }"
     },
     {
       "precise": "s:11PKContracts4ToolP16parametersSchema10JSONSchema0D0Vvp",
@@ -8179,16 +8169,6 @@
         "summarize(parameters:result:)"
       ],
       "declaration": "func summarize(parameters: [String : AnyCodable], result: ToolResult) -> String"
-    },
-    {
-      "precise": "s:11PKContracts4ToolPAAE05toAnyB0AA0dB0VyF",
-      "module": "PKContracts",
-      "kind": "swift.method",
-      "path": [
-        "Tool",
-        "toAnyTool()"
-      ],
-      "declaration": "func toAnyTool() -> AnyTool"
     },
     {
       "precise": "s:11PKContracts4ToolPAAE11sideEffectsAA0b4SideD0Ovp",
@@ -8409,16 +8389,6 @@
       "declaration": "struct AnyTool"
     },
     {
-      "precise": "s:11PKContracts7AnyToolV02tobC0ACyF",
-      "module": "PKContracts",
-      "kind": "swift.method",
-      "path": [
-        "AnyTool",
-        "toAnyTool()"
-      ],
-      "declaration": "func toAnyTool() -> AnyTool"
-    },
-    {
       "precise": "s:11PKContracts7AnyToolV10canExecuteSbyYaF",
       "module": "PKContracts",
       "kind": "swift.method",
@@ -8437,16 +8407,6 @@
         "withOrigin(_:)"
       ],
       "declaration": "func withOrigin(_ newOrigin: ToolOrigin) -> AnyTool"
-    },
-    {
-      "precise": "s:11PKContracts7AnyToolV11descriptionSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "AnyTool",
-        "description"
-      ],
-      "declaration": "var description: String { get }"
     },
     {
       "precise": "s:11PKContracts7AnyToolV11sideEffectsAA0c4SideE0Ovp",
@@ -8469,14 +8429,14 @@
       "declaration": "var usageExample: String? { get }"
     },
     {
-      "precise": "s:11PKContracts7AnyToolV13toolReferenceAA0cE0Ovp",
+      "precise": "s:11PKContracts7AnyToolV15toolDescriptionSSvp",
       "module": "PKContracts",
       "kind": "swift.property",
       "path": [
         "AnyTool",
-        "toolReference"
+        "toolDescription"
       ],
-      "declaration": "var toolReference: ToolReference { get }"
+      "declaration": "var toolDescription: String { get }"
     },
     {
       "precise": "s:11PKContracts7AnyToolV16parametersSchema10JSONSchema0E0Vvp",
@@ -15600,16 +15560,6 @@
       "declaration": "func canExecute() async -> Bool"
     },
     {
-      "precise": "s:13PositronicKit14ThreadListToolV11descriptionSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ThreadListTool",
-        "description"
-      ],
-      "declaration": "let description: String"
-    },
-    {
       "precise": "s:13PositronicKit14ThreadListToolV11threadStoreAcA0C19PersistenceProtocol_p_tcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
@@ -15618,6 +15568,16 @@
         "init(threadStore:)"
       ],
       "declaration": "init(threadStore: any ThreadPersistenceProtocol)"
+    },
+    {
+      "precise": "s:13PositronicKit14ThreadListToolV15toolDescriptionSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "ThreadListTool",
+        "toolDescription"
+      ],
+      "declaration": "let toolDescription: String"
     },
     {
       "precise": "s:13PositronicKit14ThreadListToolV16parametersSchema10JSONSchema0G0Vvp",
@@ -15689,16 +15649,6 @@
       "declaration": "func canExecute() async -> Bool"
     },
     {
-      "precise": "s:13PositronicKit14ThreadPeekToolV11descriptionSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ThreadPeekTool",
-        "description"
-      ],
-      "declaration": "let description: String"
-    },
-    {
       "precise": "s:13PositronicKit14ThreadPeekToolV12messageStore06threadG0AcA0c7MessageG8Protocol_p_AA0c11PersistenceJ0_ptcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
@@ -15707,6 +15657,16 @@
         "init(messageStore:threadStore:)"
       ],
       "declaration": "init(messageStore: any ThreadMessageStoreProtocol, threadStore: any ThreadPersistenceProtocol)"
+    },
+    {
+      "precise": "s:13PositronicKit14ThreadPeekToolV15toolDescriptionSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "ThreadPeekTool",
+        "toolDescription"
+      ],
+      "declaration": "let toolDescription: String"
     },
     {
       "precise": "s:13PositronicKit14ThreadPeekToolV16parametersSchema10JSONSchema0G0Vvp",
@@ -15778,16 +15738,6 @@
       "declaration": "func canExecute() async -> Bool"
     },
     {
-      "precise": "s:13PositronicKit14ThreadSendToolV11descriptionSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ThreadSendTool",
-        "description"
-      ],
-      "declaration": "let description: String"
-    },
-    {
       "precise": "s:13PositronicKit14ThreadSendToolV12messageStore06threadG07agentID06sourcecJ0AcA0c7MessageG8Protocol_p_AA0c11PersistenceM0_p20FoundationEssentials4UUIDVALtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
@@ -15796,6 +15746,16 @@
         "init(messageStore:threadStore:agentID:sourceThreadID:)"
       ],
       "declaration": "init(messageStore: any ThreadMessageStoreProtocol, threadStore: any ThreadPersistenceProtocol, agentID: UUID, sourceThreadID: UUID)"
+    },
+    {
+      "precise": "s:13PositronicKit14ThreadSendToolV15toolDescriptionSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "ThreadSendTool",
+        "toolDescription"
+      ],
+      "declaration": "let toolDescription: String"
     },
     {
       "precise": "s:13PositronicKit14ThreadSendToolV16parametersSchema10JSONSchema0G0Vvp",
@@ -19743,16 +19703,6 @@
       "declaration": "let definition: WorkspaceToolDefinition"
     },
     {
-      "precise": "s:13PositronicKit20WorkspaceToolWrapperV11descriptionSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "WorkspaceToolWrapper",
-        "description"
-      ],
-      "declaration": "var description: String { get }"
-    },
-    {
       "precise": "s:13PositronicKit20WorkspaceToolWrapperV12usageExampleSSSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -19761,6 +19711,16 @@
         "usageExample"
       ],
       "declaration": "var usageExample: String? { get }"
+    },
+    {
+      "precise": "s:13PositronicKit20WorkspaceToolWrapperV15toolDescriptionSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "WorkspaceToolWrapper",
+        "toolDescription"
+      ],
+      "declaration": "var toolDescription: String { get }"
     },
     {
       "precise": "s:13PositronicKit20WorkspaceToolWrapperV16parametersSchema10JSONSchema0G0Vvp",
@@ -38920,12 +38880,6 @@
     {
       "module": "PKContracts",
       "kind": "defaultImplementationOf",
-      "source": "s:11PKContracts4ToolPAAE05toAnyB0AA0dB0VyF",
-      "target": "s:11PKContracts4ToolP05toAnyB0AA0dB0VyF"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "defaultImplementationOf",
       "source": "s:11PKContracts4ToolPAAE11sideEffectsAA0b4SideD0Ovp",
       "target": "s:11PKContracts4ToolP11sideEffectsAA0b4SideD0Ovp"
     },
@@ -43789,16 +43743,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts7AnyToolV02tobC0ACyF",
-      "target": "s:11PKContracts7AnyToolV",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts4ToolP05toAnyB0AA0dB0VyF",
-        "displayName": "Tool.toAnyTool()"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts7AnyToolV10canExecuteSbyYaF",
       "target": "s:11PKContracts7AnyToolV",
       "sourceOrigin": {
@@ -43811,16 +43755,6 @@
       "kind": "memberOf",
       "source": "s:11PKContracts7AnyToolV10withOriginyAcA0cE0OF",
       "target": "s:11PKContracts7AnyToolV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts7AnyToolV11descriptionSSvp",
-      "target": "s:11PKContracts7AnyToolV",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts4ToolP11descriptionSSvp",
-        "displayName": "Tool.description"
-      }
     },
     {
       "module": "PKContracts",
@@ -43845,8 +43779,12 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts7AnyToolV13toolReferenceAA0cE0Ovp",
-      "target": "s:11PKContracts7AnyToolV"
+      "source": "s:11PKContracts7AnyToolV15toolDescriptionSSvp",
+      "target": "s:11PKContracts7AnyToolV",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts4ToolP15toolDescriptionSSvp",
+        "displayName": "Tool.toolDescription"
+      }
     },
     {
       "module": "PKContracts",
@@ -51069,18 +51007,18 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit14ThreadListToolV11descriptionSSvp",
-      "target": "s:13PositronicKit14ThreadListToolV",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts4ToolP11descriptionSSvp",
-        "displayName": "Tool.description"
-      }
+      "source": "s:13PositronicKit14ThreadListToolV11threadStoreAcA0C19PersistenceProtocol_p_tcfc",
+      "target": "s:13PositronicKit14ThreadListToolV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit14ThreadListToolV11threadStoreAcA0C19PersistenceProtocol_p_tcfc",
-      "target": "s:13PositronicKit14ThreadListToolV"
+      "source": "s:13PositronicKit14ThreadListToolV15toolDescriptionSSvp",
+      "target": "s:13PositronicKit14ThreadListToolV",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts4ToolP15toolDescriptionSSvp",
+        "displayName": "Tool.toolDescription"
+      }
     },
     {
       "module": "PositronicKit",
@@ -51145,18 +51083,18 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit14ThreadPeekToolV11descriptionSSvp",
-      "target": "s:13PositronicKit14ThreadPeekToolV",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts4ToolP11descriptionSSvp",
-        "displayName": "Tool.description"
-      }
+      "source": "s:13PositronicKit14ThreadPeekToolV12messageStore06threadG0AcA0c7MessageG8Protocol_p_AA0c11PersistenceJ0_ptcfc",
+      "target": "s:13PositronicKit14ThreadPeekToolV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit14ThreadPeekToolV12messageStore06threadG0AcA0c7MessageG8Protocol_p_AA0c11PersistenceJ0_ptcfc",
-      "target": "s:13PositronicKit14ThreadPeekToolV"
+      "source": "s:13PositronicKit14ThreadPeekToolV15toolDescriptionSSvp",
+      "target": "s:13PositronicKit14ThreadPeekToolV",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts4ToolP15toolDescriptionSSvp",
+        "displayName": "Tool.toolDescription"
+      }
     },
     {
       "module": "PositronicKit",
@@ -51221,18 +51159,18 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit14ThreadSendToolV11descriptionSSvp",
-      "target": "s:13PositronicKit14ThreadSendToolV",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts4ToolP11descriptionSSvp",
-        "displayName": "Tool.description"
-      }
+      "source": "s:13PositronicKit14ThreadSendToolV12messageStore06threadG07agentID06sourcecJ0AcA0c7MessageG8Protocol_p_AA0c11PersistenceM0_p20FoundationEssentials4UUIDVALtcfc",
+      "target": "s:13PositronicKit14ThreadSendToolV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit14ThreadSendToolV12messageStore06threadG07agentID06sourcecJ0AcA0c7MessageG8Protocol_p_AA0c11PersistenceM0_p20FoundationEssentials4UUIDVALtcfc",
-      "target": "s:13PositronicKit14ThreadSendToolV"
+      "source": "s:13PositronicKit14ThreadSendToolV15toolDescriptionSSvp",
+      "target": "s:13PositronicKit14ThreadSendToolV",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts4ToolP15toolDescriptionSSvp",
+        "displayName": "Tool.toolDescription"
+      }
     },
     {
       "module": "PositronicKit",
@@ -53201,21 +53139,21 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20WorkspaceToolWrapperV11descriptionSSvp",
-      "target": "s:13PositronicKit20WorkspaceToolWrapperV",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts4ToolP11descriptionSSvp",
-        "displayName": "Tool.description"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit20WorkspaceToolWrapperV12usageExampleSSSgvp",
       "target": "s:13PositronicKit20WorkspaceToolWrapperV",
       "sourceOrigin": {
         "identifier": "s:11PKContracts4ToolP12usageExampleSSSgvp",
         "displayName": "Tool.usageExample"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit20WorkspaceToolWrapperV15toolDescriptionSSvp",
+      "target": "s:13PositronicKit20WorkspaceToolWrapperV",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts4ToolP15toolDescriptionSSvp",
+        "displayName": "Tool.toolDescription"
       }
     },
     {
@@ -55535,19 +55473,7 @@
     {
       "module": "PKContracts",
       "kind": "requirementOf",
-      "source": "s:11PKContracts4ToolP05toAnyB0AA0dB0VyF",
-      "target": "s:11PKContracts4ToolP"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "requirementOf",
       "source": "s:11PKContracts4ToolP10canExecuteSbyYaF",
-      "target": "s:11PKContracts4ToolP"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "requirementOf",
-      "source": "s:11PKContracts4ToolP11descriptionSSvp",
       "target": "s:11PKContracts4ToolP"
     },
     {
@@ -55560,6 +55486,12 @@
       "module": "PKContracts",
       "kind": "requirementOf",
       "source": "s:11PKContracts4ToolP12usageExampleSSSgvp",
+      "target": "s:11PKContracts4ToolP"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "requirementOf",
+      "source": "s:11PKContracts4ToolP15toolDescriptionSSvp",
       "target": "s:11PKContracts4ToolP"
     },
     {

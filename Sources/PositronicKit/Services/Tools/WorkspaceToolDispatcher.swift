@@ -36,7 +36,7 @@ struct WorkspaceToolCatalog: Sendable {
                     label: label,
                     toolID: tool.callName,
                     toolName: tool.name,
-                    description: tool.description,
+                    description: tool.toolDescription,
                     parametersSchema: tool.parametersSchema.asDictionary,
                     isPrimary: isPrimary
                 )
@@ -232,7 +232,7 @@ struct WorkspaceToolDispatcher: Sendable {
 private struct WorkspaceCallTool: Tool, Sendable {
     let callName = WorkspaceToolDispatcher.callName
     let name = "Workspace Tool"
-    let description = "Call a tool in an authorized workspace. Omit 'at' only when exactly one workspace matches."
+    let toolDescription = "Call a tool in an authorized workspace. Omit 'at' only when exactly one workspace matches."
     let requiresPermission = false
     let sideEffects: ToolSideEffects = .mutating
     let usageExample: String? = "call_tool(tool: \"read_file\", at: \"<workspace-id>\", arguments: {\"path\": \"README.md\"})"

@@ -14,7 +14,7 @@ private let testLogger = Logger(label: "test.pipeline")
 private struct StubTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName: String
     let name: String
-    let description = "Stub"
+    let toolDescription = "Stub"
     let requiresPermission = false
     let parametersSchema = makeEmptyObjectSchema()
     func canExecute() async -> Bool {
@@ -315,7 +315,7 @@ final class ToolCallExtractionStageBehavior {
         let tool = StubTool(callName: "test_tool", name: "test_tool")
         let context = await makeContext(
             fullResponse: #"<tool_call>{"name": "test_tool", "arguments": {"key": "val"}}</tool_call>"#,
-            availableTools: [tool.toAnyTool()]
+            availableTools: [AnyTool(tool)]
         )
 
         _ = try await drain(await stage.process(context))

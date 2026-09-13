@@ -8,7 +8,7 @@ import PKUtilities
 public struct ThreadPeekTool: PKContracts.Tool, Sendable {
     public let callName = "thread_peek"
     public let name = "Thread Peek"
-    public let description =
+    public let toolDescription =
         "Read the most recent messages from a thread thread. " +
         "Use this to observe what is happening in a thread without attaching to it."
     public let requiresPermission = false

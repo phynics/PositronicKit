@@ -357,7 +357,7 @@ private struct AdmissionHarness {
 private struct ReservedCallTool: PKContracts.Tool, Sendable {
     let callName = "call_tool"
     let name = "Reserved call tool"
-    let description = "Test-only reserved tool"
+    let toolDescription = "Test-only reserved tool"
     let requiresPermission = false
     let parametersSchema = makeEmptyObjectSchema()
 

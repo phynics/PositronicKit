@@ -46,7 +46,16 @@ for tagged releases beginning with `1.0.0`.
   `StructuredOutputSchema.strict`/`LLMResponseSchema.strict`/`LLMToolDefinition.strict` →
   `isStrict`, `LenientJSONParser.ParseResult.repaired` → `wasRepaired`, and
   `CompressionNodeReport.cacheHit`/`StructuredCompressionNodeMetric.cacheHit` → `didHitCache`
-  (the latter two keep their `"cacheHit"` wire/JSON key via explicit `CodingKeys`).
+   (the latter two keep their `"cacheHit"` wire/JSON key via explicit `CodingKeys`).
+
+- **Single Tool erasure and identity spelling (#160):** `Tool.toAnyTool()` is removed in favor
+  of the guidelines-correct `AnyTool(_:origin:)` initializer; re-erasing an `AnyTool` with the
+  default global origin is still a no-op that preserves `origin` and `identity`, and an explicit
+  origin still re-stamps the value. `AnyTool.toolReference` is removed in favor of the
+  documented `identity` requirement. `Tool.description` is now `toolDescription`, so a type
+  conforming to both `Tool` and `CustomStringConvertible` compiles without a naming workaround
+  and `String(describing:)` no longer returns LLM-facing prose. Erasure semantics, `origin`
+  propagation, and `ToolSource.resolvedTools()` behavior are unchanged.
 
 ### Changed
 

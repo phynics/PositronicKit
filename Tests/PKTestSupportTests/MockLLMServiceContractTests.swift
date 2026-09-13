@@ -7,7 +7,7 @@ import Testing
 private struct CaptureProbeTool: Tool {
     let callName = "capture_probe"
     let name = "Capture Probe"
-    let description = "Verifies that mock service requests preserve tool metadata."
+    let toolDescription = "Verifies that mock service requests preserve tool metadata."
     let requiresPermission = false
 
     var parametersSchema: Schema {
@@ -80,7 +80,7 @@ struct MockLLMServiceContractTests {
         #expect(captured?.tools.map(\.identity) == [tool.identity])
         #expect(captured?.tools.map(\.callName) == ["capture_probe"])
         #expect(captured?.tools.map(\.name) == ["Capture Probe"])
-        #expect(captured?.tools.map(\.description) == ["Verifies that mock service requests preserve tool metadata."])
+        #expect(captured?.tools.map(\.toolDescription) == ["Verifies that mock service requests preserve tool metadata."])
         #expect(captured?.tools.map(\.origin) == [.named("contract-test")])
         #expect(captured?.workspaces.map(\.id) == [workspace.id])
         #expect(captured?.primaryWorkspace?.id == workspace.id)

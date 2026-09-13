@@ -7,7 +7,7 @@ import JSONSchemaBuilder
 package struct SearchFileContentTool: Tool, Sendable {
     package let callName = "grep"
     package let name = "Search File Content"
-    package let description = "Search for text content within files in a directory"
+    package let toolDescription = "Search for text content within files in a directory"
     package let requiresPermission = true
 
     package var usageExample: String? {

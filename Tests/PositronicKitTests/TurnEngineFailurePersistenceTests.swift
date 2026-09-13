@@ -136,7 +136,7 @@ struct TurnEngineFailurePersistenceTests {
         try await persistence.addToolToWorkspace(workspaceId: wsId, tool: .known(PersistenceTestTool.toolID))
         try await threadManager.hydrateThread(id: threadID)
         if let toolManager = await threadManager.getToolManager(for: threadID) {
-            await toolManager.updateAvailableTools([PersistenceTestTool().toAnyTool()])
+            await toolManager.updateAvailableTools([AnyTool(PersistenceTestTool())])
             if let workspace = try await threadManager.workspaceResolver.workspace(id: wsId) {
                 await toolManager.registerWorkspace(workspace)
             }
@@ -261,7 +261,7 @@ struct TurnEngineFailurePersistenceTests {
                     threadID: threadID,
                     requestID: requestID,
                     message: "run the retryable tool",
-                    tools: [tool.toAnyTool()]
+                    tools: [AnyTool(tool)]
                 )
             ))
             let failedEvents = try await collect(failedStream)
@@ -300,7 +300,7 @@ struct TurnEngineFailurePersistenceTests {
                     threadID: threadID,
                     requestID: requestID,
                     message: "",
-                    tools: [tool.toAnyTool()],
+                    tools: [AnyTool(tool)],
                     toolOutputs: [ToolOutputSubmission(
                         toolCallID: "persist_retry_call",
                         output: "durable retry result"
@@ -786,7 +786,7 @@ private struct PersistenceTestTool: PKContracts.Tool, @unchecked Sendable { // s
 
     let callName = Self.toolID
     let name = Self.toolID
-    let description = "A tool for persistence retry tests"
+    let toolDescription = "A tool for persistence retry tests"
     let requiresPermission = false
     let parametersSchema = makeEmptyObjectSchema()
 
