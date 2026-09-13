@@ -104,7 +104,7 @@ _ = configuredKit.model
 // configuration administration and health capabilities are deliberately not required here.
 private let streamOnly = StreamOnlyLLMClient()
 let streamConfiguredKit = PositronicKit(configuration: .init(
-    provider: .init(languageModel: streamOnly),
+    languageModel: streamOnly,
     persistence: .inMemory()
 ))
 _ = streamConfiguredKit.model
@@ -119,7 +119,7 @@ let customLoggingConfiguration = LoggingConfiguration(
     redactionPolicy: LogRedactionPolicy(logsPayloads: true)
 )
 let loggingConfiguredKit = PositronicKit(configuration: .init(
-    provider: .init(languageModel: streamOnly),
+    languageModel: streamOnly,
     persistence: .inMemory(),
     logging: customLoggingConfiguration
 ))

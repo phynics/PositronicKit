@@ -23171,6 +23171,28 @@
       "declaration": "let persistence: PositronicKit.PersistenceConfiguration"
     },
     {
+      "precise": "s:13PositronicKitAAC13ConfigurationV13languageModel11persistence7runtime20generationParameters7loggingAdA15LLMStreamClient_p_AB011PersistenceC0VAB07RuntimeC0V11PKContracts010GenerationI0VSgAO07LoggingC0Vtcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "PositronicKit",
+        "Configuration",
+        "init(languageModel:persistence:runtime:generationParameters:logging:)"
+      ],
+      "declaration": "init(languageModel: any LLMStreamClient, persistence: PositronicKit.PersistenceConfiguration, runtime: PositronicKit.RuntimeConfiguration = .default, generationParameters: GenerationParameters? = nil, logging: LoggingConfiguration = .default)"
+    },
+    {
+      "precise": "s:13PositronicKitAAC13ConfigurationV13languageModelAA15LLMStreamClient_pvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "PositronicKit",
+        "Configuration",
+        "languageModel"
+      ],
+      "declaration": "let languageModel: any LLMStreamClient"
+    },
+    {
       "precise": "s:13PositronicKitAAC13ConfigurationV20generationParameters11PKContracts010GenerationE0VSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -23202,28 +23224,6 @@
         "runtime"
       ],
       "declaration": "let runtime: PositronicKit.RuntimeConfiguration"
-    },
-    {
-      "precise": "s:13PositronicKitAAC13ConfigurationV8provider11persistence7runtime20generationParameters7loggingAdB08ProviderC0V_AB011PersistenceC0VAB07RuntimeC0V11PKContracts010GenerationH0VSgAP07LoggingC0Vtcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "PositronicKit",
-        "Configuration",
-        "init(provider:persistence:runtime:generationParameters:logging:)"
-      ],
-      "declaration": "init(provider: PositronicKit.ProviderConfiguration, persistence: PositronicKit.PersistenceConfiguration, runtime: PositronicKit.RuntimeConfiguration = .default, generationParameters: GenerationParameters? = nil, logging: LoggingConfiguration = .default)"
-    },
-    {
-      "precise": "s:13PositronicKitAAC13ConfigurationV8providerAB08ProviderC0Vvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "PositronicKit",
-        "Configuration",
-        "provider"
-      ],
-      "declaration": "let provider: PositronicKit.ProviderConfiguration"
     },
     {
       "precise": "s:13PositronicKitAAC13configurationA2B13ConfigurationV_tcfc",
@@ -23516,38 +23516,6 @@
         "default"
       ],
       "declaration": "static var `default`: PositronicKit.RuntimeConfiguration { get }"
-    },
-    {
-      "precise": "s:13PositronicKitAAC21ProviderConfigurationV",
-      "module": "PositronicKit",
-      "kind": "swift.struct",
-      "path": [
-        "PositronicKit",
-        "ProviderConfiguration"
-      ],
-      "declaration": "struct ProviderConfiguration"
-    },
-    {
-      "precise": "s:13PositronicKitAAC21ProviderConfigurationV13languageModelAA15LLMStreamClient_pvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "PositronicKit",
-        "ProviderConfiguration",
-        "languageModel"
-      ],
-      "declaration": "let languageModel: any LLMStreamClient"
-    },
-    {
-      "precise": "s:13PositronicKitAAC21ProviderConfigurationV13languageModelAdA15LLMStreamClient_p_tcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "PositronicKit",
-        "ProviderConfiguration",
-        "init(languageModel:)"
-      ],
-      "declaration": "init(languageModel: any LLMStreamClient)"
     },
     {
       "precise": "s:13PositronicKitAAC24PersistenceConfigurationV",
@@ -39099,20 +39067,6 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKitAAC20RuntimeConfigurationV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKitAAC21ProviderConfigurationV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKitAAC21ProviderConfigurationV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -55510,6 +55464,18 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKitAAC13ConfigurationV13languageModel11persistence7runtime20generationParameters7loggingAdA15LLMStreamClient_p_AB011PersistenceC0VAB07RuntimeC0V11PKContracts010GenerationI0VSgAO07LoggingC0Vtcfc",
+      "target": "s:13PositronicKitAAC13ConfigurationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKitAAC13ConfigurationV13languageModelAA15LLMStreamClient_pvp",
+      "target": "s:13PositronicKitAAC13ConfigurationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKitAAC13ConfigurationV20generationParameters11PKContracts010GenerationE0VSgvp",
       "target": "s:13PositronicKitAAC13ConfigurationV"
     },
@@ -55523,18 +55489,6 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKitAAC13ConfigurationV7runtimeAB07RuntimeC0Vvp",
-      "target": "s:13PositronicKitAAC13ConfigurationV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKitAAC13ConfigurationV8provider11persistence7runtime20generationParameters7loggingAdB08ProviderC0V_AB011PersistenceC0VAB07RuntimeC0V11PKContracts010GenerationH0VSgAP07LoggingC0Vtcfc",
-      "target": "s:13PositronicKitAAC13ConfigurationV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKitAAC13ConfigurationV8providerAB08ProviderC0Vvp",
       "target": "s:13PositronicKitAAC13ConfigurationV"
     },
     {
@@ -55698,24 +55652,6 @@
       "kind": "memberOf",
       "source": "s:13PositronicKitAAC20RuntimeConfigurationV7defaultADvpZ",
       "target": "s:13PositronicKitAAC20RuntimeConfigurationV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKitAAC21ProviderConfigurationV",
-      "target": "s:13PositronicKitAAC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKitAAC21ProviderConfigurationV13languageModelAA15LLMStreamClient_pvp",
-      "target": "s:13PositronicKitAAC21ProviderConfigurationV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKitAAC21ProviderConfigurationV13languageModelAdA15LLMStreamClient_p_tcfc",
-      "target": "s:13PositronicKitAAC21ProviderConfigurationV"
     },
     {
       "module": "PositronicKit",

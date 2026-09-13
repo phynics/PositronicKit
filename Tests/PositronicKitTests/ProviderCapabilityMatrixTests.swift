@@ -290,7 +290,7 @@ struct ProviderCapabilityMatrixTests {
 
         let persistence = MockPersistenceService()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .init(
                 runtimeRepository: persistence,
                 workspacePersistence: persistence,
@@ -334,7 +334,7 @@ struct ProviderCapabilityMatrixTests {
 
         let persistence = MockPersistenceService()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .init(
                 runtimeRepository: persistence,
                 workspacePersistence: persistence,

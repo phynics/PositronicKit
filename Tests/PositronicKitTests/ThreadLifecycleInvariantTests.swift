@@ -15,7 +15,7 @@ struct ThreadLifecycleInvariantTests {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: mockLLM),
+            languageModel: mockLLM,
             persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -44,7 +44,7 @@ struct ThreadLifecycleInvariantTests {
         let mockMessages = MockPersistenceService()
         mockMessages.fetchThreadFails = true
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: mockLLM),
+            languageModel: mockLLM,
             persistence: .init(
                 runtimeRepository: mockMessages,
                 workspacePersistence: mockMessages,
@@ -71,7 +71,7 @@ struct ThreadLifecycleInvariantTests {
     func startTurnToMissingThreadThrows() async throws {
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: mockLLM),
+            languageModel: mockLLM,
             persistence: .inMemory()
         ))
 

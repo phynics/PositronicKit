@@ -113,7 +113,7 @@ struct CapabilityValuesTests {
         let messageStore = InMemoryMessageStore()
         let threadPersistence = InMemoryThreadPersistence()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .init(
                 runtimeRepository: InMemoryThreadRuntimeRepository()
             )

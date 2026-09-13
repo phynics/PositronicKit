@@ -1,5 +1,9 @@
 import Foundation
 
+/// Per-provider wire configuration: endpoint, credentials, model selection, and request defaults.
+///
+/// This is the only public type named `ProviderConfiguration`. The language model the
+/// runtime uses is carried directly by `PositronicKit.Configuration.languageModel`.
 public struct ProviderConfiguration: Codable, Sendable, Equatable {
     public var endpoint: String
     public var apiKey: String

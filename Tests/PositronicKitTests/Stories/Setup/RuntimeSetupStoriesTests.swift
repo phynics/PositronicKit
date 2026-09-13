@@ -25,7 +25,7 @@ import Testing
             requestOriginStore: mockPersistence
         )
 
-        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: UnconfiguredLLMService()), persistence: persistence, runtime: .init(workspaceProfile: .hostManaged(root: workspace.root), workspaceCreator: MockWorkspaceCreator())))
+        let chat = PositronicKit(configuration: .init(languageModel: UnconfiguredLLMService(), persistence: persistence, runtime: .init(workspaceProfile: .hostManaged(root: workspace.root), workspaceCreator: MockWorkspaceCreator())))
 
         let thread = try await chat.threads.create(title: "Unconfigured")
 

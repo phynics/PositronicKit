@@ -14,7 +14,7 @@ struct AgentContextLifecycleTests {
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "context reply"
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .inMemory(),
             runtime: .init(customization: .init(agentContextSource: source))
         ))
@@ -34,7 +34,7 @@ struct AgentContextLifecycleTests {
     func contextFailureAbortsPreparation() async throws {
         let source = FailingAgentContextSource()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: MockLLMService()),
+            languageModel: MockLLMService(),
             persistence: .inMemory(),
             runtime: .init(customization: .init(agentContextSource: source))
         ))
@@ -81,7 +81,7 @@ struct AgentContextLifecycleTests {
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "gated reply"
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: llm),
+            languageModel: llm,
             persistence: .inMemory(),
             runtime: .init(customization: .init(agentContextSource: source))
         ))
@@ -139,7 +139,7 @@ struct AgentContextLifecycleTests {
     func rejectsIdentityMismatch() async throws {
         let source = WrongIdentityAgentContextSource()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(languageModel: MockLLMService()),
+            languageModel: MockLLMService(),
             persistence: .inMemory(),
             runtime: .init(customization: .init(agentContextSource: source))
         ))
