@@ -3,8 +3,8 @@ import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
-/// Tool to read file content (cat)
-package struct ReadFileTool: Tool, Sendable {
+/// PKTool to read file content (cat)
+package struct ReadFileTool: PKTool, Sendable {
     package let callName = "cat"
     package let name = "Read File"
     package let toolDescription = "Read the content of a file"

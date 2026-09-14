@@ -2,9 +2,9 @@ import Foundation
 
 /// The authority path that admitted a Turn.
 public enum TurnExecutionKind: String, Codable, Equatable, Hashable, Sendable {
-    /// The Thread supplied its attached Agent and the runtime assembled managed context.
+    /// The TimelineRecord supplied its attached Agent and the runtime assembled managed context.
     case agentManaged
-    /// The caller supplied the direct context on a detached Thread.
+    /// The caller supplied the direct context on a detached TimelineRecord.
     case direct
 }
 

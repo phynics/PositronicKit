@@ -12,6 +12,6 @@ struct TestRuntimeTests {
         )
 
         let agent = try await runtime.agents.create(name: "Shared Agent", description: "fixture")
-        #expect(try await runtime.positronicKit.agents.get(agent.id)?.id == agent.id)
+        #expect(try await runtime.runtime.agents.get(agent.id)?.id == agent.id)
     }
 }

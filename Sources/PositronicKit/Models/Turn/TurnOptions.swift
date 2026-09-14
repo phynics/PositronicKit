@@ -2,11 +2,11 @@ import Foundation
 import Logging
 import PKContracts
 
-/// Configuration for admitting one Turn through a ``ThreadHandle``.
+/// Configuration for admitting one Turn through a ``TimelineHandle``.
 ///
-/// A ``ThreadHandle`` already identifies the destination Thread, so this type contains only
-/// per-Turn options. Use it with `ThreadHandle.startTurn` or
-/// `ThreadHandle.startDirectTurn`.
+/// A ``TimelineHandle`` already identifies the destination TimelineRecord, so this type contains only
+/// per-Turn options. Use it with `TimelineHandle.startTurn` or
+/// `TimelineHandle.startDirectTurn`.
 public struct TurnOptions: Sendable {
     /// An optional idempotency key for joining or replaying a submission.
     public let requestID: UUID?
@@ -14,7 +14,7 @@ public struct TurnOptions: Sendable {
     /// Tools available to the model during this Turn.
     public let tools: [AnyTool]
 
-    /// Tool results submitted as the next model input.
+    /// PKTool results submitted as the next model input.
     public let toolOutputs: [ToolOutputSubmission]?
 
     /// Maximum number of model/tool rounds allowed for this Turn.
@@ -44,10 +44,10 @@ public struct TurnOptions: Sendable {
     /// Optional audio output configuration.
     public let audioOutput: AudioOutputOptions?
 
-    /// Creates per-Turn options without repeating the destination Thread identity.
+    /// Creates per-Turn options without repeating the destination TimelineRecord identity.
     public init(
         requestID: UUID? = nil,
-        tools: [any Tool] = [],
+        tools: [any PKTool] = [],
         toolOutputs: [ToolOutputSubmission]? = nil,
         maxModelRounds: Int = 5,
         generationParameters: GenerationParameters? = nil,
@@ -74,12 +74,12 @@ public struct TurnOptions: Sendable {
     }
 
     func makeRequest(
-        threadID: UUID,
+        timelineID: UUID,
         content: MessageContent,
         systemInstructions: String? = nil
     ) -> TurnRequest {
         TurnRequest(
-            threadID: threadID,
+            timelineID: timelineID,
             requestID: requestID,
             content: content,
             tools: tools,

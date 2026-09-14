@@ -2,7 +2,7 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Protocol for managing the lifecycle of agents through canonical Thread APIs.
+/// Protocol for managing the lifecycle of agents through canonical Timeline APIs.
 protocol AgentManagerProtocol: Sendable {
     func createAgent(
         from template: AgentTemplate?,
@@ -10,11 +10,11 @@ protocol AgentManagerProtocol: Sendable {
         description: String
     ) async throws -> Agent
 
-    func attach(agentID: UUID, to threadID: UUID) async throws
-    func detach(agentID: UUID, from threadID: UUID) async throws
+    func attach(agentID: UUID, to timelineID: UUID) async throws
+    func detach(agentID: UUID, from timelineID: UUID) async throws
     func getAgent(id: UUID) async throws -> Agent?
     func listAgents() async throws -> [Agent]
-    func getThreads(attachedTo agentID: UUID) async throws -> [Thread]
+    func getTimelines(attachedTo agentID: UUID) async throws -> [TimelineRecord]
     func updateAgent(_ agent: Agent) async throws
     func searchAgents(query: String) async throws -> [Agent]
     func retireAgent(id: UUID) async throws
@@ -28,9 +28,9 @@ extension AgentManagerProtocol {
         try await getAgent(id: id)
     }
 
-    /// Returns all threads attached to a specific agent.
-    func threads(attachedTo agentID: UUID) async throws -> [Thread] {
-        try await getThreads(attachedTo: agentID)
+    /// Returns all timelines attached to a specific agent.
+    func timelines(attachedTo agentID: UUID) async throws -> [TimelineRecord] {
+        try await getTimelines(attachedTo: agentID)
     }
 
     func createAgent(

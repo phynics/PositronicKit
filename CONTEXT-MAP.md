@@ -5,7 +5,7 @@ relationships between them are translation boundaries, not shared ownership.
 
 ## Contexts
 
-- [PositronicKit runtime](Sources/PositronicKit/CONTEXT.md) — durable Threads, Turns, Agents,
+- [PositronicKit runtime](Sources/PositronicKit/CONTEXT.md) — durable Timelines, Turns, Agents,
   Workspaces, and execution authority.
 - [PKPrompt](Sources/PKPrompt/CONTEXT.md) — prompt composition, assembly, rendering, and
   journaling.
@@ -22,7 +22,7 @@ relationships between them are translation boundaries, not shared ownership.
 - **Observation / examples / integrations → PositronicKit**: outward-facing layers consume the
   runtime capabilities without owning orchestration internals.
 - **Gnostic adapter → PositronicKit**: Gnostic’s downstream domain term maps to a PositronicKit
-  Thread only at Gnostic’s adapter boundary.
+  Timeline only at Gnostic’s adapter boundary.
 
 ## Glossary rule
 
@@ -31,5 +31,5 @@ then give exact `_Avoid_` lines for misleading synonyms. Retired vocabulary may 
 exact glossary `_Avoid_` line; issue #73’s semantic checker must treat that line form as the required
 exception.
 
-PKContracts is a leaf context: it owns no Thread, Turn, Agent, Workspace binding, repository, or
+PKContracts is a leaf context: it owns no Timeline, Turn, Agent, Workspace binding, repository, or
 orchestration concept.

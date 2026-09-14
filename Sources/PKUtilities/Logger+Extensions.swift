@@ -2,7 +2,7 @@ import Foundation
 import Logging
 import PKContracts
 
-/// Standard PositronicKit logging subsystem for all host-independent loggers.
+/// Standard PKRuntime logging subsystem for all host-independent loggers.
 public enum PKLogSubsystem {
     public static let value = "com.positronickit"
 }

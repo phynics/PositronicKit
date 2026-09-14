@@ -7,13 +7,13 @@ import Testing
 
 @Suite("Introductory runtime internal stories", .tags(.integration))
 struct IntroductoryRuntimeInternalStoriesTests {
-    @Test("Runtime example creates a thread executes a tool and returns a final reply")
+    @Test("Runtime example creates a timeline executes a tool and returns a final reply")
     func runtimeToolRoundTripExample() async throws {
         let workspace = TestWorkspace()
         let mockLLM = MockLLMService()
         let persistence = MockPersistenceService()
 
-        struct IntroGreetingTool: Tool {
+        struct IntroGreetingTool: PKTool {
             let callName = "intro_greet"
             let name = "Intro Greeting"
             let toolDescription = "Greets a user by name for the introductory runtime example."
@@ -36,7 +36,7 @@ struct IntroductoryRuntimeInternalStoriesTests {
         ]]
         mockLLM.mockClient.nextResponses = ["", "I greeted Taylor successfully."]
 
-        let runtime = PositronicKit(configuration: .init(languageModel: mockLLM, persistence: PositronicKit.PersistenceConfiguration(
+        let runtime = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: PKRuntime.PersistenceConfiguration(
                 runtimeRepository: persistence,
                 workspacePersistence: persistence,
                 toolPersistence: persistence,
@@ -46,9 +46,9 @@ struct IntroductoryRuntimeInternalStoriesTests {
                 workspaceProfile: .hostManaged(root: workspace.root),
                 workspaceCreator: MockWorkspaceCreator()
             )))
-        let threadManager = runtime.threadManager
+        let timelineManager = runtime.timelineManager
 
-        let thread = try await threadManager.createThread(title: "Intro Example")
+        let timeline = try await timelineManager.createTimeline(title: "Intro Example")
         let tool = AnyTool(IntroGreetingTool())
         let workspaceId = UUID()
         let workspaceRef = WorkspaceReference(
@@ -59,13 +59,13 @@ struct IntroductoryRuntimeInternalStoriesTests {
         )
         try await persistence.saveWorkspace(workspaceRef)
         try await persistence.addToolToWorkspace(workspaceID: workspaceId, tool: tool.identity)
-        try await threadManager.attachWorkspace(workspaceId, to: thread.id)
+        try await timelineManager.attachWorkspace(workspaceId, to: timeline.id)
 
-        let toolManager = await threadManager.getToolManager(for: thread.id)
+        let toolManager = await timelineManager.getToolManager(for: timeline.id)
         await toolManager?.updateAvailableTools([tool])
 
         let events = try await runtime.run(TurnRequest(
-            threadID: thread.id,
+            timelineID: timeline.id,
             message: "Greet Taylor using the available tool.",
             tools: [tool]
         )).collect()
@@ -97,7 +97,7 @@ struct IntroductoryRuntimeInternalStoriesTests {
             return false
         }))
 
-        let messages = try await persistence.fetchMessages(for: thread.id)
+        let messages = try await persistence.fetchMessages(for: timeline.id)
         #expect(messages.contains(where: { $0.role == "assistant" }))
     }
 }

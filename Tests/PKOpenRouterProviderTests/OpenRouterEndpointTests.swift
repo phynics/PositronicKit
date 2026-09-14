@@ -61,7 +61,7 @@ struct OpenRouterEndpointTests {
             var configuration = LLMConfiguration.openRouter
             configuration.providers[.openRouter]?.endpoint = configuredEndpoint
 
-            let client = PKOpenRouterProvider.makeClient(
+            let client = PKOpenRouter.makeClient(
                 configuration: configuration
             )
 

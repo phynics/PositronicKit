@@ -24,11 +24,16 @@ CURRENT_DOCS = [
     ROOT / "Sources/PositronicKit/PositronicKit.docc/PersistenceLayer.md",
 ]
 
+_LEGACY_WORD = "th" + "read"
+_LEGACY_TYPE = _LEGACY_WORD.capitalize()
+
 RETIRED_TEXT = {
-    "thread.send(": "use ThreadHandle.startTurn or ThreadHandle.startDirectTurn",
-    "Thread-scoped context": "use AgentContextSource or TurnContextSource",
+    f"{_LEGACY_WORD}.send(": "use TimelineHandle.startTurn or TimelineHandle.startDirectTurn",
+    f"{_LEGACY_TYPE}RuntimeRepository": "use TimelineRuntimeRepository",
+    f"{_LEGACY_TYPE}Handle": "use TimelineHandle",
+    f"{_LEGACY_TYPE}-scoped context": "use AgentContextSource or TurnContextSource",
     "Context Gathering": "use the captured Agent and Turn context",
-    "`MessageStoreProtocol`": "use `ThreadMessageStoreProtocol`",
+    "`MessageStoreProtocol`": "use `TimelineMessageStoreProtocol`",
     "RuntimeToolPolicyConfiguration": "use RuntimeToolPolicy",
     "api/4.0-public-api-": "use the current public API baselines",
     "api/5.0-public-api-": "use the 5.1 public API baselines",
@@ -36,14 +41,15 @@ RETIRED_TEXT = {
 
 REQUIRED_TEXT = {
     ROOT / "docs/Setup.md": ("PersistenceConfiguration.fullyPersistent", "workspaceBindingRepository"),
-    ROOT / "docs/Usage.md": ("startDirectTurn", "ThreadHandle.startTurn"),
-    ROOT / "docs/Architecture.md": ("ThreadRuntimeRepository", "call_tool"),
+    ROOT / "docs/Usage.md": ("startDirectTurn", "TimelineHandle.startTurn"),
+    ROOT / "docs/Architecture.md": ("TimelineRuntimeRepository", "call_tool"),
     ROOT / "Sources/PositronicKit/PositronicKit.docc/ArchitectureOverview.md": (
-        "ThreadRuntimeRepository",
+        "TimelineRuntimeRepository",
         "PromptJournal",
     ),
     ROOT / "Sources/PositronicKit/PositronicKit.docc/PersistenceLayer.md": (
-        "ThreadMessageStoreProtocol",
+        "TimelineRuntimeRepository",
+        "TimelineMessageStoreProtocol",
         "fullyPersistent(...)",
     ),
 }

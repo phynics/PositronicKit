@@ -24,7 +24,7 @@ enum FoundationModelsStreamMapper {
     }
 
     /// Maps a single event to zero-or-one `LLMStreamChunk`. `toolOutput` produces no chunk of
-    /// its own — PositronicKit's tool-execution stage owns the tool-result message, and
+    /// its own — PKRuntime's tool-execution stage owns the tool-result message, and
     /// FoundationModels already executed the tool internally by the time this event arrives
     /// (unlike the HTTP adapters, where the caller executes tools after a `tool_calls` finish).
     static func map(

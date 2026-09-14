@@ -8,7 +8,7 @@ import Testing
 
 @Suite("LLM tool conversion", .tags(.unit))
 struct LLMToolConversionTests {
-    struct ComplexMockTool: PKContracts.Tool {
+    struct ComplexMockTool: PKContracts.PKTool {
         let callName = "complex_tool"
         let name = "Complex Tool"
         let toolDescription = "A tool with nested parameters"

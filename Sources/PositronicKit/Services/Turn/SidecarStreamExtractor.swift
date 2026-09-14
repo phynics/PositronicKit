@@ -6,7 +6,7 @@ import PKUtilities
 
 /// Incremental extractor turning raw structured-output JSON deltas into routed
 /// sidecar-turn outputs. Pure value type: feed `consume(_:)` per content delta,
-/// call `finish()` at stream end. Not thread-safe by design — owned and driven
+/// call `finish()` at stream end. Not timeline-safe by design — owned and driven
 /// solely by `LLMStreamingStage`'s delta loop.
 struct SidecarStreamExtractor {
     enum Output: Equatable {

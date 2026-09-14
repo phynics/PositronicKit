@@ -2,7 +2,6 @@ import Foundation
 import PKContracts
 import PKUtilities
 import PositronicKit
-import struct PositronicKit.Thread
 import Synchronization
 
 /// Error thrown by the failing persistence mocks to simulate store failures in
@@ -13,39 +12,39 @@ public enum FailingStoreError: Error, Sendable {
     case deleteFailed
 }
 
-/// A `ThreadMessageStoreProtocol` mock that throws on `saveMessage` while recording each
+/// A `TimelineMessageStoreProtocol` mock that throws on `saveMessage` while recording each
 /// attempted message, so failure-path tests can assert the save was both attempted
 /// and non-fatal to the caller (e.g. an audit-log save that the caller must survive).
-public final class FailingMessageStore: ThreadMessageStoreProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
-    private let attemptedState = Mutex<[ThreadMessage]>([])
+public final class FailingMessageStore: TimelineMessageStoreProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    private let attemptedState = Mutex<[TimelineMessage]>([])
 
     /// Messages handed to `saveMessage` before it threw, in arrival order.
-    public var attemptedMessages: [ThreadMessage] {
+    public var attemptedMessages: [TimelineMessage] {
         attemptedState.withLock { $0 }
     }
 
     public init() {}
 
-    public func saveMessage(_ message: ThreadMessage) async throws {
+    public func saveMessage(_ message: TimelineMessage) async throws {
         attemptedState.withLock { $0.append(message) }
         throw FailingStoreError.saveFailed
     }
 
-    public func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage] { [] }
+    public func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage] { [] }
 
-    public func deleteMessages(for threadID: UUID) async throws {}
+    public func deleteMessages(for timelineID: UUID) async throws {}
 
     public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int { 0 }
 
-    public func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot] { [] }
+    public func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] { [] }
 }
 
-/// A `ThreadPersistenceProtocol` mock that can be configured to throw on
-/// `fetchThread`, `saveThread`, and/or `deleteThread`, delegating all other
+/// A `TimelinePersistenceProtocol` mock that can be configured to throw on
+/// `fetchTimeline`, `saveTimeline`, and/or `deleteTimeline`, delegating all other
 /// operations to an in-memory backing store. Use it to drive failure-path coverage
-/// for hydration (`fetchThread`) and private-thread cleanup (`deleteThread`).
-public final class FailingThreadPersistence: ThreadPersistenceProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
-    private let backing = MockThreadPersistenceStore()
+/// for hydration (`fetchTimeline`) and private-timeline cleanup (`deleteTimeline`).
+public final class FailingTimelinePersistence: TimelinePersistenceProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    private let backing = MockTimelinePersistenceStore()
     private let fetchFails: Bool
     private let saveFails: Bool
     private let deleteFails: Bool
@@ -62,41 +61,41 @@ public final class FailingThreadPersistence: ThreadPersistenceProtocol, @uncheck
         self.deleteFails = deleteFails
     }
 
-    /// Number of times `fetchThread` was invoked.
+    /// Number of times `fetchTimeline` was invoked.
     public var fetchAttemptCount: Int { fetchAttemptState.withLock { $0 } }
 
-    /// Number of times `deleteThread` was invoked.
+    /// Number of times `deleteTimeline` was invoked.
     public var deleteAttemptCount: Int { deleteAttemptState.withLock { $0 } }
 
-    public func saveThread(_ thread: Thread) async throws {
+    public func saveTimeline(_ timeline: TimelineRecord) async throws {
         if saveFails { throw FailingStoreError.saveFailed }
-        try await backing.saveThread(thread)
+        try await backing.saveTimeline(timeline)
     }
 
-    public func fetchThread(id: UUID) async throws -> Thread? {
+    public func fetchTimeline(id: UUID) async throws -> TimelineRecord? {
         fetchAttemptState.withLock { $0 += 1 }
         if fetchFails { throw FailingStoreError.fetchFailed }
-        return try await backing.fetchThread(id: id)
+        return try await backing.fetchTimeline(id: id)
     }
 
-    public func fetchAllThreads(includeArchived: Bool) async throws -> [Thread] {
-        try await backing.fetchAllThreads(includeArchived: includeArchived)
+    public func fetchAllTimelines(includeArchived: Bool) async throws -> [TimelineRecord] {
+        try await backing.fetchAllTimelines(includeArchived: includeArchived)
     }
 
-    public func deleteThread(id: UUID) async throws {
+    public func deleteTimeline(id: UUID) async throws {
         deleteAttemptState.withLock { $0 += 1 }
         if deleteFails { throw FailingStoreError.deleteFailed }
-        try await backing.deleteThread(id: id)
+        try await backing.deleteTimeline(id: id)
     }
 
-    public func pruneThreads(
+    public func pruneTimelines(
         olderThan timeInterval: TimeInterval,
-        excluding excludedThreadIDs: [UUID],
+        excluding excludedTimelineIDs: [UUID],
         dryRun: Bool
     ) async throws -> Int {
-        try await backing.pruneThreads(
+        try await backing.pruneTimelines(
             olderThan: timeInterval,
-            excluding: excludedThreadIDs,
+            excluding: excludedTimelineIDs,
             dryRun: dryRun
         )
     }
@@ -105,7 +104,7 @@ public final class FailingThreadPersistence: ThreadPersistenceProtocol, @uncheck
 /// A `WorkspaceStore` mock that can be configured to throw on `fetchWorkspace` and/or
 /// `saveWorkspace`, delegating all other operations to an in-memory backing store. Use it
 /// to drive failure-path coverage for workspace resolution in `getWorkspaces`,
-/// `setupThreadComponents`, and lifecycle rollback in `createThread`/`attachWorkspace`.
+/// `setupTimelineComponents`, and lifecycle rollback in `createTimeline`/`attachWorkspace`.
 public final class FailingWorkspaceStore: WorkspaceStore, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let backing = MockWorkspacePersistence()
     private let fetchFailsState = Mutex<Bool>(false)
@@ -151,14 +150,14 @@ public final class FailingWorkspaceStore: WorkspaceStore, @unchecked Sendable { 
     }
 }
 
-/// A `ThreadMessageStoreProtocol` mock backed by `MockMessageStore` that can be configured to
+/// A `TimelineMessageStoreProtocol` mock backed by `MockMessageStore` that can be configured to
 /// fail after a configurable number of successful `saveMessage` calls. Use it to drive
 /// partial-batch / resumable-persistence tests (PKRR-006): set `failAfterSaveCount` to `N`
 /// and the `(N+1)`-th save throws `FailingStoreError.saveFailed`. Set it back to `nil` to
 /// stop failing so a retry can complete the batch. The call count and threshold are evaluated in
 /// one mutex transaction, so exactly a configured nonnegative `N` concurrently admitted calls
 /// reach the backing store.
-public final class BatchFailingMessageStore: ThreadMessageStoreProtocol {
+public final class BatchFailingMessageStore: TimelineMessageStoreProtocol {
     private struct SaveState: Sendable {
         var failAfterSaveCount: Int?
         var saveCallCount = 0
@@ -179,11 +178,11 @@ public final class BatchFailingMessageStore: ThreadMessageStoreProtocol {
     /// Number of `saveMessage` calls received so far.
     public var saveCallCount: Int { saveState.withLock { $0.saveCallCount } }
 
-    public var messages: [ThreadMessage] {
+    public var messages: [TimelineMessage] {
         backing.messages
     }
 
-    public func saveMessage(_ message: ThreadMessage) async throws {
+    public func saveMessage(_ message: TimelineMessage) async throws {
         let isAdmitted = saveState.withLock { state in
             state.saveCallCount += 1
             guard let limit = state.failAfterSaveCount else { return true }
@@ -195,17 +194,17 @@ public final class BatchFailingMessageStore: ThreadMessageStoreProtocol {
         try await backing.saveMessage(message)
     }
 
-    public func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage] {
-        try await backing.fetchMessages(for: threadID)
+    public func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage] {
+        try await backing.fetchMessages(for: timelineID)
     }
 
-    public func deleteMessages(for threadID: UUID) async throws {
-        try await backing.deleteMessages(for: threadID)
+    public func deleteMessages(for timelineID: UUID) async throws {
+        try await backing.deleteMessages(for: timelineID)
     }
 
     public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int { 0 }
 
-    public func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot] { [] }
+    public func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] { [] }
 }
 
 /// A `ToolPersistenceProtocol` mock that can be configured to throw on

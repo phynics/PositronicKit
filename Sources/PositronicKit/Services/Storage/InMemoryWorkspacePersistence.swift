@@ -2,11 +2,11 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Thread-safe in-memory workspace persistence for prototyping and development.
+/// Timeline-safe in-memory workspace persistence for prototyping and development.
 public actor InMemoryWorkspacePersistence: WorkspaceStore, WorkspaceBindingRepository {
     private var workspaces: [WorkspaceReference] = []
     private var bindingsByWorkspace: [UUID: WorkspaceBinding] = [:]
-    private var workspaceIDsByThread: [UUID: Set<UUID>] = [:]
+    private var workspaceIDsByTimeline: [UUID: Set<UUID>] = [:]
 
     public init() {}
 
@@ -29,9 +29,9 @@ public actor InMemoryWorkspacePersistence: WorkspaceStore, WorkspaceBindingRepos
     public func deleteWorkspace(id: UUID) async throws {
         workspaces.removeAll { $0.id == id }
         if let binding = bindingsByWorkspace.removeValue(forKey: id) {
-            workspaceIDsByThread[binding.threadID]?.remove(id)
-            if workspaceIDsByThread[binding.threadID]?.isEmpty == true {
-                workspaceIDsByThread.removeValue(forKey: binding.threadID)
+            workspaceIDsByTimeline[binding.timelineID]?.remove(id)
+            if workspaceIDsByTimeline[binding.timelineID]?.isEmpty == true {
+                workspaceIDsByTimeline.removeValue(forKey: binding.timelineID)
             }
         }
     }
@@ -48,81 +48,81 @@ public actor InMemoryWorkspacePersistence: WorkspaceStore, WorkspaceBindingRepos
 
     public func claim(
         workspaceID: UUID,
-        for threadID: UUID,
+        for timelineID: UUID,
         now: Date = Date()
     ) async throws -> WorkspaceBinding {
         if let existing = bindingsByWorkspace[workspaceID] {
-            guard existing.threadID == threadID else {
+            guard existing.timelineID == timelineID else {
                 throw WorkspaceBindingRepositoryError.workspaceAlreadyBound(
                     workspaceID: workspaceID,
-                    threadID: existing.threadID
+                    timelineID: existing.timelineID
                 )
             }
             return existing
         }
         let binding = WorkspaceBinding(
             workspaceID: workspaceID,
-            threadID: threadID,
+            timelineID: timelineID,
             createdAt: now,
             updatedAt: now
         )
         bindingsByWorkspace[workspaceID] = binding
-        workspaceIDsByThread[threadID, default: []].insert(workspaceID)
+        workspaceIDsByTimeline[timelineID, default: []].insert(workspaceID)
         return binding
     }
 
     public func release(
         workspaceID: UUID,
-        from threadID: UUID,
+        from timelineID: UUID,
         now _: Date = Date()
     ) async throws {
-        guard let existing = bindingsByWorkspace[workspaceID], existing.threadID == threadID else {
+        guard let existing = bindingsByWorkspace[workspaceID], existing.timelineID == timelineID else {
             throw WorkspaceBindingRepositoryError.bindingNotFound(
                 workspaceID: workspaceID,
-                threadID: threadID
+                timelineID: timelineID
             )
         }
         bindingsByWorkspace.removeValue(forKey: workspaceID)
-        workspaceIDsByThread[threadID]?.remove(workspaceID)
-        if workspaceIDsByThread[threadID]?.isEmpty == true {
-            workspaceIDsByThread.removeValue(forKey: threadID)
+        workspaceIDsByTimeline[timelineID]?.remove(workspaceID)
+        if workspaceIDsByTimeline[timelineID]?.isEmpty == true {
+            workspaceIDsByTimeline.removeValue(forKey: timelineID)
         }
     }
 
     public func transfer(
         workspaceID: UUID,
-        from sourceThreadID: UUID,
-        to destinationThreadID: UUID,
+        from sourceTimelineID: UUID,
+        to destinationTimelineID: UUID,
         now: Date = Date()
     ) async throws -> WorkspaceBinding {
-        guard let existing = bindingsByWorkspace[workspaceID], existing.threadID == sourceThreadID else {
+        guard let existing = bindingsByWorkspace[workspaceID], existing.timelineID == sourceTimelineID else {
             throw WorkspaceBindingRepositoryError.transferSourceMismatch(
                 workspaceID: workspaceID,
-                threadID: sourceThreadID
+                timelineID: sourceTimelineID
             )
         }
         let binding = WorkspaceBinding(
             workspaceID: workspaceID,
-            threadID: destinationThreadID,
+            timelineID: destinationTimelineID,
             createdAt: existing.createdAt,
             updatedAt: now
         )
         bindingsByWorkspace[workspaceID] = binding
-        workspaceIDsByThread[sourceThreadID]?.remove(workspaceID)
-        if workspaceIDsByThread[sourceThreadID]?.isEmpty == true {
-            workspaceIDsByThread.removeValue(forKey: sourceThreadID)
+        workspaceIDsByTimeline[sourceTimelineID]?.remove(workspaceID)
+        if workspaceIDsByTimeline[sourceTimelineID]?.isEmpty == true {
+            workspaceIDsByTimeline.removeValue(forKey: sourceTimelineID)
         }
-        workspaceIDsByThread[destinationThreadID, default: []].insert(workspaceID)
+        workspaceIDsByTimeline[destinationTimelineID, default: []].insert(workspaceID)
         return binding
     }
 
-    public func bindings(for threadID: UUID) async throws -> [WorkspaceBinding] {
-        (workspaceIDsByThread[threadID] ?? [])
+    public func bindings(for timelineID: UUID) async throws -> [WorkspaceBinding] {
+        (workspaceIDsByTimeline[timelineID] ?? [])
             .compactMap { bindingsByWorkspace[$0] }
             .sorted { $0.createdAt < $1.createdAt }
     }
 
-    public func threadID(for workspaceID: UUID) async throws -> UUID? {
-        bindingsByWorkspace[workspaceID]?.threadID
+    public func timelineID(for workspaceID: UUID) async throws -> UUID? {
+        bindingsByWorkspace[workspaceID]?.timelineID
     }
 }

@@ -2,7 +2,7 @@ import Testing
 import Foundation
 @testable import PKContracts
 
-@Suite("Tool Parameters Extraction Tests")
+@Suite("PKTool Parameters Extraction Tests")
 struct ToolParametersTests {
 
     @Test("Require Parameter Success")

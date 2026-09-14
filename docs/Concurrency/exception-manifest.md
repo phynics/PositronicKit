@@ -30,13 +30,13 @@ annotations for exactly that reason.
 ## Test-support boundaries (retained)
 
 `@unchecked Sendable` in `Tests/` is allowed only for synchronous test doubles and
-`Tool`/`PKContracts.Tool` protocol mocks, each site annotated inline (see the
+`PKTool`/`PKContracts.PKTool` protocol mocks, each site annotated inline (see the
 annotation reasons around `concurrency_unchecked_sendable` matches). Categories:
 
 - **`PKTestSupport` mocks/stores** (`MockMessageStore`, `FailingStores`,
   `TestHTTPServer`, …): synchronous test doubles protected by
   `Synchronization.Mutex<State>` or immutable `let` captures.
-- **`Tool`/`PKContracts.Tool` protocol mocks** (`MockTool`, `StubTool`, `FailingTool`,
+- **`PKTool`/`PKContracts.PKTool` protocol mocks** (`MockTool`, `StubTool`, `FailingTool`,
   fixture tools in story tests): the tooling protocols are not `Sendable`-refined;
   the conformance is compiler-forced and stateless or capture-only.
 - **Middleware/harness doubles** (`CapturingMiddleware`, `RecordingGate`,
@@ -85,7 +85,7 @@ pattern already used by this file's subscriber `onTermination` cleanup.
 `FIFOLane` (`Sources/PositronicKit/Services/Concurrency/FIFOLane.swift`) stores keyed lane state
 in `Synchronization.Mutex`, and its `PermitWaiter` stores one checked continuation inside a
 separate mutex-protected lifecycle state. It is the single implementation behind every keyed
-FIFO coordinator in the runtime — `AgentAuthorityCoordinator`, `ThreadAuthorityCoordinator`, and
+FIFO coordinator in the runtime — `AgentAuthorityCoordinator`, `TimelineAuthorityCoordinator`, and
 `WorkspaceExecutionCoordinator` are thin typed wrappers over it, so this is now the one annotated
 continuation site for all three.
 Each waiter transitions exactly once from `pending` to `granted` or `cancelled`; cancellation

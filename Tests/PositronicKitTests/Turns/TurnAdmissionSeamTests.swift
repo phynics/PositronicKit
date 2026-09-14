@@ -9,17 +9,17 @@ import Testing
 struct TurnAdmissionSeamTests {
     @Test("managed admission captures authoritative Agent context")
     func managedAdmissionCapturesAuthority() async throws {
-        let agent = Agent(name: "Managed", description: "test", privateThreadID: UUID())
+        let agent = Agent(name: "Managed", description: "test", privateTimelineID: UUID())
         let harness = try await makeHarness(attachedAgent: agent)
         let requestID = UUID()
         let turnID = UUID()
         let result = try await harness.engine.admitTurn(TurnEngine.TurnAdmissionRequest(
-            threadID: harness.threadID,
+            timelineID: harness.timelineID,
             turnID: turnID,
             requestID: requestID,
-            inputMessage: ThreadMessage(
+            inputMessage: TimelineMessage(
                 id: requestID,
-                threadID: harness.threadID,
+                timelineID: harness.timelineID,
                 role: .user,
                 content: "managed"
             ),
@@ -38,13 +38,13 @@ struct TurnAdmissionSeamTests {
         #expect(record.capturedAgentID == agent.id)
     }
 
-    @Test("direct admission captures detached Thread authority without Agent context")
+    @Test("direct admission captures detached Timeline authority without Agent context")
     func directAdmissionCapturesDetachedAuthority() async throws {
         let harness = try await makeHarness()
         let requestID = UUID()
         let turnID = UUID()
         let result = try await harness.engine.admitTurn(TurnEngine.TurnAdmissionRequest(
-            threadID: harness.threadID,
+            timelineID: harness.timelineID,
             turnID: turnID,
             requestID: requestID,
             inputMessage: nil,
@@ -69,13 +69,13 @@ struct TurnAdmissionSeamTests {
         let requestID = UUID()
         let firstTurnID = UUID()
         let first = try await harness.engine.admitTurn(makeRequest(
-            threadID: harness.threadID,
+            timelineID: harness.timelineID,
             turnID: firstTurnID,
             requestID: requestID,
             content: "same"
         ))
         let joined = try await harness.engine.admitTurn(makeRequest(
-            threadID: harness.threadID,
+            timelineID: harness.timelineID,
             turnID: UUID(),
             requestID: requestID,
             content: "same"
@@ -92,7 +92,7 @@ struct TurnAdmissionSeamTests {
         } else {
             Issue.record("Expected the second request to join the first Turn")
         }
-        #expect(try await harness.repository.fetchMessages(for: harness.threadID).count == 1)
+        #expect(try await harness.repository.fetchMessages(for: harness.timelineID).count == 1)
     }
 
     @Test("a terminal repository Turn is replayed, not re-executed, for the same request")
@@ -101,7 +101,7 @@ struct TurnAdmissionSeamTests {
         let requestID = UUID()
         let turnID = UUID()
         _ = try await harness.engine.admitTurn(makeRequest(
-            threadID: harness.threadID,
+            timelineID: harness.timelineID,
             turnID: turnID,
             requestID: requestID,
             content: "terminal"
@@ -115,7 +115,7 @@ struct TurnAdmissionSeamTests {
         )
 
         let replayed = try await harness.engine.admitTurn(makeRequest(
-            threadID: harness.threadID,
+            timelineID: harness.timelineID,
             turnID: UUID(),
             requestID: requestID,
             content: "terminal"
@@ -128,7 +128,7 @@ struct TurnAdmissionSeamTests {
         } else {
             Issue.record("Expected the terminal Turn to be replayed")
         }
-        #expect(try await harness.repository.fetchMessages(for: harness.threadID).count == 1)
+        #expect(try await harness.repository.fetchMessages(for: harness.timelineID).count == 1)
     }
 
     @Test("reserved call_tool validation happens before admission")
@@ -136,10 +136,10 @@ struct TurnAdmissionSeamTests {
         let harness = try await makeHarness()
 
         await #expect(throws: ToolError.reservedToolName("call_tool")) {
-            _ = try await harness.engine.prepareSession(
+            _ = try await harness.engine.prepareTurn(
                 TurnExecutionRequest(
                     TurnRequest(
-                        threadID: harness.threadID,
+                        timelineID: harness.timelineID,
                         requestID: UUID(),
                         message: "must not admit",
                         tools: [ReservedCallTool()],
@@ -155,8 +155,8 @@ struct TurnAdmissionSeamTests {
             )
         }
 
-        #expect(try await harness.repository.fetchMessages(for: harness.threadID).isEmpty)
-        #expect(try await harness.repository.fetchActiveTurn(for: harness.threadID) == nil)
+        #expect(try await harness.repository.fetchMessages(for: harness.timelineID).isEmpty)
+        #expect(try await harness.repository.fetchActiveTurn(for: harness.timelineID) == nil)
     }
 
     @Test("post-admission preparation failure retains input and records a failed Turn")
@@ -166,10 +166,10 @@ struct TurnAdmissionSeamTests {
         let turnID = UUID()
 
         await #expect(throws: Error.self) {
-            _ = try await harness.engine.prepareSession(
+            _ = try await harness.engine.prepareTurn(
                 TurnExecutionRequest(
                     TurnRequest(
-                        threadID: harness.threadID,
+                        timelineID: harness.timelineID,
                         requestID: requestID,
                         message: "retained input",
                         toolOutputs: [ToolOutputSubmission(toolCallID: "missing", output: "result")],
@@ -185,11 +185,11 @@ struct TurnAdmissionSeamTests {
             )
         }
 
-        let messages = try await harness.repository.fetchMessages(for: harness.threadID)
+        let messages = try await harness.repository.fetchMessages(for: harness.timelineID)
         #expect(messages.filter { $0.role == "user" }.map(\.content) == ["retained input"])
         let record = try #require(try await harness.repository.fetchTurn(id: turnID))
         #expect(record.outcome == .failed(message: "Turn preparation failed before execution."))
-        #expect(try await harness.repository.fetchActiveTurn(for: harness.threadID) == nil)
+        #expect(try await harness.repository.fetchActiveTurn(for: harness.timelineID) == nil)
     }
 
     @Test("preparation failure releases reserved external tool output IDs")
@@ -201,18 +201,18 @@ struct TurnAdmissionSeamTests {
             ToolCall(id: callID, name: "external_tool", arguments: [:]),
             ToolCall(id: danglingID, name: "external_tool", arguments: [:]),
         ])
-        try await harness.repository.saveMessage(ThreadMessage(
-            threadID: harness.threadID,
+        try await harness.repository.saveMessage(TimelineMessage(
+            timelineID: harness.timelineID,
             role: .assistant,
             content: "",
             toolCalls: String(decoding: calls, as: UTF8.self)
         ))
 
         await #expect(throws: Error.self) {
-            _ = try await harness.engine.prepareSession(
+            _ = try await harness.engine.prepareTurn(
                 TurnExecutionRequest(
                     TurnRequest(
-                        threadID: harness.threadID,
+                        timelineID: harness.timelineID,
                         requestID: UUID(),
                         message: "",
                         toolOutputs: [ToolOutputSubmission(toolCallID: callID, output: "result")],
@@ -230,12 +230,12 @@ struct TurnAdmissionSeamTests {
 
         let retryable = try await harness.engine.dependencies.submissionGate.validate(
             [ToolOutputSubmission(toolCallID: callID, output: "result")],
-            threadID: harness.threadID,
+            timelineID: harness.timelineID,
             runtimeRepository: harness.repository
         )
         #expect(retryable.map(\.toolCallID) == [callID])
         await harness.engine.dependencies.submissionGate.releaseReservations(
-            threadID: harness.threadID,
+            timelineID: harness.timelineID,
             toolCallIds: [callID]
         )
     }
@@ -252,8 +252,8 @@ struct TurnAdmissionSeamTests {
         let calls = try SerializationUtils.jsonEncoder.encode([
             ToolCall(id: goodCallID, name: "external_tool", arguments: [:]),
         ])
-        try await harness.repository.saveMessage(ThreadMessage(
-            threadID: harness.threadID,
+        try await harness.repository.saveMessage(TimelineMessage(
+            timelineID: harness.timelineID,
             role: .assistant,
             content: "",
             toolCalls: String(decoding: calls, as: UTF8.self)
@@ -266,7 +266,7 @@ struct TurnAdmissionSeamTests {
                     ToolOutputSubmission(toolCallID: goodCallID, output: "result"),
                     ToolOutputSubmission(toolCallID: "no-such-call", output: "result"),
                 ],
-                threadID: harness.threadID,
+                timelineID: harness.timelineID,
                 runtimeRepository: harness.repository
             )
         }
@@ -275,26 +275,26 @@ struct TurnAdmissionSeamTests {
         // reserved and drop it from the pending set, so `retryable` would come back empty.
         let retryable = try await gate.validate(
             [ToolOutputSubmission(toolCallID: goodCallID, output: "result")],
-            threadID: harness.threadID,
+            timelineID: harness.timelineID,
             runtimeRepository: harness.repository
         )
         #expect(retryable.map(\.toolCallID) == [goodCallID])
-        await gate.releaseReservations(threadID: harness.threadID, toolCallIds: [goodCallID])
+        await gate.releaseReservations(timelineID: harness.timelineID, toolCallIds: [goodCallID])
     }
 
     private func makeRequest(
-        threadID: UUID,
+        timelineID: UUID,
         turnID: UUID,
         requestID: UUID,
         content: String
     ) -> TurnEngine.TurnAdmissionRequest {
         TurnEngine.TurnAdmissionRequest(
-            threadID: threadID,
+            timelineID: timelineID,
             turnID: turnID,
             requestID: requestID,
-            inputMessage: ThreadMessage(
+            inputMessage: TimelineMessage(
                 id: requestID,
-                threadID: threadID,
+                timelineID: timelineID,
                 role: .user,
                 content: content
             ),
@@ -305,11 +305,11 @@ struct TurnAdmissionSeamTests {
     }
 
     private func makeHarness(attachedAgent: Agent? = nil) async throws -> AdmissionHarness {
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let backing = MockPersistenceService()
-        let threadManager = ThreadManager(
+        let timelineManager = TimelineManager(
             stores: .init(
-                threadStore: repository,
+                timelineStore: repository,
                 messageStore: repository,
                 workspaceStore: backing,
                 workspaceBindingRepository: repository,
@@ -320,12 +320,12 @@ struct TurnAdmissionSeamTests {
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
-            threadManager: threadManager,
+            timelineManager: timelineManager,
             runtimeRepository: repository
         )
         let engine = TurnEngine(
             dependencies: .init(
-                threadManager: threadManager,
+                timelineManager: timelineManager,
                 agentStore: backing,
                 requestOriginStore: backing,
                 runtimeRepository: repository,
@@ -333,16 +333,16 @@ struct TurnAdmissionSeamTests {
                 toolRouter: toolRouter
             )
         )
-        let threadID = UUID()
-        try await repository.saveThread(Thread(id: threadID, attachedAgentID: attachedAgent?.id))
+        let timelineID = UUID()
+        try await repository.saveTimeline(TimelineRecord(id: timelineID, attachedAgentID: attachedAgent?.id))
         if let attachedAgent {
             try await backing.saveAgent(attachedAgent)
         }
-        try await threadManager.hydrateThread(id: threadID)
+        try await timelineManager.hydrateTimeline(id: timelineID)
         return AdmissionHarness(
             engine: engine,
             repository: repository,
-            threadID: threadID
+            timelineID: timelineID
         )
     }
 
@@ -350,11 +350,11 @@ struct TurnAdmissionSeamTests {
 
 private struct AdmissionHarness {
     let engine: TurnEngine
-    let repository: InMemoryThreadRuntimeRepository
-    let threadID: UUID
+    let repository: InMemoryTimelineRuntimeRepository
+    let timelineID: UUID
 }
 
-private struct ReservedCallTool: PKContracts.Tool, Sendable {
+private struct ReservedCallTool: PKContracts.PKTool, Sendable {
     let callName = "call_tool"
     let name = "Reserved call tool"
     let toolDescription = "Test-only reserved tool"

@@ -3,12 +3,12 @@ import PKContracts
 import PKUtilities
 
 extension WorkspaceToolDefinition {
-    /// Create from an existing Tool protocol instance.
+    /// Create from an existing PKTool protocol instance.
     ///
-    /// `Tool.parametersSchema` is the typed `JSONSchema.Schema`; `WorkspaceToolDefinition` stores
+    /// `PKTool.parametersSchema` is the typed `JSONSchema.Schema`; `WorkspaceToolDefinition` stores
     /// the `[String: AnyCodable]` wire/transfer form (it must stay `Codable`/`Hashable` for
     /// `ToolReference`), so the schema is encoded to the dictionary form here.
-    public init(from tool: any Tool) {
+    public init(from tool: any PKTool) {
         self.init(
             id: tool.callName,
             name: tool.name,

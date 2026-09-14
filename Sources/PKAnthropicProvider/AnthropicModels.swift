@@ -178,7 +178,7 @@ enum AnthropicMessageConversion {
     /// - Consecutive same-role messages are merged into one message with multiple content
     ///   blocks, since the Messages API requires alternating user/assistant turns.
     /// - `LLMMessage.reasoning` is intentionally NOT echoed: Anthropic thinking blocks carry a
-    ///   provider-issued cryptographic signature that PositronicKit does not persist, and
+    ///   provider-issued cryptographic signature that PKRuntime does not persist, and
     ///   unsigned thinking blocks are rejected by the API.
     static func convert(
         messages: [LLMMessage],

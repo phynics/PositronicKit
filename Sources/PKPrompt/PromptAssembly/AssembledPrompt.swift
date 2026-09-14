@@ -104,7 +104,7 @@ public struct AssembledPrompt: Sendable {
         case .system:
             return "System: \(message.content)"
         case .tool:
-            return "Tool: \(message.content)"
+            return "PKTool: \(message.content)"
         case .summary:
             return "Summary: \(message.content)"
         }

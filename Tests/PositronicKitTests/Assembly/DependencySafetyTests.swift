@@ -12,19 +12,19 @@ struct DependencySafetyTests {
         let workspaceRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let runtime = TestRuntime(workspaceRoot: workspaceRoot)
 
-        // A Thread created via the capability value is visible through the shared persistence.
-        let thread = try await runtime.threads.create(title: "Shared")
-        let persistedThread = try await runtime.persistence.fetchThread(id: thread.id)
-        #expect(persistedThread?.id == thread.id)
+        // A Timeline created via the capability value is visible through the shared persistence.
+        let timeline = try await runtime.timelines.create(title: "Shared")
+        let persistedTimeline = try await runtime.persistence.fetchTimeline(id: timeline.id)
+        #expect(persistedTimeline?.id == timeline.id)
 
         // A workspace saved directly into persistence resolves through the capability value,
         // proving that it is backed by the same store.
-        let workspace = WorkspaceReference(uri: .threadWorkspace(UUID()), location: .runtime)
+        let workspace = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
         try await runtime.persistence.saveWorkspace(workspace)
         let resolved = try await runtime.workspaces.get(workspace.id)
         #expect(resolved?.id == workspace.id)
 
-        #expect(try await runtime.threads.get(thread.id)?.id == thread.id)
+        #expect(try await runtime.timelines.get(timeline.id)?.id == timeline.id)
     }
 
     @Test("AgentManager correctly resolves overridden agentWorkspaceService")
@@ -39,7 +39,7 @@ struct DependencySafetyTests {
             repository: customRepo,
             stores: .init(
                 agentStore: persistence,
-                threadStore: persistence,
+                timelineStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence
             )

@@ -3,7 +3,7 @@ import PKContracts
 import Testing
 
 struct OpenAIMessageConversionValidationTests {
-    @Test("Tool-role message with nil toolCallID throws a typed validation error")
+    @Test("PKTool-role message with nil toolCallID throws a typed validation error")
     func toolMessageWithNilToolCallIDThrows() throws {
         let message = LLMMessage(role: .tool, content: "result", toolCallID: nil)
         do {
@@ -18,7 +18,7 @@ struct OpenAIMessageConversionValidationTests {
         }
     }
 
-    @Test("Tool-role message with a toolCallID preserves the OpenAI wire value")
+    @Test("PKTool-role message with a toolCallID preserves the OpenAI wire value")
     func toolMessageWithToolCallIDPreservesWireValue() throws {
         let message = LLMMessage(role: .tool, content: "result", toolCallID: "call_1")
         let param = try message.toOpenAIMessageParam()

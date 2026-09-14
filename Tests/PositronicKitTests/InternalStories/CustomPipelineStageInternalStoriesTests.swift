@@ -12,10 +12,10 @@ struct CustomPipelineStageInternalStoriesTests {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
 
-        let threadID = UUID()
+        let timelineID = UUID()
         let message = "Hello, custom stage!"
 
-        try await mockPersistence.saveThread(Thread(id: threadID, title: "Test"))
+        try await mockPersistence.saveTimeline(TimelineRecord(id: timelineID, title: "Test"))
 
         let tracker = MockStageRunTracker()
         let customStage = MockCustomStage(tracker: tracker)
@@ -24,7 +24,7 @@ struct CustomPipelineStageInternalStoriesTests {
             .addingStage(customStage)
 
         let stream = try await chat.run(TurnRequest(
-            threadID: threadID,
+            timelineID: timelineID,
             message: message
         ))
 
@@ -39,8 +39,8 @@ struct CustomPipelineStageInternalStoriesTests {
     private func makeChat(
         llmService languageModel: any LLMStreamClient,
         persistence: MockPersistenceService
-    ) -> PositronicKit {
-        PositronicKit(configuration: .init(
+    ) -> PKRuntime {
+        PKRuntime(configuration: .init(
             languageModel: languageModel,
             persistence: .init(
                 runtimeRepository: persistence,

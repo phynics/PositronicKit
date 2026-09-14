@@ -10,18 +10,18 @@ import Testing
 @Suite("Facade one-shot operations", .tags(.integration))
 // swiftlint:disable:next type_body_length
 struct FacadeOneShotTests {
-    @Test("complete assembles streamed text without persisting a thread turn")
-    func completeIsThreadFree() async throws {
+    @Test("complete assembles streamed text without persisting a timeline turn")
+    func completeIsTimelineFree() async throws {
         let llm = MockLLMService()
         llm.stubbedStream = Self.stream(contents: ["hel", "lo"])
-        let persistence = PositronicKit.PersistenceConfiguration(
-            runtimeRepository: InMemoryThreadRuntimeRepository(),
+        let persistence = PKRuntime.PersistenceConfiguration(
+            runtimeRepository: InMemoryTimelineRuntimeRepository(),
             workspacePersistence: InMemoryWorkspacePersistence(),
             toolPersistence: InMemoryToolPersistence(),
             agentStore: InMemoryAgentStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: persistence
         ))
@@ -30,7 +30,7 @@ struct FacadeOneShotTests {
 
         #expect(result == "hello")
         #expect(try await persistence.runtimeRepository.fetchMessages(for: UUID()).isEmpty)
-        #expect(try await persistence.runtimeRepository.fetchAllThreads(includeArchived: true).isEmpty)
+        #expect(try await persistence.runtimeRepository.fetchAllTimelines(includeArchived: true).isEmpty)
         #expect(try await persistence.workspacePersistence.fetchAllWorkspaces().isEmpty)
         #expect(try await persistence.toolPersistence.fetchTools(forWorkspaces: []).isEmpty)
         #expect(try await persistence.agentStore.fetchAllAgents().isEmpty)
@@ -38,15 +38,15 @@ struct FacadeOneShotTests {
     }
 
     @Test("stream exposes provider events without persistence")
-    func streamIsThreadFree() async throws {
+    func streamIsTimelineFree() async throws {
         let llm = MockLLMService()
         llm.stubbedStream = Self.stream(contents: ["one", "two"])
         let messageStore = InMemoryMessageStore()
-        let threadPersistence = InMemoryThreadPersistence()
-        let kit = PositronicKit(configuration: .init(
+        let timelinePersistence = InMemoryTimelinePersistence()
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: .init(
-                runtimeRepository: InMemoryThreadRuntimeRepository()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             )
         ))
 
@@ -54,7 +54,7 @@ struct FacadeOneShotTests {
 
         #expect(events.compactMap { $0.choices.first?.delta.content } == ["one", "two"])
         #expect(try await messageStore.fetchMessages(for: UUID()).isEmpty)
-        #expect(try await threadPersistence.fetchAllThreads(includeArchived: true).isEmpty)
+        #expect(try await timelinePersistence.fetchAllTimelines(includeArchived: true).isEmpty)
     }
 
     @Test("abandoning one-shot iteration cancels the provider exactly once")
@@ -98,10 +98,10 @@ struct FacadeOneShotTests {
                 usage: usage
             )
         ]]
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: .init(
-                runtimeRepository: InMemoryThreadRuntimeRepository()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             )
         ))
         let parameters = GenerationParameters(temperature: 0.2, maxTokens: 12)
@@ -120,10 +120,10 @@ struct FacadeOneShotTests {
     func oneShotIdleTimeout() async throws {
         let llm = MockLLMService()
         llm.stubbedStream = AsyncThrowingStream { _ in }
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: .init(
-                runtimeRepository: InMemoryThreadRuntimeRepository()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             )
         ))
 
@@ -144,10 +144,10 @@ struct FacadeOneShotTests {
         let probe = OneShotTerminationProbe()
         let llm = MockLLMService()
         llm.stubbedStream = Self.cancellableProviderStream(probe: probe)
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: .init(
-                runtimeRepository: InMemoryThreadRuntimeRepository()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             )
         ))
         let task = Task {
@@ -201,10 +201,10 @@ struct FacadeOneShotTests {
         let llm = MockLLMService()
         try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         llm.mockClient.nextChunks = [[#"{"tags":["swift"]}"#]]
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
-            persistence: PositronicKit.PersistenceConfiguration(
-                runtimeRepository: InMemoryThreadRuntimeRepository(),
+            persistence: PKRuntime.PersistenceConfiguration(
+                runtimeRepository: InMemoryTimelineRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
@@ -357,10 +357,10 @@ struct FacadeOneShotTests {
         let llm = MockLLMService()
         try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         llm.mockClient.nextChunks = [[#"{"tags":["#, #""swift"]}"#]]
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
-            persistence: PositronicKit.PersistenceConfiguration(
-                runtimeRepository: InMemoryThreadRuntimeRepository(),
+            persistence: PKRuntime.PersistenceConfiguration(
+                runtimeRepository: InMemoryTimelineRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
@@ -386,10 +386,10 @@ struct FacadeOneShotTests {
                 MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: #""swift"]}"#)
             ]),
         ]]
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
-            persistence: PositronicKit.PersistenceConfiguration(
-                runtimeRepository: InMemoryThreadRuntimeRepository(),
+            persistence: PKRuntime.PersistenceConfiguration(
+                runtimeRepository: InMemoryTimelineRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
@@ -412,10 +412,10 @@ struct FacadeOneShotTests {
         let llm = MockLLMService()
         try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         llm.mockClient.nextChunks = [[]]
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
-            persistence: PositronicKit.PersistenceConfiguration(
-                runtimeRepository: InMemoryThreadRuntimeRepository()
+            persistence: PKRuntime.PersistenceConfiguration(
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             )
         ))
 
@@ -443,11 +443,11 @@ struct FacadeOneShotTests {
     private static func makeKit(
         languageModel: MockLLMService,
         generationParameters: GenerationParameters? = nil
-    ) -> PositronicKit {
-        PositronicKit(configuration: .init(
+    ) -> PKRuntime {
+        PKRuntime(configuration: .init(
             languageModel: languageModel,
             persistence: .init(
-                runtimeRepository: InMemoryThreadRuntimeRepository()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
             generationParameters: generationParameters
         ))

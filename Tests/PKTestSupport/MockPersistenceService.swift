@@ -2,20 +2,19 @@ import Foundation
 import PKContracts
 import PKUtilities
 import PositronicKit
-import struct PositronicKit.Thread
 import Synchronization
 
 /// Composite in-memory test double for the full persistence surface (messages,
-/// threads, agent templates, workspaces, tools, request origins, agents,
+/// timelines, agent templates, workspaces, tools, request origins, agents,
 /// health), delegating each protocol area to its own focused mock,
-/// ``MockMessageStore``, ``MockThreadPersistenceStore``, ``MockAgentTemplateStore``,
+/// ``MockMessageStore``, ``MockTimelinePersistenceStore``, ``MockAgentTemplateStore``,
 /// ``MockWorkspacePersistence``, ``MockToolPersistence``) so a test can construct a single
 /// object instead of wiring up every store protocol separately.
 ///
 /// Configurable: `mockHealthStatus`/`mockHealthDetails`; `saveOriginMock`/`fetchOriginMock`/
 /// `fetchAllOriginsMock`/`deleteOriginMock` (closures overriding `RequestOriginStoreProtocol`
 /// behavior — unset closures make origin operations no-ops/return empty). Inspectable:
-/// `messages`, `threads`, `agentTemplates`, `workspaces`,
+/// `messages`, `timelines`, `agentTemplates`, `workspaces`,
 /// `agents` all forward to the underlying focused mocks. `resetDatabase()` clears
 /// every backing store.
 ///
@@ -23,15 +22,15 @@ import Synchronization
 /// Agent insert-or-replace and each tool-workspace mirror upsert are atomic; the two backing stores
 /// are not a cross-store transaction. Callback values are snapshotted while locked, then invoked
 /// after unlocking, so no mutex crosses an `await` or caller-provided code.
-public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentStoreProtocol, HealthCheckable {
+public final class MockPersistenceService: TimelineRuntimeRepository, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentStoreProtocol, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok
         var mockHealthDetails: [String: String]? = ["mock": "true"]
         var mockIsDurable = false
-        var fetchThreadFails = false
+        var fetchTimelineFails = false
         var completeTurnFails = false
-        var unorderedMessagesForThreadID: UUID?
-        var deletedMessageThreadIDs: Set<UUID> = []
+        var unorderedMessagesForTimelineID: UUID?
+        var deletedMessageTimelineIDs: Set<UUID> = []
         var saveMessageFailureAfter: Int?
         var saveMessageCallCount = 0
         var recordToolResultFailureAfter: Int?
@@ -45,11 +44,11 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
     }
 
     private let messagesMock = MockMessageStore()
-    private let threadsMock = MockThreadPersistenceStore()
+    private let timelinesMock = MockTimelinePersistenceStore()
     private let agentTemplatesMock = MockAgentTemplateStore()
     private let workspacesMock = MockWorkspacePersistence()
     private let toolsMock = MockToolPersistence()
-    private let turnRuntime = InMemoryThreadRuntimeRepository()
+    private let turnRuntime = InMemoryTimelineRuntimeRepository()
     private let state = Mutex(State())
 
     public var mockHealthStatus: HealthStatus {
@@ -72,11 +71,11 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
 
     public var isDurable: Bool { state.withLock { $0.mockIsDurable } }
 
-    /// When enabled, thread reads fail with the shared failure-test error so callers can verify
+    /// When enabled, timeline reads fail with the shared failure-test error so callers can verify
     /// unavailable persistence behavior through the cohesive runtime repository.
-    public var fetchThreadFails: Bool {
-        get { state.withLock { $0.fetchThreadFails } }
-        set { state.withLock { $0.fetchThreadFails = newValue } }
+    public var fetchTimelineFails: Bool {
+        get { state.withLock { $0.fetchTimelineFails } }
+        set { state.withLock { $0.fetchTimelineFails = newValue } }
     }
 
     /// Causes terminal outcome persistence to fail, after the Turn has been admitted.
@@ -85,11 +84,11 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
         set { state.withLock { $0.completeTurnFails = newValue } }
     }
 
-    /// Package-only test control that reverses fetched messages for one fixture Thread to prove
+    /// Package-only test control that reverses fetched messages for one fixture Timeline to prove
     /// the shipped conformance suite detects an adapter that violates the ordering contract.
-    package var unorderedMessagesForThreadID: UUID? {
-        get { state.withLock { $0.unorderedMessagesForThreadID } }
-        set { state.withLock { $0.unorderedMessagesForThreadID = newValue } }
+    package var unorderedMessagesForTimelineID: UUID? {
+        get { state.withLock { $0.unorderedMessagesForTimelineID } }
+        set { state.withLock { $0.unorderedMessagesForTimelineID = newValue } }
     }
 
     /// Causes message persistence to fail after the specified number of successful calls. This
@@ -151,14 +150,14 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
         return state.withLock { $0.mockHealthStatus }
     }
 
-    // MARK: - ThreadMessageStoreProtocol
+    // MARK: - TimelineMessageStoreProtocol
 
-    public var messages: [ThreadMessage] {
+    public var messages: [TimelineMessage] {
         get { messagesMock.messages }
         set { messagesMock.messages = newValue }
     }
 
-    public func saveMessage(_ message: ThreadMessage) async throws {
+    public func saveMessage(_ message: TimelineMessage) async throws {
         defer { recordPersistenceAccess() }
         let shouldFail = state.withLock { state in
             state.saveMessageCallCount += 1
@@ -168,22 +167,22 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
         if shouldFail { throw FailingStoreError.saveFailed }
         try await messagesMock.saveMessage(message)
         try await turnRuntime.saveMessage(message)
-        _ = state.withLock { $0.deletedMessageThreadIDs.remove(message.threadID) }
+        _ = state.withLock { $0.deletedMessageTimelineIDs.remove(message.timelineID) }
     }
 
-    public func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage] {
+    public func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage] {
         defer { recordPersistenceAccess() }
-        let focused = try await messagesMock.fetchMessages(for: threadID)
-        let cohesive: [ThreadMessage]
-        if state.withLock({ $0.deletedMessageThreadIDs.contains(threadID) }) {
+        let focused = try await messagesMock.fetchMessages(for: timelineID)
+        let cohesive: [TimelineMessage]
+        if state.withLock({ $0.deletedMessageTimelineIDs.contains(timelineID) }) {
             cohesive = []
         } else {
-            cohesive = try await turnRuntime.fetchMessages(for: threadID)
+            cohesive = try await turnRuntime.fetchMessages(for: timelineID)
         }
         var merged = focused
         let existingIDs = Set(focused.map(\.id))
         merged.append(contentsOf: cohesive.filter { !existingIDs.contains($0.id) })
-        if state.withLock({ $0.unorderedMessagesForThreadID == threadID }) {
+        if state.withLock({ $0.unorderedMessagesForTimelineID == timelineID }) {
             return Array(merged.reversed())
         }
         return merged
@@ -197,9 +196,9 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
             .map { $0.element }
     }
 
-    public func deleteMessages(for threadID: UUID) async throws {
+    public func deleteMessages(for timelineID: UUID) async throws {
         defer { recordPersistenceAccess() }
-        throw ThreadRuntimeRepositoryError.historyDeletionForbidden(threadID: threadID)
+        throw TimelineRuntimeRepositoryError.historyDeletionForbidden(timelineID: timelineID)
     }
 
     public func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
@@ -207,51 +206,51 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
         return try await messagesMock.pruneMessages(olderThan: timeInterval, dryRun: dryRun)
     }
 
-    public func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot] {
+    public func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] {
         defer { recordPersistenceAccess() }
-        return try await messagesMock.fetchSnapshots(for: threadID)
+        return try await messagesMock.fetchSnapshots(for: timelineID)
     }
 
-    // MARK: - ThreadPersistenceProtocol
+    // MARK: - TimelinePersistenceProtocol
 
-    public var threads: [Thread] {
-        get { threadsMock.threads }
-        set { threadsMock.threads = newValue }
+    public var timelines: [TimelineRecord] {
+        get { timelinesMock.timelines }
+        set { timelinesMock.timelines = newValue }
     }
 
-    public func saveThread(_ thread: Thread) async throws {
+    public func saveTimeline(_ timeline: TimelineRecord) async throws {
         defer { recordPersistenceAccess() }
-        try await threadsMock.saveThread(thread)
-        try await turnRuntime.saveThread(thread)
+        try await timelinesMock.saveTimeline(timeline)
+        try await turnRuntime.saveTimeline(timeline)
     }
 
-    public func fetchThread(id: UUID) async throws -> Thread? {
+    public func fetchTimeline(id: UUID) async throws -> TimelineRecord? {
         defer { recordPersistenceAccess() }
-        if fetchThreadFails { throw FailingStoreError.fetchFailed }
-        return try await threadsMock.fetchThread(id: id)
+        if fetchTimelineFails { throw FailingStoreError.fetchFailed }
+        return try await timelinesMock.fetchTimeline(id: id)
     }
 
-    public func fetchAllThreads(includeArchived: Bool) async throws -> [Thread] {
+    public func fetchAllTimelines(includeArchived: Bool) async throws -> [TimelineRecord] {
         defer { recordPersistenceAccess() }
-        return try await threadsMock.fetchAllThreads(includeArchived: includeArchived)
+        return try await timelinesMock.fetchAllTimelines(includeArchived: includeArchived)
     }
 
-    public func deleteThread(id: UUID) async throws {
+    public func deleteTimeline(id: UUID) async throws {
         defer { recordPersistenceAccess() }
-        // `ThreadRuntimeRepository.deleteThread(id:)` must cascade history deletion (see the
+        // `TimelineRuntimeRepository.deleteTimeline(id:)` must cascade history deletion (see the
         // protocol's doc comment). This mock backs message reads with two stores — a focused
-        // `messagesMock` and the cohesive `turnRuntime` — so both must drop the thread's
+        // `messagesMock` and the cohesive `turnRuntime` — so both must drop the timeline's
         // messages here for `fetchMessages(for:)` to reflect the same cascade a real conformer
         // guarantees.
         try await messagesMock.deleteMessages(for: id)
-        _ = state.withLock { $0.deletedMessageThreadIDs.insert(id) }
-        try await threadsMock.deleteThread(id: id)
-        try await turnRuntime.deleteThread(id: id)
+        _ = state.withLock { $0.deletedMessageTimelineIDs.insert(id) }
+        try await timelinesMock.deleteTimeline(id: id)
+        try await turnRuntime.deleteTimeline(id: id)
     }
 
-    public func pruneThreads(olderThan timeInterval: TimeInterval, excluding excludedThreadIDs: [UUID], dryRun: Bool) async throws -> Int {
+    public func pruneTimelines(olderThan timeInterval: TimeInterval, excluding excludedTimelineIDs: [UUID], dryRun: Bool) async throws -> Int {
         defer { recordPersistenceAccess() }
-        return try await threadsMock.pruneThreads(olderThan: timeInterval, excluding: excludedThreadIDs, dryRun: dryRun)
+        return try await timelinesMock.pruneTimelines(olderThan: timeInterval, excluding: excludedTimelineIDs, dryRun: dryRun)
     }
 
     // MARK: - AgentTemplateStoreProtocol
@@ -419,20 +418,20 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
         state.withLock { $0.agents.removeAll { $0.id == id } }
     }
 
-    public func fetchThreads(attachedToAgent agentID: UUID) async throws -> [Thread] {
+    public func fetchTimelines(attachedToAgent agentID: UUID) async throws -> [TimelineRecord] {
         defer { recordPersistenceAccess() }
-        return threads.filter { $0.attachedAgentID == agentID }
+        return timelines.filter { $0.attachedAgentID == agentID }
     }
 
     public func resetDatabase() async throws {
         defer { recordPersistenceAccess() }
         messages = []
-        threads = []
+        timelines = []
         agentTemplates = []
         workspaces = []
         state.withLock {
             $0.agents = []
-            $0.deletedMessageThreadIDs = []
+            $0.deletedMessageTimelineIDs = []
         }
         toolsMock.workspaces = []
     }
@@ -441,29 +440,29 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
 // MARK: - TurnRuntimeRepository forwarding
 
 extension MockPersistenceService {
-    public func admitTurn(threadID: UUID, requestID: UUID, callerIntentFingerprint: String,
-                          inputMessage: ThreadMessage?, executionKind: TurnExecutionKind,
+    public func admitTurn(timelineID: UUID, requestID: UUID, callerIntentFingerprint: String,
+                          inputMessage: TimelineMessage?, executionKind: TurnExecutionKind,
                           capturedAgentID: UUID?, turnID: UUID, now: Date) async throws -> TurnAdmission {
         defer { recordPersistenceAccess() }
-        return try await turnRuntime.admitTurn(threadID: threadID, requestID: requestID,
+        return try await turnRuntime.admitTurn(timelineID: timelineID, requestID: requestID,
                                         callerIntentFingerprint: callerIntentFingerprint,
                                         inputMessage: inputMessage, executionKind: executionKind,
                                         capturedAgentID: capturedAgentID, turnID: turnID, now: now)
     }
 
-    public func admitRetry(threadID: UUID, previousTurnID: UUID, requestID: UUID,
-                           callerIntentFingerprint: String, inputMessage: ThreadMessage?,
+    public func admitRetry(timelineID: UUID, previousTurnID: UUID, requestID: UUID,
+                           callerIntentFingerprint: String, inputMessage: TimelineMessage?,
                            executionKind: TurnExecutionKind, capturedAgentID: UUID?, turnID: UUID,
                            attempt: Int, now: Date) async throws -> TurnAdmission {
         defer { recordPersistenceAccess() }
-        return try await turnRuntime.admitRetry(threadID: threadID, previousTurnID: previousTurnID,
+        return try await turnRuntime.admitRetry(timelineID: timelineID, previousTurnID: previousTurnID,
                                          requestID: requestID, callerIntentFingerprint: callerIntentFingerprint,
                                          inputMessage: inputMessage, executionKind: executionKind,
                                          capturedAgentID: capturedAgentID, turnID: turnID, attempt: attempt, now: now)
     }
 
     public func fetchTurn(id: UUID) async throws -> TurnRecord? { recordPersistenceAccess(); return try await turnRuntime.fetchTurn(id: id) }
-    public func fetchActiveTurn(for threadID: UUID) async throws -> TurnRecord? { recordPersistenceAccess(); return try await turnRuntime.fetchActiveTurn(for: threadID) }
+    public func fetchActiveTurn(for timelineID: UUID) async throws -> TurnRecord? { recordPersistenceAccess(); return try await turnRuntime.fetchActiveTurn(for: timelineID) }
     public func appendNotice(turnID: UUID, notice: TurnNotice) async throws { recordPersistenceAccess(); try await turnRuntime.appendNotice(turnID: turnID, notice: notice) }
     public func appendCorrelation(turnID: UUID, correlation: TurnCorrelation, now: Date) async throws { recordPersistenceAccess(); try await turnRuntime.appendCorrelation(turnID: turnID, correlation: correlation, now: now) }
     public func fetchNotices(turnID: UUID) async throws -> [TurnNotice] { recordPersistenceAccess(); return try await turnRuntime.fetchNotices(turnID: turnID) }
@@ -472,7 +471,7 @@ extension MockPersistenceService {
     public func recordProviderRequest(turnID: UUID, modelRoundIndex: Int, correlation: TurnCorrelation?, now: Date) async throws { recordPersistenceAccess(); try await turnRuntime.recordProviderRequest(turnID: turnID, modelRoundIndex: modelRoundIndex, correlation: correlation, now: now) }
     public func recordToolIntent(_ intent: RuntimeToolIntent) async throws { recordPersistenceAccess(); try await turnRuntime.recordToolIntent(intent) }
     public func recordToolResult(_ result: RuntimeToolResult) async throws { recordPersistenceAccess(); try await turnRuntime.recordToolResult(result) }
-    public func recordToolResult(_ result: RuntimeToolResult, message: ThreadMessage) async throws {
+    public func recordToolResult(_ result: RuntimeToolResult, message: TimelineMessage) async throws {
         defer { recordPersistenceAccess() }
         let shouldFail = state.withLock { state in
             state.recordToolResultCallCount += 1
@@ -484,7 +483,7 @@ extension MockPersistenceService {
     }
     public func fetchToolIntents(turnID: UUID) async throws -> [RuntimeToolIntent] { recordPersistenceAccess(); return try await turnRuntime.fetchToolIntents(turnID: turnID) }
     public func fetchToolResults(turnID: UUID) async throws -> [RuntimeToolResult] { recordPersistenceAccess(); return try await turnRuntime.fetchToolResults(turnID: turnID) }
-    public func completeTurn(turnID: UUID, outcome: TurnOutcome, finalMessage: ThreadMessage?, terminalHandle: TurnTerminalHandle?, now: Date) async throws -> TurnRecord {
+    public func completeTurn(turnID: UUID, outcome: TurnOutcome, finalMessage: TimelineMessage?, terminalHandle: TurnTerminalHandle?, now: Date) async throws -> TurnRecord {
         defer { recordPersistenceAccess() }
         if state.withLock({ $0.completeTurnFails }) {
             throw FailingStoreError.saveFailed
@@ -507,8 +506,8 @@ extension MockPersistenceService {
     public func failTurn(turnID: UUID, message: String, now: Date) async throws -> TurnRecord { recordPersistenceAccess(); return try await turnRuntime.failTurn(turnID: turnID, message: message, now: now) }
     public func cancelTurn(turnID: UUID, reason: String?, now: Date) async throws -> TurnRecord { recordPersistenceAccess(); return try await turnRuntime.cancelTurn(turnID: turnID, reason: reason, now: now) }
     public func interruptTurn(turnID: UUID, reason: String, force: Bool, now: Date) async throws -> TurnRecord { recordPersistenceAccess(); return try await turnRuntime.interruptTurn(turnID: turnID, reason: reason, force: force, now: now) }
-    public func recover(threadID: UUID, now: Date) async throws -> TurnRecoveryResult { recordPersistenceAccess(); return try await turnRuntime.recover(threadID: threadID, now: now) }
-    public func forceClear(threadID: UUID, confirmation: ForceClearConfirmation, now: Date) async throws -> TurnRecord? { recordPersistenceAccess(); return try await turnRuntime.forceClear(threadID: threadID, confirmation: confirmation, now: now) }
-    public func saveSummary(_ summary: ThreadSummary) async throws { recordPersistenceAccess(); try await turnRuntime.saveSummary(summary) }
-    public func fetchSummaries(for threadID: UUID) async throws -> [ThreadSummary] { recordPersistenceAccess(); return try await turnRuntime.fetchSummaries(for: threadID) }
+    public func recover(timelineID: UUID, now: Date) async throws -> TurnRecoveryResult { recordPersistenceAccess(); return try await turnRuntime.recover(timelineID: timelineID, now: now) }
+    public func forceClear(timelineID: UUID, confirmation: ForceClearConfirmation, now: Date) async throws -> TurnRecord? { recordPersistenceAccess(); return try await turnRuntime.forceClear(timelineID: timelineID, confirmation: confirmation, now: now) }
+    public func saveSummary(_ summary: TimelineSummary) async throws { recordPersistenceAccess(); try await turnRuntime.saveSummary(summary) }
+    public func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary] { recordPersistenceAccess(); return try await turnRuntime.fetchSummaries(for: timelineID) }
 }

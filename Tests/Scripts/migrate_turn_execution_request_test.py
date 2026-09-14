@@ -25,7 +25,7 @@ TEST_FILES = (
 SOURCE_GUARDS = (
     "Sources/PositronicKit/Services/Turn/TurnEngine.swift",
     "Sources/PositronicKit/Services/Turn/TurnEngine+TurnPreparation.swift",
-    "Sources/PositronicKit/PositronicKit.swift",
+    "Sources/PositronicKit/PKRuntime.swift",
 )
 
 
@@ -66,7 +66,7 @@ def test_flattened_call_is_rejected() -> None:
         script = make_fixture(root)
         target = root / TEST_FILES[0]
         target.write_text(
-            "let outcome = try await engine.execute(threadID: threadID, tools: tools, message: message)\n",
+            "let outcome = try await engine.execute(timelineID: timelineID, tools: tools, message: message)\n",
             encoding="utf-8",
         )
         result = run_check(script)
@@ -80,7 +80,7 @@ def test_flattened_source_seam_is_rejected() -> None:
         script = make_fixture(root)
         seam = root / SOURCE_GUARDS[0]
         seam.write_text(
-            "func execute(threadID: UUID) async throws {}\n",
+            "func execute(timelineID: UUID) async throws {}\n",
             encoding="utf-8",
         )
         result = run_check(script)

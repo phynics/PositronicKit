@@ -10,9 +10,9 @@ public enum AgentError: PKError, Sendable {
     case agentRetiring(UUID)
     case agentRetired(UUID)
     case agentNotRetired(UUID)
-    case hasAttachedThreads(count: Int)
-    case cannotAttachToPrivateThread(UUID)
-    case cannotDetachFromOwnPrivateThread(UUID)
+    case hasAttachedTimelines(count: Int)
+    case cannotAttachToPrivateTimeline(UUID)
+    case cannotDetachFromOwnPrivateTimeline(UUID)
     case differentAgentAlreadyAttached(UUID)
     case nameTooShort(String)
     case descriptionEmpty
@@ -27,11 +27,11 @@ public enum AgentError: PKError, Sendable {
         case .agentRetired: return 5014
         case .agentNotRetired: return 5015
         case .differentAgentAlreadyAttached: return 5003
-        case .hasAttachedThreads: return 5004
+        case .hasAttachedTimelines: return 5004
         case .nameTooShort: return 5005
         case .descriptionEmpty: return 5006
-        case .cannotAttachToPrivateThread: return 5007
-        case .cannotDetachFromOwnPrivateThread: return 5008
+        case .cannotAttachToPrivateTimeline: return 5007
+        case .cannotDetachFromOwnPrivateTimeline: return 5008
         case .turnStillActive: return 5016
         }
     }
@@ -48,16 +48,16 @@ public enum AgentError: PKError, Sendable {
             return "Agent \(id) must be retired before it can be purged."
         case .differentAgentAlreadyAttached(let id):
             return "A different agent (\(id)) is already attached. Detach it first."
-        case .hasAttachedThreads(let count):
-            return "Cannot delete: \(count) thread(s) still attached. Use force=true to override."
+        case .hasAttachedTimelines(let count):
+            return "Cannot delete: \(count) timeline(s) still attached. Use force=true to override."
         case .nameTooShort(let name):
             return "Agent name '\(name)' is too short (min 3 chars)."
         case .descriptionEmpty:
             return "Agent description cannot be empty."
-        case .cannotAttachToPrivateThread(let id):
-            return "Cannot attach an agent to a private thread it doesn't own (\(id))."
-        case .cannotDetachFromOwnPrivateThread(let id):
-            return "Cannot detach an agent from its own private thread (\(id))."
+        case .cannotAttachToPrivateTimeline(let id):
+            return "Cannot attach an agent to a private timeline it doesn't own (\(id))."
+        case .cannotDetachFromOwnPrivateTimeline(let id):
+            return "Cannot detach an agent from its own private timeline (\(id))."
         case .turnStillActive(let turnID):
             return "Turn \(turnID) did not reach a terminal state within the bounded wait for idle."
         }
@@ -68,7 +68,7 @@ public enum AgentError: PKError, Sendable {
         case .agentNotFound(let id):
             return "The requested agent \(id.uuidString.prefix(8)) could not be found."
         case .differentAgentAlreadyAttached(let id):
-            return "Thread already has agent \(id.uuidString.prefix(8)) attached. "
+            return "Timeline already has agent \(id.uuidString.prefix(8)) attached. "
                 + "Please detach it before attaching a new one."
         case .agentRetiring:
             return "Wait for the Agent's admitted Turns to finish, then attach an active Agent."
@@ -76,16 +76,16 @@ public enum AgentError: PKError, Sendable {
             return "Use an active Agent or an explicit direct Turn context."
         case .agentNotRetired:
             return "Retire the Agent and wait for admitted Turns to finish before purging it."
-        case .hasAttachedThreads(let count):
-            return "This agent is currently active on \(count) thread(s) and cannot be deleted."
+        case .hasAttachedTimelines(let count):
+            return "This agent is currently active on \(count) timeline(s) and cannot be deleted."
         case .nameTooShort:
             return "Please provide a name with at least 3 characters."
         case .descriptionEmpty:
             return "Please provide a description for the agent."
-        case .cannotAttachToPrivateThread:
-            return "Agents can only be attached to their own private threads."
-        case .cannotDetachFromOwnPrivateThread:
-            return "An agent must remain attached to its own private thread."
+        case .cannotAttachToPrivateTimeline:
+            return "Agents can only be attached to their own private timelines."
+        case .cannotDetachFromOwnPrivateTimeline:
+            return "An agent must remain attached to its own private timeline."
         case .turnStillActive:
             return "The active Turn is taking longer than expected to finish. Please try again shortly."
         }

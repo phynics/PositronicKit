@@ -15,10 +15,10 @@ import PKUtilities
 /// `.cancelled` for cancellation).
 ///
 /// This type only *builds* the message — it does not persist it. `TurnEngine.completeTerminalOutcome`
-/// passes the result as `ThreadRuntimeRepository.completeTurn`'s `finalMessage`, so the row and the
+/// passes the result as `TimelineRuntimeRepository.completeTurn`'s `finalMessage`, so the row and the
 /// terminal Turn outcome commit in the same atomic transaction (ADR 0003, ADR 0007) instead of a
 /// separate `saveMessage` call ahead of it — a crash between the two used to leave an assistant row
-/// on a Thread whose Turn was still recorded active.
+/// on a Timeline whose Turn was still recorded active.
 ///
 /// Extracted from `TurnEngine` (PKARCH-001).
 ///
@@ -40,7 +40,7 @@ struct PartialAssistantPersistence {
     func partialAssistantMessage(
         context: TurnContext,
         status: Message.MessageStatus
-    ) async -> ThreadMessage? {
+    ) async -> TimelineMessage? {
         // The normal persistence stage runs before extension stages. If a later stage fails, the
         // complete assistant row is already durable (saved directly alongside pending tool calls
         // mid-loop) and must not be duplicated as a partial row.
@@ -73,7 +73,7 @@ struct PartialAssistantPersistence {
             logger: logger
         )
         logger.warning(
-            "Resolved partial assistant turn for thread \(context.threadID) status=\(status.rawValue) contentChars=\(fullResponse.count) thinkingChars=\(fullThinking.count) toolCalls=\(hasToolCalls)"
+            "Resolved partial assistant turn for timeline \(context.timelineID) status=\(status.rawValue) contentChars=\(fullResponse.count) thinkingChars=\(fullThinking.count) toolCalls=\(hasToolCalls)"
         )
         return assistantMsg
     }

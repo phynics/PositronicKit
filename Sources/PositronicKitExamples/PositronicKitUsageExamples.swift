@@ -20,115 +20,115 @@ public enum PositronicKitUsageExamples {
         }
     }
 
-    public static func makePrototypeRuntime() -> PositronicKit {
-        PositronicKit(languageModel: UnconfiguredLLMService())
+    public static func makePrototypeRuntime() -> PKRuntime {
+        PKRuntime(languageModel: UnconfiguredLLMService())
     }
 
     // MARK: - Facade operation ladder
 
-    /// Tier 1: a thread-free one-shot runtime.
-    public static func makeOneShotRuntime() -> PositronicKit {
-        PositronicKit(languageModel: UnconfiguredLLMService())
+    /// Tier 1: a timeline-free one-shot runtime.
+    public static func makeOneShotRuntime() -> PKRuntime {
+        PKRuntime(languageModel: UnconfiguredLLMService())
     }
 
     /// Creates a deterministic runtime for the executable example. It performs no network I/O.
-    public static func makeOfflineRuntime() -> PositronicKit {
-        PositronicKit(languageModel: OfflineLLMClient())
+    public static func makeOfflineRuntime() -> PKRuntime {
+        PKRuntime(languageModel: OfflineLLMClient())
     }
 
-    /// Tier 2: a handle for a freshly created, persisted Thread.
-    public static func makeThreadHandleExample() async throws -> ThreadHandle {
+    /// Tier 2: a handle for a freshly created, persisted TimelineRecord.
+    public static func makeTimelineHandleExample() async throws -> TimelineHandle {
         let kit = makeOneShotRuntime()
-        return try await kit.threads.create(title: "Example Thread")
+        return try await kit.timelines.create(title: "Example Timeline")
     }
 
-    /// Tier 3: the narrow Thread capability value for lifecycle and attachment operations.
-    public static func makeThreadCapabilityExample() -> ThreadCapability {
-        makeOneShotRuntime().threads
+    /// Tier 3: the narrow TimelineRecord capability value for lifecycle and attachment operations.
+    public static func makeTimelineCapabilityExample() -> TimelineCapability {
+        makeOneShotRuntime().timelines
     }
 
-    /// Tier 4: a Thread handle plus an attached agent identity.
-    public static func makeManagedThreadExample() async throws -> (ThreadHandle, Agent) {
+    /// Tier 4: a TimelineRecord handle plus an attached agent identity.
+    public static func makeManagedTimelineExample() async throws -> (TimelineHandle, Agent) {
         let kit = makeOneShotRuntime()
         let agent = try await kit.agents.create(
             name: "Example Agent",
-            description: "Demonstrates managed Thread-addressed execution."
+            description: "Demonstrates managed Timeline-addressed execution."
         )
-        let thread = try await kit.threads.create(
+        let timeline = try await kit.timelines.create(
             title: "Managed Example",
             attaching: agent.id
         )
-        return (thread, agent)
+        return (timeline, agent)
     }
 
-    public static func makeInspectableRuntime(sink: any TurnOutcomeSink) -> PositronicKit {
-        PositronicKit(configuration: .init(
+    public static func makeInspectableRuntime(sink: any TurnOutcomeSink) -> PKRuntime {
+        PKRuntime(configuration: .init(
             languageModel: UnconfiguredLLMService(),
             persistence: .inMemory(),
             runtime: .init(customization: .init(turnOutcomeSink: sink))
         ))
     }
 
-    public static func makeOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
-        let provider = PKOpenAIProvider.makeConfiguredProvider(
+    public static func makeOpenAIRuntime(apiKey: String = "sk-example") -> PKRuntime {
+        let provider = PKOpenAI.makeConfiguredProvider(
             apiKey: apiKey,
             model: "gpt-4o"
         )
-        return PositronicKit(provider: provider)
+        return PKRuntime(provider: provider)
     }
 
-    public static func makeOllamaRuntime(model: String = "llama3") -> PositronicKit {
-        PositronicKit(provider: PKOllamaProvider.makeConfiguredProvider(model: model))
+    public static func makeOllamaRuntime(model: String = "llama3") -> PKRuntime {
+        PKRuntime(provider: PKOllama.makeConfiguredProvider(model: model))
     }
 
-    public static func makeConfiguredRuntime() -> PositronicKit {
+    public static func makeConfiguredRuntime() -> PKRuntime {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples", isDirectory: true)
-        let runtime = PositronicKit.RuntimeConfiguration(
+        let runtime = PKRuntime.RuntimeConfiguration(
             workspaceProfile: .hostManaged(root: workspaceRoot)
         )
 
-        return PositronicKit(configuration: .init(
+        return PKRuntime(configuration: .init(
             languageModel: UnconfiguredLLMService(),
             persistence: .inMemory(),
             runtime: runtime
         ))
     }
 
-    public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
-        let provider = PKOpenAIProvider.makeConfiguredProvider(apiKey: apiKey)
-        return PositronicKit(provider: provider)
+    public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PKRuntime {
+        let provider = PKOpenAI.makeConfiguredProvider(apiKey: apiKey)
+        return PKRuntime(provider: provider)
     }
 
     /// The native Anthropic adapter uses the same configured-provider path as the other
     /// network providers.
-    public static func makeConfiguredAnthropicRuntime(apiKey: String = "sk-ant-example") -> PositronicKit {
-        PositronicKit(provider: PKAnthropicProvider.makeConfiguredProvider(apiKey: apiKey))
+    public static func makeConfiguredAnthropicRuntime(apiKey: String = "sk-ant-example") -> PKRuntime {
+        PKRuntime(provider: PKAnthropic.makeConfiguredProvider(apiKey: apiKey))
     }
 
     /// Apple's on-device Foundation Models provider remains separate because its session has no
     /// API key, endpoint, or network provider configuration. It bypasses `LLMConfiguration`
-    /// directly; see `PKFoundationModelsProvider.swift` for the platform-specific behavior.
-    public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PositronicKit {
+    /// directly; see `FoundationModelsClient.swift` for the platform-specific behavior.
+    public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PKRuntime {
         let client = FoundationModelsClient(tools: tools.map { AnyTool($0) })
         let languageModel = LLMService(
             configuration: .default,
             clients: .init(primary: client, utility: client, fast: client)
         )
-        return PositronicKit(languageModel: languageModel)
+        return PKRuntime(languageModel: languageModel)
     }
 
-    public static func makeProductionRuntime() -> PositronicKit {
+    public static func makeProductionRuntime() -> PKRuntime {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples-production", isDirectory: true)
-        let runtime = PositronicKit.RuntimeConfiguration(
+        let runtime = PKRuntime.RuntimeConfiguration(
             workspaceProfile: .hostManaged(root: workspaceRoot)
         )
 
-        return PositronicKit(configuration: .init(
+        return PKRuntime(configuration: .init(
             languageModel: UnconfiguredLLMService(),
             persistence: .init(
-                runtimeRepository: InMemoryThreadRuntimeRepository(),
+                runtimeRepository: InMemoryTimelineRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
@@ -220,7 +220,7 @@ public enum PositronicKitUsageExamples {
     /// PKPOST-004: `ToolSource` is the canonical surface for grouping tools under a
     /// structural `ToolOrigin` (rather than passing a flat `[AnyTool]`). Conform a type,
     /// return its tools from `tools()`, and register it with a runtime's
-    /// `ThreadToolRegistry` (`registerToolProvider(_:id:)`); the `resolvedTools()` extension
+    /// `TimelineToolRegistry` (`registerToolProvider(_:id:)`); the `resolvedTools()` extension
     /// re-stamps each tool's `.global` origin with the provider's `toolOrigin` so the
     /// prompt labels tools as belonging to this workspace/terminal.
     public static func makeWorkspaceToolProviderExample(
@@ -249,7 +249,7 @@ public enum PositronicKitUsageExamples {
     }
 
     /// Tier 1 structured-output variant: a typed one-shot `kit.model.generate(...)` call, with
-    /// no thread created or updated. The raw `generateStructured` request and decoder helpers
+    /// no timeline created or updated. The raw `generateStructured` request and decoder helpers
     /// above remain available for advanced callers that need direct payload control.
     public static func completeStructuredOutputExample(prompt: String) async throws -> ExampleTagPayload {
         let kit = makeOneShotRuntime()
@@ -263,10 +263,10 @@ public enum PositronicKitUsageExamples {
 
     /// Sidecar directives (piggy-backed requests): auxiliary generations riding the same
     /// request as a turn's response. `title` is nullable so the model can decline once
-    /// a thread already has one. Consume via the canonical `TurnHandle` path:
+    /// a timeline already has one. Consume via the canonical `TurnHandle` path:
     ///
     /// ```swift
-    /// let turn = try await chat.threads.open(id).startTurn(
+    /// let turn = try await chat.timelines.open(id).startTurn(
     ///     text,
     ///     options: TurnOptions(sidecars: makeSidecarDirectives())
     /// )
@@ -288,7 +288,7 @@ public enum PositronicKitUsageExamples {
     public static func makeDeclinableTitleDirective() -> SidecarDirective {
         SidecarDirective(
             name: "title",
-            instruction: "A short thread title (3-6 words). Return null if the thread already has a good title.",
+            instruction: "A short timeline title (3-6 words). Return null if the timeline already has a good title.",
             schema: try! Schema(instance: #"{"type":["string","null"]}"#),
             streaming: .buffered
         )
@@ -304,17 +304,17 @@ public enum PositronicKitUsageExamples {
         )
     }
 
-    /// Cadence pattern: ask for a title until the thread gets one, then refresh
+    /// Cadence pattern: ask for a title until the timeline gets one, then refresh
     /// every `retitleEvery` turns.
     public static func makeCadencedSidecarDirectives(
         modelRoundIndex: Int,
-        hasThreadTitle: Bool,
+        hasTimelineTitle: Bool,
         retitleEvery: Int = 5
     ) -> [SidecarDirective] {
         guard modelRoundIndex > 0 else { return [] }
 
         var directives = [makeToneDirective()]
-        let shouldRequestTitle = !hasThreadTitle || modelRoundIndex.isMultiple(of: retitleEvery)
+        let shouldRequestTitle = !hasTimelineTitle || modelRoundIndex.isMultiple(of: retitleEvery)
         if shouldRequestTitle {
             directives.insert(makeDeclinableTitleDirective(), at: 0)
         }
@@ -369,7 +369,7 @@ public struct ExampleOneShotTitlePayload: Codable, Sendable, Equatable {
     }
 }
 
-public struct ExampleGreetingTool: Tool {
+public struct ExampleGreetingTool: PKTool {
     public let callName = "example_greet"
     public let name = "Example Greeting"
     public let toolDescription = "Greet a user by name so the runtime can expose a simple tool."

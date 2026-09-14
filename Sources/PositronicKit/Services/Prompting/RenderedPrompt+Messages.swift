@@ -61,34 +61,34 @@ private struct RenderedPromptProjection {
 }
 
 public extension RenderedPrompt {
-    /// Builds provider-neutral thread messages from the canonical rendered prompt product.
-    func buildThreadMessages() -> [Message] {
+    /// Builds provider-neutral timeline messages from the canonical rendered prompt product.
+    func buildTimelineMessages() -> [Message] {
         let projection = RenderedPromptProjection(prompt: self)
         var messages: [Message] = []
 
-        if let systemMessage = buildSystemThreadMessage(from: projection) {
+        if let systemMessage = buildSystemTimelineMessage(from: projection) {
             messages.append(systemMessage)
         }
 
-        messages.append(contentsOf: buildHistoryThreadMessages(from: projection))
+        messages.append(contentsOf: buildHistoryTimelineMessages(from: projection))
 
-        if let queryMessage = buildUserQueryThreadMessage(from: projection) {
+        if let queryMessage = buildUserQueryTimelineMessage(from: projection) {
             messages.append(queryMessage)
         }
 
         return messages
     }
 
-    private func buildSystemThreadMessage(from projection: RenderedPromptProjection) -> Message? {
+    private func buildSystemTimelineMessage(from projection: RenderedPromptProjection) -> Message? {
         guard let systemText = projection.systemText else { return nil }
         return Message(content: systemText, role: .system)
     }
 
-    private func buildHistoryThreadMessages(from projection: RenderedPromptProjection) -> [Message] {
+    private func buildHistoryTimelineMessages(from projection: RenderedPromptProjection) -> [Message] {
         projection.historyMessages
     }
 
-    private func buildUserQueryThreadMessage(from projection: RenderedPromptProjection) -> Message? {
+    private func buildUserQueryTimelineMessage(from projection: RenderedPromptProjection) -> Message? {
         guard let userQueryContent = projection.userQueryContent else { return nil }
         return Message(content: userQueryContent, role: .user)
     }

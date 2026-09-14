@@ -334,7 +334,7 @@ struct LLMServiceTests {
         }
         await #expect(throws: Error.self) {
             _ = try await generator.generateTitle(for: [
-                Message(content: "A thread", role: .user),
+                Message(content: "A timeline", role: .user),
             ])
         }
     }

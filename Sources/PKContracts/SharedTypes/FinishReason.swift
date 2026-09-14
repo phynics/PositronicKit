@@ -2,7 +2,7 @@ import Foundation
 
 /// Shared normalization vocabulary for LLM provider "finish reason" signals (PKR-13).
 ///
-/// Each provider adapter (`PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`)
+/// Each provider adapter (`PKOpenAI`, `PKOpenRouter`, `PKOllama`)
 /// historically derived the public `finishReason: String?` fields on `APIResponseMetadata`
 /// and `LLMStreamChoice` independently, each with its own ad hoc vocabulary:
 /// - OpenAI mapped its SDK's `ChatResult.Choice.FinishReason.rawValue` directly.

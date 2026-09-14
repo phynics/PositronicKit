@@ -13,13 +13,13 @@ import PKUtilities
 /// After this stage, `TurnEngine.runTurnLoop` inspects `context.outputs.toolCallAccumulators` to decide
 /// whether to invoke `ToolRouter.handlePendingToolCalls` and continue the loop.
 struct MessagePersistenceStage: PipelineStage {
-    let runtimeRepository: any ThreadRuntimeRepository
+    let runtimeRepository: any TimelineRuntimeRepository
     let logger: Logger
     let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     let loggingConfiguration: LoggingConfiguration
 
     init(
-        runtimeRepository: any ThreadRuntimeRepository,
+        runtimeRepository: any TimelineRuntimeRepository,
         logger: Logger? = nil,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default
         , loggingConfiguration: LoggingConfiguration = .default
@@ -82,7 +82,7 @@ struct MessagePersistenceStage: PipelineStage {
         }
     }
 
-    /// Builds the assistant `ThreadMessage` from accumulated turn outputs.
+    /// Builds the assistant `TimelineMessage` from accumulated turn outputs.
     ///
     /// Shared between the success path (this stage, `status == nil` → `.complete`) and
     /// `TurnEngine`'s failure/cancellation error path (`status == .partial` / `.failed` /
@@ -95,7 +95,7 @@ struct MessagePersistenceStage: PipelineStage {
         hasPendingToolCalls: Bool,
         status: Message.MessageStatus?,
         logger: Logger
-    ) async -> ThreadMessage {
+    ) async -> TimelineMessage {
         let toolCallsJSON = await buildToolCallsJSON(
             from: context,
             hasPendingToolCalls: hasPendingToolCalls,
@@ -120,8 +120,8 @@ struct MessagePersistenceStage: PipelineStage {
             )))
         }
 
-        return ThreadMessage(
-            threadID: context.threadID,
+        return TimelineMessage(
+            timelineID: context.timelineID,
             role: .assistant,
             content: MessageContent(parts: contentParts),
             reasoning: fullThinking.isEmpty ? nil : fullThinking,
@@ -188,7 +188,7 @@ struct MessagePersistenceStage: PipelineStage {
         let contextSnapshot = TurnContextSnapshot(promptMessages: promptMessages)
 
         return TurnSnapshot(
-            threadID: context.threadID,
+            timelineID: context.timelineID,
             agentID: context.agentId,
             modelName: context.modelName,
             modelRoundIndex: context.modelRoundIndex,
@@ -279,7 +279,7 @@ private enum DiagnosticSnapshotEncoder {
 
         return TurnSnapshot(
             timestamp: snapshot.timestamp,
-            threadID: snapshot.threadID,
+            timelineID: snapshot.timelineID,
             agentID: snapshot.agentID,
             modelName: clean(snapshot.modelName),
             modelRoundIndex: snapshot.modelRoundIndex,

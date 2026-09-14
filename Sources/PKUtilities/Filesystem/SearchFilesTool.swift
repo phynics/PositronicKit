@@ -4,7 +4,7 @@ import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
 /// Enhanced tool to search text content in files (search_files)
-package struct SearchFilesTool: Tool, Sendable {
+package struct SearchFilesTool: PKTool, Sendable {
     package let callName = "search_files"
     package let name = "Search Files"
     package let toolDescription = "Optimized search for text content across files in the workspace."

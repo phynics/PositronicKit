@@ -8,7 +8,7 @@ import Foundation
 /// - **schemaMismatch**: Arguments decoded but violated the tool's parameter schema.
 /// - **missingArgument**: A required parameter was absent from the arguments dictionary.
 /// - **invalidArgument**: A parameter had the wrong type (e.g. string where int was expected).
-/// - **toolNotFound**: The requested tool is not registered in any of the thread's workspaces.
+/// - **toolNotFound**: The requested tool is not registered in any of the timeline's workspaces.
 /// - **workspaceNotFound**: The target workspace for the tool could not be resolved.
 /// - **executionFailed**: The tool implementation threw during execution, or a side-effect-free
 ///   tool was abandoned cleanly after a wall-clock timeout.
@@ -16,7 +16,7 @@ import Foundation
 ///   wall-clock timeout; the tool may still be executing out-of-band and retrying may duplicate
 ///   side effects (PKRR-004).
 /// - **requestOriginUnavailable**: The workspace's request origin is not reachable.
-/// - **attachedToolsDisallowedOnPrivateThread**: Private threads reject externally hosted tools.
+/// - **attachedToolsDisallowedOnPrivateTimeline**: Private timelines reject externally hosted tools.
 /// - **permissionDenied**: A permissioned tool was not approved by the runtime approval gate.
 /// - **unmatchedToolOutput**: An externally submitted tool output does not match a pending call.
 /// - **invalidWorkspaceID**: The `workspaceID` argument was present but not a valid UUID string
@@ -34,7 +34,7 @@ public enum ToolError: PKError, Sendable, Equatable {
     case toolNotFound(String)
     case workspaceNotFound(UUID)
     case requestOriginUnavailable
-    case attachedToolsDisallowedOnPrivateThread
+    case attachedToolsDisallowedOnPrivateTimeline
     case permissionDenied(String)
     case unmatchedToolOutput(String)
     case invalidWorkspaceID(String)
@@ -56,7 +56,7 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .toolNotFound: return 204
         case .workspaceNotFound: return 205
         case .requestOriginUnavailable: return 206
-        case .attachedToolsDisallowedOnPrivateThread: return 207
+        case .attachedToolsDisallowedOnPrivateTimeline: return 207
         case .permissionDenied: return 210
         case .unmatchedToolOutput: return 211
         case .invalidWorkspaceID: return 213
@@ -65,12 +65,12 @@ public enum ToolError: PKError, Sendable, Equatable {
         }
     }
 
-    /// `permissionDenied` and `attachedToolsDisallowedOnPrivateThread` represent
+    /// `permissionDenied` and `attachedToolsDisallowedOnPrivateTimeline` represent
     /// blocked/approval/disallowed conditions — deliberate permission or access gates
     /// refusing execution, not model or provider failures.
     public var isBlocked: Bool {
         switch self {
-        case .permissionDenied, .attachedToolsDisallowedOnPrivateThread:
+        case .permissionDenied, .attachedToolsDisallowedOnPrivateTimeline:
             return true
         default:
             return false
@@ -97,8 +97,8 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "The target workspace for this tool could not be found."
         case .requestOriginUnavailable:
             return "The request origin associated with this tool is currently unavailable."
-        case .attachedToolsDisallowedOnPrivateThread:
-            return "Private agent threads do not support additional workspace tools."
+        case .attachedToolsDisallowedOnPrivateTimeline:
+            return "Private agent timelines do not support additional workspace tools."
         case let .permissionDenied(name):
             return "The tool '\(name)' requires permission and was not approved."
         case let .unmatchedToolOutput(toolCallId):
@@ -140,8 +140,8 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "Verify that workspace \(id) exists and is currently attached."
         case .requestOriginUnavailable:
             return "Ensure the request origin for this workspace is reachable and registered with the runtime."
-        case .attachedToolsDisallowedOnPrivateThread:
-            return "Only runtime-managed tools are permitted on private threads. " +
+        case .attachedToolsDisallowedOnPrivateTimeline:
+            return "Only runtime-managed tools are permitted on private timelines. " +
                 "Remove additional workspace tools from the agent's configuration."
         case let .permissionDenied(name):
             return "Approve the '\(name)' tool when prompted, or inject an approval gate that " +
@@ -150,7 +150,7 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "Submit tool outputs only for tool calls that the runtime previously deferred and has not consumed."
         case .invalidWorkspaceID:
             return "Provide a valid UUID string for 'workspaceID' that matches one of the workspaces " +
-                "attached to the current thread, or omit it to use automatic workspace routing."
+                "attached to the current timeline, or omit it to use automatic workspace routing."
         case let .ambiguousWorkspaceTool(tool, candidates):
             let details = candidates.map { candidate in
                 let primary = candidate.isPrimary ? " primary" : ""

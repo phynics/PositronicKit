@@ -25,7 +25,7 @@ struct ExampleUsageStoriesTests {
         #expect(sections.map(\.role) == [.system, .context, .chatHistory, .userQuery])
 
         let rendered = await assembled.render().string
-        #expect(rendered.contains("You are helping with PositronicKit setup."))
+        #expect(rendered.contains("You are helping with PKRuntime setup."))
         #expect(rendered.contains("- build"))
         #expect(rendered.contains("Which step should I run next?"))
     }
@@ -69,15 +69,15 @@ struct ExampleUsageStoriesTests {
         let tone = PositronicKitUsageExamples.makeToneDirective()
         let turnOne = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
             modelRoundIndex: 1,
-            hasThreadTitle: false
+            hasTimelineTitle: false
         )
         let turnThree = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
             modelRoundIndex: 3,
-            hasThreadTitle: true
+            hasTimelineTitle: true
         )
         let turnFive = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
             modelRoundIndex: 5,
-            hasThreadTitle: true
+            hasTimelineTitle: true
         )
         let oneShotRequest = PositronicKitUsageExamples.makeOneShotTitleStructuredOutputRequest()
         let oneShotValue = try PositronicKitUsageExamples.decodeOneShotTitlePayload(
@@ -140,8 +140,8 @@ struct ExampleUsageStoriesTests {
     @Test
     func offlineRuntimeCompletesATurnWithoutNetwork() async throws {
         let kit = PositronicKitUsageExamples.makeOfflineRuntime()
-        let thread = try await kit.threads.create(title: "Offline example")
-        let turn = try await thread.startDirectTurn(
+        let timeline = try await kit.timelines.create(title: "Offline example")
+        let turn = try await timeline.startDirectTurn(
             "Hello",
             context: DirectTurnContext(systemInstructions: "")
         )
@@ -152,7 +152,7 @@ struct ExampleUsageStoriesTests {
         }
 
         #expect(try await turn.outcome() == .completed)
-        #expect(response == "PositronicKit is running offline.")
+        #expect(response == "PKRuntime is running offline.")
     }
 
     @Test

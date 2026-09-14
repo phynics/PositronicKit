@@ -11,7 +11,7 @@ private let redactedHash = PKUtilities.redactedHash
 /// This stage does NOT execute tools. It validates and cleans `context.outputs.toolCallAccumulators`
 /// so that `PersistenceStage` and `TurnEngine.runTurnLoop` can rely on it:
 /// - Strips sentinel and empty-named calls.
-/// - Leaves durable tool auditing to `ThreadRuntimeRepository`.
+/// - Leaves durable tool auditing to `TimelineRuntimeRepository`.
 ///
 /// Actual execution is handled by `ToolRouter.handlePendingToolCalls()`, called from
 /// `TurnEngine.runTurnLoop` after the pipeline completes.
@@ -26,11 +26,11 @@ struct ToolCallExtractionStage: PipelineStage {
         let eventsToYield: [TurnEvent] = []
 
         let accumulators = await context.outputs.toolCallAccumulators
-        // threadID is logged raw (not hashed) so PositronicKit records correlate
-        // end-to-end with Yakamoz logs (YAK-40), which log the raw threadId. A UUID is
+        // timelineID is logged raw (not hashed) so PKRuntime records correlate
+        // end-to-end with Yakamoz logs (YAK-40), which log the raw timelineId. A UUID is
         // an id, not a payload, so logging it raw is YAK-37 compliant.
         let baseMeta: Logger.Metadata = [
-            LogKeys.threadID: .string(context.threadID.uuidString),
+            LogKeys.timelineID: .string(context.timelineID.uuidString),
             LogKeys.turnID: .string(context.turnID.uuidString),
             LogKeys.requestID: .string(context.requestId.uuidString),
             LogKeys.modelRoundIndex: .string("\(context.modelRoundIndex)"),

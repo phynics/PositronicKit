@@ -6,8 +6,8 @@ import Testing
 /// Verifies stable identity and user-facing presentation for repository errors.
 @Suite("Repository PKError contracts", .tags(.unit))
 struct RepositoryPKErrorTests {
-    private struct ThreadErrorCase {
-        let error: ThreadRuntimeRepositoryError
+    private struct TimelineErrorCase {
+        let error: TimelineRuntimeRepositoryError
         let code: Int
     }
 
@@ -16,44 +16,44 @@ struct RepositoryPKErrorTests {
         let code: Int
     }
 
-    @Test("Thread repository errors expose unique stable identities")
-    func threadRepositoryErrorsHaveStableIdentities() {
-        let threadID = UUID()
+    @Test("Timeline repository errors expose unique stable identities")
+    func timelineRepositoryErrorsHaveStableIdentities() {
+        let timelineID = UUID()
         let turnID = UUID()
         let requestID = UUID()
         let toolCallID = "tool-call"
         let messageID = UUID()
-        let expectedThreadID = UUID()
-        let actualThreadID = UUID()
+        let expectedTimelineID = UUID()
+        let actualTimelineID = UUID()
         let cases = [
-            ThreadErrorCase(error: .threadNotFound(threadID), code: 6101),
-            ThreadErrorCase(error: .turnNotFound(turnID), code: 6102),
-            ThreadErrorCase(error: .threadBusy(threadID: threadID, activeTurnID: turnID), code: 6103),
-            ThreadErrorCase(error: .idempotencyConflict(requestID: requestID), code: 6104),
-            ThreadErrorCase(error: .recoveryRequired(threadID: threadID, turnID: turnID), code: 6105),
-            ThreadErrorCase(error: .invalidTransition(turnID: turnID, lifecycle: .running), code: 6106),
-            ThreadErrorCase(error: .toolIntentRequired(turnID: turnID, toolCallID: toolCallID), code: 6107),
-            ThreadErrorCase(error: .duplicateToolIntent(turnID: turnID, toolCallID: toolCallID), code: 6108),
-            ThreadErrorCase(error: .duplicateToolResult(turnID: turnID, toolCallID: toolCallID), code: 6109),
-            ThreadErrorCase(error: .appendOnlyViolation(messageID: messageID), code: 6110),
-            ThreadErrorCase(error: .historyDeletionForbidden(threadID: threadID), code: 6111),
-            ThreadErrorCase(error: .summarySourceMissing(messageID: messageID), code: 6112),
-            ThreadErrorCase(error: .confirmationRequired, code: 6113),
-            ThreadErrorCase(error: .runtimeRepositoryRequired(threadID: threadID), code: 6114),
-            ThreadErrorCase(error: .authorityCoordinatorRequired(threadID: threadID), code: 6115),
-            ThreadErrorCase(
-                error: .inputMessageThreadMismatch(
+            TimelineErrorCase(error: .timelineNotFound(timelineID), code: 6101),
+            TimelineErrorCase(error: .turnNotFound(turnID), code: 6102),
+            TimelineErrorCase(error: .timelineBusy(timelineID: timelineID, activeTurnID: turnID), code: 6103),
+            TimelineErrorCase(error: .idempotencyConflict(requestID: requestID), code: 6104),
+            TimelineErrorCase(error: .recoveryRequired(timelineID: timelineID, turnID: turnID), code: 6105),
+            TimelineErrorCase(error: .invalidTransition(turnID: turnID, lifecycle: .running), code: 6106),
+            TimelineErrorCase(error: .toolIntentRequired(turnID: turnID, toolCallID: toolCallID), code: 6107),
+            TimelineErrorCase(error: .duplicateToolIntent(turnID: turnID, toolCallID: toolCallID), code: 6108),
+            TimelineErrorCase(error: .duplicateToolResult(turnID: turnID, toolCallID: toolCallID), code: 6109),
+            TimelineErrorCase(error: .appendOnlyViolation(messageID: messageID), code: 6110),
+            TimelineErrorCase(error: .historyDeletionForbidden(timelineID: timelineID), code: 6111),
+            TimelineErrorCase(error: .summarySourceMissing(messageID: messageID), code: 6112),
+            TimelineErrorCase(error: .confirmationRequired, code: 6113),
+            TimelineErrorCase(error: .runtimeRepositoryRequired(timelineID: timelineID), code: 6114),
+            TimelineErrorCase(error: .authorityCoordinatorRequired(timelineID: timelineID), code: 6115),
+            TimelineErrorCase(
+                error: .inputMessageTimelineMismatch(
                     messageID: messageID,
-                    expectedThreadID: expectedThreadID,
-                    actualThreadID: actualThreadID
+                    expectedTimelineID: expectedTimelineID,
+                    actualTimelineID: actualTimelineID
                 ),
                 code: 6116
             ),
-            ThreadErrorCase(
-                error: .finalMessageThreadMismatch(
+            TimelineErrorCase(
+                error: .finalMessageTimelineMismatch(
                     messageID: messageID,
-                    expectedThreadID: expectedThreadID,
-                    actualThreadID: actualThreadID
+                    expectedTimelineID: expectedTimelineID,
+                    actualTimelineID: actualTimelineID
                 ),
                 code: 6117
             ),
@@ -67,7 +67,7 @@ struct RepositoryPKErrorTests {
         for testCase in cases {
             assertPKError(
                 testCase.error,
-                domain: PKErrorDomain.thread,
+                domain: PKErrorDomain.timeline,
                 code: testCase.code,
                 description: testCase.error.description
             )
@@ -77,18 +77,18 @@ struct RepositoryPKErrorTests {
     @Test("Workspace binding repository errors expose unique stable identities")
     func workspaceBindingRepositoryErrorsHaveStableIdentities() {
         let workspaceID = UUID()
-        let threadID = UUID()
+        let timelineID = UUID()
         let cases = [
             WorkspaceErrorCase(
-                error: .workspaceAlreadyBound(workspaceID: workspaceID, threadID: threadID),
+                error: .workspaceAlreadyBound(workspaceID: workspaceID, timelineID: timelineID),
                 code: 3101
             ),
             WorkspaceErrorCase(
-                error: .bindingNotFound(workspaceID: workspaceID, threadID: threadID),
+                error: .bindingNotFound(workspaceID: workspaceID, timelineID: timelineID),
                 code: 3102
             ),
             WorkspaceErrorCase(
-                error: .transferSourceMismatch(workspaceID: workspaceID, threadID: threadID),
+                error: .transferSourceMismatch(workspaceID: workspaceID, timelineID: timelineID),
                 code: 3103
             ),
         ]

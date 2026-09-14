@@ -167,11 +167,11 @@ struct PromptAssemblyTests {
         #expect(messages.count >= 1)
     }
 
-    @Test("RenderedPrompt builds provider-neutral thread messages")
-    func renderedPromptBuildsThreadMessages() async throws {
+    @Test("RenderedPrompt builds provider-neutral timeline messages")
+    func renderedPromptBuildsTimelineMessages() async throws {
         let rendered = try await PromptAssembler.assemble(makeRequest(userQuery: "final artifact"))
 
-        let messages = rendered.buildThreadMessages()
+        let messages = rendered.buildTimelineMessages()
 
         #expect(messages.count >= 1)
         #expect(messages.last?.role == .user)
@@ -212,7 +212,7 @@ struct PromptAssemblyTests {
                             reasoning: "Reasoning",
                             toolCalls: [ToolCall(name: "search", arguments: ["q": .string("x")])]
                         ),
-                        Message(content: "Tool output", role: .tool),
+                        Message(content: "PKTool output", role: .tool),
                     ])
                 ),
                 .init(
@@ -236,7 +236,7 @@ struct PromptAssemblyTests {
         )
 
         let llmMessages = rendered.buildMessages()
-        let uiMessages = rendered.buildThreadMessages()
+        let uiMessages = rendered.buildTimelineMessages()
 
         #expect(llmMessages.count == 5)
         #expect(uiMessages.count == 5)
@@ -256,7 +256,7 @@ struct PromptAssemblyTests {
         #expect(llmMessages[3].role == LLMMessage.Role.user)
         #expect(llmMessages[3].content.contains("<tool_response>"))
         #expect(uiMessages[3].role == Message.MessageRole.tool)
-        #expect(uiMessages[3].content == "Tool output")
+        #expect(uiMessages[3].content == "PKTool output")
 
         #expect(llmMessages[4].role == LLMMessage.Role.user)
         #expect(uiMessages[4].role == Message.MessageRole.user)

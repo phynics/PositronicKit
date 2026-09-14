@@ -5,7 +5,7 @@ import Testing
 @testable import PKContracts
 import PKUtilities
 import PKTestSupport
-struct MockComplexTool: Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+struct MockComplexTool: PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "complex_tool"
     let name = "Complex Tool"
     let toolDescription = "A mock tool that accepts complex argument types"
@@ -36,7 +36,7 @@ struct MockComplexTool: Tool, @unchecked Sendable { // swiftlint:disable:this co
     }
 }
 
-@Suite("Tool Call Regression Tests", .tags(.unit))
+@Suite("PKTool Call Regression Tests", .tags(.unit))
 @MainActor
 struct ToolCallRegressionTests {
     private let logger = Logger(label: "test.tool-call-regression")
@@ -46,7 +46,7 @@ struct ToolCallRegressionTests {
         let persistence = MockPersistenceService()
         let stage = MessagePersistenceStage(runtimeRepository: persistence, logger: logger)
         let context = TurnContext(
-            threadID: UUID(),
+            timelineID: UUID(),
             agentId: nil,
             modelName: "test-model",
             maxModelRounds: 1,
@@ -58,7 +58,7 @@ struct ToolCallRegressionTests {
             outputs: TurnOutputs()
         )
 
-        // Chunk 1: Tool call start
+        // Chunk 1: PKTool call start
         let chunk1 = ToolCallDelta(
             index: 0,
             id: "call_123",
@@ -163,7 +163,7 @@ struct ToolCallRegressionTests {
     @Test("Legacy XML tool-call markers in assistant text do not produce tool accumulators")
     func legacyXMLMarkersProduceNoToolCalls() async throws {
         let context = TurnContext(
-            threadID: UUID(),
+            timelineID: UUID(),
             agentId: nil,
             modelName: "test-model",
             maxModelRounds: 1,
@@ -190,7 +190,7 @@ struct ToolCallRegressionTests {
     @Test("Pipe-delimited tool-call markers in assistant text do not produce tool accumulators")
     func pipeMarkersProduceNoToolCalls() async throws {
         let context = TurnContext(
-            threadID: UUID(),
+            timelineID: UUID(),
             agentId: nil,
             modelName: "test-model",
             maxModelRounds: 1,
@@ -217,7 +217,7 @@ struct ToolCallRegressionTests {
     @Test("Fenced JSON in assistant text does not produce tool accumulators")
     func fencedJSONProducesNoToolCalls() async throws {
         let context = TurnContext(
-            threadID: UUID(),
+            timelineID: UUID(),
             agentId: nil,
             modelName: "test-model",
             maxModelRounds: 1,

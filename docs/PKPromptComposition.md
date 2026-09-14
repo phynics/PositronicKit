@@ -69,7 +69,7 @@ prompts through its internal `PromptAssembler`. Verbose assembly diagnostics flo
 There are two related but different concepts in the codebase:
 
 - **`PromptJournal`** is the public prompt-layer API you should use when you want to observe prompt snapshots, reason about base/overlay/volatile sections, and decide when an accepted overlay should become the new baseline.
-- **`ThreadPromptHistory`** is runtime-side bookkeeping used by `PositronicKit` to track prompt diffs, stable-prefix reuse, and append-pressure compaction across turns.
+- **`TimelinePromptHistory`** is runtime-side bookkeeping used by `PKRuntime` to track prompt diffs, stable-prefix reuse, and append-pressure compaction across turns.
 
 ### When to use `PromptJournal`
 
@@ -83,33 +83,33 @@ Use `PromptJournal` when your application needs a prompt-facing abstraction, for
 In that role, `PromptJournal` is the recommended public abstraction.
 
 `PromptJournal` now has built-in append-pressure thresholds (`PromptJournalCompactionThresholds`).
-After you accept a turn and append its assistant/tool messages to thread history, record
+After you accept a turn and append its assistant/tool messages to timeline history, record
 that pressure with `recordAppend(messages:)` (or `recordAppend(messageCount:estimatedTokens:)`).
 When the thresholds are exceeded, the next `observe(_:)` auto-promotes the latest accepted prompt
 into a new committed base before diffing again. This gives standalone prompt consumers the same
 kind of safety valve that the runtime uses, without coupling them to runtime-only types.
 
-### What `ThreadPromptHistory` is for
+### What `TimelinePromptHistory` is for
 
-`ThreadPromptHistory` belongs to the runtime layer. It records rendered prompt snapshots and append pressure so the runtime can:
+`TimelinePromptHistory` belongs to the runtime layer. It records rendered prompt snapshots and append pressure so the runtime can:
 
 - estimate the stable prefix that can benefit downstream LLM caching
 - track changed / added / removed prompt entries between turns
 - compact append state when message-count or token thresholds are exceeded
 
-If you are adopting `PositronicKit`, you usually do not need to instantiate or manage `ThreadPromptHistory` directly. It is runtime machinery, not the primary prompt-facing journaling surface.
+If you are adopting `PKRuntime`, you usually do not need to instantiate or manage `TimelinePromptHistory` directly. It is runtime machinery, not the primary prompt-facing journaling surface.
 
 The two systems intentionally overlap only partially:
 
 - `PromptJournal` is authoritative for prompt-facing base / overlay / volatile layering and hard-reset semantics when stable prompt content changes.
-- `ThreadPromptHistory` is authoritative for runtime cache-prefix accounting (`stablePrefixCount`) and append-pressure tracking inside the turn loop.
+- `TimelinePromptHistory` is authoritative for runtime cache-prefix accounting (`stablePrefixCount`) and append-pressure tracking inside the turn loop.
 - For semistable prompt changes, their diff IDs are kept aligned and tested together, but they are not the same abstraction.
 
 ### Canonical recommendation
 
 - For **prompt journaling use cases**, prefer `PromptJournal`.
-- For **runtime diff/cache behavior**, let `PositronicKit` manage `ThreadPromptHistory` internally.
-- If you need both, treat `PromptJournal` as the user-facing API and `ThreadPromptHistory` as runtime implementation support.
+- For **runtime diff/cache behavior**, let `PKRuntime` manage `TimelinePromptHistory` internally.
+- If you need both, treat `PromptJournal` as the user-facing API and `TimelinePromptHistory` as runtime implementation support.
 
 ## Usage examples (the three layers)
 

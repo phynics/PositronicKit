@@ -11,7 +11,7 @@ import Testing
 final class TurnEngineStageTests {
     private let logger = Logger(label: "test")
 
-    struct StubTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    struct StubTool: PKContracts.PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "stub_tool"
         let name = "stub_tool"
         let toolDescription = "Stub for testing"
@@ -65,7 +65,7 @@ final class TurnEngineStageTests {
     func persistenceStage_PreparesTerminalMessage() async throws {
         // Given
         let persistence = MockPersistenceService()
-        _ = ThreadManager(workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp")))
+        _ = TimelineManager(workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp")))
         let stage = MessagePersistenceStage(
             runtimeRepository: persistence,
             logger: logger
@@ -87,7 +87,7 @@ final class TurnEngineStageTests {
 
     private func createTestContext(availableTools: [AnyTool] = []) -> TurnContext {
         return TurnContext(
-            threadID: UUID(),
+            timelineID: UUID(),
             agentId: nil,
             modelName: "test-model",
             maxModelRounds: 5,

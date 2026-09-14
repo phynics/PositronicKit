@@ -1,11 +1,11 @@
 import Foundation
 import PKContracts
 
-/// Agent lifecycle entry points exposed by ``PositronicKit``.
+/// Agent lifecycle entry points exposed by ``PKRuntime``.
 public struct AgentCapability: Sendable {
-    private let kit: PositronicKit
+    private let kit: PKRuntime
 
-    init(kit: PositronicKit) {
+    init(kit: PKRuntime) {
         self.kit = kit
     }
 
@@ -35,20 +35,20 @@ public struct AgentCapability: Sendable {
         try await kit.agentManager.listAgents()
     }
 
-    public func attach(_ agentID: UUID, to threadID: UUID) async throws {
-        try await kit.agentManager.attach(agentID: agentID, to: threadID)
+    public func attach(_ agentID: UUID, to timelineID: UUID) async throws {
+        try await kit.agentManager.attach(agentID: agentID, to: timelineID)
     }
 
-    public func detach(_ agentID: UUID, from threadID: UUID) async throws {
-        try await kit.agentManager.detach(agentID: agentID, from: threadID)
+    public func detach(_ agentID: UUID, from timelineID: UUID) async throws {
+        try await kit.agentManager.detach(agentID: agentID, from: timelineID)
     }
 
-    public func threads(attachedTo agentID: UUID) async throws -> [Thread] {
-        try await kit.agentManager.getThreads(attachedTo: agentID)
+    public func timelines(attachedTo agentID: UUID) async throws -> [TimelineRecord] {
+        try await kit.agentManager.getTimelines(attachedTo: agentID)
     }
 
     /// Begins the drain-to-retired lifecycle. Admitted Turns finish before ordinary
-    /// attachments are detached and the primary Thread is archived.
+    /// attachments are detached and the primary Timeline is archived.
     public func retire(_ agentID: UUID) async throws {
         try await kit.agentManager.retireAgent(id: agentID)
     }

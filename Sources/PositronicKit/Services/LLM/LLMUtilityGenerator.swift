@@ -21,13 +21,13 @@ public struct LLMUtilityGenerator {
         return directive.map(payload)
     }
 
-    /// Generates a concise thread title, throwing on failure.
+    /// Generates a concise timeline title, throwing on failure.
     ///
     /// An empty message list is not a provider failure: it maps to the documented
-    /// `"New Thread"` default without invoking the model.
+    /// `"New Timeline"` default without invoking the model.
     public func generateTitle(for messages: [Message]) async throws -> String {
         guard !messages.isEmpty else {
-            return "New Thread"
+            return "New Timeline"
         }
         let transcript = messages.map { "[\($0.role.rawValue.uppercased())] \($0.content)" }.joined(
             separator: "\n\n"
@@ -82,7 +82,7 @@ private extension UtilityGenerationDirective where Payload == LLMTitleResponse, 
     static func title(transcript: String) -> Self {
         Self(
             prompt: """
-            Based on the following thread transcript, generate a concise, descriptive title (maximum 6 words).
+            Based on the following timeline transcript, generate a concise, descriptive title (maximum 6 words).
             Return ONLY a JSON object with a key "title" containing the title text, with no surrounding quotes or additional formatting.
 
             TRANSCRIPT:
@@ -90,7 +90,7 @@ private extension UtilityGenerationDirective where Payload == LLMTitleResponse, 
             """,
             structuredOutput: .jsonSchema(StructuredOutputSchema(
                 name: "llm_title",
-                description: "A concise thread title.",
+                description: "A concise timeline title.",
                 schema: LLMTitleResponse.schema.definition()
             )),
             payloadType: LLMTitleResponse.self,
@@ -98,7 +98,7 @@ private extension UtilityGenerationDirective where Payload == LLMTitleResponse, 
                 let title = payload.title
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .replacingOccurrences(of: "\"", with: "")
-                return title.isEmpty ? "New Thread" : title
+                return title.isEmpty ? "New Timeline" : title
             }
         )
     }

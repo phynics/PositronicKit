@@ -34,7 +34,7 @@ struct LanguageModelCompositionTests {
     func reportsConfiguredLanguageModel() async {
         let languageModel = MockLLMService()
         languageModel.mockIsConfigured = true
-        let kit = PositronicKit(languageModel: languageModel)
+        let kit = PKRuntime(languageModel: languageModel)
 
         #expect(await kit.model.isConfigured)
     }
@@ -43,7 +43,7 @@ struct LanguageModelCompositionTests {
     func reportsUnconfiguredLanguageModel() async {
         let languageModel = MockLLMService()
         languageModel.mockIsConfigured = false
-        let kit = PositronicKit(languageModel: languageModel)
+        let kit = PKRuntime(languageModel: languageModel)
 
         #expect(await !kit.model.isConfigured)
     }
@@ -52,7 +52,7 @@ struct LanguageModelCompositionTests {
     func reflectsLanguageModelReadinessChanges() async {
         let languageModel = MockLLMService()
         languageModel.mockIsConfigured = false
-        let kit = PositronicKit(languageModel: languageModel)
+        let kit = PKRuntime(languageModel: languageModel)
 
         #expect(await !kit.model.isConfigured)
 
@@ -63,7 +63,7 @@ struct LanguageModelCompositionTests {
 
     @Test("the model capability distinguishes invalid configuration")
     func reportsInvalidConfigurationReadiness() async {
-        let kit = PositronicKit()
+        let kit = PKRuntime()
 
         #expect(await kit.model.readiness() == .unavailable(.invalidConfiguration))
     }
@@ -72,7 +72,7 @@ struct LanguageModelCompositionTests {
     func reportsMissingClientReadiness() async {
         let configuration = LLMConfiguration.fixture(apiKey: "test-key")
         let service = LLMService(configuration: configuration, clients: .empty)
-        let kit = PositronicKit(languageModel: service)
+        let kit = PKRuntime(languageModel: service)
 
         #expect(await kit.model.readiness() == .unavailable(.clientUnavailable))
     }
@@ -80,7 +80,7 @@ struct LanguageModelCompositionTests {
     @Test("the model capability reports local readiness when a client is resolved")
     func reportsReadyModel() async {
         let languageModel = MockLLMService()
-        let kit = PositronicKit(languageModel: languageModel)
+        let kit = PKRuntime(languageModel: languageModel)
 
         #expect(await kit.model.readiness() == .ready)
     }
@@ -89,14 +89,14 @@ struct LanguageModelCompositionTests {
     func reportsSupportedHealth() async throws {
         let languageModel = MockLLMService()
         languageModel.mockHealthStatus = .ok
-        let kit = PositronicKit(languageModel: languageModel)
+        let kit = PKRuntime(languageModel: languageModel)
 
         #expect(try await kit.model.checkHealth() == .ok)
     }
 
     @Test("health reports unsupported for a stream-only custom client")
     func reportsUnsupportedHealth() async {
-        let kit = PositronicKit(languageModel: StreamOnlyClient())
+        let kit = PKRuntime(languageModel: StreamOnlyClient())
 
         let error = await #expect(throws: ModelHealthError.self) {
             _ = try await kit.model.checkHealth()
@@ -109,7 +109,7 @@ struct LanguageModelCompositionTests {
     func acceptsInjectedStreamClient() async throws {
         let languageModel = MockLLMService()
         languageModel.mockClient.nextResponse = "injected"
-        let kit = PositronicKit(languageModel: languageModel)
+        let kit = PKRuntime(languageModel: languageModel)
 
         let response = try await kit.model.generate("hello")
 
@@ -119,7 +119,7 @@ struct LanguageModelCompositionTests {
     @Test("grouped configuration exposes the injected stream client")
     func groupedConfigurationExposesStreamClient() {
         let languageModel = MockLLMService()
-        let configuration = PositronicKit.Configuration(
+        let configuration = PKRuntime.Configuration(
             languageModel: languageModel,
             persistence: .inMemory()
         )
@@ -129,7 +129,7 @@ struct LanguageModelCompositionTests {
 
     @Test("the facade accepts a stream-only client")
     func acceptsStreamOnlyClient() async {
-        let kit = PositronicKit(languageModel: StreamOnlyClient())
+        let kit = PKRuntime(languageModel: StreamOnlyClient())
 
         #expect(await kit.model.isConfigured)
     }

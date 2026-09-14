@@ -100,7 +100,7 @@ extension TurnEngine {
         scheduleAgentActivity(
             AgentActivity(
                 kind: .turnStarted,
-                threadID: context.threadID,
+                timelineID: context.timelineID,
                 turnID: context.turnID,
                 requestID: context.requestId,
                 agentID: context.agentId,
@@ -220,8 +220,8 @@ extension TurnEngine {
             }
         }
 
-        logger.warning("Max model rounds (\(context.maxModelRounds)) reached for thread \(context.threadID)", metadata: [
-            LogKeys.threadID: .string(context.threadID.uuidString),
+        logger.warning("Max model rounds (\(context.maxModelRounds)) reached for timeline \(context.timelineID)", metadata: [
+            LogKeys.timelineID: .string(context.timelineID.uuidString),
             LogKeys.turnID: .string(context.turnID.uuidString),
             LogKeys.requestID: .string(context.requestId.uuidString),
             LogKeys.modelRoundIndex: .string("\(modelRoundIndex)"),
@@ -248,9 +248,9 @@ private extension TurnEngine {
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation,
         context: TurnContext
     ) async -> LoopContinuation {
-        let sid = context.threadID.uuidString.prefix(8).lowercased()
+        let sid = context.timelineID.uuidString.prefix(8).lowercased()
         let turnLabel = "\(context.modelRoundIndex)"
-        logger.info("Starting turn \(turnLabel) for thread \(sid)")
+        logger.info("Starting turn \(turnLabel) for timeline \(sid)")
 
         do {
             try Task.checkCancellation()
@@ -291,7 +291,7 @@ private extension TurnEngine {
             return .cancelled
         } catch {
             logger.error("Error in turn loop turn \(context.modelRoundIndex): \(error)", metadata: [
-                LogKeys.threadID: .string(context.threadID.uuidString),
+                LogKeys.timelineID: .string(context.timelineID.uuidString),
                 LogKeys.turnID: .string(context.turnID.uuidString),
                 LogKeys.requestID: .string(context.requestId.uuidString),
                 LogKeys.modelRoundIndex: .string("\(context.modelRoundIndex)"),
@@ -343,7 +343,7 @@ private extension TurnEngine {
     ) async throws -> LoopContinuation {
         let result = try await dependencies.toolRouter.processToolCalls(
             outputs: context.outputs,
-            threadId: context.threadID,
+            timelineId: context.timelineID,
             turnID: context.turnID,
             modelRoundIndex: context.modelRoundIndex,
             availableTools: context.availableTools,
@@ -356,7 +356,7 @@ private extension TurnEngine {
         // rather than the tool router.
         let contentChars = await context.outputs.fullResponse.count
         let turnMeta: Logger.Metadata = [
-            LogKeys.threadID: .string(context.threadID.uuidString),
+            LogKeys.timelineID: .string(context.timelineID.uuidString),
             LogKeys.turnID: .string(context.turnID.uuidString),
             LogKeys.requestID: .string(context.requestId.uuidString),
             LogKeys.modelRoundIndex: .string("\(context.modelRoundIndex)"),
@@ -489,13 +489,13 @@ private extension TurnEngine {
         context: TurnContext,
         outcome: TurnOutcome
     ) async throws -> TurnOutcome {
-        let finalMessage: ThreadMessage?
+        let finalMessage: TimelineMessage?
         switch outcome {
         case .completed:
             if let terminalMessage = await context.outputs.terminalAssistantMessage {
                 finalMessage = terminalMessage
             } else {
-                let messages = try await dependencies.runtimeRepository.fetchMessages(for: context.threadID)
+                let messages = try await dependencies.runtimeRepository.fetchMessages(for: context.timelineID)
                 let userIndex = messages.firstIndex(where: { $0.id == context.requestId })
                 finalMessage = userIndex.flatMap { index in
                     messages.dropFirst(index + 1).last(where: {
@@ -507,7 +507,7 @@ private extension TurnEngine {
             // STAB-1: attach whatever partial assistant text/thinking/tool calls the user
             // already watched stream in to this same terminal transaction (ADR 0003, ADR 0007),
             // instead of persisting it with a separate `saveMessage` call before this — a crash
-            // between the two used to leave that row on a Thread whose Turn was still active.
+            // between the two used to leave that row on a Timeline whose Turn was still active.
             let status: Message.MessageStatus = {
                 if case .cancelled = outcome { return .cancelled }
                 return .partial
@@ -554,7 +554,7 @@ private extension TurnEngine {
         await emitAgentActivity(
             AgentActivity(
                 kind: activityKind(for: outcome),
-                threadID: context.threadID,
+                timelineID: context.timelineID,
                 turnID: context.turnID,
                 requestID: context.requestId,
                 agentID: context.agentId,
@@ -565,7 +565,7 @@ private extension TurnEngine {
         )
         await emitTurnOutcome(
             TurnOutcomeRecord(
-                threadID: context.threadID,
+                timelineID: context.timelineID,
                 turnID: context.turnID,
                 requestID: context.requestId,
                 agentID: context.agentId,

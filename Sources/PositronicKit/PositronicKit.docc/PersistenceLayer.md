@@ -1,50 +1,56 @@
-# Persistence layer
+# Persistence Layer
 
-PositronicKit defines focused persistence protocols and one cohesive repository for Turn execution.
+Modular storage architecture for PKRuntime.
 
-## Domain-specific protocols
+## Domain-Specific Protocols
 
-- `ThreadMessageStoreProtocol` persists append-only Thread messages and prompt snapshots.
-- `ThreadPersistenceProtocol` persists Thread metadata and lifecycle state.
-- `WorkspaceStore` persists Workspace references.
-- `WorkspaceBindingRepository` persists exclusive claims between ordinary Workspaces and Threads.
-  An Agent primary Workspace remains Agent-owned.
-- `RequestOriginStoreProtocol` persists request-origin identity and hosted-tool metadata.
-- `ToolPersistenceProtocol` persists tool registry and routing metadata.
-- `ThreadRuntimeRepository` owns Thread history and Turn lifecycle transitions as one atomic
-  boundary. It refines the Thread and message store protocols.
+The persistence layer is split into focused protocols to ensure high cohesion and low coupling:
 
-## Thread runtime repository
+- `TimelineMessageStoreProtocol`: Timeline message history management.
+- `TimelinePersistenceProtocol`: Timeline lifecycle.
+- `WorkspaceStore`: Virtual document workspace tracking.
+- `WorkspaceBindingRepository`: Atomic exclusive claims between ordinary Workspaces and Timelines;
+  Agent primary Workspace ownership remains on the Agent record.
+- `RequestOriginStoreProtocol`: Request-origin identity and attached-tool metadata.
+- `ToolPersistenceProtocol`: PKTool registry and routing metadata.
+- `TimelineRuntimeRepository`: Atomic Timeline history and Turn lifecycle transitions.
 
-Every Turn execution path receives one `ThreadRuntimeRepository`. The repository is the transaction
-boundary for Request-ID uniqueness, active-Turn serialization, append-only `ThreadMessage` history,
-tool intents and results, terminal outcomes, notices, and stale-Turn recovery.
+## Implementation
 
-The runtime begins provider requests and tool execution only after the corresponding repository
-operation succeeds. Admission accepts the Turn and its optional input message together. Terminal
-completion can append the final assistant message in the same transaction.
+For Turn execution, hosts that need durable admission and recovery inject one
+`TimelineRuntimeRepository`. It is the transaction boundary for Request-ID uniqueness, active-Turn
+serialization, append-only `TimelineMessage` history, tool intents/results, terminal outcomes, and
+stale-Turn recovery. The repository's successful admission and intent/result operations are the
+durable-before-side-effect barriers: provider requests and tool execution begin only after the
+corresponding record is accepted.
 
-`deleteThread(id:)` must delete the Thread's durable messages and summary projections with the Thread.
-History remains append-only while the Thread exists. `deleteMessages(for:)` remains forbidden for
-ordinary history pruning.
+Workspace execution uses a process-local FIFO lane per ordinary Workspace. This prevents
+overlapping tool side effects for one Workspace while allowing different Workspaces to proceed
+concurrently; multi-process hosts provide stronger coordination in their backend.
 
-## Workspace execution
+`TimelineRuntimeRepository` does not own `PromptJournal` state and does not derive semantic summaries
+from prompt history. A `TimelineSummary` is a separate projection that may reference only message IDs
+already accepted into append-only history.
 
-The runtime uses a process-local FIFO lane for each ordinary Workspace. Calls for one Workspace do
-not overlap, while calls for different Workspaces can run concurrently. A multi-process host must
-provide stronger coordination in its persistence backend when it needs it.
+`PKRuntime.PersistenceConfiguration.fullyPersistent(...)` requires the runtime, Workspace, tool,
+Agent, request-origin, and Workspace-binding stores explicitly. The regular initializer provides
+in-memory defaults for omitted stores, which is useful for tests and prototypes but should be checked
+with `validateDurability()` before a production deployment.
 
-Attached Workspace execution is a message-only external continuation. The source Turn records its
-Tool Intent and ends with an external-deferral outcome before the host performs the side effect. A
-later submission persists the host's Tool message through the Thread message boundary. It does not
-record a `RuntimeToolResult` for the interrupted source Turn.
+Attached Workspace execution is intentionally a message-only external continuation. The source Turn
+records its PKTool Intent, emits the external-deferral terminal outcome, and becomes interrupted before
+the host performs the side effect. A later submission persists the host's PKTool message through the
+Timeline message boundary, but does not record a `RuntimeToolResult`: the submission contract has no
+originating Turn ID, and the interrupted source Turn cannot accept a result without reopening its
+terminal lifecycle. `fetchToolResults` therefore describes runtime-executed calls only; this contract
+avoids inventing a second lifecycle or weakening the atomic local result boundary.
 
-## Composition
+PositronicKit does not ship a canonical database backend. Hosts provide the storage implementation
+that fits their environment, whether that is in-memory state, SQLite, cloud storage, or another
+persistence layer that conforms to the store protocols.
 
-`PositronicKit.PersistenceConfiguration` resolves the Workspace binding repository once and passes
-that value to the runtime graph. Use `inMemory()` for tests and prototypes. Use
-`fullyPersistent(...)` when every store must survive a process restart.
+### Composition
 
-PositronicKit does not ship a database backend. Hosts provide storage that conforms to the focused
-protocols. A store reports whether it survives restart through `DurabilityAware`, and
-`PersistenceConfiguration.validateDurability()` identifies mixed durable and in-memory setups.
+Live runtime code depends on focused store protocols directly. `PKRuntime.PersistenceConfiguration`
+groups the commonly required stores for initialization, but runtime services should continue to
+depend on narrow protocols rather than a monolithic persistence facade.

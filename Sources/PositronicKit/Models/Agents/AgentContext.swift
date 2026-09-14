@@ -82,8 +82,14 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
     public let memories: [AgentContextMemory]
     public let resources: [AgentContextResource]
     public let diagnostics: [TurnDiagnostic]
-    public let primaryThreadSummary: String?
+    public let primaryTimelineSummary: String?
     public let revision: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case identity, instructions, memories, resources, diagnostics
+        case primaryTimelineSummary = "primaryThreadSummary"
+        case revision
+    }
 
     public init(
         identity: AgentContextIdentity,
@@ -91,7 +97,7 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
         memories: [AgentContextMemory] = [],
         resources: [AgentContextResource] = [],
         diagnostics: [TurnDiagnostic] = [],
-        primaryThreadSummary: String? = nil,
+        primaryTimelineSummary: String? = nil,
         revision: String? = nil
     ) {
         self.identity = identity
@@ -99,7 +105,7 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
         self.memories = memories
         self.resources = resources
         self.diagnostics = diagnostics
-        self.primaryThreadSummary = primaryThreadSummary
+        self.primaryTimelineSummary = primaryTimelineSummary
         self.revision = revision
     }
 
@@ -109,7 +115,7 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
         memories: [AgentContextMemory] = [],
         resources: [AgentContextResource] = [],
         diagnostics: [TurnDiagnostic] = [],
-        primaryThreadSummary: String? = nil,
+        primaryTimelineSummary: String? = nil,
         revision: String? = nil
     ) {
         self.init(
@@ -122,7 +128,7 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
             memories: memories,
             resources: resources,
             diagnostics: diagnostics,
-            primaryThreadSummary: primaryThreadSummary,
+            primaryTimelineSummary: primaryTimelineSummary,
             revision: revision
         )
     }
@@ -131,13 +137,13 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
 
 /// Authoritative typed continuity source for managed Turns.
 public protocol AgentContextSource: Sendable {
-    func snapshot(for agent: Agent, thread: Thread) async throws -> AgentContextSnapshot
+    func snapshot(for agent: Agent, timeline: TimelineRecord) async throws -> AgentContextSnapshot
 }
 
 public extension AgentContextSource {
     /// Descriptive alias for hosts that prefer “context” terminology at call sites.
-    func context(for agent: Agent, thread: Thread) async throws -> AgentContextSnapshot {
-        try await snapshot(for: agent, thread: thread)
+    func context(for agent: Agent, timeline: TimelineRecord) async throws -> AgentContextSnapshot {
+        try await snapshot(for: agent, timeline: timeline)
     }
 }
 
@@ -146,7 +152,7 @@ public extension AgentContextSource {
 public struct IdentityAgentContextSource: AgentContextSource {
     public init() {}
 
-    public func snapshot(for agent: Agent, thread _: Thread) async throws -> AgentContextSnapshot {
+    public func snapshot(for agent: Agent, timeline _: TimelineRecord) async throws -> AgentContextSnapshot {
         AgentContextSnapshot(agent: agent)
     }
 }
@@ -173,7 +179,7 @@ public actor DefaultAgentContextSource: AgentContextSource {
         self.maxBytes = max(0, maxBytes)
     }
 
-    public func snapshot(for agent: Agent, thread: Thread) async throws -> AgentContextSnapshot {
+    public func snapshot(for agent: Agent, timeline: TimelineRecord) async throws -> AgentContextSnapshot {
         var instructions = ""
         var resources: [AgentContextResource] = []
         var revision = ""
@@ -221,7 +227,7 @@ public actor DefaultAgentContextSource: AgentContextSource {
             instructions: instructions,
             resources: resources,
             diagnostics: diagnostics,
-            primaryThreadSummary: nil,
+            primaryTimelineSummary: nil,
             revision: revision.isEmpty ? nil : revision
         )
     }

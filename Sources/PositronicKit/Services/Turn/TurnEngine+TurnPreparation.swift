@@ -9,17 +9,17 @@ import PKUtilities
 
 extension TurnEngine {
     private struct ExecutionAuthority: Sendable {
-        let thread: Thread
+        let timeline: TimelineRecord
         let agent: Agent?
     }
 
     /// The bounded input to Turn admission. Prompt assembly and Model Round configuration remain
-    /// local to `prepareSession`; admission only needs durable identity, authority, and input.
+    /// local to `prepareTurn`; admission only needs durable identity, authority, and input.
     struct TurnAdmissionRequest: Sendable {
-        let threadID: UUID
+        let timelineID: UUID
         let turnID: UUID
         let requestID: UUID
-        let inputMessage: ThreadMessage?
+        let inputMessage: TimelineMessage?
         let executionKind: TurnExecutionKind
         let agentID: UUID?
         let callerIntentFingerprint: String
@@ -48,7 +48,7 @@ extension TurnEngine {
         }
     }
 
-    enum PreparedSession {
+    enum PreparedTurn {
         case ready(TurnContext)
         case existing(TurnAdmission)
     }
@@ -58,9 +58,9 @@ extension TurnEngine {
         let diagnostics: [TurnDiagnostic]
     }
 
-    /// Resolves a requested agent and validates its exclusive thread attachment before provider
+    /// Resolves a requested agent and validates its exclusive timeline attachment before provider
     /// readiness or turn persistence.
-    func preflightAgent(id agentId: UUID?, threadID: UUID) async throws -> AgentPreflight {
+    func preflightAgent(id agentId: UUID?, timelineID: UUID) async throws -> AgentPreflight {
         guard let agentId else {
             return AgentPreflight(instance: nil, diagnostics: [])
         }
@@ -102,21 +102,21 @@ extension TurnEngine {
         case .retired:
             throw AgentError.agentRetired(agentId)
         }
-        let thread: Thread?
+        let timeline: TimelineRecord?
         do {
-            thread = try await dependencies.threadManager.threadStore.fetchThread(id: threadID)
+            timeline = try await dependencies.timelineManager.timelineStore.fetchTimeline(id: timelineID)
         } catch {
-            throw ThreadError.unavailable
+            throw TimelineError.unavailable
         }
 
-        guard let thread else {
-            throw ThreadError.threadNotFound
+        guard let timeline else {
+            throw TimelineError.timelineNotFound
         }
-        guard thread.attachedAgentID == agentId else {
+        guard timeline.attachedAgentID == agentId else {
             throw TurnError.managedExecutionAgentMismatch(
-                threadID: threadID,
+                timelineID: timelineID,
                 requestedAgentID: agentId,
-                attachedAgentID: thread.attachedAgentID
+                attachedAgentID: timeline.attachedAgentID
             )
         }
 
@@ -129,16 +129,16 @@ extension TurnEngine {
     /// The runtime repository commits the user message with Turn admission so an admitted Turn
     /// can never be observed without its input. Repeated requests join or replay the durable Turn
     /// rather than re-executing provider or tool side effects.
-    func prepareSession(
+    func prepareTurn(
         _ executionRequest: TurnExecutionRequest,
         turnID: UUID,
         agent: Agent?,
         agentContext: AgentContextSnapshot? = nil,
         agentDiagnostics: [TurnDiagnostic],
         onAdmission: (@Sendable () async -> Void)? = nil
-    ) async throws -> PreparedSession {
+    ) async throws -> PreparedTurn {
         let request = executionRequest.request
-        let threadID = request.threadID
+        let timelineID = request.timelineID
         let requestId = executionRequest.requestID
         let messageContent = request.messageContent
         let tools = request.tools
@@ -199,9 +199,9 @@ extension TurnEngine {
         var validatedToolOutputs: [ToolOutputSubmission] = []
         var repositoryAdmitted = false
         let inputMessage = hasMessage
-            ? ThreadMessage(
+            ? TimelineMessage(
                 id: requestId,
-                threadID: threadID,
+                timelineID: timelineID,
                 role: .user,
                 content: messageContent
             )
@@ -211,7 +211,7 @@ extension TurnEngine {
         var resolvedWorkspaceToolCatalog: WorkspaceToolCatalog?
         var resolvedContributions: [TurnContextContribution] = []
         let admissionRequest = TurnAdmissionRequest(
-            threadID: threadID,
+            timelineID: timelineID,
             turnID: turnID,
             requestID: requestId,
             inputMessage: inputMessage,
@@ -221,8 +221,8 @@ extension TurnEngine {
         )
 
         do {
-            // 2. Validate thread existence before any preparation proceeds.
-            try await dependencies.threadManager.ensureThreadExists(id: threadID)
+            // 2. Validate timeline existence before any preparation proceeds.
+            try await dependencies.timelineManager.ensureTimelineExists(id: timelineID)
 
             let admissionResult = try await admitTurn(admissionRequest)
             resolvedAgent = admissionResult.agent ?? resolvedAgent
@@ -244,7 +244,7 @@ extension TurnEngine {
 
             if let turnContextSource = dependencies.turnContextSource {
                 let request = TurnContextRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     turnID: turnID,
                     requestID: requestId,
                     agentID: agentId,
@@ -295,21 +295,21 @@ extension TurnEngine {
             //    task throws at the next cancellation-aware await, so a reservation cannot strand.
             validatedToolOutputs = try await dependencies.submissionGate.validate(
                 toolOutputs ?? [],
-                threadID: threadID,
+                timelineID: timelineID,
                 inputMessageID: inputMessage?.id,
                 runtimeRepository: dependencies.runtimeRepository
             )
 
-            // 4. Load existing thread history, including the input committed at admission.
-            let threadMessages = try await dependencies.runtimeRepository.fetchMessages(for: threadID)
+            // 4. Load existing timeline history, including the input committed at admission.
+            let timelineMessages = try await dependencies.runtimeRepository.fetchMessages(for: timelineID)
             // The repository commits the current input before preparation, while external tool
             // outputs are committed later. Project the request-local input after those outputs
             // for prompt validation: provider history must keep an assistant tool call adjacent
             // to its tool result even though durable append order is input-before-output.
-            var history = threadMessages
+            var history = timelineMessages
                 .filter { $0.id != inputMessage?.id }
                 .map { $0.toMessage() }
-            let currentRemoteDepth = threadMessages.map(\.remoteDepth).max() ?? 0
+            let currentRemoteDepth = timelineMessages.map(\.remoteDepth).max() ?? 0
 
             // 5. Build an in-memory augmented history that includes new tool outputs.
             for output in validatedToolOutputs {
@@ -330,8 +330,8 @@ extension TurnEngine {
             var turnDiagnostics: [TurnDiagnostic] = []
             turnDiagnostics += resolvedAgentContext?.diagnostics ?? []
 
-            // 8. Resolve session entities. Direct Turns deliberately do not inherit an Agent's
-            // primary workspace or memory; ordinary Workspace bindings belong to the Thread and
+            // 8. Resolve runtime entities. Direct Turns deliberately do not inherit an Agent's
+            // primary workspace or memory; ordinary Workspace bindings belong to the Timeline and
             // are captured above for both execution paths. Direct contributors remain the
             // explicit caller-owned selection captured on `TurnContext`.
             let workspaceResult: WorkspaceQueryResult
@@ -341,7 +341,7 @@ extension TurnEngine {
                     attached: catalog.entries.filter { !$0.isPrimary }.map(\.workspace)
                 )
             } else {
-                workspaceResult = try await dependencies.threadManager.getWorkspaces(for: threadID)
+                workspaceResult = try await dependencies.timelineManager.getWorkspaces(for: timelineID)
             }
             turnDiagnostics += workspaceResult.degradations.map {
                 TurnDiagnostic(
@@ -352,10 +352,10 @@ extension TurnEngine {
                     message: $0.message
                 )
             }
-            turnDiagnostics += await dependencies.threadManager.consumeDegradations(for: threadID)
+            turnDiagnostics += await dependencies.timelineManager.consumeDegradations(for: timelineID)
             try enforceRequired(turnDiagnostics)
-            await dependencies.threadManager.touchThread(id: threadID)
-            let thread = await dependencies.threadManager.thread(id: threadID)
+            await dependencies.timelineManager.touchTimeline(id: timelineID)
+            let timeline = await dependencies.timelineManager.timeline(id: timelineID)
             turnDiagnostics += agentDiagnostics
 
             let requestOriginId = workspaceResult.primary?.originID
@@ -384,7 +384,7 @@ extension TurnEngine {
                 generationParameters: generationParameters
             )
 
-            let promptHistory = await dependencies.promptHistoryRegistry.history(for: threadID)
+            let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineID)
             let structuredDiff = await promptHistory.structuredDiffHint()
             let providerConfig = await dependencies.llmService.configuration.activeProviderConfiguration
             let budget = try TurnEngine.makeTokenBudget(
@@ -396,7 +396,7 @@ extension TurnEngine {
                 promptRequest,
                 agent: resolvedAgent,
                 agentContext: resolvedAgentContext,
-                thread: thread,
+                timeline: timeline,
                 options: PromptAssemblyOptions(
                     tokenBudget: budget,
                     logger: assemblyLogger,
@@ -416,7 +416,7 @@ extension TurnEngine {
                 update = try await promptHistory.update(prompt: renderedPrompt)
             } catch {
                 logger.error("Prompt history update failed; aborting turn before returning context", metadata: [
-                    LogKeys.threadID: .string(threadID.uuidString),
+                    LogKeys.timelineID: .string(timelineID.uuidString),
                     LogKeys.requestID: .string(requestId.uuidString),
                     "error": .string(String(describing: error)),
                 ])
@@ -424,7 +424,7 @@ extension TurnEngine {
             }
             guard let diff = update.diff else {
                 logger.error("Prompt history update produced no diff; aborting turn", metadata: [
-                    LogKeys.threadID: .string(threadID.uuidString),
+                    LogKeys.timelineID: .string(timelineID.uuidString),
                     LogKeys.requestID: .string(requestId.uuidString),
                     "journalState": .string("update_without_diff"),
                 ])
@@ -433,7 +433,7 @@ extension TurnEngine {
             logger.debug(
                 "Prompt journal updated: added=\(diff.added.count) removed=\(diff.removed.count) changed=\(diff.changed.count)",
                 metadata: [
-                    LogKeys.threadID: .string(threadID.uuidString),
+                    LogKeys.timelineID: .string(timelineID.uuidString),
                     LogKeys.requestID: .string(requestId.uuidString),
                     LogKeys.modelRoundIndex: .string("0"),
                     "addedSections": .string("\(diff.added.count)"),
@@ -471,7 +471,7 @@ extension TurnEngine {
             //     repository already committed the user message atomically with Turn admission.
             try await dependencies.submissionGate.commit(
                 validatedToolOutputs,
-                threadID: threadID,
+                timelineID: timelineID,
                 runtimeRepository: dependencies.runtimeRepository
             )
 
@@ -504,11 +504,11 @@ extension TurnEngine {
             let modelName = providerConfig.modelName
 
             return .ready(TurnContext(
-                threadID: threadID,
+                timelineID: timelineID,
                 turnID: turnID,
                 requestId: requestId,
                 agentId: agentId,
-                agentPrivateThreadID: resolvedAgent?.privateThreadID,
+                agentPrivateTimelineID: resolvedAgent?.privateTimelineID,
                 agentContext: resolvedAgentContext,
                 contextContributions: resolvedContributions,
                 executionKind: executionKind,
@@ -548,7 +548,7 @@ extension TurnEngine {
             }
             // Release any tool-output reservations made during validation.
             await dependencies.submissionGate.releaseReservations(
-                threadID: threadID,
+                timelineID: timelineID,
                 toolCallIds: validatedToolOutputs.map(\.toolCallID)
             )
             if let recoveryError {
@@ -561,12 +561,12 @@ extension TurnEngine {
     /// Captures all authority-bearing state and then crosses the repository's atomic admission
     /// barrier.
     func admitTurn(_ request: TurnAdmissionRequest) async throws -> TurnAdmissionResult {
-        try await withAdmissionAuthority(threadID: request.threadID, agentID: request.agentID) { [self] in
-            // Revalidate the execution authority in the same per-Thread lane as admission. The
+        try await withAdmissionAuthority(timelineID: request.timelineID, agentID: request.agentID) { [self] in
+            // Revalidate the execution authority in the same per-Timeline lane as admission. The
             // handle's initial lookup is only a convenience preflight; an attachment can change
             // while preparation is waiting on provider or persistence work.
             let authority = try await validateExecutionAuthority(
-                threadID: request.threadID,
+                timelineID: request.timelineID,
                 executionKind: request.executionKind,
                 agentID: request.agentID
             )
@@ -574,7 +574,7 @@ extension TurnEngine {
             if let currentAgent = authority.agent {
                 let snapshot = try await dependencies.agentContextSource.snapshot(
                     for: currentAgent,
-                    thread: authority.thread
+                    timeline: authority.timeline
                 )
                 guard snapshot.identity.agentID == currentAgent.id else {
                     throw AgentContextError.identityMismatch(
@@ -584,13 +584,13 @@ extension TurnEngine {
                 }
                 context = snapshot
             }
-            let workspaceCatalog = try await dependencies.threadManager.captureWorkspaceToolCatalog(
-                for: request.threadID,
+            let workspaceCatalog = try await dependencies.timelineManager.captureWorkspaceToolCatalog(
+                for: request.timelineID,
                 primaryWorkspaceID: authority.agent?.primaryWorkspaceID
             )
 
             let admission = try await dependencies.runtimeRepository.admitTurn(
-                threadID: request.threadID,
+                timelineID: request.timelineID,
                 requestID: request.requestID,
                 callerIntentFingerprint: request.callerIntentFingerprint,
                 inputMessage: request.inputMessage,
@@ -619,44 +619,44 @@ extension TurnEngine {
     }
 
     private func validateExecutionAuthority(
-        threadID: UUID,
+        timelineID: UUID,
         executionKind: TurnExecutionKind,
         agentID: UUID?
     ) async throws -> ExecutionAuthority {
-        guard let thread = try await dependencies.threadManager.threadStore.fetchThread(id: threadID) else {
-            throw ThreadError.threadNotFound
+        guard let timeline = try await dependencies.timelineManager.timelineStore.fetchTimeline(id: timelineID) else {
+            throw TimelineError.timelineNotFound
         }
         switch executionKind {
         case .agentManaged:
             // A nil Agent is retained for the legacy internal `run` seam. Public managed
             // admission supplies the captured identity; when present it must still match the
             // durable attachment immediately before admission.
-            if let agentID, thread.attachedAgentID != agentID {
+            if let agentID, timeline.attachedAgentID != agentID {
                 throw TurnError.managedExecutionAgentMismatch(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     requestedAgentID: agentID,
-                    attachedAgentID: thread.attachedAgentID
+                    attachedAgentID: timeline.attachedAgentID
                 )
             }
             guard let agentID else {
-                return ExecutionAuthority(thread: thread, agent: nil)
+                return ExecutionAuthority(timeline: timeline, agent: nil)
             }
             guard let agent = try await dependencies.agentStore.fetchAgent(id: agentID) else {
                 throw AgentError.agentNotFound(agentID)
             }
             switch agent.lifecycle {
             case .active:
-                return ExecutionAuthority(thread: thread, agent: agent)
+                return ExecutionAuthority(timeline: timeline, agent: agent)
             case .retiring:
                 throw AgentError.agentRetiring(agentID)
             case .retired:
                 throw AgentError.agentRetired(agentID)
             }
         case .direct:
-            guard thread.attachedAgentID == nil else {
-                throw TurnError.directExecutionRequiresDetachedThread(threadID)
+            guard timeline.attachedAgentID == nil else {
+                throw TurnError.directExecutionRequiresDetachedTimeline(timelineID)
             }
-            return ExecutionAuthority(thread: thread, agent: nil)
+            return ExecutionAuthority(timeline: timeline, agent: nil)
         }
     }
 
@@ -732,7 +732,7 @@ extension TurnEngine {
 
 private extension TurnEngine {
     private func compensatePreparationFailure(
-        repository: any ThreadRuntimeRepository,
+        repository: any TimelineRuntimeRepository,
         turnID: UUID,
         preparationError: Error
     ) async -> TurnPreparationRecoveryError? {
@@ -776,22 +776,22 @@ private extension TurnEngine {
     }
 
     /// Serializes managed admission with Agent lifecycle/identity mutations. Direct turns have
-    /// no Agent authority and therefore only use their per-Thread lane.
+    /// no Agent authority and therefore only use their per-Timeline lane.
     func withAdmissionAuthority<T: Sendable>(
-        threadID: UUID,
+        timelineID: UUID,
         agentID: UUID?,
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
         if let agentID {
             return try await dependencies.agentAuthorityCoordinator.withAgent(agentID) {
-                try await dependencies.threadAuthorityCoordinator.withThread(
-                    threadID,
+                try await dependencies.timelineAuthorityCoordinator.withTimeline(
+                    timelineID,
                     operation: operation
                 )
             }
         }
-        return try await dependencies.threadAuthorityCoordinator.withThread(
-            threadID,
+        return try await dependencies.timelineAuthorityCoordinator.withTimeline(
+            timelineID,
             operation: operation
         )
     }
@@ -817,7 +817,7 @@ private extension TurnEngine {
                       return !["readSoul", "catalogNotes"].contains(diagnostic.operation)
                   case .workspace:
                       // A missing optional attachment is observable but does not make the
-                      // thread unusable. Store outages and resolver failures remain fatal.
+                      // timeline unusable. Store outages and resolver failures remain fatal.
                       return diagnostic.errorIdentity?.code != 3004
                   case .origin:
                       return false

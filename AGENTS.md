@@ -19,18 +19,18 @@ through the owning issue or an ADR.
 
 ## Preserve runtime boundaries
 
-- A Turn runs on a Thread. Managed execution captures Agent context from the attached Agent. A
-  detached Thread uses the explicit direct path.
-- One `ThreadRuntimeRepository` owns Thread metadata, append-only history, Turn admission, tool
+- A Turn runs on a Timeline. Managed execution derives Agent context from the attached Agent. A
+  detached Timeline uses the explicit direct path.
+- One `TimelineRuntimeRepository` owns Timeline metadata, append-only history, Turn admission, tool
   intent and results, terminal outcomes, replay, and Request-ID uniqueness.
-- Ordinary Workspaces bind exclusively to Threads. One deterministic dispatcher executes Workspace
+- Ordinary Workspaces bind exclusively to Timelines. One deterministic dispatcher executes Workspace
   tools with process-local FIFO serialization per Workspace.
 - Turn admission captures execution authority. That authority does not change while the Turn runs.
 - Public consumers use capability values and handles. Managers, registries, pipeline topology, and
   model-round machinery remain internal.
 - `PKContracts` imports no PositronicKit project target. Providers and external integrations do not
   import the runtime. `PKUtilities` is not a public product.
-- `PromptJournal` observes assembled prompt state. It does not own semantic Thread history.
+- `PromptJournal` observes assembled prompt state. It does not own semantic Timeline history.
 
 Require an owning issue and an independently justified consumer story before adding a public
 product, protocol, plugin bus, compatibility alias, or migration path.

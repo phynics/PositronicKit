@@ -1,6 +1,6 @@
 //
 //  PromptTraits.swift
-//  PositronicKit
+//  PKRuntime
 //
 //  Created by Atakan Dulker on 29.04.26.
 //

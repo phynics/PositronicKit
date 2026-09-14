@@ -24,10 +24,10 @@ import PKUtilities
 /// green on hosts without FoundationModels" requirement. Callers on unsupported hosts must
 /// supply their own `makeSession` (e.g. a fake) or the client throws `unsupportedPlatform` on use.
 public actor FoundationModelsClient: LLMClientProtocol {
-    /// Factory for the per-turn session: given the tool definitions PositronicKit resolved for
+    /// Factory for the per-turn session: given the tool definitions PKRuntime resolved for
     /// this turn and the hoisted system-instructions string, produce a session to drive.
-    /// PositronicKit's `[LLMToolDefinition]` (JSON-Schema-shaped, transport-neutral) is bridged
-    /// to the framework's typed `Tool` protocol by the production factory; tests pass their own
+    /// PKRuntime's `[LLMToolDefinition]` (JSON-Schema-shaped, transport-neutral) is bridged
+    /// to the framework's typed `FoundationModels.Tool` protocol by the production factory; tests pass their own
     /// factory and can ignore `tools` entirely for text-only fixtures.
     public typealias SessionFactory = @Sendable (
         _ tools: [LLMToolDefinition]?,
@@ -48,8 +48,8 @@ public actor FoundationModelsClient: LLMClientProtocol {
     ///     shared contract only carries schema (name/description/parameters), never an executor,
     ///     because the HTTP-family adapters never execute tools themselves (the caller executes
     ///     them after a `tool_calls` finish and resends results as `tool`-role messages).
-    ///     `LanguageModelSession` is different: it executes registered `Tool`s itself while
-    ///     producing a response, so it needs the executable tool up front, at session-construction
+    ///     `LanguageModelSession` is different: it executes registered `FoundationModels.Tool`s
+    ///     itself while producing a response, so it needs the executable tool up front, at session-construction
     ///     time — not per-turn. Passing `tools` here is the documented way to get real on-device
     ///     tool execution; per-turn `[LLMToolDefinition]` from `chatStream` is only used for the
     ///     ignored-parameter diagnostics below when `tools` is empty (see README support matrix).
@@ -195,7 +195,7 @@ public actor FoundationModelsClient: LLMClientProtocol {
     /// taking a full message array per turn (unlike the HTTP-family adapters, which resend the
     /// full history every request). This adapter targets single-turn on-device generation
     /// (PKPOST-003 scope); the latest user message is what's sent to `streamTurn`. Multi-turn
-    /// session reuse across PositronicKit turns is a documented gap — see README support matrix.
+    /// session reuse across PKRuntime turns is a documented gap — see README support matrix.
     private nonisolated func latestUserPrompt(from messages: [LLMMessage]) -> String {
         messages.last(where: { $0.role == .user })?.content ?? ""
     }

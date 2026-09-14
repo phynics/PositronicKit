@@ -88,7 +88,7 @@ struct ProviderInitializationTests {
 
     // MARK: - OpenAI
 
-    @Test("OpenAI client threads default host/port/scheme/model/timeout into the outgoing request")
+    @Test("OpenAI client timelines default host/port/scheme/model/timeout into the outgoing request")
     func openAIDefaultsPropagate() async throws {
         let middleware = RecordingOpenAIMiddleware()
         let client = OpenAIClient(
@@ -117,7 +117,7 @@ struct ProviderInitializationTests {
         #expect(json.contains("gpt-4o"))
     }
 
-    @Test("OpenAI client threads explicit overrides into the outgoing request")
+    @Test("OpenAI client timelines explicit overrides into the outgoing request")
     func openAIOverridesPropagate() async throws {
         let middleware = RecordingOpenAIMiddleware()
         let client = OpenAIClient(
@@ -153,13 +153,13 @@ struct ProviderInitializationTests {
 
     @Test("OpenAI factory constructs a client with its adapter")
     func openAIFactoryConstructsClient() {
-        let client = PKOpenAIProvider.makeClient(configuration: .fixture(apiKey: "test", activeProvider: .openAI))
+        let client = PKOpenAI.makeClient(configuration: .fixture(apiKey: "test", activeProvider: .openAI))
         #expect(type(of: client) == OpenAIClient.self)
     }
 
     // MARK: - Anthropic
 
-    @Test("Anthropic client threads default host/endpoint/model/version/timeout into the outgoing request")
+    @Test("Anthropic client timelines default host/endpoint/model/version/timeout into the outgoing request")
     func anthropicDefaultsPropagate() async throws {
         let transport = RequestRecordingTransport { _ in
             (Data(), self.response(url: "https://api.anthropic.com/v1/messages", status: 500))
@@ -200,7 +200,7 @@ struct ProviderInitializationTests {
         #expect(client.maxRetries == 3)
     }
 
-    @Test("Anthropic client threads explicit overrides into the outgoing request")
+    @Test("Anthropic client timelines explicit overrides into the outgoing request")
     func anthropicOverridesPropagate() async throws {
         let transport = RequestRecordingTransport { _ in
             (Data(), self.response(url: "https://anthropic.example.com:8443/v1/messages", status: 500))
@@ -248,13 +248,13 @@ struct ProviderInitializationTests {
 
     @Test("Anthropic factory constructs a client with its adapter")
     func anthropicFactoryConstructsClient() {
-        let client = PKAnthropicProvider.makeClient(configuration: .fixture(apiKey: "test", activeProvider: .anthropic))
+        let client = PKAnthropic.makeClient(configuration: .fixture(apiKey: "test", activeProvider: .anthropic))
         #expect(type(of: client) == AnthropicClient.self)
     }
 
     // MARK: - Ollama
 
-    @Test("Ollama client threads required endpoint/model and default timeout into the outgoing request")
+    @Test("Ollama client timelines required endpoint/model and default timeout into the outgoing request")
     func ollamaDefaultsPropagate() async throws {
         let transport = RequestRecordingTransport { _ in
             (Data(), self.response(url: "http://localhost:11434/api/chat", status: 500))
@@ -281,7 +281,7 @@ struct ProviderInitializationTests {
         #expect(json.contains("llama3.1"))
     }
 
-    @Test("Ollama client threads explicit overrides into the outgoing request")
+    @Test("Ollama client timelines explicit overrides into the outgoing request")
     func ollamaOverridesPropagate() async throws {
         let transport = RequestRecordingTransport { _ in
             (Data(), self.response(url: "http://192.168.1.50:11434/api/chat", status: 500))
@@ -321,13 +321,13 @@ struct ProviderInitializationTests {
 
     @Test("Ollama factory constructs a client with its adapter")
     func ollamaFactoryConstructsClient() {
-        let client = PKOllamaProvider.makeClient(configuration: .fixture(activeProvider: .ollama))
+        let client = PKOllama.makeClient(configuration: .fixture(activeProvider: .ollama))
         #expect(type(of: client) == OllamaClient.self)
     }
 
     // MARK: - OpenRouter
 
-    @Test("OpenRouter client threads default host/model/timeout/api path into the outgoing request")
+    @Test("OpenRouter client timelines default host/model/timeout/api path into the outgoing request")
     func openRouterDefaultsPropagate() async throws {
         let transport = RequestRecordingTransport { _ in
             (Data(), self.response(url: "https://openrouter.ai/api/v1/chat/completions", status: 500))
@@ -350,7 +350,7 @@ struct ProviderInitializationTests {
         #expect(json.contains("openai/gpt-4o"))
     }
 
-    @Test("OpenRouter client threads explicit overrides into the outgoing request")
+    @Test("OpenRouter client timelines explicit overrides into the outgoing request")
     func openRouterOverridesPropagate() async throws {
         let transport = RequestRecordingTransport { _ in
             (Data(), self.response(url: "https://openrouter.example.com/api/v1/chat/completions", status: 500))
@@ -421,13 +421,13 @@ struct ProviderInitializationTests {
 
     @Test("OpenRouter factory constructs a client with its adapter")
     func openRouterFactoryConstructsClient() {
-        let client = PKOpenRouterProvider.makeClient(configuration: .fixture(activeProvider: .openRouter))
+        let client = PKOpenRouter.makeClient(configuration: .fixture(activeProvider: .openRouter))
         #expect(type(of: client) == OpenRouterClient.self)
     }
 
     @Test("OpenRouter provider construction uses native structured output")
     func openRouterRegistersNativeStructuredOutput() {
-        _ = PKOpenRouterProvider.makeClient(
+        _ = PKOpenRouter.makeClient(
             configuration: .fixture(activeProvider: .openRouter)
         )
 
@@ -435,7 +435,7 @@ struct ProviderInitializationTests {
 
     @Test("OpenAI provider construction uses native structured output")
     func openAIRegistersNativeStructuredOutput() {
-        _ = PKOpenAIProvider.makeClient(
+        _ = PKOpenAI.makeClient(
             configuration: .fixture(activeProvider: .openAI)
         )
 
@@ -443,7 +443,7 @@ struct ProviderInitializationTests {
 
     @Test("OpenAI-compatible provider construction uses compatible structured output")
     func openAICompatibleRegistersStructuredOutput() {
-        _ = PKOpenAIProvider.makeClient(
+        _ = PKOpenAI.makeClient(
             configuration: .fixture(activeProvider: .openAICompatible)
         )
 
@@ -451,7 +451,7 @@ struct ProviderInitializationTests {
 
     @Test("Anthropic provider construction uses Anthropic structured output")
     func anthropicRegistersStructuredOutput() {
-        _ = PKAnthropicProvider.makeClient(
+        _ = PKAnthropic.makeClient(
             configuration: .fixture(activeProvider: .anthropic)
         )
 
@@ -459,7 +459,7 @@ struct ProviderInitializationTests {
 
     @Test("Ollama provider construction uses Ollama structured output")
     func ollamaRegistersStructuredOutput() {
-        _ = PKOllamaProvider.makeClient(
+        _ = PKOllama.makeClient(
             configuration: .fixture(activeProvider: .ollama)
         )
 
@@ -467,13 +467,13 @@ struct ProviderInitializationTests {
 
     @Test("configured provider factories produce ready runtime-neutral values")
     func configuredProviderFactoriesProduceReadyValues() async {
-        let invalidOpenAI = PKOpenAIProvider.makeConfiguredProvider(apiKey: "")
+        let invalidOpenAI = PKOpenAI.makeConfiguredProvider(apiKey: "")
         #expect(invalidOpenAI.configuration.isValid == false)
         #expect(throws: ConfigurationError.self) {
             try invalidOpenAI.configuration.validate()
         }
 
-        let openAI = PKOpenAIProvider.makeConfiguredProvider(
+        let openAI = PKOpenAI.makeConfiguredProvider(
             apiKey: "openai-key",
             model: "gpt-test",
             endpoint: "https://openai.example.com"
@@ -484,7 +484,7 @@ struct ProviderInitializationTests {
         #expect(openAI.configuration.activeProviderConfiguration.endpoint == "https://openai.example.com")
         #expect(openAI.configuration.isValid)
 
-        let openRouter = PKOpenRouterProvider.makeConfiguredProvider(
+        let openRouter = PKOpenRouter.makeConfiguredProvider(
             apiKey: "router-key",
             model: "router/model"
         )
@@ -492,12 +492,12 @@ struct ProviderInitializationTests {
         #expect(openRouter.configuration.activeProviderConfiguration.modelName == "router/model")
         #expect(openRouter.configuration.isValid)
 
-        let ollama = PKOllamaProvider.makeConfiguredProvider(model: "local-model")
+        let ollama = PKOllama.makeConfiguredProvider(model: "local-model")
         #expect(ollama.configuration.activeProvider == .ollama)
         #expect(ollama.configuration.activeProviderConfiguration.modelName == "local-model")
         #expect(ollama.configuration.isValid)
 
-        let anthropic = PKAnthropicProvider.makeConfiguredProvider(
+        let anthropic = PKAnthropic.makeConfiguredProvider(
             apiKey: "anthropic-key",
             model: "claude-test"
         )
@@ -505,6 +505,6 @@ struct ProviderInitializationTests {
         #expect(anthropic.configuration.activeProviderConfiguration.modelName == "claude-test")
         #expect(anthropic.configuration.isValid)
 
-        _ = PositronicKit(provider: openAI)
+        _ = PKRuntime(provider: openAI)
     }
 }

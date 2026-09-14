@@ -12,7 +12,7 @@ struct LoggingRedactionTests {
     @Test("TurnRequest description does not include the user message")
     func requestDescriptionDoesNotLeakMessage() {
         let secret = "user-secret-prompt-7f3c"
-        let request = TurnRequest(threadID: UUID(), message: secret)
+        let request = TurnRequest(timelineID: UUID(), message: secret)
 
         #expect(!request.description.contains(secret))
         #expect(request.description.contains("message: <redacted>"))
@@ -49,15 +49,15 @@ struct LoggingRedactionTests {
         })
 
         // Build a minimal ToolRouter directly so we can inject the capturing logger config
-        // without going through the PositronicKit facade. The thread is never created in the
+        // without going through the PKRuntime facade. The timeline is never created in the
         // store, so `execute` logs "Routing ..." then throws `toolNotFound` — the log record is
         // captured before the throw, which is all this regression test inspects.
         let persistence = MockPersistenceService()
         let workspaceRoot = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("pkrr-024-\(UUID().uuidString)")
-        let threadManager = ThreadManager(
+        let timelineManager = TimelineManager(
             stores: .init(
-                threadStore: persistence,
+                timelineStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
@@ -67,16 +67,16 @@ struct LoggingRedactionTests {
             workspaceProfile: .hostManaged(root: workspaceRoot)
         )
         let router = ToolRouter(
-            threadManager: threadManager,
+            timelineManager: timelineManager,
             runtimeRepository: persistence,
             loggingConfiguration: configuration
         )
 
-        let threadID = UUID()
+        let timelineID = UUID()
         _ = try? await router.execute(
             tool: .known(id: "calculator"),
             arguments: [:],
-            threadID: threadID,
+            timelineID: timelineID,
             availableTools: []
         )
 
@@ -89,7 +89,7 @@ struct LoggingRedactionTests {
 
         // Identity travels in structured metadata, not embedded in the colored message string.
         #expect(routing.metadata[LogKeys.toolName]?.description == "calculator")
-        #expect(routing.metadata[LogKeys.threadID]?.description == threadID.uuidString)
+        #expect(routing.metadata[LogKeys.timelineID]?.description == timelineID.uuidString)
     }
 
     // MARK: - Capture harness

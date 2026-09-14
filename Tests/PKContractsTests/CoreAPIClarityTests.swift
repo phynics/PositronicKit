@@ -10,7 +10,7 @@ struct CoreAPIClarityTests {
     func defaultHeavySharedInitializersResolveToCanonicalOverload() {
         let message = Message(content: "hello", role: .user)
         let workspace = WorkspaceReference(
-            uri: .threadWorkspace(UUID()),
+            uri: .timelineWorkspace(UUID()),
             location: .runtime
         )
 
@@ -44,7 +44,7 @@ struct CoreAPIClarityTests {
 
     @Test("Canonical shared-model identifiers preserve all legacy JSON keys")
     func canonicalSharedModelIdentifiersPreserveLegacyJSONKeys() throws {
-        let threadID = UUID()
+        let timelineID = UUID()
         let agentID = UUID()
         let workspaceID = UUID()
 
@@ -54,15 +54,15 @@ struct CoreAPIClarityTests {
             name: "Agent",
             description: "Test",
             primaryWorkspaceID: workspaceID,
-            privateThreadID: threadID
+            privateTimelineID: timelineID
         )
         let workspace = WorkspaceReference(
-            uri: .threadWorkspace(threadID),
+            uri: .timelineWorkspace(timelineID),
             location: .runtime,
             originID: agentID
         )
         let snapshot = TurnSnapshot(
-            threadID: threadID,
+            timelineID: timelineID,
             agentID: agentID,
             modelName: "test",
             modelRoundIndex: 1,
@@ -88,7 +88,7 @@ struct CoreAPIClarityTests {
         let values: [(data: Data, requiredKeys: Set<String>, forbiddenKeys: Set<String>)] = [
             (try JSONEncoder().encode(identity), ["turnId", "requestId", "modelRoundIndex"], ["turnID", "requestID"]),
             (try JSONEncoder().encode(submission), ["toolCallId", "output"], ["toolCallID"]),
-            (try JSONEncoder().encode(agent), ["primaryWorkspaceId", "privateThreadId"], ["primaryWorkspaceID", "privateThreadID"]),
+            (try JSONEncoder().encode(agent), ["primaryWorkspaceId", "privateThreadId"], ["primaryWorkspaceID", "privateTimelineID"]),
             (try JSONEncoder().encode(workspace), ["originId"], ["originID"]),
             (try JSONEncoder().encode(snapshot), ["threadId", "agentId", "availableToolIds"], ["threadID", "agentID", "availableToolIDs"]),
             (try JSONEncoder().encode(diagnostic), ["entityId"], ["entityID"]),

@@ -3,8 +3,8 @@ import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
-/// Tool to list files in a directory
-package struct ListDirectoryTool: Tool, Sendable {
+/// PKTool to list files in a directory
+package struct ListDirectoryTool: PKTool, Sendable {
     package let callName = "ls"
     package let name = "List Directory"
     package let toolDescription = "List files and directories at a specific path"

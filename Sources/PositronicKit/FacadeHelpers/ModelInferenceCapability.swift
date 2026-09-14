@@ -18,11 +18,11 @@ public enum ModelHealthError: PKError, Sendable, Equatable {
     }
 }
 
-/// Raw, Thread-free model inference entry points exposed by ``PositronicKit``.
+/// Raw, Timeline-free model inference entry points exposed by ``PKRuntime``.
 public struct ModelInferenceCapability: Sendable {
-    private let kit: PositronicKit
+    private let kit: PKRuntime
 
-    init(kit: PositronicKit) {
+    init(kit: PKRuntime) {
         self.kit = kit
     }
 
@@ -52,7 +52,7 @@ public struct ModelInferenceCapability: Sendable {
         return await healthCheckable.checkHealth()
     }
 
-    /// Generates a complete response for a single prompt, without creating or updating a Thread.
+    /// Generates a complete response for a single prompt, without creating or updating a Timeline.
     ///
     /// - Parameters:
     ///   - prompt: The user prompt to send.
@@ -77,7 +77,7 @@ public struct ModelInferenceCapability: Sendable {
     }
 
     /// Generates and decodes one structured response for a single prompt, without creating or
-    /// updating a Thread.
+    /// updating a Timeline.
     ///
     /// The result type must provide a JSON Schema through `@Schemable`. The generated schema's
     /// keys must agree with the keys accepted by `decoder`, including any explicit `CodingKeys`
@@ -133,7 +133,7 @@ public struct ModelInferenceCapability: Sendable {
         return try StructuredOutputDecoder.decode(Output.self, from: payload, decoder: decoder)
     }
 
-    /// Streams a response for a single prompt, without creating or updating a Thread.
+    /// Streams a response for a single prompt, without creating or updating a Timeline.
     ///
     /// - Parameters:
     ///   - prompt: The user prompt to send.
@@ -159,7 +159,7 @@ public struct ModelInferenceCapability: Sendable {
     }
 
     /// Generates a structured response for a single prompt, without creating or updating a
-    /// Thread.
+    /// Timeline.
     ///
     /// - Parameters:
     ///   - prompt: The user prompt to send.

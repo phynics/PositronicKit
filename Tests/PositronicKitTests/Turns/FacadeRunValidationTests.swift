@@ -1,7 +1,6 @@
 import Foundation
 import PKContracts
 import PKTestSupport
-import struct PositronicKit.Thread
 @testable import PositronicKit
 import Synchronization
 import Testing
@@ -25,12 +24,12 @@ struct FacadeRunValidationTests {
 
         await expectMissingAgent(agentID) {
             _ = try await harness.kit.run(TurnRequest(
-                threadID: harness.threadID,
+                timelineID: harness.timelineID,
                 message: "must not persist",
             ), agentID: agentID, executionKind: .agentManaged)
         }
 
-        #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
+        #expect(try await harness.persistence.fetchMessages(for: harness.timelineID).isEmpty)
         #expect(harness.languageModel.generationCaptureHistory.isEmpty)
         #expect(await harness.agentStore.fetchCount == 1)
     }
@@ -43,12 +42,12 @@ struct FacadeRunValidationTests {
 
         await expectMissingAgent(agentID) {
             _ = try await harness.kit.run(TurnRequest(
-                threadID: harness.threadID,
+                timelineID: harness.timelineID,
                 message: "agent validation wins",
             ), agentID: agentID, executionKind: .agentManaged)
         }
 
-        #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
+        #expect(try await harness.persistence.fetchMessages(for: harness.timelineID).isEmpty)
         #expect(harness.languageModel.generationCaptureHistory.isEmpty)
         #expect(await harness.agentStore.fetchCount == 1)
     }
@@ -57,19 +56,19 @@ struct FacadeRunValidationTests {
     func managedAuthorityRejectsMissingAttachedAgent() async throws {
         let harness = try await makeAgentHarness(policy: .continueWithWarnings)
         let agentID = UUID()
-        var thread = try #require(try await harness.persistence.fetchThread(id: harness.threadID))
-        thread.attachedAgentID = agentID
-        try await harness.persistence.saveThread(thread)
+        var timeline = try #require(try await harness.persistence.fetchTimeline(id: harness.timelineID))
+        timeline.attachedAgentID = agentID
+        try await harness.persistence.saveTimeline(timeline)
         await expectMissingAgent(agentID) {
             _ = try await harness.kit.run(TurnRequest(
-                threadID: harness.threadID,
+                timelineID: harness.timelineID,
                 message: "must not run without authority",
             ), agentID: agentID, executionKind: .agentManaged)
         }
 
         #expect(await harness.agentStore.fetchCount == 2)
         #expect(harness.languageModel.generationCaptureHistory.isEmpty)
-        #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
+        #expect(try await harness.persistence.fetchMessages(for: harness.timelineID).isEmpty)
     }
 
     @Test("existing agent is validated for attachment and immutable admission authority")
@@ -78,14 +77,14 @@ struct FacadeRunValidationTests {
         let agent = Agent(
             name: "Preflight Agent",
             description: description,
-            privateThreadID: UUID(),
+            privateTimelineID: UUID(),
         )
         let harness = try await makeAgentHarness(policy: .failRequired, agent: agent)
-        try await harness.kit.agentManager.attach(agentID: agent.id, to: harness.threadID)
+        try await harness.kit.agentManager.attach(agentID: agent.id, to: harness.timelineID)
         harness.languageModel.mockClient.nextResponse = "resolved"
 
         let stream = try await harness.kit.run(TurnRequest(
-            threadID: harness.threadID,
+            timelineID: harness.timelineID,
             message: "use the resolved agent",
         ), agentID: agent.id, executionKind: .agentManaged)
         _ = try await stream.collect()
@@ -104,23 +103,23 @@ struct FacadeRunValidationTests {
         let agent = Agent(
             name: "Retry Agent",
             description: "available on retry",
-            privateThreadID: UUID(),
+            privateTimelineID: UUID(),
         )
         let requestID = UUID()
 
         await expectMissingAgent(agent.id) {
             _ = try await harness.kit.run(TurnRequest(
-                threadID: harness.threadID,
+                timelineID: harness.timelineID,
                 requestID: requestID,
                 message: "retryable input",
             ), agentID: agent.id, executionKind: .agentManaged)
         }
 
         try await harness.agentStore.saveAgent(agent)
-        try await harness.kit.agentManager.attach(agentID: agent.id, to: harness.threadID)
+        try await harness.kit.agentManager.attach(agentID: agent.id, to: harness.timelineID)
         harness.languageModel.mockClient.nextResponse = "retried"
         let stream = try await harness.kit.run(TurnRequest(
-            threadID: harness.threadID,
+            timelineID: harness.timelineID,
             requestID: requestID,
             message: "retryable input",
         ), agentID: agent.id, executionKind: .agentManaged)
@@ -140,13 +139,13 @@ struct FacadeRunValidationTests {
             }
             continuation.yield(GenerationStreamResultFactory.textChunk("provider-started"))
         }
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: languageModel,
             persistence: .inMemory(),
         ))
-        let thread = try await kit.threadManager.createThread()
+        let timeline = try await kit.timelineManager.createTimeline()
         let stream = try await kit.run(TurnRequest(
-            threadID: thread.id,
+            timelineID: timeline.id,
             message: "cancel this run",
         ))
         let consumer = Task {
@@ -163,8 +162,8 @@ struct FacadeRunValidationTests {
         }
 
         await probe.waitUntilStarted()
-        #expect(await kit.threadManager.hasActiveTask(for: thread.id))
-        let activeTaskSnapshot = await kit.threadManager.activeTaskCompletion(for: thread.id)
+        #expect(await kit.timelineManager.hasActiveTask(for: timeline.id))
+        let activeTaskSnapshot = await kit.timelineManager.activeTaskCompletion(for: timeline.id)
         let activeTask = try #require(activeTaskSnapshot)
         #expect(probe.terminationCount == 0)
 
@@ -174,29 +173,29 @@ struct FacadeRunValidationTests {
         _ = await activeTask.value
 
         #expect(probe.terminationCount == 1)
-        #expect(await kit.threadManager.hasActiveTask(for: thread.id) == false)
+        #expect(await kit.timelineManager.hasActiveTask(for: timeline.id) == false)
     }
 
     private func assertInvalidMaxModelRounds(_ maxModelRounds: Int) async throws {
         let languageModel = MockLLMService()
         let messageStore = FailingMessageStore()
-        let threadStore = FailingThreadPersistence(fetchFails: true)
-        let kit = PositronicKit(configuration: .init(
+        let timelineStore = FailingTimelinePersistence(fetchFails: true)
+        let kit = PKRuntime(configuration: .init(
             languageModel: languageModel,
             persistence: .init(
-                runtimeRepository: InMemoryThreadRuntimeRepository(),
+                runtimeRepository: InMemoryTimelineRuntimeRepository(),
             ),
         ))
 
         await #expect(throws: TurnError.invalidMaxModelRounds(maxModelRounds)) {
             _ = try await kit.run(TurnRequest(
-                threadID: UUID(),
+                timelineID: UUID(),
                 message: "must not reach I/O",
                 maxModelRounds: maxModelRounds,
             ))
         }
 
-        #expect(threadStore.fetchAttemptCount == 0)
+        #expect(timelineStore.fetchAttemptCount == 0)
         #expect(messageStore.attemptedMessages.isEmpty)
         #expect(languageModel.generationRequestHistory.isEmpty)
         #expect(languageModel.generationCaptureHistory.isEmpty)
@@ -209,7 +208,7 @@ struct FacadeRunValidationTests {
         let languageModel = MockLLMService()
         let persistence = MockPersistenceService()
         let agentStore = CountingAgentStore(agent: agent)
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: languageModel,
             persistence: .init(
                 runtimeRepository: persistence,
@@ -220,13 +219,13 @@ struct FacadeRunValidationTests {
             ),
             runtime: .init(degradationPolicy: policy),
         ))
-        let thread = try await kit.threadManager.createThread()
+        let timeline = try await kit.timelineManager.createTimeline()
         return AgentHarness(
             kit: kit,
             languageModel: languageModel,
             persistence: persistence,
             agentStore: agentStore,
-            threadID: thread.id,
+            timelineID: timeline.id,
         )
     }
 
@@ -246,11 +245,11 @@ struct FacadeRunValidationTests {
 }
 
 private struct AgentHarness {
-    let kit: PositronicKit
+    let kit: PKRuntime
     let languageModel: MockLLMService
     let persistence: MockPersistenceService
     let agentStore: CountingAgentStore
-    let threadID: UUID
+    let timelineID: UUID
 }
 
 private actor CountingAgentStore: AgentStoreProtocol {
@@ -278,7 +277,7 @@ private actor CountingAgentStore: AgentStoreProtocol {
         instances.removeValue(forKey: id)
     }
 
-    func fetchThreads(attachedToAgent _: UUID) async throws -> [Thread] {
+    func fetchTimelines(attachedToAgent _: UUID) async throws -> [TimelineRecord] {
         []
     }
 }

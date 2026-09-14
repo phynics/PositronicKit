@@ -2,7 +2,7 @@ import Foundation
 
 /// Type-safe wrapper around tool parameter dictionaries.
 ///
-/// Use `ToolParameters` in your `Tool.execute` implementation to decode and validate
+/// Use `ToolParameters` in your `PKTool.execute` implementation to decode and validate
 /// arguments with precise error reporting. It handles safe numeric coercion (e.g. a small,
 /// integral `Double` → `Int`, or an exactly representable integer → `Double`/`Float`)
 /// and throws appropriate `ToolError` cases for missing or invalid arguments.

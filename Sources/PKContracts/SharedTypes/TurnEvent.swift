@@ -12,7 +12,7 @@ public enum ToolExecutionStatus: Sendable, Codable {
         workspaceID: UUID,
         routing: WorkspaceToolRouting
     )
-    /// Tool execution failed without a tool reference (e.g. the tool could not be
+    /// PKTool execution failed without a tool reference (e.g. the tool could not be
     /// resolved before execution began). Distinct from `.failed` which carries the
     /// `ToolReference` of the tool that was attempted, and from `ToolResult.failure(_:)`
     /// which is the static factory that constructs a failed `ToolResult` value (a
@@ -152,7 +152,7 @@ public enum TurnEvent: Sendable, Codable {
         case generation(text: String)
         /// Incremental decoded audio output.
         case audio(delta: LLMAudioDelta)
-        /// Tool call being assembled (streaming deltas)
+        /// PKTool call being assembled (streaming deltas)
         case toolCall(delta: ToolCallDelta)
 
         /// Asynchronous tool execution status update (progress)
@@ -272,7 +272,7 @@ public enum TurnEvent: Sendable, Codable {
     }
 
     public enum ErrorEvent: Sendable, Codable {
-        /// Tool call failed before execution (e.g. not found, invalid arguments)
+        /// PKTool call failed before execution (e.g. not found, invalid arguments)
         case toolCallError(toolCallID: String, name: String, error: String)
         /// General error occurred.
         ///
@@ -392,7 +392,7 @@ public enum TurnEvent: Sendable, Codable {
         case generationCompleted(message: Message, metadata: APIResponseMetadata)
         /// The provider finished successfully, but the reconstructed assistant text was empty.
         case completedEmpty(finishReason: String?)
-        /// Tool execution completed with final status
+        /// PKTool execution completed with final status
         case toolExecution(toolCallID: String, status: ToolExecutionStatus)
         /// The ReAct loop exhausted its `maxModelRounds` budget while tool calls were still pending,
         /// so the agent never produced a tool-free final response. Terminal: emitted exactly
@@ -737,6 +737,6 @@ public extension TurnEvent {
 // its blocked classification (PKRR-014). The error types that override
 // `isBlocked = true`:
 // - `ToolError.permissionDenied` — `com.positronickit.core.tool:210`
-// - `ToolError.attachedToolsDisallowedOnPrivateThread` — `com.positronickit.core.tool:207`
+// - `ToolError.attachedToolsDisallowedOnPrivateTimeline` — `com.positronickit.core.tool:207`
 // - `PathSanitizer.PathError.accessDenied` — `com.positronickit.core.filesystem:101`
 // - `WorkspaceError.accessDenied` — `com.positronickit.core.workspace:3002`

@@ -2,7 +2,6 @@ import Foundation
 import PKContracts
 import PKUtilities
 @testable import PositronicKit
-import struct PositronicKit.Thread
 import Testing
 
 // MARK: - Helpers
@@ -40,7 +39,7 @@ private func makeRuntimeWS(
 }
 
 private func makeAgent(name: String = "TestAgent", description: String = "") -> Agent {
-    Agent(name: name, description: description, privateThreadID: UUID())
+    Agent(name: name, description: description, privateTimelineID: UUID())
 }
 
 // MARK: - WorkspacesContext Tests
@@ -201,7 +200,7 @@ struct WorkspacesContextTests {
     func customToolContextInjection() async throws {
         let def = WorkspaceToolDefinition(
             id: "my_tool",
-            name: "My Tool",
+            name: "My PKTool",
             description: "Does things",
             contextInjection: "Always call this first."
         )
@@ -313,16 +312,16 @@ struct AgentContextTests {
         #expect(!output.contains("Description:"))
     }
 
-    @Test("thread title included when provided")
-    func withThreadTitle() async throws {
-        let output = try await AgentContext(makeAgent(), threadTitle: "Sprint Planning").renderToString() ?? ""
+    @Test("timeline title included when provided")
+    func withTimelineTitle() async throws {
+        let output = try await AgentContext(makeAgent(), timelineTitle: "Sprint Planning").renderToString() ?? ""
         #expect(output.contains("Sprint Planning"))
     }
 
-    @Test("no thread line when title is nil")
-    func noThreadTitle() async throws {
-        let output = try await AgentContext(makeAgent(), threadTitle: nil).renderToString() ?? ""
-        #expect(!output.contains("operating on thread"))
+    @Test("no timeline line when title is nil")
+    func noTimelineTitle() async throws {
+        let output = try await AgentContext(makeAgent(), timelineTitle: nil).renderToString() ?? ""
+        #expect(!output.contains("operating on timeline"))
     }
 
     @Test("always mentions private workspace and Notes directory")
@@ -333,39 +332,39 @@ struct AgentContextTests {
     }
 }
 
-// MARK: - ThreadContext Tests
+// MARK: - TimelineContext Tests
 
 @Suite(.tags(.unit))
-struct ThreadContextTests {
-    @Test("canonical context exposes the thread")
-    func canonicalContextExposesThread() {
-        let thread = Thread(title: "Canonical Thread")
-        let context = ThreadContext(thread)
+struct TimelineContextTests {
+    @Test("canonical context exposes the timeline")
+    func canonicalContextExposesTimeline() {
+        let timeline = TimelineRecord(title: "Canonical Timeline")
+        let context = TimelineContext(timeline)
 
-        #expect(context.thread.id == thread.id)
-        #expect(context.threadTitle == "Canonical Thread")
-        #expect(context.thread.id == thread.id)
-        #expect(context.threadTitle == "Canonical Thread")
+        #expect(context.timeline.id == timeline.id)
+        #expect(context.timelineTitle == "Canonical Timeline")
+        #expect(context.timeline.id == timeline.id)
+        #expect(context.timelineTitle == "Canonical Timeline")
     }
 
-    @Test("contains thread ID and title")
+    @Test("contains timeline ID and title")
     func idAndTitle() async throws {
-        let thread = Thread(title: "My Project")
-        let output = try await ThreadContext(thread).renderToString() ?? ""
-        #expect(output.contains(thread.id.uuidString))
+        let timeline = TimelineRecord(title: "My Project")
+        let output = try await TimelineContext(timeline).renderToString() ?? ""
+        #expect(output.contains(timeline.id.uuidString))
         #expect(output.contains("My Project"))
     }
 
     @Test("default title used when no custom title")
     func defaultTitle() async throws {
-        let thread = Thread()
-        let output = try await ThreadContext(thread).renderToString() ?? ""
-        #expect(output.contains("New Thread"))
+        let timeline = TimelineRecord()
+        let output = try await TimelineContext(timeline).renderToString() ?? ""
+        #expect(output.contains("New Timeline"))
     }
 
-    @Test("contains Current Thread header")
+    @Test("contains Current Timeline header")
     func header() async throws {
-        let output = try await ThreadContext(Thread()).renderToString() ?? ""
-        #expect(output.contains("## Current Thread"))
+        let output = try await TimelineContext(TimelineRecord()).renderToString() ?? ""
+        #expect(output.contains("## Current Timeline"))
     }
 }

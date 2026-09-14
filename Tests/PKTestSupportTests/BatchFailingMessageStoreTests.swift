@@ -15,11 +15,11 @@ struct BatchFailingMessageStoreTests {
     func concurrentSavesAdmitExactlyConfiguredThreshold() async throws {
         let store = BatchFailingMessageStore()
         store.failAfterSaveCount = 25
-        let threadID = fixedUUID(1)
+        let timelineID = fixedUUID(1)
         let messages = (0 ..< 100).map { index in
-            ThreadMessage(
+            TimelineMessage(
                 id: fixedUUID(index + 100),
-                threadID: threadID,
+                timelineID: timelineID,
                 role: .user,
                 content: "message-\(index)"
             )

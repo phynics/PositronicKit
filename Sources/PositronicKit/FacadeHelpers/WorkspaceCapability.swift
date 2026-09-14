@@ -1,11 +1,11 @@
 import Foundation
 import PKContracts
 
-/// Workspace catalog entry points exposed by ``PositronicKit``.
+/// Workspace catalog entry points exposed by ``PKRuntime``.
 public struct WorkspaceCapability: Sendable {
-    private let kit: PositronicKit
+    private let kit: PKRuntime
 
-    init(kit: PositronicKit) {
+    init(kit: PKRuntime) {
         self.kit = kit
     }
 

@@ -9,7 +9,7 @@ struct RuntimeAssemblyBindingTests {
     @Test("custom runtime repositories keep binding authority explicit")
     func customRuntimeRepositoryKeepsBindingAuthorityExplicit() {
         let repository = FailingTerminalRepository()
-        let implicitBindingConfiguration = PositronicKit.PersistenceConfiguration(
+        let implicitBindingConfiguration = PKRuntime.PersistenceConfiguration(
             runtimeRepository: repository
         )
 
@@ -19,7 +19,7 @@ struct RuntimeAssemblyBindingTests {
         )
 
         let bindingRepository = InMemoryWorkspaceBindingRepository()
-        let explicitBindingConfiguration = PositronicKit.PersistenceConfiguration(
+        let explicitBindingConfiguration = PKRuntime.PersistenceConfiguration(
             runtimeRepository: repository,
             workspaceBindingRepository: bindingRepository
         )

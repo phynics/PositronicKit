@@ -318,7 +318,7 @@ struct AnthropicMessageConversionTests {
             role: "assistant",
             content: [.toolUse(id: "toolu_01", name: "lookup_weather", input: .object(["city": .string("Berlin")]))]
         ))
-        // Tool results ride in a user-role message as tool_result blocks, pairing by tool_use_id.
+        // PKTool results ride in a user-role message as tool_result blocks, pairing by tool_use_id.
         #expect(messages[2] == AnthropicMessage(
             role: "user",
             content: [.toolResult(toolUseID: "toolu_01", content: "12°C")]
@@ -373,7 +373,7 @@ struct AnthropicMessageConversionTests {
         )])
     }
 
-    @Test("Tool-role message without toolCallID throws a typed validation error")
+    @Test("PKTool-role message without toolCallID throws a typed validation error")
     func toolResultWithoutIDThrows() throws {
         do {
             _ = try AnthropicMessageConversion.convert(
