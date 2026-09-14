@@ -48,8 +48,8 @@ public actor FoundationModelsClient: LLMClientProtocol {
     ///     shared contract only carries schema (name/description/parameters), never an executor,
     ///     because the HTTP-family adapters never execute tools themselves (the caller executes
     ///     them after a `tool_calls` finish and resends results as `tool`-role messages).
-    ///     `LanguageModelSession` is different: it executes registered `PKTool`s itself while
-    ///     producing a response, so it needs the executable tool up front, at session-construction
+    ///     `LanguageModelSession` is different: it executes registered `FoundationModels.Tool`s
+    ///     itself while producing a response, so it needs the executable tool up front, at session-construction
     ///     time — not per-turn. Passing `tools` here is the documented way to get real on-device
     ///     tool execution; per-turn `[LLMToolDefinition]` from `chatStream` is only used for the
     ///     ignored-parameter diagnostics below when `tools` is empty (see README support matrix).

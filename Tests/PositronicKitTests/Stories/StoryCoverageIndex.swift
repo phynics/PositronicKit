@@ -1,4 +1,4 @@
-/// PKRuntime runtime story coverage index.
+/// PositronicKit runtime story coverage index.
 ///
 /// This file maps each runtime-facing story suite to the user-visible story it
 /// covers without forcing low-level contract tests into a story shape. It is

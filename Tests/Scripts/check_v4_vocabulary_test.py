@@ -37,6 +37,12 @@ def make_fixture(root: Path) -> Path:
     for name in ("README.md", "AGENTS.md", "CONTEXT-MAP.md", "Package.swift", "llms.txt"):
         (root / name).write_text("# Fixture\n", encoding="utf-8")
     (root / "CHANGELOG.md").write_text(CHANGELOG, encoding="utf-8")
+    timeline_handle = root / "Sources/PositronicKit/Timelines/TimelineHandle.swift"
+    timeline_handle.parent.mkdir(parents=True, exist_ok=True)
+    timeline_handle.write_text(
+        "public func startTurn() {}\npublic func startDirectTurn() {}\n",
+        encoding="utf-8",
+    )
     return scripts / SCRIPT.name
 
 
@@ -84,11 +90,26 @@ def test_retired_filename_term_is_rejected() -> None:
         assert retired_name in result.stderr, result.stderr
 
 
+def test_duplicate_timeline_entry_point_is_rejected() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = make_fixture(root)
+        timeline_handle = root / "Sources/PositronicKit/Timelines/TimelineHandle.swift"
+        timeline_handle.write_text(
+            "public func startTurn() {}\nfunc send(_ message: String) {}\n",
+            encoding="utf-8",
+        )
+        result = run_gate(script)
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "duplicate-entry-point" in result.stderr, result.stderr
+
+
 if __name__ == "__main__":
     tests = [
         test_clean_tree_passes,
         test_retired_content_term_is_rejected,
         test_retired_filename_term_is_rejected,
+        test_duplicate_timeline_entry_point_is_rejected,
     ]
     for test in tests:
         test()

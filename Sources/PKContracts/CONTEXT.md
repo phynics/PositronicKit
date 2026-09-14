@@ -23,16 +23,16 @@ _Avoid_: runtime policy
 
 ## Tools and structured output
 
-**PKTool Definition**:
+**Tool Definition**:
 The provider-neutral name, description, and schema for a callable capability.
 _Avoid_: Workspace binding
 
-**PKTool Call**:
+**Tool Call**:
 A model-issued request to invoke a named tool with arguments and an independent call identity.
 _Avoid_: Turn, Model Round
 
-**PKTool Result**:
-The provider-neutral success or failure value returned for one PKTool Call.
+**Tool Result**:
+The provider-neutral success or failure value returned for one Tool Call.
 _Avoid_: TurnOutcome
 
 **Structured Output**:

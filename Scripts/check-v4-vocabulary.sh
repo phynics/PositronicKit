@@ -86,9 +86,21 @@ done < <(
         Sources Tests 2>/dev/null || true
 )
 
+# TimelineHandle has one public admission surface. Reject an unqualified/internal/private
+# duplicate of a canonical entry point (including the old implicit-internal `send`/`run` forms)
+# so a second execution path cannot quietly return during the hard cut.
+timeline_handle="$ROOT/Sources/PositronicKit/Timelines/TimelineHandle.swift"
+if [[ -f "$timeline_handle" ]]; then
+    while IFS= read -r match; do
+        matches+=("$timeline_handle:duplicate-entry-point:$match")
+    done < <(
+        grep -nE '^[[:space:]]*(internal[[:space:]]+|private[[:space:]]+|fileprivate[[:space:]]+)?func[[:space:]]+(send|run|startTurn|startDirectTurn)([[:space:](<]|$)' "$timeline_handle" || true
+    )
+fi
+
 if ((${#matches[@]} > 0)); then
     printf '%s\n' "${matches[@]}" >&2
-    printf 'v4 vocabulary check failed: retired Thread vocabulary or compatibility alias found.\n' >&2
+    printf 'v4 vocabulary check failed: retired vocabulary, duplicate entry point, or compatibility alias found.\n' >&2
     exit 1
 fi
 
