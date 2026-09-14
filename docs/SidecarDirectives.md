@@ -1,23 +1,19 @@
-# Sidecar Directives (Piggy-Backed Requests)
+# Sidecar directives
 
-Sidecar directives let a turn produce auxiliary generations — a title, a summary, a tone
-marker, a confidence score, whatever your app needs — **from the same LLM request** as the
-turn's user-visible response, instead of paying a separate round-trip per auxiliary task. The
-user sees only the streamed response; directive results arrive alongside it through
-`TurnEvent`.
+Sidecar directives add auxiliary structured results to the same Turn as the user-visible response.
+The model produces one structured object, and PositronicKit streams response text normally while
+exposing directive updates through `TurnEvent`.
 
-The durable contract is described here; downstream applications own concrete directive policy.
-Architecture summary: [Turn admission and execution](Architecture.md#turn-admission-and-execution).
+The runtime owns the contract. Applications decide which directives to request and how to persist
+their results. See [Turn admission and execution](Architecture.md#turn-admission-and-execution).
 
 ## Why
 
-Without sidecars, generating a thread title or summary alongside a reply means either a
-second LLM call after the turn completes (extra latency, extra cost) or hand-rolled prompt
-hacks. Sidecars solve this by asking the model for one structured JSON object per turn: a
-`response` field (streamed to the user like normal text) plus one field per directive, all
-produced from the same context in a single request.
+Without sidecars, generating a title or summary alongside a reply requires another model call or
+an application-specific prompt format. Sidecars use one structured JSON object per Turn with a
+`response` field plus one field per directive.
 
-## Declaring a directive
+## Define a directive
 
 ```swift
 import JSONSchemaBuilder
@@ -39,18 +35,17 @@ let tone = SidecarDirective(
 ```
 
 - `name` is the JSON field key. It must be unique per turn and cannot be `"response"` (reserved).
-- `instruction` is prompt text describing what the model should produce for this field —
-  injected into the turn's system instructions automatically.
+- `instruction` is prompt text describing what the model should produce for this field. The runtime
+  injects it into the Turn's system instructions.
 - `schema` is a `JSONSchema.Schema` fragment for the field. Make it nullable (as above) to let
   the model explicitly decline.
-- `streaming` controls delivery: `.buffered` delivers the value once, when complete;
-  `.incremental` streams growing partial values as they generate (useful for long fields like
-  summaries).
+- `streaming` controls delivery. `.buffered` delivers the value once when complete. `.incremental`
+  streams growing partial values as they generate.
 
 `PositronicKitUsageExamples.makeSidecarDirectives()` has a compiling reference pair
-(`title` + `tone`) — see `swift run PositronicKitExamples`.
+(`title` + `tone`). Run it with `swift run PositronicKitExamples`.
 
-## Running a turn with sidecars
+## Run a Turn with sidecars
 
 ```swift
 let turn = try await chat.threads.open(threadID).startTurn(
@@ -60,11 +55,11 @@ let turn = try await chat.threads.open(threadID).startTurn(
 
 for await event in turn.events() {
     if let text = event.textContent {
-        // Stream to the UI exactly like a normal turn — no raw JSON ever appears here.
+        // Stream to the UI like a normal Turn. Raw JSON does not appear here.
         print(text, terminator: "")
     }
     if let delta = event.sidecarDelta {
-        // Route by delta.name ("title", "tone", ...); delta.isFinal marks the last update
+        // Route by delta.name ("title", "tone", ...). delta.isFinal marks the last update
         // for that field.
         print("\n[\(delta.name)] \(delta.partialText)")
     }
@@ -84,20 +79,21 @@ for await event in turn.events() {
 }
 ```
 
-`sidecars` defaults to `[]` — omitting it is behaviorally identical to today's plain-text
-turns; no extractor is constructed and no extra schema is composed.
+`sidecars` defaults to `[]`. Omitting it keeps the ordinary text path and does not construct an
+auxiliary schema.
 
-## Commit policy
+## Choose a commit policy
 
 Sidecars default to `SidecarCommitPolicy.everyModelRound`, which commits one identified
 `SidecarCompletion` per successfully parsed LLM round-trip. For curation that must represent
 the complete logical send, use `sidecarCommitPolicy: .terminalModelRound`. Intermediate
-`.delta(.sidecar)` values are streaming observations, not durable commits. Under the terminal
-policy, results are emitted only after tool and plugin follow-up work finishes normally;
-cancellation, failure, model-round exhaustion, and external-tool deferral do not promote an
-intermediate result. Persist a completion idempotently using its `TurnIdentity`.
+`.delta(.sidecar)` values are streaming observations, not durable commits.
 
-## Error model
+Under the terminal policy, results are emitted only after tool and plugin follow-up work finishes
+normally. Cancellation, failure, model-round exhaustion, and external-tool deferral do not promote
+an intermediate result. Persist a completion idempotently using its `TurnIdentity`.
+
+## Handle failures
 
 A sidecar failure **never** fails the turn:
 
@@ -109,19 +105,15 @@ A sidecar failure **never** fails the turn:
 - **Invalid directives** (duplicate names, reserved `"response"` name): thrown as a structured
   `SidecarError` *before* any request is sent, so you catch configuration mistakes immediately
   rather than mid-stream.
-- **Mutually exclusive with `structuredOutput`**: passing both `structuredOutput` and
-  `sidecars` throws `SidecarError.conflictsWithExplicitStructuredOutput` — a turn can request
-  one structured-output shape, not two competing ones.
+- **Mutually exclusive with `structuredOutput`**: passing both `structuredOutput` and `sidecars`
+  throws `SidecarError.conflictsWithExplicitStructuredOutput`. A Turn can request one
+  structured-output shape, not two competing ones.
 
 ## What sidecars don't do
 
-This layer only provides the mechanism — schema composition, prompt injection, incremental
-extraction, and event emission. It intentionally ships **no built-in directives**: title,
-summary, and scheduling policy (e.g. "only generate a title once, then stop") are app-level
-concerns that live in the consuming application (see Yakamoz's `SID-1`/`SID-2` tickets for a
-worked example: a title directive with until-first-then-interval cadence).
+This layer provides schema composition, prompt injection, incremental extraction, and event
+emission. It ships no built-in directives. Title, summary, and scheduling policy belong to the
+consuming application.
 
-One implementation detail worth knowing if you're deciding directive names: composed schema
-field order does not control which field the model fills first — `Schema` stores properties
-in an unordered `Dictionary`, so ordering is steered only through the instruction text, not
-schema structure (tracked in ticket `SDC-7`).
+Composed schema field order does not control which field the model fills first. `Schema` stores
+properties in an unordered `Dictionary`, so use instruction text when field order matters.

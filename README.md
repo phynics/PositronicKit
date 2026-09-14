@@ -113,8 +113,8 @@ This history is separate from `PromptJournal`, which observes assembled prompt s
 prompt reuse.
 
 The capability values are the supported consumer entry points. `kit.model` is thread-free
-inference; `kit.threads` returns a stateful `ThreadHandle`; `kit.agents` manages identities and
-their Thread attachments; and `kit.workspaces` owns the workspace catalog. Concrete managers,
+inference. `kit.threads` returns a stateful `ThreadHandle`. `kit.agents` manages identities and
+their Thread attachments, and `kit.workspaces` owns the workspace catalog. Concrete managers,
 registries, and the Turn pipeline are implementation details.
 
 Managed Turns capture typed Agent continuity at admission through `AgentContextSource`. The
@@ -141,7 +141,7 @@ case .unavailable(let reason):
 
 The coarser `await kit.model.isConfigured` signal remains available when a Boolean is sufficient.
 Use `try await kit.model.checkHealth()` separately for provider connectivity. A health check may
-perform network I/O; it throws `ModelHealthError.unsupported` when a custom client does not
+perform network I/O. It throws `ModelHealthError.unsupported` when a custom client does not
 conform to `HealthCheckable`. Neither check guarantees that a later request will succeed. Treat
 `ThreadHandle.startTurn(_:options:)`, `kit.model.stream`, or `kit.model.generate` as authoritative
 because model state can change after the check.
@@ -151,14 +151,13 @@ Thread attachment state. Per-Turn options such as sidecars, tools, and generatio
 in `TurnOptions`, which does not repeat the handle's Thread identity. A detached Thread uses
 `startDirectTurn(_:context:options:)`, where the caller supplies the complete system prompt
 (including an intentional empty prompt). The context uses the conventional `.host` contributor
-when the caller omits `contributors`; pass an explicit array when a different contributor set is
-required. Both return a `TurnHandle`:
-`events()` is a nonthrowing future-event stream, `outcome()` replays the durable terminal result,
-and `cancel()` targets exactly that Turn.
+when the caller omits `contributors`. Pass an explicit array when a different contributor set is
+required. Both return a `TurnHandle`. `events()` is a nonthrowing future-event stream,
+`outcome()` replays the durable terminal result, and `cancel()` targets exactly that Turn.
 
 One-shot text, result, stream, and structured-output calls all accept per-call generation
 parameters and an inactivity timeout on their configurable overloads. Per-call parameters override
-the facade defaults; `nil` uses those defaults. `idleTimeout` defaults to 60 seconds and resets
+the facade defaults. `nil` uses those defaults. `idleTimeout` defaults to 60 seconds and resets
 after every provider chunk. Structured one-shot output uses the same native-response-format or
 synthetic-tool adapter path as full runs:
 
@@ -185,7 +184,7 @@ let metadata = try await kit.model.generate(
 ```
 
 The type must be `Decodable`, `Sendable`, and `Schemable`. `CodingKeys` and the decoder's key
-strategy must agree with the generated schema; pass a configured `JSONDecoder` when decoding
+strategy must agree with the generated schema. Pass a configured `JSONDecoder` when decoding
 needs custom behavior. For callers that need the raw JSON payload or a hand-built schema, the
 advanced operation remains available:
 
@@ -220,8 +219,8 @@ Errors arrive at the boundary where the work occurs:
   and reports provider failures during iteration.
 
 Cancelling a task that consumes a facade run cancels its provider work and releases the thread's
-active-task registration. Abandoning a facade `stream` iterator likewise cancels the provider;
-cancelling `complete` or `completeResult` surfaces `CancellationError` without foreign-error
+active-task registration. Abandoning a facade `stream` iterator likewise cancels the provider.
+Cancelling `complete` or `completeResult` surfaces `CancellationError` without foreign-error
 wrapping.
 
 In an application, hold `kit` in an app-owned `Service` class and pass the capability values or
@@ -237,7 +236,7 @@ Use these guides for details:
 
 - [Setup](docs/Setup.md) covers providers, persistence, customization, logging, and errors.
 - [Usage](docs/Usage.md) covers managed and direct Turns, Agents, and Workspaces.
-- [Architecture](docs/Architecture.md) covers v5 boundaries, durability, and execution authority.
+- [Architecture](docs/Architecture.md) covers current boundaries, durability, and execution authority.
 - [Development](docs/Development.md) covers contributor setup and the Linux Podman gates.
 - [Context map](CONTEXT-MAP.md) defines the canonical runtime vocabulary and ownership boundaries.
 - [Architecture decisions](docs/adr/) record accepted decisions and their trade-offs.
@@ -271,7 +270,7 @@ let rendered = await assembled.render()
 print(rendered.sections.map(\.id))
 ```
 
-### Sidecar directives (piggy-backed auxiliary generations)
+### Sidecar directives
 
 Get a thread title, tone marker, or summary from the same request as the user-visible response.
 
@@ -309,7 +308,9 @@ for try await event in stream {
 
 ### Prompt journaling across snapshots
 
-Stable sections persist across turns; semi-stable changes become overlays; volatile sections are replaced each turn. This lets providers reuse a long prefix while only paying for the updated slices.
+Stable sections persist across turns. Semi-stable changes become overlays, and volatile sections
+are replaced each turn. This lets providers reuse a long prefix while only paying for the updated
+slices.
 
 ```swift
 import PKPrompt

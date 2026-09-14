@@ -1,33 +1,33 @@
-# PositronicKit Next / v5 Setup Guide
+# PositronicKit setup
 
 This guide follows `main` and describes unreleased v5 APIs. The
 [stable `5.1.0` documentation](https://github.com/phynics/PositronicKit/blob/5.1.0/docs/Setup.md)
 is immutable and remains the production default.
 
-## 1. Choosing An Entry Point
+## Choose an entry point
 
-Pick the smallest surface that matches your need:
+Pick the smallest product that matches your need:
 
 | Need | Start with |
-|------|-----------|
-| Prompt composition, rendering, journaling — no runtime | `PKPrompt` |
+| --- | --- |
+| Prompt composition, rendering, or journaling without the runtime | `PKPrompt` |
 | Single-process app or CLI agent runtime | The `PositronicKit` facade |
 | Runtime + OpenAI/OpenRouter/Ollama/Anthropic convenience setup | Add the matching provider package |
-| On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` and pass `FoundationModelsClient` as the language model; requires macOS 26+/Apple Silicon with Apple Intelligence enabled, surfaces unavailability as a typed error |
+| On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` and pass `FoundationModelsClient` as the language model. This requires macOS 26+ on Apple Silicon with Apple Intelligence enabled and reports unavailability as a typed error |
 | Host-owned workspace execution/attachment behavior | `PositronicKit` + your own `WorkspaceFactory` / `WorkspaceProvider` (optionally `WorkspaceToolProvider` and `WorkspaceFileProvider`) |
 | Typed JSON / schema-first integrations | `PKContracts` structured output types, optionally with the runtime later |
 
-## 2. Facade Configuration
+## Configure the facade
 
 `PositronicKit` is configured through its initializers. The runtime composes its internal graph from explicit services and stores, so callers do not rely on a shared dependency container.
 
-### Required Services
+### Required services
 The provider requires a value conforming to `LLMStreamClient`, passed as `languageModel`. A
 grouped production configuration also requires one `ThreadRuntimeRepository`, which atomically
 owns Thread history and Turn transitions. Other stores have in-memory defaults suitable for local
 development and tests.
 
-### Minimal Configuration
+### Minimal configuration
 
 Use the simplified facade initializer for prototyping or test harnesses:
 
@@ -62,13 +62,13 @@ do {
 
 `checkHealth()` may perform network I/O and reports the provider's state at that moment. A custom
 `LLMStreamClient` gets a configuration-based readiness fallback. Implement its `readiness`
-property when it can distinguish a configured but unusable client; conform to `HealthCheckable`
+property when it can distinguish a configured but unusable client. Conform to `HealthCheckable`
 to provide explicit health checks. Neither operation guarantees that a later generation request
 will succeed.
 
-### Production Configuration
+### Production configuration
 
-When you have a real persistence layer, prefer the grouped persistence initializer so the supported facade stays explicit:
+When you have a real persistence layer, use the grouped initializer so the supported facade stays explicit:
 
 ```swift
 import PositronicKit
@@ -79,8 +79,10 @@ let kit = PositronicKit(configuration: .init(
     persistence: .init(
         runtimeRepository: myThreadRuntimeRepository,
         workspacePersistence: myWorkspaceStore,
+        toolPersistence: myToolPersistence,
         agentStore: myAgentStore,
-        requestOriginStore: myRequestOriginStore
+        requestOriginStore: myRequestOriginStore,
+        workspaceBindingRepository: myWorkspaceBindingRepository
     ),
     runtime: .init(
         workspaceProfile: .hostManaged(root: myWorkspaceRoot, seedNotes: .default),
@@ -92,27 +94,32 @@ let kit = PositronicKit(configuration: .init(
 
 The grouped `configuration:` path is the supported production setup. A
 `ThreadRuntimeRepository` is the atomic owner for Thread history and Turn transitions, including
-Turn admission with the input message and normal terminal message/outcome completion;
+Turn admission with the input message and normal terminal message/outcome completion.
 `RuntimeConfiguration` groups Workspace provisioning, tool policy, diagnostics, degradation, and
 `RuntimeCustomization`. Consumers use `kit.threads`, `kit.agents`, `kit.workspaces`, and
-`kit.model`; concrete coordinators and the model-round machinery remain internal.
+`kit.model`. Concrete coordinators and the model-round machinery remain internal.
+
+For a fully durable setup, call `PersistenceConfiguration.fullyPersistent(...)` and provide every
+store, including `workspaceBindingRepository`. Use the regular initializer when some stores are
+intentionally in memory.
 
 Set `RuntimeConfiguration.streamTimeout` to control the maximum idle interval between streamed
-model chunks. It defaults to 60 seconds and applies only while a provider stream is active; it is
+model chunks. It defaults to 60 seconds and applies only while a provider stream is active. It is
 not a total Turn duration limit.
 
 Turn execution always uses the configured `ThreadRuntimeRepository`. Independent `messageStore`
-and `threadPersistence` values are not accepted by the facade or its Turn machinery; standalone
+and `threadPersistence` values are not accepted by the facade or its Turn machinery. Standalone
 managers that cannot execute a Turn may still use their narrower persistence seams.
 
 Use `RuntimeCustomization` for the four bounded integration roles. Managed identity continuity is
-provided by `AgentContextSource`; additive, namespaced prompt context comes from
-`TurnContextSource`; `AgentActivitySink` receives best-effort lifecycle facts; and
+provided by `AgentContextSource`. Additive, namespaced prompt context comes from
+`TurnContextSource`. `AgentActivitySink` receives best-effort lifecycle facts, and
 `TurnOutcomeSink` receives a terminal outcome only after the runtime repository accepts it.
 
-Tests and host code can inject doubles directly through the facade initializers; lower-level wiring should remain inside the components you own.
+Tests and host code can inject doubles directly through the facade initializers. Keep lower-level
+wiring inside the components you own.
 
-### Reusable persistence conformance suites
+### Reuse persistence conformance suites
 
 Downstream adapters can use the public runners in `PKTestSupport` from their own Swift Testing
 target. The runners are ordinary async or throwing functions, not discovered tests, so the
@@ -140,7 +147,7 @@ not prescribe result ordering, storage technology, exact tool-source presentatio
 `includeTools` projection details, unsupported factory inputs, or the self-reported `isDurable`
 capability.
 
-### Default Tool Installation
+### Install default tools
 
 The facade applies a configurable default tool policy:
 
@@ -150,12 +157,12 @@ The facade applies a configurable default tool policy:
 
 Use `RuntimeToolPolicy` to disable any category or start with no runtime tools.
 
-### Provider Factories
+### Use provider factories
 
 Provider modules expose compile-time factories conforming to `LLMProviderFactory`. There is no
 provider registry or runtime discovery. Import and select the concrete provider your application
 uses, then pass its configured value to `PositronicKit`. Structured-output behavior is carried by
-the client; no provider or adapter registration is needed.
+the client. No provider or adapter registration is needed.
 
 ```swift
 import PositronicKit
@@ -188,10 +195,9 @@ exercise the full Thread and Turn path without an API key or network access:
 ```bash
 swift run PositronicKitExamples
 ```
-```
 
-For custom timeouts, generation parameters, attribution, or multiple model-tier clients, keep using
-the advanced `PKContracts.ProviderConfiguration`, `LLMClientSet`, and `LLMService` initializers. Ordinary
+For custom timeouts, generation parameters, attribution, or multiple model-tier clients, use the
+advanced `PKContracts.ProviderConfiguration`, `LLMClientSet`, and `LLMService` initializers. Ordinary
 consumers do not need to construct that client topology.
 
 Foundation Models is intentionally separate from this HTTP-provider value. Its on-device session
@@ -199,9 +205,11 @@ has no API key, endpoint, or selectable network model, so construct `FoundationM
 `PKFoundationModelsProvider` and pass it through `PositronicKit(languageModel:)`. The client
 reports unsupported platforms and unavailable model sessions through its typed errors.
 
-## 3. Logging And Errors
+## Configure logging and errors
 
-PositronicKit uses `swift-log` as its only logging API. Library code never calls `LoggingSystem.bootstrap(...)` — the downstream app, CLI, or test owns bootstrap and log-level selection:
+PositronicKit uses `swift-log` as its only logging API. Library code never calls
+`LoggingSystem.bootstrap(...)`. The downstream app, CLI, or test owns bootstrap and log-level
+selection:
 
 ```swift
 import Logging
@@ -221,18 +229,21 @@ let provider = PKOpenAIProvider.makeConfiguredProvider(
 let core = PositronicKit(provider: provider)
 ```
 
-Long-lived runtime services log through `Logger.module(...)` in the package-internal utility layer; prompt-assembly diagnostics are opt-in per turn via `promptAssemblyLogger` (see above).
+Long-lived runtime services log through `Logger.module(...)` in the package-internal utility layer.
+Prompt-assembly diagnostics are opt-in per turn through `promptAssemblyLogger` (see above).
 
 For package-defined errors, PositronicKit uses `ErrorKit` through `PKContracts.PKError`:
 
 - Package error types conform to `PKError`, with stable `PKErrorDomain` and `errorCode` values.
-- `ThreadRuntimeRepositoryError` uses `PKErrorDomain.thread` codes `6101` through `6117`; `6118` is reserved.
+- `ThreadRuntimeRepositoryError` uses `PKErrorDomain.thread` codes `6101` through `6117`. Code `6118` is reserved.
 - `WorkspaceBindingRepositoryError` uses `PKErrorDomain.workspace` codes `3101` through `3103`.
-- `userFriendlyMessage` is the preferred surfaced message; when propagating nested failures, prefer `ErrorKit.userFriendlyMessage(for:)` over raw `localizedDescription`.
+- `userFriendlyMessage` is the preferred surfaced message. When propagating nested failures, prefer
+  `ErrorKit.userFriendlyMessage(for:)` over raw `localizedDescription`.
 - Durable `TurnOutcome.failed` values store the same user-facing message used to describe the original failure.
 
-## 4. Best Practices
+## Test and handle errors
 
-- **Immutability**: Always treat the `Context` object as immutable. If you need to accumulate state during a pipeline run, use an `actor` for thread-safe mutations.
-- **Error Handling**: Implement custom errors that conform to `PKError`, use stable `PKErrorDomain`/`errorCode` values, and prefer `ErrorKit.userFriendlyMessage(for:)` when surfacing nested failures.
-- **Testing**: Prefer exercising `PositronicKit` through its public initializers with injected doubles where possible.
+- Prefer exercising `PositronicKit` through its public initializers with injected doubles.
+- Make custom errors conform to `PKError` and give them stable `PKErrorDomain` and `errorCode`
+  values.
+- Prefer `ErrorKit.userFriendlyMessage(for:)` when surfacing nested failures.

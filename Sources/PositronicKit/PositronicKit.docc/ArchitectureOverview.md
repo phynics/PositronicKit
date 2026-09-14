@@ -1,37 +1,45 @@
-# Architecture Overview
+# Architecture overview
 
-Deep dive into the current PositronicKit runtime design.
+PositronicKit keeps the public runtime small while its internal graph coordinates model inference,
+durable Thread history, Agent context, and Workspace tools.
 
-## Modularity
+## Module boundaries
 
-PositronicKit keeps transport-neutral runtime orchestration in `PositronicKit`, shared contracts in `PKContracts`, and prompt composition/rendering in `PKPrompt`.
+- `PKContracts` owns provider, tool, structured-output, and diagnostic contracts.
+- `PKPrompt` owns prompt composition, assembly, rendering, compression, and journaling.
+- `PositronicKit` owns domain state, orchestration, persistence, and Workspace dispatch.
+- Provider products adapt concrete services to `PKContracts` without importing the runtime.
 
-## Facade-Backed Wiring
+The facade is the composition root. Consumers use `model`, `threads`, `agents`, and `workspaces`
+capabilities while managers, registries, and pipeline stages remain internal.
 
-The runtime is assembled through explicit facade initializers so orchestration services can collaborate without asking downstream applications to configure a shared dependency container.
+## Facade-backed wiring
 
-### Example Usage
+The runtime is assembled through explicit facade initializers. A configured provider is enough for a
+small integration:
 
 ```swift
 let kit = PositronicKit(languageModel: myLLM)
-let answer = try await kit.model.generate("Summarize this note.")
-let thread = try await kit.threads.create(title: "Research")
 let agent = try await kit.agents.create(name: "Researcher", description: "Summarizes sources.")
-try await kit.agents.attach(agent.id, to: thread.id)
+let thread = try await kit.threads.create(title: "Research", attaching: agent.id)
 let turn = try await thread.startTurn("Summarize the attached sources.")
-for await event in turn.events() {
-    // Render future Turn events.
-    _ = event
-}
+let outcome = try await turn.outcome()
+print(outcome)
 ```
 
-## Data Flow
+For a detached Thread, use `startDirectTurn(_:context:options:)` and supply the complete
+`DirectTurnContext`. Both paths return a `TurnHandle` whose events and durable outcome describe the
+same admitted Turn.
 
-1. **User Query**: Received via `TurnEngine`.
-2. **Agent continuity**: Managed admission captures a typed `AgentContextSnapshot` from the
-   configured `AgentContextSource`; direct Turns skip Agent context entirely.
-3. **Context Gathering**: Thread-scoped context remains injectable and independent of Agent continuity.
-4. **Prompt Construction**: `PKPrompt` DSL builds a provider-specific prompt with reserved
-   `agent.identity`, `agent.instructions`, `agent.memory`, and `agent.primary-thread-summary` sections.
-5. **Execution**: `LLMService` communicates with the AI provider.
-6. **Tool Routing**: If the AI calls a tool, the internal router executes runtime-managed tools and defers attached tools for host-side execution when needed.
+## Data flow
+
+1. `ThreadHandle` validates the request and admits the Turn through the
+   `ThreadRuntimeRepository`, which records the input and captures execution authority.
+2. Managed admission captures an `AgentContextSnapshot` from `AgentContextSource`. Direct Turns
+   use only their explicit `DirectTurnContext` and Thread-bound Workspaces.
+3. `PKPrompt` assembles the provider prompt. `PromptJournal` observes assembled prompt state and
+   does not replace semantic Thread history.
+4. `LLMService` streams provider output and coordinates model rounds.
+5. The `call_tool` dispatcher routes Workspace tools against the immutable admission snapshot.
+6. The runtime records tool results, terminal messages, and the `TurnOutcome` through the same
+   `ThreadRuntimeRepository`.

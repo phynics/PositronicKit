@@ -1,15 +1,15 @@
-# PositronicKit Usage Guide
+# PositronicKit usage
 
 This guide documents the unreleased Next / v5 runtime. For production, start from the
 [stable tagged README](https://github.com/phynics/PositronicKit/blob/5.1.0/README.md).
 
-## 1. Managing Agents
+## Manage Agents
 
 `Agent` is persistent identity, instructions, and continuity. Every Agent owns one primary Thread
 and primary Workspace, can participate in many ordinary Threads, and is not independently callable.
 Each Thread attaches at most one Agent. Manage Agents through the facade's `agents` capability.
 
-### Creating an Agent
+### Create an Agent
 
 To create a new agent, use `kit.agents.create`. You can optionally seed it from an `AgentTemplate`.
 
@@ -32,7 +32,7 @@ let thread = try await kit.threads.create(
 print("Created agent with ID: \(agent.id)")
 ```
 
-### Attaching an Agent to a Thread
+### Attach an Agent to a Thread
 
 Attach an Agent when a Thread should run managed Turns under that identity. The attachment is
 exclusive from the Thread's perspective: a Thread has zero or one Agent, while an Agent may be
@@ -45,7 +45,7 @@ try await kit.agents.attach(agent.id, to: threadID)
 
 Managed Turns capture one immutable `AgentContextSnapshot` at admission. The default source
 reads the Agent primary Workspace's root `SOUL.md` as instructions and catalogs other Markdown notes
-for on-demand reading; applications with database, remote, or no-memory continuity can inject an
+for on-demand reading. Applications with database, remote, or no-memory continuity can inject an
 `AgentContextSource` through `RuntimeConfiguration`.
 
 Agent lifecycle is explicit. `kit.agents.retire(agent.id)` stops new managed Turns, waits for
@@ -53,13 +53,13 @@ admitted Turns to finish, detaches ordinary Threads, and archives the Agent's pr
 Call `kit.agents.purge(agent.id)` only after retirement when the host's retention policy permits
 removing the Agent and its owned resources.
 
-## 2. Initialization and Execution
+## Initialize and run Turns
 
 The snippets below mirror functions in the `PositronicKitExamples` target, which compiles
-them as part of `make verify-examples` (a step of `make verify`) — so the canonical
+them as part of `make verify-examples`, which is one step of `make verify`. The canonical
 construction, run, and event-handling shapes here are type-checked against the current API.
 
-### Simplified Initialization (Prototyping)
+### Prototype with a configured provider
 
 Provider packages expose a configured-provider factory for the common path. It creates the client
 and configuration once, while `PositronicKit` keeps service assembly internal.
@@ -89,11 +89,11 @@ OpenRouter and Anthropic use the same configured-provider pattern. Foundation Mo
 documented exception: it has no API key, endpoint, or network model selection, so pass a
 `FoundationModelsClient` through `PositronicKit(languageModel:)` instead.
 
-### Full Initialization (Production)
+### Configure production persistence
 
 For production, assemble a `PositronicKit.Configuration` and construct via
 `PositronicKit(configuration:)`. The runtime repository is required because it atomically owns
-Thread history and Turn transitions; the remaining stores may use in-memory defaults for local
+Thread history and Turn transitions. The remaining stores may use in-memory defaults for local
 development.
 
 ```swift
@@ -116,11 +116,11 @@ let kit = PositronicKit(configuration: .init(
 ))
 ```
 
-### Running a Generation Stream
+### Run a generation stream
 
 The managed `ThreadHandle.startTurn` method captures the Agent attached to its Thread and returns
-a `TurnHandle`. Its `events()` stream is nonthrowing, while `outcome()` returns the same durable
-terminal result for every joiner.
+a `TurnHandle`. Its `events()` stream is nonthrowing. `outcome()` returns the same durable terminal
+result for every joiner and can throw if the caller cancels or a bounded wait expires.
 
 ```swift
 import PositronicKit
@@ -146,7 +146,7 @@ for await event in stream {
         case .toolExecution(let toolCallId, let status):
             print("\nTool execution [\(toolCallId)]: \(status)")
         case .sidecar(let delta):
-            // Only emitted on turns passed `TurnOptions(sidecars:)` — see docs/SidecarDirectives.md.
+            // Only emitted when `TurnOptions(sidecars:)` is supplied. See docs/SidecarDirectives.md.
             print("\n[\(delta.name)] \(delta.partialText)")
         }
 
@@ -159,11 +159,11 @@ for await event in stream {
         case .toolExecution(let toolCallId, let status):
             print("\nTool completed [\(toolCallId)]: \(status)")
         case .maxModelRoundsReached:
-            print("\nMaximum model rounds reached — the agent did not produce a tool-free final response.")
+            print("\nMaximum model rounds reached. The agent did not produce a tool-free final response.")
         case .deferredForExternalTool:
-            print("\nTool calls deferred for external execution; stream paused for host-side work.")
+            print("\nTool calls deferred for external execution. The stream is paused for host-side work.")
         case .sidecarsCompleted(let completion):
-            // Only emitted on turns passed `TurnOptions(sidecars:)` — see docs/SidecarDirectives.md.
+            // Only emitted when `TurnOptions(sidecars:)` is supplied. See docs/SidecarDirectives.md.
             for result in completion.results {
                 print("\n[\(result.name)] \(result.outcome)")
             }
@@ -206,18 +206,18 @@ print(result.message?.content ?? "")
   consume the Turn through one of them, not both concurrently. The full event
   stream stays available for advanced consumers.
 - `result()` reads the atomic Thread runtime repository after the Turn is
-  terminal, so every joiner observes the same durable result — including
+  terminal. Every joiner observes the same durable result, including
   joiners that never consumed the stream. Distinguish empty, deferred,
   cancelled, and failed Turns via `result.outcome`, not via message presence:
   deferred Turns are `.interrupted` with no message, while empty output keeps
   its (empty) assistant row under `.completed`.
 - Cancelling the task that awaits `result()` throws `CancellationError` without
-  recording an outcome; a bounded wait that elapses first throws
-  `TurnOutcomeTimedOut`. Neither is a durable outcome — the Turn may still be
+  recording an outcome. A bounded wait that elapses first throws
+  `TurnOutcomeTimedOut`. Neither is a durable outcome. The Turn may still be
   running. Abandoning `generatedText()` follows the same owner-only
   cancellation rule as abandoning `events()`.
 
-### Running a direct Turn
+### Run a direct Turn
 
 Use a detached Thread for direct execution. `DirectTurnContext` uses the conventional `.host`
 contributor when you omit `contributors`.
@@ -250,7 +250,7 @@ for message in history {
 `ThreadCapability.messages(for:)` reads semantic Thread history. It does not read the assembled
 prompt state observed by `PromptJournal`.
 
-### Typed One-Shot Structured Generation
+### Generate typed structured output
 
 Use `kit.model.generate` when the response should be decoded into a schema-backed Swift type
 without creating or updating a Thread.
@@ -279,18 +279,18 @@ let metadata = try await kit.model.generate(
 The output type must be `Decodable`, `Sendable`, and `Schemable`. Its generated schema keys must
 agree with its `CodingKeys` and the decoder's key strategy. A schema construction failure throws
 `StructuredGenerationError.schemaConstructionFailed`. A response that remains invalid after
-lenient JSON repair throws `StructuredOutputDecodingError.invalidJSONPayload`; valid JSON that
+lenient JSON repair throws `StructuredOutputDecodingError.invalidJSONPayload`. Valid JSON that
 cannot decode as the requested type throws `.decodingFailed`, including custom decoder failures.
 Provider, idle-timeout, and cancellation errors retain their existing identities. Use the
 advanced `kit.model.generateStructured` operation when you need the raw JSON payload or a
-hand-built schema; its next breaking-release rename is tracked in
+hand-built schema. Its next breaking-release rename is tracked in
 [#176](https://github.com/phynics/PositronicKit/issues/176).
 
-### Enabling Prompt Assembly Logs
+### Enable prompt assembly logs
 
 The runtime emits prompt-assembly diagnostics through `swift-log`. `PromptAssembler` and
-`PromptAssemblyOptions` are internal runtime types, so you don't call them directly — instead pass a
-`Logger` as `TurnOptions(promptAssemblyLogger:)` to enable diagnostics for that turn.
+`PromptAssemblyOptions` are internal runtime types. Pass a `Logger` as
+`TurnOptions(promptAssemblyLogger:)` to enable diagnostics for that Turn.
 
 ```swift
 import Logging
@@ -311,7 +311,7 @@ let turn = try await kit.threads.open(threadID).startTurn(
 let events = turn.events()
 ```
 
-### Handling Tool Outputs
+### Handle tool outputs
 
 If the agent calls a tool that requires host-side execution (e.g., a local file system tool not handled by the runtime), you can submit the outputs in a follow-up turn.
 
@@ -327,26 +327,26 @@ let turn = try await kit.threads.open(threadID).startTurn(
 let stream = turn.events()
 ```
 
-## 3. Core Concepts
+## Core concepts
 
-### TurnEvent Stream
+### TurnEvent stream
 The stream provides a rich set of events:
 - `.delta(.reasoning)` and `.delta(.generation)` for streaming text.
 - `.delta(.toolCall)` and `.delta(.toolExecution)` for tool progress.
-- `.delta(.sidecar)` and `.completion(.sidecarsCompleted)` for piggy-backed directive results on
+- `.delta(.sidecar)` and `.completion(.sidecarsCompleted)` for auxiliary directive results on
   turns passed `TurnOptions(sidecars:)` (see [Sidecar Directives](SidecarDirectives.md)).
-- `.completion(.generationCompleted)` for the terminal event on normal completion (one per
-  completed turn; the final one closes the stream).
+- `.completion(.generationCompleted)` for the terminal event on normal completion. There is one per
+  completed Turn, and the final event closes the stream.
 - `.completion(.completedEmpty)` for a successful but empty assistant response.
 - `.completion(.maxModelRoundsReached)` for the terminal event when the ReAct loop exhausts its
-  `maxModelRounds` budget while tool calls are still pending — distinct from normal completion so
-  consumers can tell exhaustion apart from success.
+  `maxModelRounds` budget while tool calls are still pending. This is distinct from normal
+  completion, so consumers can tell exhaustion apart from success.
 - `.completion(.deferredForExternalTool)` for the terminal event when at least one tool call is
-  deferred for external (host-side) execution — the stream pauses for the host to submit tool
-  outputs in a follow-up turn.
+  deferred for external (host-side) execution. The stream pauses for the host to submit tool
+  outputs in a follow-up Turn.
 - `.error(.toolCallError)`, `.error(.error)`, and `.error(.generationCancelled)` for failure and
   cancellation handling. `.error(.durabilityFailure)` identifies a terminal persistence failure.
-  `TurnHandle.events()` is nonthrowing; its durable `outcome()` is the authoritative terminal
+  `TurnHandle.events()` is nonthrowing. Its durable `outcome()` is the authoritative terminal
   result.
 
 Cancelling the task that consumes `TurnHandle.events()` cancels the admitted Turn, terminates the
@@ -356,11 +356,11 @@ its stream freely, and the owner's generation keeps running. A `TurnHandle` also
 `cancel()` and can be used when cancellation should be tied to the Turn identity rather than to a
 stream consumer.
 
-### Agent Persistence
+### Agent persistence
 Agents are persistent. Their primary Workspace (`primaryWorkspaceID`) supplies continuity through
 the configured `AgentContextSource`, while their primary Thread (`privateThreadID`) stores the
 Agent-owned history boundary. Managed Turn preparation fails closed when a required custom context
-source fails; direct Turns do not load Agent context. Other runtime integrations belong in
+source fails. Direct Turns do not load Agent context. Other runtime integrations belong in
 `RuntimeConfiguration.customization`: `TurnContextSource` contributes bounded namespaced notes,
 `AgentActivitySink` receives best-effort lifecycle facts, and `TurnOutcomeSink` runs only after a
 terminal outcome is durable. These integrations do not mirror Workspace activity into the Agent's
@@ -372,7 +372,7 @@ persisted as host-facing notices and do not change the originating outcome.
 Managed and direct Turns expose one provider-facing workspace dispatcher, `call_tool`. The runtime
 captures Thread-bound Workspaces at Turn admission, and managed Turns additionally capture the Agent
 primary Workspace, including each tool's label, description, and schema. A model may call `call_tool`
-with `tool`, optional `at` (a Workspace UUID), and `arguments`; `at` may be omitted only when exactly
+with `tool`, optional `at` (a Workspace UUID), and `arguments`. `at` may be omitted only when exactly
 one authorized Workspace provides the requested tool. If more than one matches, the model receives
 the authorized IDs and labels, tool descriptions and schemas, and an explicit corrected call. Routing
 is evaluated against the admission snapshot, so Workspace attachment or catalog changes affect the
@@ -380,7 +380,7 @@ next Turn only. Direct Turns use only Thread-bound Workspaces and never inherit 
 The runtime revalidates ordinary bindings immediately before a side effect, so a released or
 transferred binding fails closed.
 
-Runtime and request-scoped tools remain separate from `call_tool`; callers cannot register a tool
+Runtime and request-scoped tools remain separate from `call_tool`. Callers cannot register a tool
 with that reserved name. Tool intent/result records and successful tool events retain the resolved
 Workspace ID and whether routing was explicit or implicit, including failed and persistence-failed
 events. Ambiguous matches also append a durable `ambiguousWorkspaceTool` TurnNotice for hosts.
