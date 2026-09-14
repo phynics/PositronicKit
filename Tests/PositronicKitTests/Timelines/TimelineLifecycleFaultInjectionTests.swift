@@ -98,13 +98,8 @@ private actor BlockingWorkspaceStore: WorkspaceStore {
 ///
 /// These tests inject failures at each step and assert no orphan directories, workspace
 /// rows, cached managers, or persisted attachment IDs remain.
-<<<<<<<< HEAD:Tests/PositronicKitTests/Threads/ThreadLifecycleFaultInjectionTests.swift
-@Suite("Thread lifecycle fault injection (PKRR-007)", .tags(.integration))
-struct ThreadLifecycleFaultInjectionTests {
-========
-@Suite("Timeline lifecycle fault injection (PKRR-007)")
+@Suite("Timeline lifecycle fault injection (PKRR-007)", .tags(.integration))
 struct TimelineLifecycleFaultInjectionTests {
->>>>>>>> 68f2ea52 (refactor(api)!: migrate facade, Timeline, and tool names (#156)):Tests/PositronicKitTests/TimelineLifecycleFaultInjectionTests.swift
 
     @Test("attachWorkspace does not resurrect a permanently deleted timeline")
     func attachWorkspaceDoesNotResurrectPermanentlyDeletedTimeline() async throws {

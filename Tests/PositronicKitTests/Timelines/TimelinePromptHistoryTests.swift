@@ -49,15 +49,9 @@ private struct TimelineSection: Prompt {
     }
 }
 
-<<<<<<<< HEAD:Tests/PositronicKitTests/Threads/ThreadPromptHistoryTests.swift
-@Suite("ThreadPromptHistory", .tags(.integration))
-actor ThreadPromptHistoryTests {
-    @Test("Runtime metadata hashing stays aligned between prompt assembly and thread history")
-========
-@Suite("TimelinePromptHistory")
+@Suite("TimelinePromptHistory", .tags(.integration))
 actor TimelinePromptHistoryTests {
     @Test("Runtime metadata hashing stays aligned between prompt assembly and timeline history")
->>>>>>>> 68f2ea52 (refactor(api)!: migrate facade, Timeline, and tool names (#156)):Tests/PositronicKitTests/TimelinePromptHistoryTests.swift
     func runtimeMetadataHashingStaysAligned() async throws {
         let history = TimelinePromptHistory()
         let rendered = try await PromptAssembler.assemble(LLMPromptRequest(
@@ -461,21 +455,12 @@ actor TimelinePromptHistoryTests {
     }
 }
 
-<<<<<<<< HEAD:Tests/PositronicKitTests/Threads/ThreadPromptHistoryTests.swift
-@Suite("ThreadPromptJournals", .tags(.integration))
-actor ThreadPromptJournalsTests {
-    @Test("history(for:) reuses the same instance for the same thread ID")
-    func historyReusesSameInstanceForSameThreadId() async {
-        let registry = ThreadPromptJournals()
-        let threadID = UUID()
-========
-@Suite("TimelinePromptJournals")
+@Suite("TimelinePromptJournals", .tags(.integration))
 actor TimelinePromptJournalsTests {
     @Test("history(for:) reuses the same instance for the same timeline ID")
     func historyReusesSameInstanceForSameTimelineId() async {
         let registry = TimelinePromptJournals()
         let timelineID = UUID()
->>>>>>>> 68f2ea52 (refactor(api)!: migrate facade, Timeline, and tool names (#156)):Tests/PositronicKitTests/TimelinePromptHistoryTests.swift
 
         let first = await registry.history(for: timelineID)
         await first.recordAppend(messageCount: 3, estimatedTokens: 42)

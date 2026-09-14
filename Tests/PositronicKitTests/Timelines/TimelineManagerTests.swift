@@ -6,12 +6,8 @@ import PKTestSupport
 import Synchronization
 import Testing
 
-<<<<<<<< HEAD:Tests/PositronicKitTests/Threads/ThreadManagerTests.swift
 @Suite(.tags(.integration))
-struct ThreadManagerTests {
-========
 struct TimelineManagerTests {
->>>>>>>> 68f2ea52 (refactor(api)!: migrate facade, Timeline, and tool names (#156)):Tests/PositronicKitTests/TimelineManagerTests.swift
     @Test("manager parameter labels remain source compatible")
     func managerParameterLabels() async throws {
         let manager = TimelineManager(workspaceProfile: .noWorkspace)

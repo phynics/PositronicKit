@@ -15,13 +15,8 @@ import Testing
 /// Post-PKARCH-003: tests build tools via `RuntimeToolPolicyFactory` directly, with the same
 /// stores the original `TimelineManager.createToolManager` used, so `TimelineManager` is no longer
 /// exercised in this single-tool regression suite.
-<<<<<<<< HEAD:Tests/PositronicKitTests/Threads/ThreadSendToolTests.swift
-@Suite("Thread Send Tool", .tags(.integration))
-struct ThreadSendToolTests {
-========
-@Suite("Timeline Send PKTool")
+@Suite("Timeline Send PKTool", .tags(.integration))
 struct TimelineSendToolTests {
->>>>>>>> 68f2ea52 (refactor(api)!: migrate facade, Timeline, and tool names (#156)):Tests/PositronicKitTests/TimelineSendToolTests.swift
     @Test("canonical send tool preserves the external call name")
     func canonicalSendToolPreservesCallName() {
         let tool = TimelineSendTool(

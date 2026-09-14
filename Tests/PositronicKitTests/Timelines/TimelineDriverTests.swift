@@ -3,17 +3,10 @@ import PKTestSupport
 import Testing
 @testable import PositronicKit
 
-<<<<<<<< HEAD:Tests/PositronicKitTests/Threads/ThreadDriverTests.swift
-@Suite("ThreadHandle", .tags(.integration))
-struct ThreadDriverTests {
-    @Test("opening a thread returns a fresh handle with stable thread identity")
-    func openingReturnsThreadHandleWithStableIdentity() async throws {
-========
-@Suite("TimelineHandle")
+@Suite("TimelineHandle", .tags(.integration))
 struct TimelineDriverTests {
     @Test("opening a timeline returns a fresh handle with stable timeline identity")
     func openingReturnsTimelineHandleWithStableIdentity() async throws {
->>>>>>>> 68f2ea52 (refactor(api)!: migrate facade, Timeline, and tool names (#156)):Tests/PositronicKitTests/TimelineDriverTests.swift
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
         let kit = runtime.runtime

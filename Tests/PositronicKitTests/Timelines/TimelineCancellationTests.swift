@@ -9,13 +9,8 @@ import Testing
 /// PKRR-002 cancellation invariants: `TimelineHandle.cancel()` must actually cancel the
 /// stream-driving task, the registry entry must be removed on every terminal path,
 /// eviction/deletion must cancel active work, and a stale request ID cannot cancel a newer turn.
-<<<<<<<< HEAD:Tests/PositronicKitTests/Threads/ThreadCancellationTests.swift
-@Suite("Thread cancellation invariants (PKRR-002)", .serialized, .timeLimit(.minutes(1)), .tags(.integration))
-struct ThreadCancellationTests {
-========
-@Suite("Timeline cancellation invariants (PKRR-002)", .serialized, .timeLimit(.minutes(1)))
+@Suite("Timeline cancellation invariants (PKRR-002)", .serialized, .timeLimit(.minutes(1)), .tags(.integration))
 struct TimelineCancellationTests {
->>>>>>>> 68f2ea52 (refactor(api)!: migrate facade, Timeline, and tool names (#156)):Tests/PositronicKitTests/TimelineCancellationTests.swift
     // MARK: - 1. cancel() stops an active stream
 
     @Test("cancel() stops an active stream that was previously a no-op (PKRR-002)")

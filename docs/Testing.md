@@ -15,7 +15,7 @@ gate.
 
 | Target | Holds | May depend on |
 | --- | --- | --- |
-| `PositronicKitTests` | Runtime suites only: Turns, Threads, Workspaces, Agents, assembly, prompts, errors, policies, structured output, sidecar, streaming, tools, services, models, stories | `PositronicKit`, `PKContracts`, `PKUtilities`, `PKPrompt`, `PKTestSupport` |
+| `PositronicKitTests` | Runtime suites only: Turns, Timelines, Workspaces, Agents, assembly, prompts, errors, policies, structured output, sidecar, streaming, tools, services, models, stories | `PositronicKit`, `PKContracts`, `PKUtilities`, `PKPrompt`, `PKTestSupport` |
 | `PKProviderIntegrationTests` | Provider-touching suites: TurnEngine behavior, provider transport/initialization/failure/cancellation conformance, the capability matrix, request encoding, example stories | Everything the runtime target takes, plus the five provider adapters, `PositronicKitExamples`, and the `OpenAI` package |
 | `PKOpenAIProviderTests`, `PKOpenRouterProviderTests`, `PKOllamaProviderTests`, `PKAnthropicProviderTests`, `PKFoundationModelsProviderTests` | Per-adapter unit suites | Their adapter, contracts, utilities, support |
 | `PKContractsTests`, `PKPromptTests`, `PKUtilitiesTests`, `PKObservableTests`, `PKTestSupportTests` | Module unit suites | Their module plus support |
@@ -62,7 +62,7 @@ their consumers. Keep the two definitions in sync.)
 | Tag | Meaning |
 | --- | --- |
 | `.unit` | Fast, deterministic single-type contracts. This is the inner-loop subset. |
-| `.integration` | Multi-component runtime behavior: Turns, Threads, Workspaces, stores, stories, providers, examples. |
+| `.integration` | Multi-component runtime behavior: Turns, Timelines, Workspaces, stores, stories, providers, examples. |
 | `.slow` | Long-running stress and concurrency suites. |
 | `.platformSpecific` | Behavior that differs by platform, such as conditional FoundationNetworking imports. |
 
@@ -110,7 +110,7 @@ tag it; that is a rewrite, and test splits here are moves, not rewrites.
 ## File layout rules
 
 - No `.swift` file sits directly in `Tests/PositronicKitTests/`. Put each
-  suite in its domain subtree (`Turns/`, `Threads/`, `Workspaces/`, `Agents/`,
+  suite in its domain subtree (`Turns/`, `Timelines/`, `Workspaces/`, `Agents/`,
   `Assembly/`, `Prompts/`, `Errors/`, `Policies/`, `StructuredOutput/`,
   `Sidecar/`, `Streaming/`, `Tools/`, `Services/`, `Models/`, `Stories/`,
   `InternalStories/`).

@@ -24,10 +24,10 @@ docs/adr/0008-timeline-naming-hard-cut.md|parallel Thread entry
 Tests/PKUtilitiesTests/Utilities/ProviderHTTPTransportTests.swift|Thread\.sleep
 Tests/PKTestSupport/TestHTTPServer.swift|Thread\.sleep
 Tests/PositronicKitTests/Services/RuntimeToolPolicyFactoryTests.swift|thread_(list|peek|send)
-Tests/PositronicKitTests/TurnEnginePipelineTests.swift|threadID
-Tests/PositronicKitTests/TimelineObservationToolsTests.swift|thread_(list|peek|send|id)
-Tests/PositronicKitTests/TimelineSendToolTests.swift|thread_(send|id)
-Tests/PositronicKitTests/TimelineSerializationCompatibilityTests.swift|thread(Id|ID)|privateThreadId|primaryThreadSummary|thread_(list|peek|send|id)|runtimeThread|/threads/
+Tests/PositronicKitTests/Turns/TurnEnginePipelineTests.swift|threadID
+Tests/PositronicKitTests/Timelines/TimelineObservationToolsTests.swift|thread_(list|peek|send|id)
+Tests/PositronicKitTests/Timelines/TimelineSendToolTests.swift|thread_(send|id)
+Tests/PositronicKitTests/Timelines/TimelineSerializationCompatibilityTests.swift|thread(Id|ID)|privateThreadId|primaryThreadSummary|thread_(list|peek|send|id)|runtimeThread|/threads/
 Tests/PKContractsTests/CoreAPIClarityTests.swift|thread(Id|ID)|privateThreadId
 Tests/PKContractsTests/SharedModelCoverageTests.swift|runtimeThread
 Tests/PKContractsTests/WorkspaceURITests.swift|/threads/

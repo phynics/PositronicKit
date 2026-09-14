@@ -8,17 +8,10 @@ import Testing
 /// PKRR-005 lifecycle invariants: `TimelineCapability.open(_:)` opens an existing timeline only. Sending
 /// to a missing ID throws before any user input is persisted. Store failure is
 /// distinguishable from not-found.
-<<<<<<<< HEAD:Tests/PositronicKitTests/Threads/ThreadLifecycleInvariantTests.swift
-@Suite("Thread lifecycle invariants (PKRR-005)", .tags(.integration))
-struct ThreadLifecycleInvariantTests {
-    @Test("Sending to a never-created thread throws threadNotFound before persisting")
-    func sendToMissingThreadThrowsBeforePersisting() async throws {
-========
-@Suite("Timeline lifecycle invariants (PKRR-005)")
+@Suite("Timeline lifecycle invariants (PKRR-005)", .tags(.integration))
 struct TimelineLifecycleInvariantTests {
     @Test("Sending to a never-created timeline throws timelineNotFound before persisting")
     func sendToMissingTimelineThrowsBeforePersisting() async throws {
->>>>>>>> 68f2ea52 (refactor(api)!: migrate facade, Timeline, and tool names (#156)):Tests/PositronicKitTests/TimelineLifecycleInvariantTests.swift
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let kit = PKRuntime(configuration: .init(

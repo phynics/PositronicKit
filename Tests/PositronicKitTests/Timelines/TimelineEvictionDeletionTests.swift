@@ -9,15 +9,9 @@ import Testing
 /// PKRR-023 regression tests: `evictTimelineFromMemory` is memory-only (cancels active work,
 /// leaves persistence intact) and `deleteTimelinePermanently` removes all persisted records
 /// or reports partial cleanup. These guard against the original leak/race where the
-<<<<<<<< HEAD:Tests/PositronicKitTests/Threads/ThreadEvictionDeletionTests.swift
-/// `deleteThread` name suggested durable deletion but only evicted memory.
-@Suite("Thread eviction & permanent deletion (PKRR-023)", .tags(.integration))
-struct ThreadEvictionDeletionTests {
-========
 /// `deleteTimeline` name suggested durable deletion but only evicted memory.
-@Suite("Timeline eviction & permanent deletion (PKRR-023)")
+@Suite("Timeline eviction & permanent deletion (PKRR-023)", .tags(.integration))
 struct TimelineEvictionDeletionTests {
->>>>>>>> 68f2ea52 (refactor(api)!: migrate facade, Timeline, and tool names (#156)):Tests/PositronicKitTests/TimelineEvictionDeletionTests.swift
 
     // MARK: - Eviction is memory-only: cancels active work, preserves persistence
 
