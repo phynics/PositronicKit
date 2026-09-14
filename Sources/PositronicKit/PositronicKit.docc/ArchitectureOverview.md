@@ -1,16 +1,19 @@
-# Architecture Overview
+# Architecture overview
 
 Deep dive into the current PositronicKit runtime design.
 
-## Modularity
+## Module boundaries
 
-PKRuntime keeps transport-neutral runtime orchestration in `PKRuntime`, shared contracts in `PKContracts`, and prompt composition/rendering in `PKPrompt`.
+- `PKContracts` owns runtime-neutral provider, tool, structured-output, and diagnostic contracts.
+- `PKPrompt` owns prompt composition, assembly, rendering, compression, and journaling.
+- `PKRuntime` owns domain state, orchestration, durability, and Workspace dispatch.
+- Provider products adapt concrete services to `PKContracts` without importing the runtime.
 
-## Facade-Backed Wiring
+## Facade-backed wiring
 
 The runtime is assembled through explicit facade initializers so orchestration services can collaborate without asking downstream applications to configure a shared dependency container.
 
-### Example Usage
+### Example usage
 
 ```swift
 let kit = PKRuntime(languageModel: myLLM)
@@ -30,8 +33,14 @@ for await event in turn.events() {
 1. **User Query**: Received via `TurnEngine`.
 2. **Agent continuity**: Managed admission captures a typed `AgentContextSnapshot` from the
    configured `AgentContextSource`; direct Turns skip Agent context entirely.
-3. **Context Gathering**: Timeline-scoped context remains injectable and independent of Agent continuity.
+3. **Turn context**: Timeline-scoped additions remain injectable and independent of Agent continuity.
 4. **Prompt Construction**: `PKPrompt` DSL builds a provider-specific prompt with reserved
    `agent.identity`, `agent.instructions`, `agent.memory`, and `agent.primary-timeline-summary` sections.
-5. **Execution**: `LLMService` communicates with the AI provider.
-6. **PKTool Routing**: If the AI calls a tool, the internal router executes runtime-managed tools and defers attached tools for host-side execution when needed.
+5. **Admission and execution**: `TimelineRuntimeRepository` records the admitted input and authority
+   before provider or Workspace side effects begin.
+6. **Execution**: `LLMService` communicates with the AI provider.
+7. **PKTool routing**: If the AI calls a tool, the internal router executes runtime-managed tools and
+   defers attached tools for host-side execution when needed.
+
+`PromptJournal` observes assembled prompt state for provider prompt reuse. It does not replace
+semantic Timeline history or own Turn durability.

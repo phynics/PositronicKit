@@ -79,8 +79,10 @@ let kit = PKRuntime(configuration: .init(
     persistence: .init(
         runtimeRepository: myTimelineRuntimeRepository,
         workspacePersistence: myWorkspaceStore,
+        toolPersistence: myToolStore,
         agentStore: myAgentStore,
-        requestOriginStore: myRequestOriginStore
+        requestOriginStore: myRequestOriginStore,
+        workspaceBindingRepository: myWorkspaceBindingRepository
     ),
     runtime: .init(
         workspaceProfile: .hostManaged(root: myWorkspaceRoot, seedNotes: .default),
@@ -96,6 +98,10 @@ Turn admission with the input message and normal terminal message/outcome comple
 `RuntimeConfiguration` groups Workspace provisioning, tool policy, diagnostics, degradation, and
 `RuntimeCustomization`. Consumers use `kit.timelines`, `kit.agents`, `kit.workspaces`, and
 `kit.model`; concrete coordinators and the model-round machinery remain internal.
+
+For a fully durable setup, call `PersistenceConfiguration.fullyPersistent(...)` and provide every
+store, including `workspaceBindingRepository`. Use the regular initializer when some stores are
+intentionally in memory.
 
 Set `RuntimeConfiguration.streamTimeout` to control the maximum idle interval between streamed
 model chunks. It defaults to 60 seconds and applies only while a provider stream is active; it is
@@ -187,7 +193,6 @@ exercise the full Timeline and Turn path without an API key or network access:
 
 ```bash
 swift run PositronicKitExamples
-```
 ```
 
 For custom timeouts, generation parameters, attribution, or multiple model-tier clients, keep using

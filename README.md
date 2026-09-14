@@ -272,7 +272,7 @@ let rendered = await assembled.render()
 print(rendered.sections.map(\.id))
 ```
 
-### Sidecar directives (piggy-backed auxiliary generations)
+### Sidecar directives
 
 Get a timeline title, tone marker, or summary from the same request as the user-visible response.
 

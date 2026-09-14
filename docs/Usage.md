@@ -3,13 +3,13 @@
 This guide documents the unreleased Next / v5 runtime. For production, start from the
 [stable tagged README](https://github.com/phynics/PositronicKit/blob/5.1.0/README.md).
 
-## 1. Managing Agents
+## Manage Agents
 
 `Agent` is persistent identity, instructions, and continuity. Every Agent owns one primary Timeline
 and primary Workspace, can participate in many ordinary Timelines, and is not independently callable.
 Each Timeline attaches at most one Agent. Manage Agents through the facade's `agents` capability.
 
-### Creating an Agent
+### Create an Agent
 
 To create a new agent, use `kit.agents.create`. You can optionally seed it from an `AgentTemplate`.
 
@@ -32,7 +32,7 @@ let timeline = try await kit.timelines.create(
 print("Created agent with ID: \(agent.id)")
 ```
 
-### Attaching an Agent to a Timeline
+### Attach an Agent to a Timeline
 
 Attach an Agent when a Timeline should run managed Turns under that identity. The attachment is
 exclusive from the Timeline's perspective: a Timeline has zero or one Agent, while an Agent may be
@@ -53,13 +53,13 @@ admitted Turns to finish, detaches ordinary Timelines, and archives the Agent's 
 Call `kit.agents.purge(agent.id)` only after retirement when the host's retention policy permits
 removing the Agent and its owned resources.
 
-## 2. Initialization and Execution
+## Initialize and run Turns
 
 The snippets below mirror functions in the `PositronicKitExamples` target, which compiles
 them as part of `make verify-examples` (a step of `make verify`) — so the canonical
 construction, run, and event-handling shapes here are type-checked against the current API.
 
-### Simplified Initialization (Prototyping)
+### Prototype with a configured provider
 
 Provider packages expose a configured-provider factory for the common path. It creates the client
 and configuration once, while `PKRuntime` keeps service assembly internal.
@@ -89,7 +89,7 @@ OpenRouter and Anthropic use the same configured-provider pattern. Foundation Mo
 documented exception: it has no API key, endpoint, or network model selection, so pass a
 `FoundationModelsClient` through `PKRuntime(languageModel:)` instead.
 
-### Full Initialization (Production)
+### Configure production persistence
 
 For production, assemble a `PKRuntime.Configuration` and construct via
 `PKRuntime(configuration:)`. The runtime repository is required because it atomically owns
@@ -116,7 +116,7 @@ let kit = PKRuntime(configuration: .init(
 ))
 ```
 
-### Running a Generation Stream
+### Run a generation stream
 
 The managed `TimelineHandle.startTurn` method captures the Agent attached to its Timeline and returns
 a `TurnHandle`. Its `events()` stream is nonthrowing, while `outcome()` returns the same durable
@@ -333,7 +333,7 @@ let stream = turn.events()
 The stream provides a rich set of events:
 - `.delta(.reasoning)` and `.delta(.generation)` for streaming text.
 - `.delta(.toolCall)` and `.delta(.toolExecution)` for tool progress.
-- `.delta(.sidecar)` and `.completion(.sidecarsCompleted)` for piggy-backed directive results on
+- `.delta(.sidecar)` and `.completion(.sidecarsCompleted)` for sidecar directive results on
   turns passed `TurnOptions(sidecars:)` (see [Sidecar Directives](SidecarDirectives.md)).
 - `.completion(.generationCompleted)` for the terminal event on normal completion (one per
   completed turn; the final one closes the stream).

@@ -1,7 +1,7 @@
-# PositronicKit Development Guide
+# PositronicKit development
 
 This guide covers contributor and agent setup. Application configuration belongs in
-[Setup.md](Setup.md); release procedure belongs in [Releasing.md](Releasing.md).
+[Setup.md](Setup.md). Release procedure belongs in [Releasing.md](Releasing.md).
 
 ## Platform gates
 
@@ -16,15 +16,16 @@ make agent-test FILTER='MessageContentTests'
 make linux-coverage
 ```
 
-The runner owns image selection, rootless identity, checkout mounts,
-logs, and shared-build locking. Host edits are visible in `/workspace`; build artifacts remain in
+The runner owns image selection, rootless identity, checkout mounts, logs, and shared-build locking.
+Host edits are visible in `/workspace`. Build artifacts remain in
 the gitignored `.build/` directory. If a sandbox blocks Podman, rerun the same Make target with
 container-runtime permission rather than composing a different container command.
 
 ## Linux image and prerequisites
 
-The development image supplies Swift 6.3.3 and Python 3 for the documentation catalog gates on Ubuntu 24.04. Build or
-refresh it with `make linux-image`; compile in it with `make linux-build`.
+The development image supplies Swift 6.3.3 and Python 3 for the documentation catalog gates on
+Ubuntu 24.04. Build or
+refresh it with `make linux-image`. Compile in it with `make linux-build`.
 
 ## Focused checks
 
@@ -33,7 +34,7 @@ tagging taxonomy, determinism rules, and the `make test-fast` inner loop are
 defined in [Testing.md](Testing.md).
 
 Provider conformance tests use the package-scoped `ScriptedProviderHTTPTransport` for Anthropic,
-OpenRouter, Ollama, and runtime transport checks. OpenAI tests use `TestHTTPServer`; Foundation
+OpenRouter, Ollama, and runtime transport checks. OpenAI tests use `TestHTTPServer`. Foundation
 Models tests use a scripted session. Run the provider suites with:
 
 ```bash
@@ -46,7 +47,7 @@ The executable provider capability matrix runs with:
 make agent-test FILTER='ProviderCapabilityMatrixTests'
 ```
 
-`make verify-documentation` validates the machine-readable matrix, its published table, malformed
+`make verify-documentation` validates documentation currency, the machine-readable matrix, its published table, malformed
 input handling, and registration of every executable case.
 
 These fixtures are internal to the package. Downstream tests should use public provider APIs or

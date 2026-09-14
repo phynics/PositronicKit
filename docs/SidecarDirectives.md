@@ -1,4 +1,4 @@
-# Sidecar Directives (Piggy-Backed Requests)
+# Sidecar Directives
 
 Sidecar directives let a turn produce auxiliary generations — a title, a summary, a tone
 marker, a confidence score, whatever your app needs — **from the same LLM request** as the
@@ -50,7 +50,7 @@ let tone = SidecarDirective(
 `PositronicKitUsageExamples.makeSidecarDirectives()` has a compiling reference pair
 (`title` + `tone`) — see `swift run PositronicKitExamples`.
 
-## Running a turn with sidecars
+## Run a Turn with sidecars
 
 ```swift
 let turn = try await chat.timelines.open(timelineID).startTurn(

@@ -94,6 +94,7 @@ verify-documentation:
 	@python3 Scripts/generate-doc-navigation.py --check
 	@python3 Scripts/validate-documentation.py
 	@python3 Scripts/validate-provider-capability-matrix.py
+	@python3 Scripts/check-documentation-currency.py
 	@bash Scripts/check-v4-vocabulary.sh
 	@bash Scripts/compile-doc-snippets.sh
 

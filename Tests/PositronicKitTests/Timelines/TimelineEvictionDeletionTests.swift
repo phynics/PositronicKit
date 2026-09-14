@@ -47,6 +47,7 @@ struct TimelineEvictionDeletionTests {
 
         // Evict — must cancel and drain the active task before tearing down state.
         await kit.timelineManager.evictTimelineFromMemory(id: timeline.id)
+        _ = await consumeTask.value
 
         let terminated = streamTerminated.withLock { $0 }
         #expect(terminated, "Active stream must terminate after eviction")

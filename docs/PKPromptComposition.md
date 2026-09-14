@@ -1,8 +1,8 @@
-# PKPrompt Composition
+# PKPrompt composition
 
 `PKPrompt` uses a body-based composition model inspired by SwiftUI.
 
-## Authoring Model
+## Authoring model
 
 - Use composite `Prompt` types to group reusable prompt structure.
 - Use primitive leaves like `TextPrompt` and `HistoryPrompt` when a type emits final prompt content directly.
@@ -36,13 +36,13 @@ let prompt = AnyPrompt.build {
 }
 ```
 
-## Modifier Inheritance
+## Modifier inheritance
 
 - Modifiers apply to the entire subtree beneath them.
 - Child sections inherit `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` unless they set an explicit value closer to the leaf.
 - This keeps composite sections small and avoids duplicating metadata on every leaf.
 
-## Resolution Pipeline
+## Resolution pipeline
 
 Before prompt content is consumed by the runtime, composed sections are resolved into semantic leaves.
 
@@ -54,15 +54,17 @@ Before prompt content is consumed by the runtime, composed sections are resolved
 This separation keeps the builder API ergonomic while preserving stable prompt semantics for caching and compression.
 
 Primitive leaves are an assembly implementation detail. Public consumers compose `Prompt` values
-with `TextPrompt`, `HistoryPrompt`, and the role-specific convenience prompts; they should not
+with `TextPrompt`, `HistoryPrompt`, and the role-specific convenience prompts. They should not
 depend on the package-internal leaf protocol or a primitive registry. The runtime likewise exposes
 durable tool audit and opt-in logging rather than a transient prompt/debug buffer.
 
-## Runtime Integration
+## Runtime integration
 
-`PKPrompt` itself stays transport-neutral and does not own a logging backend. The runtime assembles prompts through its internal `PromptAssembler`; verbose assembly diagnostics flow through `swift-log` when you pass a `Logger` to `TurnOptions(promptAssemblyLogger:)`.
+`PKPrompt` itself stays transport-neutral and does not own a logging backend. The runtime assembles
+prompts through its internal `PromptAssembler`. Verbose assembly diagnostics flow through
+`swift-log` when you pass a `Logger` to `TurnOptions(promptAssemblyLogger:)`.
 
-## Journaling vs. Runtime Prompt History
+## Journaling vs. runtime prompt history
 
 There are two related but different concepts in the codebase:
 
@@ -109,13 +111,13 @@ The two systems intentionally overlap only partially:
 - For **runtime diff/cache behavior**, let `PKRuntime` manage `TimelinePromptHistory` internally.
 - If you need both, treat `PromptJournal` as the user-facing API and `TimelinePromptHistory` as runtime implementation support.
 
-## Usage Examples (The Three Layers)
+## Usage examples (the three layers)
 
 > The three layer examples below are compile-checked in `Sources/PositronicKitExamples/PKPromptExamples.swift` (`renderLayer1ToString`, `assembleLayer2`, `journalLayer3`) and run via `swift run PositronicKitExamples`. Keep them in sync when editing these snippets.
 
-### Layer 1: Prompt → String
+### Layer 1: Prompt to String
 
-The simplest path — compose a prompt tree and get canonical rendered text.
+The simplest path: compose a prompt tree and get canonical rendered text.
 
 ```swift
 import PKPrompt
@@ -142,9 +144,10 @@ print(try await prompt.renderToString() ?? "")
 
 If you don't need to inspect sections, manage compression outcomes, or track changes across snapshots, this is all you need.
 
-### Layer 2: Prompt → AssembledPrompt → RenderedPrompt
+### Layer 2: Prompt to AssembledPrompt to RenderedPrompt
 
-When you need the full prompt structure — validated sections, rendered content, and compression outcomes.
+When you need the full prompt structure: validated sections, rendered content, and compression
+outcomes.
 
 ```swift
 import PKPrompt
@@ -166,12 +169,14 @@ print(rendered.sectionsByID)
 ```
 
 - `try prompt.assemblePrompt()` validates and orders sections into an `AssembledPrompt`.
-- `await assembled.render()` produces the canonical `RenderedPrompt` — the single render artifact used for strings, snapshots, journaling, and provider projection.
+- `await assembled.render()` produces the canonical `RenderedPrompt`. It is the single render
+  artifact used for strings, snapshots, journaling, and provider projection.
 - Each section carries both the requested `compression` strategy and the realized `compressionOutcome` after token-budget enforcement.
 
-### Layer 3: RenderedPrompt → PromptJournal
+### Layer 3: RenderedPrompt to PromptJournal
 
-When prompt structure needs to survive across snapshots — stable content stays materialized, semi-stable changes become overlays, and volatile content stays current-only.
+When prompt structure needs to survive across snapshots: stable content stays materialized,
+semi-stable changes become overlays, and volatile content stays current-only.
 
 ```swift
 import PKPrompt
@@ -205,13 +210,15 @@ Cache policies drive the journaling behavior:
 
 - **Stable** sections stay materialized in the committed base. If a stable section mutates, the journal produces a hard-reset plan rather than an overlay.
 - **Semi-stable** sections become overlay entries when they change. Calling `compact()` folds outstanding overlays into the base.
-- **Volatile** sections never enter the committed base; they are replaced wholesale on the next `observe()`.
+- **Volatile** sections never enter the committed base. They are replaced wholesale on the next
+  `observe()`.
 
 `PromptJournal` is provider-neutral: it produces layered sections and journal paths, and a higher layer decides how to project overlays into provider-specific update messages.
 
-### PromptBuilder Notes
+### PromptBuilder notes
 
-`PromptBuilder` normalizes authored prompt syntax into structural `Prompt` values. `PromptAssembly` then lowers those values into `PromptNode` — the canonical internal IR.
+`PromptBuilder` normalizes authored prompt syntax into structural `Prompt` values. `PromptAssembly`
+then lowers those values into `PromptNode`, the canonical internal IR.
 
 - Use `AnyPrompt.build { ... }` for an explicit root container.
 - Plain `for` loops use positional identity (`item_0`, `item_1`, ...).
