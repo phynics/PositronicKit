@@ -5,7 +5,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite(.serialized) struct TimelineManagerConcurrencyTests {
+@Suite(.serialized, .tags(.slow)) struct TimelineManagerConcurrencyTests {
     private func makeTimelineManager() async throws -> TimelineManager {
         let workspace = TestWorkspace()
         return TimelineManager(workspaceProfile: .hostManaged(root: workspace.root))

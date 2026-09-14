@@ -98,10 +98,6 @@ let managedTurn = try await managedTimeline.startTurn("Use the attached identity
 let outcome = try await managedTurn.outcome()
 ```
 
-The capability values are the supported consumer entry points. `kit.model` is timeline-free
-inference; `kit.timelines` returns a stateful `TimelineHandle`; `kit.agents` manages identities and
-their Timeline attachments; and `kit.workspaces` owns the workspace catalog. Concrete managers,
-
 Read a Timeline's durable history through `kit.timelines.messages(for:)`. The result is ordered from
 oldest to newest by message timestamp. Messages with the same timestamp keep their append order,
 and an unknown Timeline ID returns an empty array.

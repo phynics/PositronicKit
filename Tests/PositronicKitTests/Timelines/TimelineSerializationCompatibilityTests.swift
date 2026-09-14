@@ -5,7 +5,7 @@ import PKContracts
 
 /// Golden payloads from the pre-Timeline API. These fixtures intentionally retain their wire keys
 /// while the decoded Swift values use the renamed Timeline family.
-@Suite("Timeline serialization compatibility")
+@Suite("Timeline serialization compatibility", .tags(.unit))
 struct TimelineSerializationCompatibilityTests {
     private let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
@@ -19,6 +19,10 @@ struct TimelineSerializationCompatibilityTests {
         return encoder
     }()
 
+    private func fixtureDate(_ value: String) -> Date {
+        ISO8601DateFormatter().date(from: value)!
+    }
+
     @Test("Timeline metadata decodes and re-encodes the persisted shape")
     func timelineRecordRoundTrip() throws {
         let payload = #"{"id":"00000000-0000-0000-0000-000000000001","title":"Research","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-02T00:00:00Z","isArchived":false,"workingDirectory":"/tmp/research","attachedAgentId":"00000000-0000-0000-0000-000000000002","isPrivate":false}"#
@@ -26,7 +30,12 @@ struct TimelineSerializationCompatibilityTests {
 
         #expect(record.id.uuidString == "00000000-0000-0000-0000-000000000001")
         #expect(record.title == "Research")
+        #expect(record.createdAt == fixtureDate("2026-01-01T00:00:00Z"))
+        #expect(record.updatedAt == fixtureDate("2026-01-02T00:00:00Z"))
+        #expect(record.isArchived == false)
+        #expect(record.workingDirectory == "/tmp/research")
         #expect(record.attachedAgentID?.uuidString == "00000000-0000-0000-0000-000000000002")
+        #expect(record.isPrivate == false)
         try assertWireKeys(of: record, contains: ["attachedAgentId"], excludes: ["timelineId", "timelineID"])
     }
 
@@ -34,23 +43,80 @@ struct TimelineSerializationCompatibilityTests {
     func renamedIdentifiersRoundTrip() throws {
         let messagePayload = #"{"id":"00000000-0000-0000-0000-000000000010","threadId":"00000000-0000-0000-0000-000000000011","role":"user","content":"hello","timestamp":"2026-01-01T00:00:00Z","remoteDepth":0,"toolCalls":"[]"}"#
         let message = try decoder.decode(TimelineMessage.self, from: Data(messagePayload.utf8))
+        #expect(message.id.uuidString == "00000000-0000-0000-0000-000000000010")
         #expect(message.timelineID.uuidString == "00000000-0000-0000-0000-000000000011")
-        try assertWireKeys(of: message, contains: ["threadId"], excludes: ["timelineId", "timelineID"])
+        #expect(message.role == "user")
+        #expect(message.content == "hello")
+        #expect(message.messageContent.text == "hello")
+        #expect(message.timestamp == fixtureDate("2026-01-01T00:00:00Z"))
+        #expect(message.parentID == nil)
+        #expect(message.reasoning == nil)
+        #expect(message.toolCalls == "[]")
+        #expect(message.toolCallID == nil)
+        #expect(message.agentID == nil)
+        #expect(message.executionKind == nil)
+        #expect(message.remoteDepth == 0)
+        #expect(message.snapshotData == nil)
+        #expect(message.status == nil)
+        try assertWireKeys(
+            of: message,
+            contains: ["threadId"],
+            excludes: ["timelineId", "timelineID", "privateTimelineId"])
 
         let snapshotPayload = #"{"timestamp":"2026-01-01T00:00:00Z","threadId":"00000000-0000-0000-0000-000000000011","agentId":"00000000-0000-0000-0000-000000000012","modelName":"fixture","modelRoundIndex":0,"maxModelRounds":1,"availableToolIds":[],"fullResponse":"","fullThinking":"","toolCalls":[],"toolResults":[],"turnDuration":0}"#
         let snapshot = try decoder.decode(TurnSnapshot.self, from: Data(snapshotPayload.utf8))
+        #expect(snapshot.timestamp == fixtureDate("2026-01-01T00:00:00Z"))
         #expect(snapshot.timelineID.uuidString == "00000000-0000-0000-0000-000000000011")
-        try assertWireKeys(of: snapshot, contains: ["threadId", "availableToolIds"], excludes: ["timelineId", "timelineID"])
+        #expect(snapshot.agentID?.uuidString == "00000000-0000-0000-0000-000000000012")
+        #expect(snapshot.modelName == "fixture")
+        #expect(snapshot.modelRoundIndex == 0)
+        #expect(snapshot.maxModelRounds == 1)
+        #expect(snapshot.systemInstructions == nil)
+        #expect(snapshot.contextSnapshot == nil)
+        #expect(snapshot.availableToolIDs == [])
+        #expect(snapshot.fullResponse == "")
+        #expect(snapshot.fullThinking == "")
+        #expect(snapshot.audioOutput == nil)
+        #expect(snapshot.toolCalls == [])
+        #expect(snapshot.toolResults == [])
+        #expect(snapshot.turnDuration == 0)
+        #expect(snapshot.tokensPerSecond == nil)
+        #expect(snapshot.promptTokens == nil)
+        #expect(snapshot.completionTokens == nil)
+        #expect(snapshot.totalTokens == nil)
+        #expect(snapshot.cachedTokens == nil)
+        try assertWireKeys(
+            of: snapshot,
+            contains: ["threadId", "availableToolIds"],
+            excludes: ["timelineId", "timelineID", "privateTimelineId"])
 
         let agentPayload = #"{"id":"00000000-0000-0000-0000-000000000012","name":"Agent","description":"Fixture","lifecycle":"active","primaryWorkspaceId":null,"privateThreadId":"00000000-0000-0000-0000-000000000011","lastActiveAt":"2026-01-01T00:00:00Z","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:00Z","metadata":{}}"#
         let agent = try decoder.decode(Agent.self, from: Data(agentPayload.utf8))
+        #expect(agent.id.uuidString == "00000000-0000-0000-0000-000000000012")
+        #expect(agent.name == "Agent")
+        #expect(agent.description == "Fixture")
+        #expect(agent.lifecycle == .active)
+        #expect(agent.primaryWorkspaceID == nil)
         #expect(agent.privateTimelineID.uuidString == "00000000-0000-0000-0000-000000000011")
-        try assertWireKeys(of: agent, contains: ["privateThreadId"], excludes: ["privateTimelineId"])
+        #expect(agent.lastActiveAt == fixtureDate("2026-01-01T00:00:00Z"))
+        #expect(agent.createdAt == fixtureDate("2026-01-01T00:00:00Z"))
+        #expect(agent.updatedAt == fixtureDate("2026-01-01T00:00:00Z"))
+        #expect(agent.metadata.isEmpty)
+        try assertWireKeys(
+            of: agent,
+            contains: ["privateThreadId"],
+            excludes: ["timelineId", "timelineID", "privateTimelineId"])
 
         let bindingPayload = #"{"workspaceID":"00000000-0000-0000-0000-000000000020","threadID":"00000000-0000-0000-0000-000000000011","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:00Z"}"#
         let binding = try decoder.decode(WorkspaceBinding.self, from: Data(bindingPayload.utf8))
+        #expect(binding.workspaceID.uuidString == "00000000-0000-0000-0000-000000000020")
         #expect(binding.timelineID.uuidString == "00000000-0000-0000-0000-000000000011")
-        try assertWireKeys(of: binding, contains: ["threadID"], excludes: ["timelineID"])
+        #expect(binding.createdAt == fixtureDate("2026-01-01T00:00:00Z"))
+        #expect(binding.updatedAt == fixtureDate("2026-01-01T00:00:00Z"))
+        try assertWireKeys(
+            of: binding,
+            contains: ["threadID"],
+            excludes: ["timelineId", "timelineID", "privateTimelineId"])
     }
 
     private func assertWireKeys<T: Encodable>(

@@ -12,7 +12,7 @@ import Testing
 /// `RuntimeToolPolicyFactory` tool set, which left their parameter validation, privacy
 /// guards, and message-limit clamping unverified. These tests drive each tool directly
 /// against in-memory stores.
-@Suite("Timeline observation tools")
+@Suite("Timeline observation tools", .tags(.integration))
 struct TimelineObservationToolsTests {
 
     @Test("canonical observation tools preserve timeline call names")
@@ -32,7 +32,7 @@ struct TimelineObservationToolsTests {
 
     // MARK: - TimelinePeekTool
 
-    @Suite("TimelinePeekTool")
+    @Suite("TimelinePeekTool", .tags(.integration))
     struct PeekToolTests {
         private func makeStores() -> (InMemoryTimelinePersistence, InMemoryMessageStore) {
             (InMemoryTimelinePersistence(), InMemoryMessageStore())
@@ -198,7 +198,7 @@ struct TimelineObservationToolsTests {
 
     // MARK: - TimelineListTool
 
-    @Suite("TimelineListTool")
+    @Suite("TimelineListTool", .tags(.integration))
     struct ListToolTests {
         @Test("Lists only non-private, non-archived timelines")
         func listsNonPrivateNonArchived() async throws {

@@ -49,6 +49,9 @@ _ = String(describing: PKOpenRouter.self)
 _ = String(describing: PKOllama.self)
 _ = String(describing: PKAnthropic.self)
 _ = PKOpenAIProvider.OpenAIClient.self
+_ = PKOpenRouterProvider.OpenRouterClient.self
+_ = PKOllamaProvider.OllamaClient.self
+_ = PKAnthropicProvider.AnthropicClient.self
 _ = PKFoundationModelsProvider.FoundationModelsClient.self
 _ = String(describing: TestRuntime.self)
 
@@ -114,7 +117,7 @@ _ = streamConfiguredKit.model
 _ = LLMUtilityGenerator(streamClient: streamOnly)
 
 // E-01 regression gate: `Configuration.logging` must be constructible by a consumer that only
-// imports PKRuntime — `LoggingConfiguration` and `LogRedactionPolicy` must be nameable
+// imports PositronicKit — `LoggingConfiguration` and `LogRedactionPolicy` must be nameable
 // without @testable access. A non-default value (custom redaction policy and logger factory)
 // is required here; naming the type alone is not enough to catch a type that consumers can only
 // ever default.

@@ -27,7 +27,7 @@ public actor FoundationModelsClient: LLMClientProtocol {
     /// Factory for the per-turn session: given the tool definitions PKRuntime resolved for
     /// this turn and the hoisted system-instructions string, produce a session to drive.
     /// PKRuntime's `[LLMToolDefinition]` (JSON-Schema-shaped, transport-neutral) is bridged
-    /// to the framework's typed `PKTool` protocol by the production factory; tests pass their own
+    /// to the framework's typed `FoundationModels.Tool` protocol by the production factory; tests pass their own
     /// factory and can ignore `tools` entirely for text-only fixtures.
     public typealias SessionFactory = @Sendable (
         _ tools: [LLMToolDefinition]?,

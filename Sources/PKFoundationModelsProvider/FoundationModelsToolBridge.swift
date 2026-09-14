@@ -6,7 +6,8 @@ import PKUtilities
 #if canImport(FoundationModels)
     import FoundationModels
 
-    /// Bridges a PKRuntime `AnyTool` to the framework's typed `PKTool` protocol (PKPOST-003).
+    /// Bridges a PKRuntime `AnyTool` to the framework's typed `FoundationModels.Tool` protocol
+    /// (PKPOST-003).
     ///
     /// `FoundationModels.Tool.Arguments` must conform to `ConvertibleFromGeneratedContent`;
     /// `GeneratedContent` itself satisfies that (confirmed against the SDK), so this bridge uses

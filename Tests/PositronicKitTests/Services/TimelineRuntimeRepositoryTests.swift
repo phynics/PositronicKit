@@ -2,7 +2,7 @@ import PKTestSupport
 import PositronicKit
 import Testing
 
-@Suite("TimelineRuntimeRepository conformance")
+@Suite("TimelineRuntimeRepository conformance", .tags(.integration))
 struct TimelineRuntimeRepositoryTests {
     @Test("InMemoryTimelineRuntimeRepository")
     func inMemoryRepository() async throws {
