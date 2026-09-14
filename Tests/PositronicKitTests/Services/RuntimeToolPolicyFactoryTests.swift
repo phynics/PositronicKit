@@ -6,26 +6,26 @@ import PKTestSupport
 import Testing
 
 /// Tests for `RuntimeToolPolicyFactory` (PKARCH-003 AC #4): verifies which tools are installed
-/// for each `RuntimeToolPolicy` flag combination, without bringing up a full `ThreadManager`.
+/// for each `RuntimeToolPolicy` flag combination, without bringing up a full `TimelineManager`.
 @Suite(.tags(.unit))
 struct RuntimeToolPolicyFactoryTests {
-    private func makeStores() -> (any ThreadPersistenceProtocol, any ThreadMessageStoreProtocol) {
-        (InMemoryThreadPersistence(), InMemoryMessageStore())
+    private func makeStores() -> (any TimelinePersistenceProtocol, any TimelineMessageStoreProtocol) {
+        (InMemoryTimelinePersistence(), InMemoryMessageStore())
     }
 
-    private func toolIds(for toolManager: ThreadToolRegistry) async -> Set<String> {
+    private func toolIds(for toolManager: TimelineToolRegistry) async -> Set<String> {
         Set(await toolManager.getAvailableTools().map(\.callName))
     }
 
-    @Test("Default runtime tool set includes filesystem and thread observation tools")
+    @Test("Default runtime tool set includes filesystem and timeline observation tools")
     func defaultToolManagerContract() async {
-        let (threadStore, messageStore) = makeStores()
-        let thread = Thread(workingDirectory: "/tmp/test")
+        let (timelineStore, messageStore) = makeStores()
+        let timeline = TimelineRecord(workingDirectory: "/tmp/test")
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
-            for: thread,
+            for: timeline,
             jailRoot: "/tmp/test",
             runtimeToolPolicy: .default,
-            threadStore: threadStore,
+            timelineStore: timelineStore,
             messageStore: messageStore
         )
 
@@ -43,18 +43,18 @@ struct RuntimeToolPolicyFactoryTests {
         #expect(!ids.contains("thread_send"))
     }
 
-    @Test("Thread send is installed only when an agent is attached")
-    func threadSendRequiresAttachedAgent() async {
-        let (threadStore, messageStore) = makeStores()
-        let thread = Thread(
+    @Test("Timeline send is installed only when an agent is attached")
+    func timelineSendRequiresAttachedAgent() async {
+        let (timelineStore, messageStore) = makeStores()
+        let timeline = TimelineRecord(
             workingDirectory: "/tmp/test",
             attachedAgentID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
-            for: thread,
+            for: timeline,
             jailRoot: "/tmp/test",
             runtimeToolPolicy: .default,
-            threadStore: threadStore,
+            timelineStore: timelineStore,
             messageStore: messageStore
         )
 
@@ -62,15 +62,15 @@ struct RuntimeToolPolicyFactoryTests {
         #expect(ids.contains("thread_send"))
     }
 
-    @Test("Thread send is NOT installed when no agent is attached, even with the policy flag on")
-    func threadSendAbsentWithoutAttachedAgent() async {
-        let (threadStore, messageStore) = makeStores()
-        let thread = Thread(workingDirectory: "/tmp/test") // no attachedAgentId
+    @Test("Timeline send is NOT installed when no agent is attached, even with the policy flag on")
+    func timelineSendAbsentWithoutAttachedAgent() async {
+        let (timelineStore, messageStore) = makeStores()
+        let timeline = TimelineRecord(workingDirectory: "/tmp/test") // no attachedAgentId
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
-            for: thread,
+            for: timeline,
             jailRoot: "/tmp/test",
-            runtimeToolPolicy: .default, // installsThreadSendTool = true
-            threadStore: threadStore,
+            runtimeToolPolicy: .default, // installsTimelineSendTool = true
+            timelineStore: timelineStore,
             messageStore: messageStore
         )
 
@@ -80,20 +80,20 @@ struct RuntimeToolPolicyFactoryTests {
 
     @Test("Selective runtime tool policy disables chosen categories only")
     func selectiveRuntimeToolPolicy() async {
-        let (threadStore, messageStore) = makeStores()
-        let thread = Thread(
+        let (timelineStore, messageStore) = makeStores()
+        let timeline = TimelineRecord(
             workingDirectory: "/tmp/test",
             attachedAgentID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
-            for: thread,
+            for: timeline,
             jailRoot: "/tmp/test",
             runtimeToolPolicy: .init(
                 installFilesystemTools: false,
-                installThreadObservationTools: true,
-                installsThreadSendTool: true
+                installTimelineObservationTools: true,
+                installsTimelineSendTool: true
             ),
-            threadStore: threadStore,
+            timelineStore: timelineStore,
             messageStore: messageStore
         )
 
@@ -103,16 +103,16 @@ struct RuntimeToolPolicyFactoryTests {
 
     @Test("Deny-all runtime tool policy installs no default tools")
     func denyAllRuntimeToolPolicy() async {
-        let (threadStore, messageStore) = makeStores()
-        let thread = Thread(
+        let (timelineStore, messageStore) = makeStores()
+        let timeline = TimelineRecord(
             workingDirectory: "/tmp/test",
             attachedAgentID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
-            for: thread,
+            for: timeline,
             jailRoot: "/tmp/test",
             runtimeToolPolicy: .denyAll,
-            threadStore: threadStore,
+            timelineStore: timelineStore,
             messageStore: messageStore
         )
 
@@ -122,20 +122,20 @@ struct RuntimeToolPolicyFactoryTests {
 
     @Test("Filesystem-only policy installs filesystem but not observation or send tools")
     func filesystemOnlyPolicy() async {
-        let (threadStore, messageStore) = makeStores()
-        let thread = Thread(
+        let (timelineStore, messageStore) = makeStores()
+        let timeline = TimelineRecord(
             workingDirectory: "/tmp/test",
             attachedAgentID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
-            for: thread,
+            for: timeline,
             jailRoot: "/tmp/test",
             runtimeToolPolicy: .init(
                 installFilesystemTools: true,
-                installThreadObservationTools: false,
-                installsThreadSendTool: false
+                installTimelineObservationTools: false,
+                installsTimelineSendTool: false
             ),
-            threadStore: threadStore,
+            timelineStore: timelineStore,
             messageStore: messageStore
         )
 
@@ -150,15 +150,15 @@ struct RuntimeToolPolicyFactoryTests {
         ])
     }
 
-    @Test("Tool context is propagated to the constructed ThreadToolRegistry")
+    @Test("PKTool context is propagated to the constructed TimelineToolRegistry")
     func toolContextPropagated() async {
-        let (threadStore, messageStore) = makeStores()
-        let thread = Thread(workingDirectory: "/tmp/test")
+        let (timelineStore, messageStore) = makeStores()
+        let timeline = TimelineRecord(workingDirectory: "/tmp/test")
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
-            for: thread,
+            for: timeline,
             jailRoot: "/tmp/test",
             runtimeToolPolicy: .denyAll,
-            threadStore: threadStore,
+            timelineStore: timelineStore,
             messageStore: messageStore
         )
 

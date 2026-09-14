@@ -54,7 +54,7 @@ help:
 	@echo "  make update-public-api-baseline  Record an intentionally reviewed public API change"
 	@echo "  make verify-release VERSION=x.y.z  Check local tag and release artifacts agree"
 	@echo "  make verify-dependency-direction  Check the v4 target dependency boundaries"
-	@echo "  make verify-v4-vocabulary  Check the v4 Thread/Turn/Agent vocabulary"
+	@echo "  make verify-v4-vocabulary  Check the v4 Timeline/Turn/Agent vocabulary"
 	@echo "  make verify-documentation  Check docs catalog, navigation, links, pins, products, and vocabulary"
 	@echo "  make verify-agent-harness Run agent test-entrypoint regression tests"
 	@echo "  make doctor                Report missing Swift and Podman prerequisites"

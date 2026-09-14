@@ -18,18 +18,18 @@ import Testing
 /// - Terminal persistence failure → `.error(.durabilityFailure)` and a normally closed stream
 @Suite(.serialized, .tags(.integration)) @MainActor
 struct TurnEngineTerminalEventTests {
-    private let threadID = UUID()
+    private let timelineID = UUID()
 
-    /// Standard dependencies with a `.runtimeThread` workspace (tools execute locally).
+    /// Standard dependencies with a `.runtimeTimeline` workspace (tools execute locally).
     private func withTurnEngineDependencies<T>(
         turnOutcomeSink: (any TurnOutcomeSink)? = nil,
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let threadManager = ThreadManager(
+        let timelineManager = TimelineManager(
             stores: .init(
-                threadStore: mockPersistence,
+                timelineStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
@@ -40,12 +40,12 @@ struct TurnEngineTerminalEventTests {
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
-            threadManager: threadManager,
+            timelineManager: timelineManager,
             runtimeRepository: mockPersistence
         )
         let engine = TurnEngine(
             dependencies: .init(
-                threadManager: threadManager,
+                timelineManager: timelineManager,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 runtimeRepository: mockPersistence,
@@ -56,29 +56,29 @@ struct TurnEngineTerminalEventTests {
             )
         )
 
-        let session = Thread(id: threadID, title: "PKRR-011 Session")
-        try await mockPersistence.saveThread(session)
+        let session = TimelineRecord(id: timelineID, title: "PKRR-011 Session")
+        try await mockPersistence.saveTimeline(session)
 
         let wsId = UUID()
         let workspaceRef = WorkspaceReference(
             id: wsId,
             uri: WorkspaceURI(parsing: "pk://local")!,
-            location: .runtimeThread,
+            location: .runtimeTimeline,
             originID: nil,
             rootPath: "/tmp"
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await threadManager.attachWorkspace(wsId, to: threadID)
+        try await timelineManager.attachWorkspace(wsId, to: timelineID)
         try await mockPersistence.addToolToWorkspace(workspaceID: wsId, tool: .known("mock_tool"))
 
-        try await threadManager.hydrateThread(id: threadID)
+        try await timelineManager.hydrateTimeline(id: timelineID)
 
-        if let toolManager = await threadManager.getToolManager(for: threadID) {
+        if let toolManager = await timelineManager.getToolManager(for: timelineID) {
             var tools = await toolManager.getAvailableTools()
             tools.append(AnyTool(MockTool()))
             await toolManager.updateAvailableTools(tools)
 
-            if let ws = try? await threadManager.workspaceResolver.workspace(id: wsId) {
+            if let ws = try? await timelineManager.workspaceResolver.workspace(id: wsId) {
                 await toolManager.registerWorkspace(ws)
             }
         }
@@ -94,9 +94,9 @@ struct TurnEngineTerminalEventTests {
     ) async throws -> T {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let threadManager = ThreadManager(
+        let timelineManager = TimelineManager(
             stores: .init(
-                threadStore: mockPersistence,
+                timelineStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
@@ -107,12 +107,12 @@ struct TurnEngineTerminalEventTests {
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
-            threadManager: threadManager,
+            timelineManager: timelineManager,
             runtimeRepository: mockPersistence
         )
         let engine = TurnEngine(
             dependencies: .init(
-                threadManager: threadManager,
+                timelineManager: timelineManager,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 runtimeRepository: mockPersistence,
@@ -122,9 +122,9 @@ struct TurnEngineTerminalEventTests {
             )
         )
 
-        // Non-private thread (default) so attached tools defer rather than throw.
-        let session = Thread(id: threadID, title: "PKRR-011 Deferred Session")
-        try await mockPersistence.saveThread(session)
+        // Non-private timeline (default) so attached tools defer rather than throw.
+        let session = TimelineRecord(id: timelineID, title: "PKRR-011 Deferred Session")
+        try await mockPersistence.saveTimeline(session)
 
         let wsId = UUID()
         let workspaceRef = WorkspaceReference(
@@ -135,17 +135,17 @@ struct TurnEngineTerminalEventTests {
             rootPath: "/tmp"
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await threadManager.attachWorkspace(wsId, to: threadID)
+        try await timelineManager.attachWorkspace(wsId, to: timelineID)
         try await mockPersistence.addToolToWorkspace(workspaceID: wsId, tool: .known("mock_tool"))
 
-        try await threadManager.hydrateThread(id: threadID)
+        try await timelineManager.hydrateTimeline(id: timelineID)
 
-        if let toolManager = await threadManager.getToolManager(for: threadID) {
+        if let toolManager = await timelineManager.getToolManager(for: timelineID) {
             var tools = await toolManager.getAvailableTools()
             tools.append(AnyTool(MockTool()))
             await toolManager.updateAvailableTools(tools)
 
-            if let ws = try? await threadManager.workspaceResolver.workspace(id: wsId) {
+            if let ws = try? await timelineManager.workspaceResolver.workspace(id: wsId) {
                 await toolManager.registerWorkspace(ws)
             }
         }
@@ -176,7 +176,7 @@ struct TurnEngineTerminalEventTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "Infinite tools",
                     tools: [AnyTool(mockTool)],
                     maxModelRounds: 2
@@ -225,7 +225,7 @@ struct TurnEngineTerminalEventTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "Run attached tool",
                     tools: []
                 )
@@ -264,7 +264,7 @@ struct TurnEngineTerminalEventTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "Hi",
                     tools: []
                 )
@@ -301,7 +301,7 @@ struct TurnEngineTerminalEventTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "Return nothing",
                     tools: []
                 )
@@ -337,7 +337,7 @@ struct TurnEngineTerminalEventTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "stream then cancel",
                     tools: []
                 )
@@ -370,14 +370,14 @@ struct TurnEngineTerminalEventTests {
 
 // MARK: - Test Tools
 
-private struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+private struct MockTool: PKContracts.PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "mock_tool"
     let name = "mock_tool"
     let toolDescription = "A mock tool for testing"
     let requiresPermission = false
     let parametersSchema = makeEmptyObjectSchema()
 
-    var result: ToolResult = .success("Tool result")
+    var result: ToolResult = .success("PKTool result")
     var shouldWait: Bool = false
 
     func canExecute() async -> Bool {
@@ -386,8 +386,8 @@ private struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:di
 
     func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
         if shouldWait { try? await Task.sleep(nanoseconds: 100_000_000) }
-        if !result.isSuccess && result.error == "client_tools_disallowed_on_private_thread" {
-            throw ToolError.attachedToolsDisallowedOnPrivateThread
+        if !result.isSuccess && result.error == "client_tools_disallowed_on_private_timeline" {
+            throw ToolError.attachedToolsDisallowedOnPrivateTimeline
         }
         return result
     }

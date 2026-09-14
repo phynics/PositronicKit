@@ -10,7 +10,7 @@ import Testing
 extension Tag {
     /// Fast, deterministic single-type contracts. Selected by `make test-fast`.
     @Tag static var unit: Self
-    /// Multi-component runtime behavior: Turns, Threads, Workspaces, stores, stories, providers, and examples.
+    /// Multi-component runtime behavior: Turns, Timelines, Workspaces, stores, stories, providers, and examples.
     @Tag static var integration: Self
     /// Long-running stress and concurrency suites. Excluded from the fast loop.
     @Tag static var slow: Self

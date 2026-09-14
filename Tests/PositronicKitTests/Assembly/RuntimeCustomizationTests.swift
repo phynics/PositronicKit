@@ -33,7 +33,7 @@ struct RuntimeCustomizationTests {
     @Test("required context-source failure aborts before provider work")
     func requiredSourceFailureAbortsPreparation() async throws {
         let model = MockLLMService()
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let source = FailingContextSource(requirement: .required)
         let kit = try await makeKit(
             model: model,
@@ -41,15 +41,15 @@ struct RuntimeCustomizationTests {
             customization: RuntimeCustomization(turnContextSource: source)
         )
 
-        let thread = try await kit.threads.create(title: "Required context")
+        let timeline = try await kit.timelines.create(title: "Required context")
         await #expect(throws: TurnDegradationError.self) {
-            _ = try await thread.startDirectTurn(
+            _ = try await timeline.startDirectTurn(
                 "must fail",
                 context: DirectTurnContext(systemInstructions: "", contributor: .host)
             )
         }
         #expect(model.mockClient.streamCallCount == 0)
-        let messages = try await repository.fetchMessages(for: thread.id)
+        let messages = try await repository.fetchMessages(for: timeline.id)
         #expect(messages.count == 1)
         #expect(messages.first?.content == "must fail")
     }
@@ -58,7 +58,7 @@ struct RuntimeCustomizationTests {
     func optionalSourceFailureContinuesWithNotice() async throws {
         let model = MockLLMService()
         model.mockClient.nextResponse = "continued"
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let source = FailingContextSource(requirement: .optional)
         let kit = try await makeKit(
             model: model,
@@ -66,8 +66,8 @@ struct RuntimeCustomizationTests {
             customization: RuntimeCustomization(turnContextSource: source)
         )
 
-        let thread = try await kit.threads.create(title: "Optional context")
-        let turn = try await thread.startDirectTurn(
+        let timeline = try await kit.timelines.create(title: "Optional context")
+        let turn = try await timeline.startDirectTurn(
             "continue",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
@@ -83,7 +83,7 @@ struct RuntimeCustomizationTests {
     func contributionReachesPromptAsNote() async throws {
         let model = MockLLMService()
         model.mockClient.nextResponse = "noted"
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let source = ContributingContextSource()
         let kit = try await makeKit(
             model: model,
@@ -91,8 +91,8 @@ struct RuntimeCustomizationTests {
             customization: RuntimeCustomization(turnContextSource: source)
         )
 
-        let thread = try await kit.threads.create(title: "Contribution")
-        let turn = try await thread.startDirectTurn(
+        let timeline = try await kit.timelines.create(title: "Contribution")
+        let turn = try await timeline.startDirectTurn(
             "use context",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
@@ -107,7 +107,7 @@ struct RuntimeCustomizationTests {
     func sinksAreBestEffortAfterDurability() async throws {
         let model = MockLLMService()
         model.mockClient.nextResponse = "reply"
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let activitySink = GatedActivitySink()
         let outcomeSink = FailingOutcomeSink(repository: repository)
         let kit = try await makeKit(
@@ -119,8 +119,8 @@ struct RuntimeCustomizationTests {
             )
         )
 
-        let thread = try await kit.threads.create(title: "Sinks")
-        let turn = try await thread.startDirectTurn(
+        let timeline = try await kit.timelines.create(title: "Sinks")
+        let turn = try await timeline.startDirectTurn(
             "sink",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
@@ -142,10 +142,10 @@ struct RuntimeCustomizationTests {
 
     private func makeKit(
         model: MockLLMService,
-        repository: InMemoryThreadRuntimeRepository,
+        repository: InMemoryTimelineRuntimeRepository,
         customization: RuntimeCustomization
-    ) async throws -> PositronicKit {
-        PositronicKit(configuration: .init(
+    ) async throws -> PKRuntime {
+        PKRuntime(configuration: .init(
             languageModel: model,
             persistence: .init(runtimeRepository: repository),
             runtime: .init(customization: customization)
@@ -205,10 +205,10 @@ private actor GatedActivitySink: AgentActivitySink {
 }
 
 private actor FailingOutcomeSink: TurnOutcomeSink {
-    let repository: InMemoryThreadRuntimeRepository
+    let repository: InMemoryTimelineRuntimeRepository
     private(set) var wasDurableAtCallback = false
 
-    init(repository: InMemoryThreadRuntimeRepository) {
+    init(repository: InMemoryTimelineRuntimeRepository) {
         self.repository = repository
     }
 

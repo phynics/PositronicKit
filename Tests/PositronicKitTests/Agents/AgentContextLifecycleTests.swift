@@ -13,16 +13,16 @@ struct AgentContextLifecycleTests {
         let source = RecordingAgentContextSource()
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "context reply"
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: .inMemory(),
             runtime: .init(customization: .init(agentContextSource: source))
         ))
-        let thread = try await kit.threads.create(title: "Context")
+        let timeline = try await kit.timelines.create(title: "Context")
         let agent = try await kit.agents.create(name: "Context Agent", description: "typed")
-        try await kit.agents.attach(agent.id, to: thread.id)
+        try await kit.agents.attach(agent.id, to: timeline.id)
 
-        let turn = try await thread.startTurn("hello")
+        let turn = try await timeline.startTurn("hello")
         _ = await turn.events().collect()
 
         #expect(await source.callCount == 1)
@@ -33,39 +33,39 @@ struct AgentContextLifecycleTests {
     @Test("Agent context failure aborts managed preparation before persistence")
     func contextFailureAbortsPreparation() async throws {
         let source = FailingAgentContextSource()
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: MockLLMService(),
             persistence: .inMemory(),
             runtime: .init(customization: .init(agentContextSource: source))
         ))
-        let thread = try await kit.threads.create(title: "Context failure")
+        let timeline = try await kit.timelines.create(title: "Context failure")
         let agent = try await kit.agents.create(name: "Failing Agent", description: "typed")
-        try await kit.agents.attach(agent.id, to: thread.id)
+        try await kit.agents.attach(agent.id, to: timeline.id)
 
         await #expect(throws: ContextSourceFailure.self) {
-            _ = try await thread.startTurn("must not persist")
+            _ = try await timeline.startTurn("must not persist")
         }
 
         let repository = kit.runtimeRepository
-        #expect(try await repository.fetchMessages(for: thread.id).isEmpty)
+        #expect(try await repository.fetchMessages(for: timeline.id).isEmpty)
     }
 
-    @Test("retirement drains ordinary attachments and archives the primary Thread")
+    @Test("retirement drains ordinary attachments and archives the primary Timeline")
     func retirementDrainsAndArchives() async throws {
-        let kit = PositronicKit(languageModel: MockLLMService())
-        let thread = try await kit.threads.create(title: "Ordinary")
+        let kit = PKRuntime(languageModel: MockLLMService())
+        let timeline = try await kit.timelines.create(title: "Ordinary")
         let agent = try await kit.agents.create(name: "Retiring Agent", description: "drain")
-        try await kit.agents.attach(agent.id, to: thread.id)
+        try await kit.agents.attach(agent.id, to: timeline.id)
 
         try await kit.agents.retire(agent.id)
 
         let retired = try #require(await kit.agents.get(agent.id))
         #expect(retired.lifecycle == .retired)
-        #expect(try await kit.threads.get(thread.id)?.attachedAgentID == nil)
-        #expect(try await kit.threads.get(agent.privateThreadID)?.isArchived == true)
+        #expect(try await kit.timelines.get(timeline.id)?.attachedAgentID == nil)
+        #expect(try await kit.timelines.get(agent.privateTimelineID)?.isArchived == true)
 
         let retirementError = await #expect(throws: AgentError.self) {
-            try await kit.agents.attach(agent.id, to: thread.id)
+            try await kit.agents.attach(agent.id, to: timeline.id)
         }
         if case let .agentRetired(agentID)? = retirementError {
             #expect(agentID == agent.id)
@@ -80,16 +80,16 @@ struct AgentContextLifecycleTests {
         let source = GatedAgentContextSource()
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "gated reply"
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: .inMemory(),
             runtime: .init(customization: .init(agentContextSource: source))
         ))
-        let thread = try await kit.threads.create(title: "Gated")
+        let timeline = try await kit.timelines.create(title: "Gated")
         let agent = try await kit.agents.create(name: "Before", description: "initial")
-        try await kit.agents.attach(agent.id, to: thread.id)
+        try await kit.agents.attach(agent.id, to: timeline.id)
 
-        let turnTask = Task { try await thread.startTurn("hello") }
+        let turnTask = Task { try await timeline.startTurn("hello") }
         await source.waitUntilEntered()
 
         var changed = agent
@@ -107,13 +107,13 @@ struct AgentContextLifecycleTests {
         #expect(await source.snapshotNames == ["Before"])
     }
 
-    @Test("retirement waits for an active Agent primary Thread Turn")
-    func retirementDrainsPrimaryThread() async throws {
-        let kit = PositronicKit(languageModel: MockLLMService())
+    @Test("retirement waits for an active Agent primary Timeline Turn")
+    func retirementDrainsPrimaryTimeline() async throws {
+        let kit = PKRuntime(languageModel: MockLLMService())
         let agent = try await kit.agents.create(name: "Primary Drain", description: "drain")
         let repository = kit.runtimeRepository
         let admission = try await repository.admitTurn(
-            threadID: agent.privateThreadID,
+            timelineID: agent.privateTimelineID,
             requestID: UUID(),
             callerIntentFingerprint: "primary-drain"
         )
@@ -124,7 +124,7 @@ struct AgentContextLifecycleTests {
             try await Task.sleep(for: .milliseconds(5))
         }
         #expect(try await kit.agents.get(agent.id)?.lifecycle == .retiring)
-        #expect(try await kit.threads.get(agent.privateThreadID)?.isArchived == false)
+        #expect(try await kit.timelines.get(agent.privateTimelineID)?.isArchived == false)
 
         _ = try await repository.cancelTurn(
             turnID: admission.turn.identity.turnID,
@@ -132,23 +132,23 @@ struct AgentContextLifecycleTests {
             now: Date()
         )
         try await retirement.value
-        #expect(try await kit.threads.get(agent.privateThreadID)?.isArchived == true)
+        #expect(try await kit.timelines.get(agent.privateTimelineID)?.isArchived == true)
     }
 
     @Test("managed preparation rejects a source identity mismatch")
     func rejectsIdentityMismatch() async throws {
         let source = WrongIdentityAgentContextSource()
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: MockLLMService(),
             persistence: .inMemory(),
             runtime: .init(customization: .init(agentContextSource: source))
         ))
-        let thread = try await kit.threads.create(title: "Mismatch")
+        let timeline = try await kit.timelines.create(title: "Mismatch")
         let agent = try await kit.agents.create(name: "Mismatch Agent", description: "typed")
-        try await kit.agents.attach(agent.id, to: thread.id)
+        try await kit.agents.attach(agent.id, to: timeline.id)
 
         await #expect(throws: AgentContextError.identityMismatch(expected: agent.id, actual: source.otherID)) {
-            _ = try await thread.startTurn("must fail")
+            _ = try await timeline.startTurn("must fail")
         }
     }
 
@@ -172,17 +172,17 @@ struct AgentContextLifecycleTests {
             rootPath: root.path
         ))
         let source = DefaultAgentContextSource(workspaceStore: store)
-        let agent = Agent(id: agentID, name: "Catalog", description: "test", primaryWorkspaceID: workspaceID, privateThreadID: UUID())
-        let thread = Thread()
+        let agent = Agent(id: agentID, name: "Catalog", description: "test", primaryWorkspaceID: workspaceID, privateTimelineID: UUID())
+        let timeline = TimelineRecord()
 
-        let first = try await source.snapshot(for: agent, thread: thread)
+        let first = try await source.snapshot(for: agent, timeline: timeline)
         #expect(first.instructions.contains("Agent identity"))
         #expect(first.memories.isEmpty)
         #expect(first.resources == [AgentContextResource(path: "Notes/preferences.md", description: "Durable preferences")])
         #expect(!first.diagnostics.contains(where: { $0.operation == "readSoul" }))
 
         try "# New note".write(to: root.appendingPathComponent("Notes/new.md"), atomically: true, encoding: .utf8)
-        let refreshed = try await source.snapshot(for: agent, thread: thread)
+        let refreshed = try await source.snapshot(for: agent, timeline: timeline)
         #expect(refreshed.resources.count == 2)
     }
 }
@@ -195,7 +195,7 @@ private actor RecordingAgentContextSource: AgentContextSource {
     private(set) var callCount = 0
     private(set) var lastSnapshot: AgentContextSnapshot?
 
-    func snapshot(for agent: Agent, thread _: Thread) async throws -> AgentContextSnapshot {
+    func snapshot(for agent: Agent, timeline _: TimelineRecord) async throws -> AgentContextSnapshot {
         callCount += 1
         let snapshot = AgentContextSnapshot(agent: agent, instructions: "Authoritative instructions")
         lastSnapshot = snapshot
@@ -204,7 +204,7 @@ private actor RecordingAgentContextSource: AgentContextSource {
 }
 
 private struct FailingAgentContextSource: AgentContextSource {
-    func snapshot(for _: Agent, thread _: Thread) async throws -> AgentContextSnapshot {
+    func snapshot(for _: Agent, timeline _: TimelineRecord) async throws -> AgentContextSnapshot {
         throw ContextSourceFailure.unavailable
     }
 }
@@ -214,7 +214,7 @@ private actor GatedAgentContextSource: AgentContextSource {
     private var released = false
     private(set) var snapshotNames: [String] = []
 
-    func snapshot(for agent: Agent, thread _: Thread) async throws -> AgentContextSnapshot {
+    func snapshot(for agent: Agent, timeline _: TimelineRecord) async throws -> AgentContextSnapshot {
         entered = true
         while !released {
             await Task.yield()
@@ -237,7 +237,7 @@ private actor GatedAgentContextSource: AgentContextSource {
 private struct WrongIdentityAgentContextSource: AgentContextSource {
     let otherID = UUID()
 
-    func snapshot(for agent: Agent, thread _: Thread) async throws -> AgentContextSnapshot {
+    func snapshot(for agent: Agent, timeline _: TimelineRecord) async throws -> AgentContextSnapshot {
         AgentContextSnapshot(
             identity: AgentContextIdentity(
                 agentID: otherID,

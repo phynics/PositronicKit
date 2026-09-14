@@ -38,23 +38,29 @@ private struct StreamOnlyLLMClient: LLMStreamClient {
 
 // This target is intentionally small: its job is to prove that every public library
 // product remains consumable through ordinary imports, without @testable access.
-_ = String(describing: PositronicKit.self)
+_ = String(describing: PKRuntime.self)
 _ = String(describing: (any Prompt).self)
 _ = String(describing: Message.self)
-_ = String(describing: ThreadController.self)
-_ = String(describing: PKOpenAIProvider.self)
-_ = String(describing: PKOpenRouterProvider.self)
-_ = String(describing: PKOllamaProvider.self)
-_ = String(describing: PKAnthropicProvider.self)
-_ = String(describing: PKFoundationModelsProvider.self)
+_ = String(describing: TimelineRecord.self)
+_ = String(describing: (any PKTool).self)
+_ = String(describing: TimelineController.self)
+_ = String(describing: PKOpenAI.self)
+_ = String(describing: PKOpenRouter.self)
+_ = String(describing: PKOllama.self)
+_ = String(describing: PKAnthropic.self)
+_ = PKOpenAIProvider.OpenAIClient.self
+_ = PKOpenRouterProvider.OpenRouterClient.self
+_ = PKOllamaProvider.OllamaClient.self
+_ = PKAnthropicProvider.AnthropicClient.self
+_ = PKFoundationModelsProvider.FoundationModelsClient.self
 _ = String(describing: TestRuntime.self)
 
-let kit = PositronicKit()
+let kit = PKRuntime()
 _ = kit.model
-_ = kit.threads
+_ = kit.timelines
 _ = kit.agents
 _ = kit.workspaces
-_ = String(describing: ThreadHandle.self)
+_ = String(describing: TimelineHandle.self)
 
 @Schemable
 struct PublicTypedStructuredPayload: Decodable, Sendable {
@@ -73,37 +79,37 @@ func exercisePublicTypedStructuredGeneration() async {
     )
 }
 
-// Ordinary-import compile coverage for the durable Thread history capability.
-func exercisePublicThreadHistory(_ threadID: UUID) async {
-    _ = try? await kit.threads.messages(for: threadID)
+// Ordinary-import compile coverage for the durable Timeline history capability.
+func exercisePublicTimelineHistory(_ timelineID: UUID) async {
+    _ = try? await kit.timelines.messages(for: timelineID)
 }
 
 // Ordinary-import compile coverage for the canonical managed/direct admission overloads.
-func exercisePublicTurnAdmission(_ thread: ThreadHandle) async {
+func exercisePublicTurnAdmission(_ timeline: TimelineHandle) async {
     let content = MessageContent(parts: [
         .text("Describe this image."),
         .image(ImageContent(data: Data([0x01]), mediaType: "image/png")),
     ])
-    _ = try? await thread.startTurn("Hello", options: TurnOptions())
-    _ = try? await thread.startTurn(content, systemInstructions: "Be concise.")
-    _ = try? await thread.startDirectTurn(
+    _ = try? await timeline.startTurn("Hello", options: TurnOptions())
+    _ = try? await timeline.startTurn(content, systemInstructions: "Be concise.")
+    _ = try? await timeline.startDirectTurn(
         "Hello directly",
         context: DirectTurnContext(systemInstructions: "Be concise."),
         options: TurnOptions())
-    _ = try? await thread.startDirectTurn(
+    _ = try? await timeline.startDirectTurn(
         content,
         context: DirectTurnContext(systemInstructions: "Be concise.", contributor: .host))
 }
 
 // Provider packages return one runtime-neutral value for ordinary application setup.
-let configuredProvider = PKOpenAIProvider.makeConfiguredProvider(apiKey: "test-key")
-let configuredKit = PositronicKit(provider: configuredProvider)
+let configuredProvider = PKOpenAI.makeConfiguredProvider(apiKey: "test-key")
+let configuredKit = PKRuntime(provider: configuredProvider)
 _ = configuredKit.model
 
 // A stream-only implementation is sufficient for the facade and strict utility generator;
 // configuration administration and health capabilities are deliberately not required here.
 private let streamOnly = StreamOnlyLLMClient()
-let streamConfiguredKit = PositronicKit(configuration: .init(
+let streamConfiguredKit = PKRuntime(configuration: .init(
     languageModel: streamOnly,
     persistence: .inMemory()
 ))
@@ -118,7 +124,7 @@ _ = LLMUtilityGenerator(streamClient: streamOnly)
 let customLoggingConfiguration = LoggingConfiguration(
     redactionPolicy: LogRedactionPolicy(logsPayloads: true)
 )
-let loggingConfiguredKit = PositronicKit(configuration: .init(
+let loggingConfiguredKit = PKRuntime(configuration: .init(
     languageModel: streamOnly,
     persistence: .inMemory(),
     logging: customLoggingConfiguration

@@ -3,8 +3,8 @@ import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
-/// Tool to find files matching a pattern
-package struct FindFileTool: Tool, Sendable {
+/// PKTool to find files matching a pattern
+package struct FindFileTool: PKTool, Sendable {
     package let callName = "find"
     package let name = "Find File"
     package let toolDescription = "Find files matching a pattern in a directory recursively"

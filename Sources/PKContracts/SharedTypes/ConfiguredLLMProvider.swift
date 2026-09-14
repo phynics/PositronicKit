@@ -3,7 +3,7 @@ import Foundation
 /// A provider configuration and the client that executes it.
 ///
 /// Provider packages create this value; runtime consumers pass it to the
-/// PositronicKit facade without assembling service or client-set implementation
+/// PKRuntime facade without assembling service or client-set implementation
 /// details.
 public struct ConfiguredLLMProvider: Sendable {
     /// The provider and model settings used by the runtime.

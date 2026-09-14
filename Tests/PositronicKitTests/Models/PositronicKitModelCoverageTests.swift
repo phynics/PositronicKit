@@ -37,7 +37,7 @@ struct UnconfiguredLLMServiceCoverageTests {
 }
 
 /// Coverage for `WorkspaceToolWrapper` — the adapter that wraps a workspace-provided
-/// tool definition to conform to the `Tool` protocol.
+/// tool definition to conform to the `PKTool` protocol.
 @Suite("WorkspaceToolWrapper", .tags(.unit))
 struct WorkspaceToolWrapperCoverageTests {
 
@@ -80,7 +80,7 @@ struct WorkspaceToolWrapperCoverageTests {
     func executeReturnsSuccess() async throws {
         let workspace = StubWorkspace(toolResult: .success("done"))
         let definition = WorkspaceToolDefinition(
-            id: "my_tool", name: "My Tool", description: "Does things",
+            id: "my_tool", name: "My PKTool", description: "Does things",
             parametersSchema: [:], requiresPermission: false
         )
         let wrapper = WorkspaceToolWrapper(workspace: workspace, definition: definition)
@@ -93,7 +93,7 @@ struct WorkspaceToolWrapperCoverageTests {
     func executeReturnsFailure() async throws {
         let workspace = StubWorkspace(toolResult: .failure("boom"))
         let definition = WorkspaceToolDefinition(
-            id: "my_tool", name: "My Tool", description: "Does things",
+            id: "my_tool", name: "My PKTool", description: "Does things",
             parametersSchema: [:], requiresPermission: false
         )
         let wrapper = WorkspaceToolWrapper(workspace: workspace, definition: definition)

@@ -2,7 +2,7 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Thread-safe in-memory request-origin store for prototyping and development.
+/// Timeline-safe in-memory request-origin store for prototyping and development.
 public actor InMemoryRequestOriginStore: RequestOriginStoreProtocol {
     private var origins: [RequestOriginIdentity] = []
 

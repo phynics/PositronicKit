@@ -5,124 +5,124 @@ import Testing
 
 @Suite("Facade capability values", .tags(.unit))
 struct CapabilityValuesTests {
-    @Test("Threads capability creates and reopens a stateful handle")
-    func threadCapabilityOwnsHandleLifecycle() async throws {
-        let kit = PositronicKit(languageModel: MockLLMService())
+    @Test("Timelines capability creates and reopens a stateful handle")
+    func timelineCapabilityOwnsHandleLifecycle() async throws {
+        let kit = PKRuntime(languageModel: MockLLMService())
 
-        let handle = try await kit.threads.create(title: "Capability Thread")
-        let reopened = kit.threads.open(handle.id)
+        let handle = try await kit.timelines.create(title: "Capability Timeline")
+        let reopened = kit.timelines.open(handle.id)
 
         #expect(reopened.id == handle.id)
-        #expect(try await kit.threads.get(handle.id)?.title == "Capability Thread")
+        #expect(try await kit.timelines.get(handle.id)?.title == "Capability Timeline")
     }
 
-    @Test("Agents capability attaches an identity to a Thread")
+    @Test("Agents capability attaches an identity to a Timeline")
     func agentCapabilityOwnsAttachment() async throws {
-        let kit = PositronicKit(languageModel: MockLLMService())
-        let thread = try await kit.threads.create(title: "Managed Thread")
+        let kit = PKRuntime(languageModel: MockLLMService())
+        let timeline = try await kit.timelines.create(title: "Managed Timeline")
         let agent = try await kit.agents.create(
             name: "Capability Agent",
             description: "Exercises the capability surface."
         )
 
-        try await kit.agents.attach(agent.id, to: thread.id)
-        let attachedThreads = try await kit.agents.threads(attachedTo: agent.id)
+        try await kit.agents.attach(agent.id, to: timeline.id)
+        let attachedTimelines = try await kit.agents.timelines(attachedTo: agent.id)
 
-        #expect(Set(attachedThreads.map(\.id)) == [thread.id, agent.privateThreadID])
+        #expect(Set(attachedTimelines.map(\.id)) == [timeline.id, agent.privateTimelineID])
     }
 
-    @Test("Threads capability creates an ordinary Thread attached to an existing Agent")
-    func createsAttachedThread() async throws {
+    @Test("Timelines capability creates an ordinary Timeline attached to an existing Agent")
+    func createsAttachedTimeline() async throws {
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "ready"
-        let kit = PositronicKit(languageModel: llm)
+        let kit = PKRuntime(languageModel: llm)
         let agent = try await kit.agents.create(
             name: "Managed Capability Agent",
-            description: "Owns the new ordinary Thread."
+            description: "Owns the new ordinary Timeline."
         )
 
-        let thread = try await kit.threads.create(
+        let timeline = try await kit.timelines.create(
             title: "Research",
             attaching: agent.id
         )
 
-        #expect(try await kit.threads.get(thread.id)?.attachedAgentID == agent.id)
-        let turn = try await thread.startTurn("Start immediately")
+        #expect(try await kit.timelines.get(timeline.id)?.attachedAgentID == agent.id)
+        let turn = try await timeline.startTurn("Start immediately")
         _ = await turn.events().collect()
         #expect(try await turn.outcome() == .completed)
     }
 
-    @Test("Threads capability reads direct Turn history oldest first")
-    func threadCapabilityReadsDirectTurnHistory() async throws {
+    @Test("Timelines capability reads direct Turn history oldest first")
+    func timelineCapabilityReadsDirectTurnHistory() async throws {
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "assistant reply"
-        let kit = PositronicKit(languageModel: llm)
-        let thread = try await kit.threads.create(title: "Direct history")
+        let kit = PKRuntime(languageModel: llm)
+        let timeline = try await kit.timelines.create(title: "Direct history")
 
-        let turn = try await thread.startDirectTurn(
+        let turn = try await timeline.startDirectTurn(
             "user message",
             context: DirectTurnContext(systemInstructions: "Be concise.")
         )
         _ = await turn.events().collect()
 
-        let messages = try await kit.threads.messages(for: thread.id)
+        let messages = try await kit.timelines.messages(for: timeline.id)
         #expect(messages.map(\.content) == ["user message", "assistant reply"])
         #expect(messages.map(\.timestamp) == messages.map(\.timestamp).sorted())
-        #expect(try await kit.threads.messages(for: UUID()).isEmpty)
+        #expect(try await kit.timelines.messages(for: UUID()).isEmpty)
     }
 
-    @Test("attached Thread creation rejects a missing Agent before creating a Thread")
-    func rejectsMissingAgentWithoutCreatingThread() async throws {
-        let kit = PositronicKit(languageModel: MockLLMService())
+    @Test("attached Timeline creation rejects a missing Agent before creating a Timeline")
+    func rejectsMissingAgentWithoutCreatingTimeline() async throws {
+        let kit = PKRuntime(languageModel: MockLLMService())
         let missingAgentID = UUID()
 
         let error = await #expect(throws: AgentError.self) {
-            _ = try await kit.threads.create(title: "Orphan", attaching: missingAgentID)
+            _ = try await kit.timelines.create(title: "Orphan", attaching: missingAgentID)
         }
 
         if case let .agentNotFound(actualID)? = error {
             #expect(actualID == missingAgentID)
         }
-        #expect(try await kit.threads.list().isEmpty)
+        #expect(try await kit.timelines.list().isEmpty)
     }
 
-    @Test("attached Thread creation rejects a retired Agent without creating a Thread")
-    func rejectsRetiredAgentWithoutCreatingThread() async throws {
-        let kit = PositronicKit(languageModel: MockLLMService())
+    @Test("attached Timeline creation rejects a retired Agent without creating a Timeline")
+    func rejectsRetiredAgentWithoutCreatingTimeline() async throws {
+        let kit = PKRuntime(languageModel: MockLLMService())
         let agent = try await kit.agents.create(
             name: "Retired Capability Agent",
-            description: "Cannot own new ordinary Threads after retirement."
+            description: "Cannot own new ordinary Timelines after retirement."
         )
         try await kit.agents.retire(agent.id)
-        let existingThreadIDs = Set(try await kit.threads.list().map(\.id))
+        let existingTimelineIDs = Set(try await kit.timelines.list().map(\.id))
 
         let error = await #expect(throws: AgentError.self) {
-            _ = try await kit.threads.create(title: "Rejected", attaching: agent.id)
+            _ = try await kit.timelines.create(title: "Rejected", attaching: agent.id)
         }
 
         if case let .agentRetired(actualID)? = error {
             #expect(actualID == agent.id)
         }
-        #expect(Set(try await kit.threads.list().map(\.id)) == existingThreadIDs)
+        #expect(Set(try await kit.timelines.list().map(\.id)) == existingTimelineIDs)
     }
 
-    @Test("Model capability performs inference without Thread persistence")
-    func modelCapabilityIsThreadFree() async throws {
+    @Test("Model capability performs inference without Timeline persistence")
+    func modelCapabilityIsTimelineFree() async throws {
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "model-only"
         let messageStore = InMemoryMessageStore()
-        let threadPersistence = InMemoryThreadPersistence()
-        let kit = PositronicKit(configuration: .init(
+        let timelinePersistence = InMemoryTimelinePersistence()
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: .init(
-                runtimeRepository: InMemoryThreadRuntimeRepository()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             )
         ))
 
-        let result = try await kit.model.generate("No Thread needed")
+        let result = try await kit.model.generate("No Timeline needed")
 
         #expect(result.content == "model-only")
-        #expect(try await threadPersistence.fetchAllThreads(includeArchived: true).isEmpty)
+        #expect(try await timelinePersistence.fetchAllTimelines(includeArchived: true).isEmpty)
         #expect(try await messageStore.fetchMessages(for: UUID()).isEmpty)
     }
 }

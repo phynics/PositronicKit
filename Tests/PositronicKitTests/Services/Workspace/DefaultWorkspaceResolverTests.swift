@@ -100,7 +100,7 @@ private struct FakeWorkspaceCreator: WorkspaceFactory {
 private func makeReference(id: UUID = UUID()) -> WorkspaceReference {
     WorkspaceReference(
         id: id,
-        uri: .threadWorkspace(id),
+        uri: .timelineWorkspace(id),
         location: .runtime,
         rootPath: "/tmp/\(id.uuidString)"
     )

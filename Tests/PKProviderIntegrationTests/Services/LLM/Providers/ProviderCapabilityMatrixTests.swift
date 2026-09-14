@@ -289,7 +289,7 @@ struct ProviderCapabilityMatrixTests {
         llm.mockConfig = configuration
 
         let persistence = MockPersistenceService()
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: .init(
                 runtimeRepository: persistence,
@@ -299,8 +299,8 @@ struct ProviderCapabilityMatrixTests {
                 requestOriginStore: persistence
             )
         ))
-        let threadID = UUID()
-        let request = TurnRequest(threadID: threadID, content: content)
+        let timelineID = UUID()
+        let request = TurnRequest(timelineID: timelineID, content: content)
 
         do {
             _ = try await kit.startTurnHandle(request, agentID: nil, executionKind: .direct)
@@ -315,8 +315,8 @@ struct ProviderCapabilityMatrixTests {
         #expect(llm.generationRequestHistory.isEmpty, "\(id): provider generation request occurred")
         #expect(llm.mockClient.generationCaptureHistory.isEmpty, "\(id): low-level provider request occurred")
         #expect(persistence.messages.isEmpty, "\(id): user message was persisted")
-        #expect(persistence.threads.isEmpty, "\(id): thread admission was persisted")
-        #expect(await kit.turnEngine.dependencies.promptHistoryRegistry.containsHistory(for: threadID) == false, "\(id): prompt history was created")
+        #expect(persistence.timelines.isEmpty, "\(id): timeline admission was persisted")
+        #expect(await kit.turnEngine.dependencies.promptHistoryRegistry.containsHistory(for: timelineID) == false, "\(id): prompt history was created")
     }
 
     private func assertRuntimeAudioOutputOrdering(
@@ -333,7 +333,7 @@ struct ProviderCapabilityMatrixTests {
         llm.mockConfig = configuration
 
         let persistence = MockPersistenceService()
-        let kit = PositronicKit(configuration: .init(
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: .init(
                 runtimeRepository: persistence,
@@ -343,9 +343,9 @@ struct ProviderCapabilityMatrixTests {
                 requestOriginStore: persistence
             )
         ))
-        let threadID = UUID()
+        let timelineID = UUID()
         let request = TurnRequest(
-            threadID: threadID,
+            timelineID: timelineID,
             message: "speak",
             responseModalities: [.audio],
             audioOutput: .init(format: .wav, voice: "alloy")
@@ -364,8 +364,8 @@ struct ProviderCapabilityMatrixTests {
         #expect(llm.generationRequestHistory.isEmpty, "\(id): provider generation request occurred")
         #expect(llm.mockClient.generationCaptureHistory.isEmpty, "\(id): low-level provider request occurred")
         #expect(persistence.messages.isEmpty, "\(id): user message was persisted")
-        #expect(persistence.threads.isEmpty, "\(id): thread admission was persisted")
-        #expect(await kit.turnEngine.dependencies.promptHistoryRegistry.containsHistory(for: threadID) == false, "\(id): prompt history was created")
+        #expect(persistence.timelines.isEmpty, "\(id): timeline admission was persisted")
+        #expect(await kit.turnEngine.dependencies.promptHistoryRegistry.containsHistory(for: timelineID) == false, "\(id): prompt history was created")
     }
 }
 

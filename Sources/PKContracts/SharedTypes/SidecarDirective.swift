@@ -7,7 +7,7 @@ import struct JSONSchema.Schema
 /// in a single request. The response field streams normally; directive results are extracted
 /// through incremental JSON parsing and emitted as `TurnEvent` cases.
 ///
-/// The mechanism lives here in `PositronicKit`; concrete directives (title, summary, tone)
+/// The mechanism lives here in `PKRuntime`; concrete directives (title, summary, tone)
 /// and their scheduling policy live in consumer applications.
 public struct SidecarDirective: Sendable, Equatable, Codable {
     /// Determines how a directive's value is delivered to consumers.

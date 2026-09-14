@@ -36,7 +36,7 @@ actor TurnOutputs {
     private(set) var assistantResponseDurable = false
     /// The normal terminal assistant message is held until `completeTurn` can commit it with the
     /// terminal outcome in the runtime repository.
-    private(set) var terminalAssistantMessage: ThreadMessage?
+    private(set) var terminalAssistantMessage: TimelineMessage?
     /// Completion metadata is assembled before the terminal repository transition but is exposed
     /// only by the terminal coordinator after that transition succeeds.
     private(set) var terminalCompletionMetadata: APIResponseMetadata?
@@ -100,7 +100,7 @@ actor TurnOutputs {
         assistantResponseDurable = true
     }
 
-    func setTerminalAssistantMessage(_ message: ThreadMessage) {
+    func setTerminalAssistantMessage(_ message: TimelineMessage) {
         terminalAssistantMessage = message
     }
 
@@ -120,12 +120,12 @@ actor TurnOutputs {
 /// Immutable snapshot of a single turn as it moves through the pipeline.
 /// Mutable stage outputs are stored in `outputs`, a shared actor reference.
 struct TurnContext {
-    // Session-level configuration (constant across turns)
-    let threadID: UUID
+    // Turn-loop configuration (constant across model rounds)
+    let timelineID: UUID
     let turnID: UUID
     let requestId: UUID
     let agentId: UUID?
-    let agentPrivateThreadID: UUID?
+    let agentPrivateTimelineID: UUID?
     /// Immutable Agent continuity captured at admission for managed Turns.
     let agentContext: AgentContextSnapshot?
     let contextContributions: [TurnContextContribution]
@@ -147,8 +147,8 @@ struct TurnContext {
     let audioOutput: AudioOutputOptions?
 
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
-    /// Created once per `prepareSession()` call and threaded through all turns in the loop.
-    let promptHistory: ThreadPromptHistory?
+    /// Created once per `prepareTurn()` call and carried through all model rounds in the loop.
+    let promptHistory: TimelinePromptHistory?
     let renderedPrompt: RenderedPrompt?
     let promptHistoryUpdate: PromptHistoryUpdate?
 
@@ -160,11 +160,11 @@ struct TurnContext {
     let outputs: TurnOutputs
 
     init(
-        threadID: UUID,
+        timelineID: UUID,
         turnID: UUID = UUID(),
         requestId: UUID = UUID(),
         agentId: UUID?,
-        agentPrivateThreadID: UUID? = nil,
+        agentPrivateTimelineID: UUID? = nil,
         agentContext: AgentContextSnapshot? = nil,
         contextContributions: [TurnContextContribution] = [],
         executionKind: TurnExecutionKind = .agentManaged,
@@ -180,7 +180,7 @@ struct TurnContext {
         sidecars: [SidecarDirective] = [],
         sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound,
         diagnostics: [TurnDiagnostic] = [],
-        promptHistory: ThreadPromptHistory? = nil,
+        promptHistory: TimelinePromptHistory? = nil,
         renderedPrompt: RenderedPrompt? = nil,
         promptHistoryUpdate: PromptHistoryUpdate? = nil,
         currentMessages: [LLMMessage],
@@ -189,11 +189,11 @@ struct TurnContext {
         audioOutput: AudioOutputOptions? = nil,
         outputs: TurnOutputs = TurnOutputs()
     ) {
-        self.threadID = threadID
+        self.timelineID = timelineID
         self.turnID = turnID
         self.requestId = requestId
         self.agentId = agentId
-        self.agentPrivateThreadID = agentPrivateThreadID
+        self.agentPrivateTimelineID = agentPrivateTimelineID
         self.agentContext = agentContext
         self.contextContributions = contextContributions
         self.executionKind = executionKind
@@ -219,12 +219,12 @@ struct TurnContext {
         self.outputs = outputs
     }
 
-    /// Tool parameters derived from availableTools.
+    /// PKTool parameters derived from availableTools.
     var toolParams: [LLMToolDefinition] {
         availableTools.map { $0.toLLMToolDefinition() }
     }
 
-    /// Creates a new snapshot for the next turn while keeping the same session config.
+    /// Creates a new snapshot for the next model round while keeping the same Turn-loop config.
     func forTurn(
         modelRoundIndex: Int,
         messages: [LLMMessage],
@@ -232,11 +232,11 @@ struct TurnContext {
         promptHistoryUpdate: PromptHistoryUpdate? = nil
     ) -> TurnContext {
         TurnContext(
-            threadID: threadID,
+            timelineID: timelineID,
             turnID: turnID,
             requestId: requestId,
             agentId: agentId,
-            agentPrivateThreadID: agentPrivateThreadID,
+            agentPrivateTimelineID: agentPrivateTimelineID,
             agentContext: agentContext,
             contextContributions: contextContributions,
             executionKind: executionKind,

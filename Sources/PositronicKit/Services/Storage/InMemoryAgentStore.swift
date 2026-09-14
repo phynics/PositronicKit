@@ -2,17 +2,17 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Thread-safe in-memory agent store for prototyping and development.
+/// Timeline-safe in-memory agent store for prototyping and development.
 public actor InMemoryAgentStore: AgentStoreProtocol {
     private var instances: [Agent] = []
-    private var threads: [Thread]
+    private var timelines: [TimelineRecord]
 
     public init() {
-        threads = []
+        timelines = []
     }
 
-    package init(threads: [Thread]) {
-        self.threads = threads
+    package init(timelines: [TimelineRecord]) {
+        self.timelines = timelines
     }
 
     public func saveAgent(_ instance: Agent) async throws {
@@ -35,7 +35,7 @@ public actor InMemoryAgentStore: AgentStoreProtocol {
         instances.removeAll { $0.id == id }
     }
 
-    public func fetchThreads(attachedToAgent agentID: UUID) async throws -> [Thread] {
-        threads.filter { $0.attachedAgentID == agentID }
+    public func fetchTimelines(attachedToAgent agentID: UUID) async throws -> [TimelineRecord] {
+        timelines.filter { $0.attachedAgentID == agentID }
     }
 }

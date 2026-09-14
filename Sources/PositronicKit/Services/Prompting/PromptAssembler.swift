@@ -6,7 +6,7 @@ import PKUtilities
 
 /// Pure, stateless runtime adapter over `PKPrompt` assembly.
 ///
-/// `PromptAssembler` is where the runtime turns thread/chat/tool state into a concrete prompt
+/// `PromptAssembler` is where the runtime turns timeline/chat/tool state into a concrete prompt
 /// artifact for provider submission. It is intentionally not the public prompt authoring surface;
 /// `PKPrompt` owns prompt composition and journaling APIs, while this type owns runtime-side stage
 /// ordering, token-budget policy, and compression metadata wiring.
@@ -19,20 +19,20 @@ enum PromptAssembler {
     /// - Parameters:
     ///   - request: The prompt request data.
     ///   - agent: Optional agent for identity context.
-    ///   - thread: Optional thread metadata.
+    ///   - timeline: Optional timeline metadata.
     /// - Returns: A fully assembled prompt artifact.
     /// - Throws: An error if pipeline execution fails.
     static func assemble(
         _ request: LLMPromptRequest,
         agent: Agent? = nil,
         agentContext: AgentContextSnapshot? = nil,
-        thread: Thread? = nil
+        timeline: TimelineRecord? = nil
     ) async throws -> RenderedPrompt {
         try await assemble(
             request,
             agent: agent,
             agentContext: agentContext,
-            thread: thread,
+            timeline: timeline,
             options: PromptAssemblyOptions()
         )
     }
@@ -48,14 +48,14 @@ enum PromptAssembler {
         _ request: LLMPromptRequest,
         agent: Agent? = nil,
         agentContext: AgentContextSnapshot? = nil,
-        thread: Thread? = nil,
+        timeline: TimelineRecord? = nil,
         options: PromptAssemblyOptions
     ) async throws -> RenderedPrompt {
         let sections = try await buildSections(
             request: request,
             agent: agent,
             agentContext: agentContext,
-            thread: thread,
+            timeline: timeline,
             customSections: options.customSections,
             logger: options.logger
         )
@@ -96,7 +96,7 @@ enum PromptAssembler {
         request: LLMPromptRequest,
         agent: Agent?,
         agentContext: AgentContextSnapshot?,
-        thread: Thread?,
+        timeline: TimelineRecord?,
         customSections: (@Sendable () async -> [any Prompt])?,
         logger: Logger?
     ) async throws -> [any Prompt] {
@@ -115,7 +115,7 @@ enum PromptAssembler {
         })
         if let agentContext {
             try sections.append(withLogging("AgentIdentity", logger: logger) {
-                AgentIdentityContext(snapshot: agentContext, threadTitle: thread?.title)
+                AgentIdentityContext(snapshot: agentContext, timelineTitle: timeline?.title)
             })
             if !agentContext.instructions.isEmpty {
                 try sections.append(withLogging("AgentInstructions", logger: logger) {
@@ -132,14 +132,14 @@ enum PromptAssembler {
                     AgentResourceCatalogContext(agentContext.resources)
                 })
             }
-            if agentContext.primaryThreadSummary != nil {
-                try sections.append(withLogging("AgentPrimaryThreadSummary", logger: logger) {
-                    AgentPrimaryThreadSummaryContext(agentContext.primaryThreadSummary)
+            if agentContext.primaryTimelineSummary != nil {
+                try sections.append(withLogging("AgentPrimaryTimelineSummary", logger: logger) {
+                    AgentPrimaryTimelineSummaryContext(agentContext.primaryTimelineSummary)
                 })
             }
         } else if let agent {
             try sections.append(withLogging("AgentContext", logger: logger) {
-                AgentContext(agent, threadTitle: thread?.title)
+                AgentContext(agent, timelineTitle: timeline?.title)
             })
         }
         if !request.contextContributions.isEmpty {
@@ -151,8 +151,8 @@ enum PromptAssembler {
         try sections.append(withLogging("WorkspacesContext", logger: logger) {
             WorkspacesContext(workspaces: request.workspaces, primaryWorkspace: request.primaryWorkspace, requestOriginName: request.requestOriginName)
         })
-        if let thread {
-            try sections.append(withLogging("ThreadContext", logger: logger) { ThreadContext(thread) })
+        if let timeline {
+            try sections.append(withLogging("TimelineContext", logger: logger) { TimelineContext(timeline) })
         }
         try sections.append(withLogging("ChatHistory", logger: logger) {
             ChatHistory(PromptHistoryOptimizer.optimizeForDefaultBudget(request.chatHistory))

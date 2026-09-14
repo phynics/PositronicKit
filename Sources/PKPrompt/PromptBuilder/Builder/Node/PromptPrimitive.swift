@@ -1,6 +1,6 @@
 //
 //  PromptPrimitive.swift
-//  PositronicKit
+//  PKRuntime
 //
 //  Created by Atakan Dulker on 18.04.26.
 //

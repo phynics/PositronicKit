@@ -4,44 +4,44 @@ import Logging
 import PKContracts
 import PKUtilities
 
-/// Manages the lifecycle of agents: creation, attachment to threads,
+/// Manages the lifecycle of agents: creation, attachment to timelines,
 /// detachment, and deletion.
 ///
 /// Attachment rules:
-/// - Each thread can have at most one attached agent (exclusive lock).
-/// - One agent can attach to multiple threads simultaneously.
-/// - `attach` is idempotent: re-attaching the same agent to the same thread is a no-op.
+/// - Each timeline can have at most one attached agent (exclusive lock).
+/// - One agent can attach to multiple timelines simultaneously.
+/// - `attach` is idempotent: re-attaching the same agent to the same timeline is a no-op.
 /// - If `attachedAgentId` references a deleted agent, it is nulled on access.
 actor AgentManager: AgentManagerProtocol {
     public struct Stores: Sendable {
         public let agentStore: any AgentStoreProtocol
-        public let threadStore: any ThreadPersistenceProtocol
-        public let messageStore: any ThreadMessageStoreProtocol
+        public let timelineStore: any TimelinePersistenceProtocol
+        public let messageStore: any TimelineMessageStoreProtocol
         public let workspaceStore: any WorkspaceStore
-        public let runtimeRepository: (any ThreadRuntimeRepository)?
-        public let threadAuthorityCoordinator: ThreadAuthorityCoordinator?
+        public let runtimeRepository: (any TimelineRuntimeRepository)?
+        public let timelineAuthorityCoordinator: TimelineAuthorityCoordinator?
         public let agentAuthorityCoordinator: AgentAuthorityCoordinator?
         /// The process-local Turn terminal signal. When supplied, `waitForIdle` wakes as soon as
-        /// the hub observes a thread's active Turn finish instead of relying solely on its
+        /// the hub observes a timeline's active Turn finish instead of relying solely on its
         /// bounded fallback poll. `nil` (the default) makes every wait use that fallback poll.
         let eventHub: TurnEventHub?
 
         public init(
             agentStore: any AgentStoreProtocol,
-            threadStore: any ThreadPersistenceProtocol,
-            messageStore: any ThreadMessageStoreProtocol,
+            timelineStore: any TimelinePersistenceProtocol,
+            messageStore: any TimelineMessageStoreProtocol,
             workspaceStore: any WorkspaceStore,
-            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
-            threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil,
+            runtimeRepository: (any TimelineRuntimeRepository)? = nil,
+            timelineAuthorityCoordinator: TimelineAuthorityCoordinator? = nil,
             agentAuthorityCoordinator: AgentAuthorityCoordinator? = nil,
             eventHub: TurnEventHub? = nil
         ) {
             self.agentStore = agentStore
-            self.threadStore = threadStore
+            self.timelineStore = timelineStore
             self.messageStore = messageStore
             self.workspaceStore = workspaceStore
             self.runtimeRepository = runtimeRepository
-            self.threadAuthorityCoordinator = threadAuthorityCoordinator
+            self.timelineAuthorityCoordinator = timelineAuthorityCoordinator
             self.agentAuthorityCoordinator = agentAuthorityCoordinator
             self.eventHub = eventHub
         }
@@ -50,38 +50,38 @@ actor AgentManager: AgentManagerProtocol {
 
     // Package-internal for assembly tests; consumers use the facade capabilities instead.
     let agentStore: any AgentStoreProtocol
-    let threadStore: any ThreadPersistenceProtocol
-    let messageStore: any ThreadMessageStoreProtocol
+    let timelineStore: any TimelinePersistenceProtocol
+    let messageStore: any TimelineMessageStoreProtocol
     let workspaceStore: any WorkspaceStore
-    let runtimeRepository: (any ThreadRuntimeRepository)?
-    let threadAuthorityCoordinator: ThreadAuthorityCoordinator
+    let runtimeRepository: (any TimelineRuntimeRepository)?
+    let timelineAuthorityCoordinator: TimelineAuthorityCoordinator
     let agentAuthorityCoordinator: AgentAuthorityCoordinator
     let eventHub: TurnEventHub?
 
     private let repository: any WorkspaceCatalog
-    /// When non-nil, private-thread deletion routes through `ThreadManager.evictThreadFromMemory(id:)`
+    /// When non-nil, private-timeline deletion routes through `TimelineManager.evictTimelineFromMemory(id:)`
     /// so the in-memory caches and prompt-history registry entry are evicted alongside persistence,
     /// not just the persisted row (PKR-3).
-    private let threadManager: ThreadManager?
+    private let timelineManager: TimelineManager?
     private let logger = Logger.module(named: "agent-manager")
 
     public init(
         repository: any WorkspaceCatalog,
         stores: Stores,
-        threadManager: ThreadManager? = nil
+        timelineManager: TimelineManager? = nil
     ) {
         self.repository = repository
         self.agentStore = stores.agentStore
-        self.threadStore = stores.threadStore
+        self.timelineStore = stores.timelineStore
         self.messageStore = stores.messageStore
         self.workspaceStore = stores.workspaceStore
         self.runtimeRepository = stores.runtimeRepository
-        self.threadAuthorityCoordinator = stores.threadAuthorityCoordinator
-            ?? threadManager?.threadAuthorityCoordinator
-            ?? ThreadAuthorityCoordinator()
+        self.timelineAuthorityCoordinator = stores.timelineAuthorityCoordinator
+            ?? timelineManager?.timelineAuthorityCoordinator
+            ?? TimelineAuthorityCoordinator()
         self.agentAuthorityCoordinator = stores.agentAuthorityCoordinator ?? AgentAuthorityCoordinator()
         self.eventHub = stores.eventHub
-        self.threadManager = threadManager
+        self.timelineManager = timelineManager
     }
 
     public init(repository: any WorkspaceCatalog) {
@@ -89,7 +89,7 @@ actor AgentManager: AgentManagerProtocol {
             repository: repository,
             stores: .init(
                 agentStore: InMemoryAgentStore(),
-                threadStore: InMemoryThreadPersistence(),
+                timelineStore: InMemoryTimelinePersistence(),
                 messageStore: InMemoryMessageStore(),
                 workspaceStore: InMemoryWorkspacePersistence()
             )
@@ -98,7 +98,7 @@ actor AgentManager: AgentManagerProtocol {
 
     // MARK: - Create
 
-    /// Creates a new agent, its private workspace, and its private thread atomically.
+    /// Creates a new agent, its private workspace, and its private timeline atomically.
     /// If a later write fails, completed (and attempted) writes are compensated in reverse order;
     /// cleanup failures are logged while the original creation error is rethrown.
     /// - Parameters:
@@ -114,10 +114,10 @@ actor AgentManager: AgentManagerProtocol {
         try validate(name: name, description: description)
 
         let agentId = UUID()
-        let privateThreadID = UUID()
+        let privateTimelineID = UUID()
 
         var workspace: WorkspaceReference?
-        var didAttemptThreadSave = false
+        var didAttemptTimelineSave = false
         var didAttemptAgentSave = false
         var didAttemptAuditSave = false
 
@@ -129,17 +129,17 @@ actor AgentManager: AgentManagerProtocol {
             )
             workspace = createdWorkspace
 
-            // 2. Persist private thread
-            let privateThread = Thread(
-                id: privateThreadID,
+            // 2. Persist private timeline
+            let privateTimeline = TimelineRecord(
+                id: privateTimelineID,
                 title: "[\(name)] Private",
                 // An Agent's primary workspace is owned by the Agent record, not by an
-                // ordinary Thread binding.
+                // ordinary Timeline binding.
                 attachedAgentID: agentId,
                 isPrivate: true
             )
-            didAttemptThreadSave = true
-            try await threadStore.saveThread(privateThread)
+            didAttemptTimelineSave = true
+            try await timelineStore.saveTimeline(privateTimeline)
 
             // 3. Persist agent
             let agent = Agent(
@@ -147,14 +147,14 @@ actor AgentManager: AgentManagerProtocol {
                 name: name,
                 description: description,
                 primaryWorkspaceID: createdWorkspace.id,
-                privateThreadID: privateThreadID
+                privateTimelineID: privateTimelineID
             )
             didAttemptAgentSave = true
             try await agentStore.saveAgent(agent)
 
-            // 4. Log creation to private thread
-            let creationMsg = ThreadMessage(
-                threadID: privateThreadID,
+            // 4. Log creation to private timeline
+            let creationMsg = TimelineMessage(
+                timelineID: privateTimelineID,
                 role: .system,
                 content: "[CREATED] Agent '\(name)' (\(agentId.uuidString)) created."
             )
@@ -166,9 +166,9 @@ actor AgentManager: AgentManagerProtocol {
         } catch {
             await rollbackCreateAgent(
                 agentID: agentId,
-                privateThreadID: privateThreadID,
+                privateTimelineID: privateTimelineID,
                 workspace: workspace,
-                didAttemptThreadSave: didAttemptThreadSave,
+                didAttemptTimelineSave: didAttemptTimelineSave,
                 didAttemptAgentSave: didAttemptAgentSave,
                 didAttemptAuditSave: didAttemptAuditSave,
                 originalError: error
@@ -179,17 +179,17 @@ actor AgentManager: AgentManagerProtocol {
 
     // MARK: - Attach / Detach
 
-    /// Creates an ordinary Thread already attached to an active Agent.
+    /// Creates an ordinary Timeline already attached to an active Agent.
     ///
-    /// Agent lifecycle changes are serialized for the full operation. Thread creation owns its
-    /// own durable rollback, so a workspace or persistence failure cannot leave the new Thread
+    /// Agent lifecycle changes are serialized for the full operation. Timeline creation owns its
+    /// own durable rollback, so a workspace or persistence failure cannot leave the new Timeline
     /// or its attachment behind.
-    func createThread(title: String, attaching agentID: UUID) async throws -> Thread {
-        guard let threadManager else {
-            throw ThreadError.unavailable
+    func createTimeline(title: String, attaching agentID: UUID) async throws -> TimelineRecord {
+        guard let timelineManager else {
+            throw TimelineError.unavailable
         }
 
-        return try await agentAuthorityCoordinator.withAgent(agentID) { [self, threadManager] in
+        return try await agentAuthorityCoordinator.withAgent(agentID) { [self, timelineManager] in
             guard let agent = try await agentStore.fetchAgent(id: agentID) else {
                 throw AgentError.agentNotFound(agentID)
             }
@@ -202,31 +202,31 @@ actor AgentManager: AgentManagerProtocol {
                 throw AgentError.agentRetired(agentID)
             }
 
-            let thread = try await threadManager.createThread(
+            let timeline = try await timelineManager.createTimeline(
                 title: title,
                 attachedAgentID: agentID
             )
-            await recordAttachment(agent: agent, to: thread)
-            return thread
+            await recordAttachment(agent: agent, to: timeline)
+            return timeline
         }
     }
 
-    /// Attaches an agent to a thread.
+    /// Attaches an agent to a timeline.
     ///
     /// - Idempotent: no-op if the same agent is already attached.
     /// - Fails if a different agent is attached (caller must detach it first).
     /// - If `attachedAgentId` references a non-existent agent, it is cleared automatically.
-    public func attach(agentID: UUID, to threadID: UUID) async throws {
+    public func attach(agentID: UUID, to timelineID: UUID) async throws {
         try await agentAuthorityCoordinator.withAgent(agentID) { [self] in
-            try await attachUnlocked(agentID: agentID, to: threadID)
+            try await attachUnlocked(agentID: agentID, to: timelineID)
         }
     }
 
-    private func attachUnlocked(agentID: UUID, to threadID: UUID) async throws {
+    private func attachUnlocked(agentID: UUID, to timelineID: UUID) async throws {
         // Agent lifecycle is serialized by the caller's agent lane. Resolve it before entering
-        // the Thread lane, then resolve the Thread itself inside that lane. In particular, do
-        // not carry a pre-lane Thread snapshot into the mutation: another attachment may commit
-        // while this operation is waiting for the per-Thread authority coordinator.
+        // the Timeline lane, then resolve the Timeline itself inside that lane. In particular, do
+        // not carry a pre-lane Timeline snapshot into the mutation: another attachment may commit
+        // while this operation is waiting for the per-Timeline authority coordinator.
         guard let agent = try await agentStore.fetchAgent(id: agentID) else {
             throw AgentError.agentNotFound(agentID)
         }
@@ -239,112 +239,112 @@ actor AgentManager: AgentManagerProtocol {
             throw AgentError.agentRetired(agentID)
         }
 
-        let result: (thread: Thread, didAttach: Bool) = try await threadAuthorityCoordinator.withThread(threadID) { [self] in
-            try await self.requireExecutionContextMutable(for: threadID)
-            guard let thread = try await self.threadStore.fetchThread(id: threadID) else {
-                throw ThreadError.threadNotFound
+        let result: (timeline: TimelineRecord, didAttach: Bool) = try await timelineAuthorityCoordinator.withTimeline(timelineID) { [self] in
+            try await self.requireExecutionContextMutable(for: timelineID)
+            guard let timeline = try await self.timelineStore.fetchTimeline(id: timelineID) else {
+                throw TimelineError.timelineNotFound
             }
 
             // Idempotent
-            if thread.attachedAgentID == agentID {
-                return (thread: thread, didAttach: false)
+            if timeline.attachedAgentID == agentID {
+                return (timeline: timeline, didAttach: false)
             }
 
-            // Prevent attaching an agent to a private thread owned by another agent
-            if thread.isPrivate {
-                if let currentOwner = thread.attachedAgentID, currentOwner != agentID {
-                    throw AgentError.cannotAttachToPrivateThread(threadID)
+            // Prevent attaching an agent to a private timeline owned by another agent
+            if timeline.isPrivate {
+                if let currentOwner = timeline.attachedAgentID, currentOwner != agentID {
+                    throw AgentError.cannotAttachToPrivateTimeline(timelineID)
                 }
             }
 
             // Check for existing attachment while holding the same lane as the mutation. This
             // makes the conflict decision authoritative when two agents attach concurrently.
-            if let existingId = thread.attachedAgentID {
+            if let existingId = timeline.attachedAgentID {
                 if try await self.agentStore.fetchAgent(id: existingId) != nil {
                     throw AgentError.differentAgentAlreadyAttached(existingId)
                 }
                 // Dangling reference — clear it with a warning
                 self.logger.warning(
-                    "Clearing dangling agent reference \(existingId) on thread \(threadID)")
+                    "Clearing dangling agent reference \(existingId) on timeline \(timelineID)")
             }
 
-            var updated = thread
+            var updated = timeline
             updated.attachedAgentID = agentID
             updated.updatedAt = Date()
-            try await self.threadStore.saveThread(updated)
-            return (thread: updated, didAttach: true)
+            try await self.timelineStore.saveTimeline(updated)
+            return (timeline: updated, didAttach: true)
         }
         guard result.didAttach else { return }
-        await threadManager?.replaceCachedThreadIfPresent(result.thread)
-        let thread = result.thread
+        await timelineManager?.replaceCachedTimelineIfPresent(result.timeline)
+        let timeline = result.timeline
 
-        await recordAttachment(agent: agent, to: thread)
+        await recordAttachment(agent: agent, to: timeline)
     }
 
-    private func recordAttachment(agent: Agent, to thread: Thread) async {
-        let logMsg = ThreadMessage(
-            threadID: agent.privateThreadID,
+    private func recordAttachment(agent: Agent, to timeline: TimelineRecord) async {
+        let logMsg = TimelineMessage(
+            timelineID: agent.privateTimelineID,
             role: .system,
             content: "[ATTACH] Agent '\(agent.name)' (\(agent.id.uuidString.prefix(8))) "
-                + "attached to thread \"\(thread.title)\" (\(thread.id.uuidString.prefix(8)))"
+                + "attached to timeline \"\(timeline.title)\" (\(timeline.id.uuidString.prefix(8)))"
         )
         do {
             try await messageStore.saveMessage(logMsg)
         } catch {
             logger.warning(
-                "Failed to persist attach audit log for agent \(agent.id) on thread \(thread.id) (private thread \(agent.privateThreadID)): \(ErrorKit.userFriendlyMessage(for: error))")
+                "Failed to persist attach audit log for agent \(agent.id) on timeline \(timeline.id) (private timeline \(agent.privateTimelineID)): \(ErrorKit.userFriendlyMessage(for: error))")
         }
 
-        logger.info("Agent '\(agent.name)' attached to thread '\(thread.title)'")
+        logger.info("Agent '\(agent.name)' attached to timeline '\(timeline.title)'")
     }
 
-    /// Detaches an agent from a thread.
-    /// No-op if the agent is not attached to that thread.
-    public func detach(agentID: UUID, from threadID: UUID) async throws {
+    /// Detaches an agent from a timeline.
+    /// No-op if the agent is not attached to that timeline.
+    public func detach(agentID: UUID, from timelineID: UUID) async throws {
         try await agentAuthorityCoordinator.withAgent(agentID) { [self] in
-            try await detachUnlocked(agentID: agentID, from: threadID)
+            try await detachUnlocked(agentID: agentID, from: timelineID)
         }
     }
 
-    private func detachUnlocked(agentID: UUID, from threadID: UUID) async throws {
-        try await requireExecutionContextMutable(for: threadID)
-        guard let thread = try await threadStore.fetchThread(id: threadID) else {
-            throw ThreadError.threadNotFound
+    private func detachUnlocked(agentID: UUID, from timelineID: UUID) async throws {
+        try await requireExecutionContextMutable(for: timelineID)
+        guard let timeline = try await timelineStore.fetchTimeline(id: timelineID) else {
+            throw TimelineError.timelineNotFound
         }
 
-        guard thread.attachedAgentID == agentID else { return }
+        guard timeline.attachedAgentID == agentID else { return }
 
-        // Prevent detaching an agent from its own private thread
-        if thread.isPrivate, thread.attachedAgentID == agentID {
-            throw AgentError.cannotDetachFromOwnPrivateThread(threadID)
+        // Prevent detaching an agent from its own private timeline
+        if timeline.isPrivate, timeline.attachedAgentID == agentID {
+            throw AgentError.cannotDetachFromOwnPrivateTimeline(timelineID)
         }
 
-        let originalThread = thread
-        let updatedThread = try await threadAuthorityCoordinator.withThread(threadID) { [self, originalThread] in
-            try await self.requireExecutionContextMutable(for: threadID)
-            var updated = originalThread
+        let originalTimeline = timeline
+        let updatedTimeline = try await timelineAuthorityCoordinator.withTimeline(timelineID) { [self, originalTimeline] in
+            try await self.requireExecutionContextMutable(for: timelineID)
+            var updated = originalTimeline
             updated.attachedAgentID = nil
             updated.updatedAt = Date()
-            try await self.threadStore.saveThread(updated)
+            try await self.timelineStore.saveTimeline(updated)
             return updated
         }
-        await threadManager?.replaceCachedThreadIfPresent(updatedThread)
+        await timelineManager?.replaceCachedTimelineIfPresent(updatedTimeline)
 
-        // Log to agent's private thread if it still exists
+        // Log to agent's private timeline if it still exists
         if let agent = try? await agentStore.fetchAgent(id: agentID) {
-            let logMsg = ThreadMessage(
-                threadID: agent.privateThreadID,
+            let logMsg = TimelineMessage(
+                timelineID: agent.privateTimelineID,
                 role: .system,
-                content: "[DETACH] Agent '\(agent.name)' detached from thread "
-                    + "\"\(thread.title)\" (\(threadID.uuidString.prefix(8)))"
+                content: "[DETACH] Agent '\(agent.name)' detached from timeline "
+                    + "\"\(timeline.title)\" (\(timelineID.uuidString.prefix(8)))"
             )
             do {
                 try await messageStore.saveMessage(logMsg)
             } catch {
                 logger.warning(
-                    "Failed to persist detach audit log for agent \(agentID) on thread \(threadID) (private thread \(agent.privateThreadID)): \(ErrorKit.userFriendlyMessage(for: error))")
+                    "Failed to persist detach audit log for agent \(agentID) on timeline \(timelineID) (private timeline \(agent.privateTimelineID)): \(ErrorKit.userFriendlyMessage(for: error))")
             }
-            logger.info("Agent '\(agent.name)' detached from thread '\(thread.title)'")
+            logger.info("Agent '\(agent.name)' detached from timeline '\(timeline.title)'")
         }
     }
 
@@ -362,13 +362,13 @@ actor AgentManager: AgentManagerProtocol {
         try await agentStore.fetchAllAgents()
     }
 
-    public func threads(attachedTo agentID: UUID) async throws -> [Thread] {
-        try await fetchAttachedThreads(for: agentID)
+    public func timelines(attachedTo agentID: UUID) async throws -> [TimelineRecord] {
+        try await fetchAttachedTimelines(for: agentID)
     }
 
 
-    public func getThreads(attachedTo agentID: UUID) async throws -> [Thread] {
-        try await threads(attachedTo: agentID)
+    public func getTimelines(attachedTo agentID: UUID) async throws -> [TimelineRecord] {
+        try await timelines(attachedTo: agentID)
     }
 
     public func updateAgent(_ agent: Agent) async throws {
@@ -408,9 +408,9 @@ actor AgentManager: AgentManagerProtocol {
 
     private func rollbackCreateAgent(
         agentID: UUID,
-        privateThreadID: UUID,
+        privateTimelineID: UUID,
         workspace: WorkspaceReference?,
-        didAttemptThreadSave: Bool,
+        didAttemptTimelineSave: Bool,
         didAttemptAgentSave: Bool,
         didAttemptAuditSave: Bool,
         originalError: Error
@@ -418,11 +418,11 @@ actor AgentManager: AgentManagerProtocol {
         // The audit save may have failed after writing, so compensate an attempted save too.
         if didAttemptAuditSave {
             do {
-                try await messageStore.deleteMessages(for: privateThreadID)
+                try await messageStore.deleteMessages(for: privateTimelineID)
             } catch {
                 logCreateRollbackFailure(
                     operation: "deleteMessages",
-                    entityID: privateThreadID,
+                    entityID: privateTimelineID,
                     agentID: agentID,
                     originalError: originalError,
                     cleanupError: error
@@ -446,13 +446,13 @@ actor AgentManager: AgentManagerProtocol {
             }
         }
 
-        if didAttemptThreadSave {
+        if didAttemptTimelineSave {
             do {
-                try await threadStore.deleteThread(id: privateThreadID)
+                try await timelineStore.deleteTimeline(id: privateTimelineID)
             } catch {
                 logCreateRollbackFailure(
-                    operation: "deleteThread",
-                    entityID: privateThreadID,
+                    operation: "deleteTimeline",
+                    entityID: privateTimelineID,
                     agentID: agentID,
                     originalError: originalError,
                     cleanupError: error
@@ -500,9 +500,9 @@ actor AgentManager: AgentManagerProtocol {
         )
     }
 
-    private func fetchAttachedThreads(for agentID: UUID) async throws -> [Thread] {
-        let allThreads = try await threadStore.fetchAllThreads(includeArchived: true)
-        return allThreads.filter { $0.attachedAgentID == agentID }
+    private func fetchAttachedTimelines(for agentID: UUID) async throws -> [TimelineRecord] {
+        let allTimelines = try await timelineStore.fetchAllTimelines(includeArchived: true)
+        return allTimelines.filter { $0.attachedAgentID == agentID }
     }
 
     private func validate(name: String, description: String) throws {
@@ -515,14 +515,14 @@ actor AgentManager: AgentManagerProtocol {
         }
     }
 
-    private func requireExecutionContextMutable(for threadID: UUID) async throws {
-        if let threadManager {
-            try await threadManager.requireExecutionContextMutable(for: threadID)
+    private func requireExecutionContextMutable(for timelineID: UUID) async throws {
+        if let timelineManager {
+            try await timelineManager.requireExecutionContextMutable(for: timelineID)
         } else if let runtimeRepository,
-                  let activeTurn = try await runtimeRepository.fetchActiveTurn(for: threadID)
+                  let activeTurn = try await runtimeRepository.fetchActiveTurn(for: timelineID)
         {
-            throw ThreadRuntimeRepositoryError.threadBusy(
-                threadID: threadID,
+            throw TimelineRuntimeRepositoryError.timelineBusy(
+                timelineID: timelineID,
                 activeTurnID: activeTurn.identity.turnID
             )
         }
@@ -548,30 +548,30 @@ actor AgentManager: AgentManagerProtocol {
         retiring.updatedAt = Date()
         try await agentStore.saveAgent(retiring)
 
-        let attachedThreads = try await fetchAttachedThreads(for: id)
-            .filter { $0.id != agent.privateThreadID }
-        for thread in attachedThreads {
-            try await waitForIdle(threadID: thread.id)
-            try await detachUnlocked(agentID: id, from: thread.id)
+        let attachedTimelines = try await fetchAttachedTimelines(for: id)
+            .filter { $0.id != agent.privateTimelineID }
+        for timeline in attachedTimelines {
+            try await waitForIdle(timelineID: timeline.id)
+            try await detachUnlocked(agentID: id, from: timeline.id)
         }
 
-        // The private Thread is not an ordinary attachment and therefore is not included in
+        // The private Timeline is not an ordinary attachment and therefore is not included in
         // the detachment list. Drain it explicitly before disabling its durable history.
-        try await waitForIdle(threadID: agent.privateThreadID)
+        try await waitForIdle(timelineID: agent.privateTimelineID)
 
         var retired = retiring
         retired.lifecycle = .retired
         retired.updatedAt = Date()
         try await agentStore.saveAgent(retired)
 
-        // The primary Thread is an Agent-owned continuity boundary. Retiring disables new
+        // The primary Timeline is an Agent-owned continuity boundary. Retiring disables new
         // managed activity by archiving it; its durable history remains available to purge
         // policy and historical attribution.
-        if let primaryThread = try await threadStore.fetchThread(id: agent.privateThreadID) {
-            var disabled = primaryThread
+        if let primaryTimeline = try await timelineStore.fetchTimeline(id: agent.privateTimelineID) {
+            var disabled = primaryTimeline
             disabled.isArchived = true
             disabled.updatedAt = Date()
-            try await threadStore.saveThread(disabled)
+            try await timelineStore.saveTimeline(disabled)
         }
     }
 
@@ -589,34 +589,34 @@ actor AgentManager: AgentManagerProtocol {
         guard agent.lifecycle == .retired else {
             throw AgentError.agentNotRetired(id)
         }
-        if let active = try await runtimeRepository?.fetchActiveTurn(for: agent.privateThreadID) {
-            throw ThreadRuntimeRepositoryError.threadBusy(
-                threadID: agent.privateThreadID,
+        if let active = try await runtimeRepository?.fetchActiveTurn(for: agent.privateTimelineID) {
+            throw TimelineRuntimeRepositoryError.timelineBusy(
+                timelineID: agent.privateTimelineID,
                 activeTurnID: active.identity.turnID
             )
         }
-        let attached = try await fetchAttachedThreads(for: id)
-            .filter { $0.id != agent.privateThreadID }
+        let attached = try await fetchAttachedTimelines(for: id)
+            .filter { $0.id != agent.privateTimelineID }
         guard attached.isEmpty else {
-            throw AgentError.hasAttachedThreads(count: attached.count)
+            throw AgentError.hasAttachedTimelines(count: attached.count)
         }
         try await deleteAgentUnlocked(id: id, force: true)
     }
 
-    /// Waits until `threadID` has no active Turn.
+    /// Waits until `timelineID` has no active Turn.
     ///
     /// Each loop iteration waits out exactly one active Turn: the hub wakes it immediately if
     /// this process admitted that Turn, or a single bounded poll covers one admitted elsewhere
     /// (including when no hub was wired into this manager at all). The outer loop then re-checks
-    /// the repository, since a new Turn can in principle be admitted for the thread between one
+    /// the repository, since a new Turn can in principle be admitted for the timeline between one
     /// Turn finishing and this call observing it idle.
-    private func waitForIdle(threadID: UUID) async throws {
+    private func waitForIdle(timelineID: UUID) async throws {
         guard let runtimeRepository else { return }
         // A manager constructed without an event hub (e.g. in a unit test) still gets a correct,
         // bounded wait: an empty hub never tracks any turn as active, so `awaitResult` always
         // takes its single-poll fallback path with the same timeout policy.
         let waiter = TurnTerminationWaiter(hub: eventHub ?? TurnEventHub())
-        while let activeTurn = try await runtimeRepository.fetchActiveTurn(for: threadID) {
+        while let activeTurn = try await runtimeRepository.fetchActiveTurn(for: timelineID) {
             try Task.checkCancellation()
             let turnID = activeTurn.identity.turnID
             let observation = try await waiter.awaitResult(turnID: turnID) {
@@ -631,10 +631,10 @@ actor AgentManager: AgentManagerProtocol {
 
     // MARK: - Delete
 
-    /// Deletes an agent and optionally force-detaches it from all threads.
+    /// Deletes an agent and optionally force-detaches it from all timelines.
     /// - Parameters:
     ///   - id: The agent identifier to delete.
-    ///   - force: If false, throws if the agent is still attached to any threads.
+    ///   - force: If false, throws if the agent is still attached to any timelines.
     public func deleteAgent(id: UUID, force: Bool) async throws {
         try await agentAuthorityCoordinator.withAgent(id) { [self] in
             try await deleteAgentUnlocked(id: id, force: force)
@@ -646,43 +646,43 @@ actor AgentManager: AgentManagerProtocol {
             throw AgentError.agentNotFound(id)
         }
 
-        let allAttached = try await fetchAttachedThreads(for: id)
-        // Exclude the agent's own private thread from the "still attached" check
-        let nonPrivateAttached = allAttached.filter { $0.id != agent.privateThreadID }
+        let allAttached = try await fetchAttachedTimelines(for: id)
+        // Exclude the agent's own private timeline from the "still attached" check
+        let nonPrivateAttached = allAttached.filter { $0.id != agent.privateTimelineID }
 
         if !nonPrivateAttached.isEmpty, !force {
-            throw AgentError.hasAttachedThreads(count: nonPrivateAttached.count)
+            throw AgentError.hasAttachedTimelines(count: nonPrivateAttached.count)
         }
 
-        // Force-detach from non-private threads
-        for thread in nonPrivateAttached {
-            let originalThread = thread
-            let updatedThread = try await threadAuthorityCoordinator.withThread(thread.id) { [self, originalThread] in
-                try await self.requireExecutionContextMutable(for: originalThread.id)
-                var updated = originalThread
+        // Force-detach from non-private timelines
+        for timeline in nonPrivateAttached {
+            let originalTimeline = timeline
+            let updatedTimeline = try await timelineAuthorityCoordinator.withTimeline(timeline.id) { [self, originalTimeline] in
+                try await self.requireExecutionContextMutable(for: originalTimeline.id)
+                var updated = originalTimeline
                 updated.attachedAgentID = nil
                 updated.updatedAt = Date()
-                try await self.threadStore.saveThread(updated)
+                try await self.timelineStore.saveTimeline(updated)
                 return updated
             }
-            await threadManager?.replaceCachedThreadIfPresent(updatedThread)
+            await timelineManager?.replaceCachedTimelineIfPresent(updatedTimeline)
         }
 
-        // Delete the private thread before the workspace or agent record. If this fails,
+        // Delete the private timeline before the workspace or agent record. If this fails,
         // preserve the agent and its workspace so the operation can be retried without
-        // leaving a persisted thread pointing at a removed agent.
+        // leaving a persisted timeline pointing at a removed agent.
         do {
-            try await threadStore.deleteThread(id: agent.privateThreadID)
+            try await timelineStore.deleteTimeline(id: agent.privateTimelineID)
         } catch {
             logger.error(
-                "Failed to delete private thread \(agent.privateThreadID) for agent \(id): \(ErrorKit.userFriendlyMessage(for: error))")
+                "Failed to delete private timeline \(agent.privateTimelineID) for agent \(id): \(ErrorKit.userFriendlyMessage(for: error))")
             throw error
         }
 
-        // Evict the in-memory caches + prompt-history registry via the ThreadManager seam
+        // Evict the in-memory caches + prompt-history registry via the TimelineManager seam
         // when available (PKR-3), after the persisted row has been deleted successfully.
-        if let threadManager {
-            await threadManager.evictThreadFromMemory(id: agent.privateThreadID)
+        if let timelineManager {
+            await timelineManager.evictTimelineFromMemory(id: agent.privateTimelineID)
         }
 
         // Delete primary workspace directory (high risk IO)

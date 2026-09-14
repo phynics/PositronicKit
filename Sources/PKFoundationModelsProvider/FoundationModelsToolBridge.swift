@@ -6,13 +6,14 @@ import PKUtilities
 #if canImport(FoundationModels)
     import FoundationModels
 
-    /// Bridges a PositronicKit `AnyTool` to the framework's typed `Tool` protocol (PKPOST-003).
+    /// Bridges a PKRuntime `AnyTool` to the framework's typed `FoundationModels.Tool` protocol
+    /// (PKPOST-003).
     ///
     /// `FoundationModels.Tool.Arguments` must conform to `ConvertibleFromGeneratedContent`;
     /// `GeneratedContent` itself satisfies that (confirmed against the SDK), so this bridge uses
     /// `GeneratedContent` as `Arguments` and decodes named properties out of it via
     /// `GeneratedContent.value(_:forProperty:)`, rather than requiring a `@Generable` type per
-    /// tool (PositronicKit tools are schema-described at runtime via `parametersSchema`, not
+    /// tool (PKRuntime tools are schema-described at runtime via `parametersSchema`, not
     /// known Swift types at compile time).
     @available(macOS 26.0, *)
     struct PKBridgedFMTool: FoundationModels.Tool {
@@ -39,7 +40,7 @@ import PKUtilities
             if result.isSuccess {
                 return result.output
             }
-            // Tool failures are reported back to the model as textual output (matching how the
+            // PKTool failures are reported back to the model as textual output (matching how the
             // HTTP-family adapters surface tool errors as `tool`-role message content) rather
             // than thrown, since a thrown error here surfaces as `ToolCallError` and aborts the
             // turn instead of letting the model retry/adjust its arguments.
@@ -47,11 +48,11 @@ import PKUtilities
         }
     }
 
-    /// Converts between PositronicKit's typed `Schema` `parametersSchema` /
+    /// Converts between PKRuntime's typed `Schema` `parametersSchema` /
     /// `AnyCodable` argument values and the framework's `GenerationSchema`/`GeneratedContent`.
     /// Isolated in its own type so the conversion logic (a finite, testable JSON-Schema subset —
-    /// object-of-primitives, matching what PositronicKit tools currently declare) is easy to
-    /// extend without touching the `Tool` conformance itself.
+    /// object-of-primitives, matching what PKRuntime tools currently declare) is easy to
+    /// extend without touching the `PKTool` conformance itself.
     @available(macOS 26.0, *)
     enum FoundationModelsSchemaBridge {
         static func generationSchema(for tool: AnyTool) -> GenerationSchema {
@@ -104,14 +105,14 @@ import PKUtilities
             default:
                 // "string", "array", "object", and anything unrecognized: fall back to string.
                 // Arbitrary nested array/object argument schemas are a documented gap (README
-                // support matrix) — PositronicKit's built-in tools are all flat objects of
+                // support matrix) — PKRuntime's built-in tools are all flat objects of
                 // primitives today, so this covers the actual call sites.
                 return DynamicGenerationSchema(type: String.self)
             }
         }
 
         /// Decodes a tool's `GeneratedContent` arguments back into the `[String: AnyCodable]`
-        /// shape `Tool.execute(parameters:)` expects, using the tool's own declared property
+        /// shape `PKTool.execute(parameters:)` expects, using the tool's own declared property
         /// names/types so values come back as the right Swift type (not always `String`).
         static func decodeParameters(
             _ content: GeneratedContent,

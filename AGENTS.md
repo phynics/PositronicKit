@@ -61,17 +61,17 @@ the linker/model-cache gotchas.
 These are the target invariants for v4 work; an issue may not introduce a second vocabulary or
 execution path while the migration is in progress:
 
-- A Turn runs on a Thread. Managed execution derives Agent context from the Thread; a detached
-  Thread uses the explicit direct path.
-- Thread history is append-only, and one atomic Thread runtime repository owns Turn durability.
-- Ordinary Workspaces are exclusively bound to Threads and execute through one deterministic
+- A Turn runs on a Timeline. Managed execution derives Agent context from the Timeline; a detached
+  Timeline uses the explicit direct path.
+- Timeline history is append-only, and one atomic Timeline runtime repository owns Turn durability.
+- Ordinary Workspaces are exclusively bound to Timelines and execute through one deterministic
   dispatcher with process-local per-Workspace serialization.
 - Execution authority is captured at Turn admission and is immutable while that Turn is active.
 - Public consumers use shallow capability values and handles; managers, registries, pipeline
   topology, and model-round machinery remain implementation details.
 - PKContracts imports no PositronicKit project target. Providers and external integrations do
   not import the runtime. PKUtilities is not a public grab-bag product.
-- PromptJournal observes assembled prompt state; it is not semantic Thread history.
+- PromptJournal observes assembled prompt state; it is not semantic Timeline history.
 
 The full domain glossary and decision rationale live behind the [context map](CONTEXT-MAP.md) and
 [ADRs](docs/adr/).

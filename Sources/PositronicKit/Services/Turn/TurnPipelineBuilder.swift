@@ -10,7 +10,7 @@ import PKUtilities
 enum TurnPipelineBuilder {
     static func makePipeline(
         llmService: any LLMStreamClient,
-        runtimeRepository: any ThreadRuntimeRepository,
+        runtimeRepository: any TimelineRuntimeRepository,
         streamTimeout: TimeInterval,
         clock: any RuntimeClock = ContinuousRuntimeClock(),
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,

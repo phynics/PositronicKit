@@ -19,10 +19,10 @@ Next channel.
 The package requires Swift 6.2 and targets macOS 15 and iOS 18. The repository also maintains a
 pinned Linux development environment with Swift 6.3.3.
 
-The current runtime has four consumer-facing capability values: `model`, `threads`, `agents`, and
+The current runtime has four consumer-facing capability values: `model`, `timelines`, `agents`, and
 `workspaces`. A managed Turn captures its Agent and Workspace authority at admission. A direct Turn
-runs on a detached Thread with caller-supplied context. Both paths persist admission, history,
-tool audit records, and the terminal outcome through one required `ThreadRuntimeRepository`.
+runs on a detached Timeline with caller-supplied context. Both paths persist admission, history,
+tool audit records, and the terminal outcome through one required `TimelineRuntimeRepository`.
 
 Workspace-specific tools are exposed through the reserved `call_tool` dispatcher. Generic file
 tools for an Agent's primary Workspace remain direct model tools. The runtime resolves dispatched
@@ -34,7 +34,7 @@ The package also includes:
 - `PKPrompt` for prompt composition, compression, rendering, and prompt journaling.
 - Structured output and sidecar directives on provider-neutral Turn contracts.
 - Separate adapters for OpenAI, OpenRouter, Ollama, Anthropic, and Apple's Foundation Models.
-- `PKObservable` for UI-facing Thread state and `PKTestSupport` for downstream tests.
+- `PKObservable` for UI-facing Timeline state and `PKTestSupport` for downstream tests.
 
 Embedding generation, vector retrieval, provider discovery, and a public plugin bus are outside the
 current package.
@@ -60,11 +60,11 @@ import Foundation
 import PKOpenAIProvider
 import PositronicKit
 
-let provider = PKOpenAIProvider.makeConfiguredProvider(
+let provider = PKOpenAI.makeConfiguredProvider(
     apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "",
     model: "gpt-4o"
 )
-let kit = PositronicKit(provider: provider)
+let kit = PKRuntime(provider: provider)
 ```
 
 Provider modules expose compile-time factories. They do not register themselves at runtime. See the
@@ -75,10 +75,10 @@ Choose the smallest operation tier that fits the feature:
 
 ```swift
 let answer = try await kit.model.generate("Summarize this note.")
-print(answer.content) // thread-free inference
+print(answer.content) // timeline-free inference
 
-let directThread = try await kit.threads.create(title: "Scratchpad")
-let directTurn = try await directThread.startDirectTurn(
+let directTimeline = try await kit.timelines.create(title: "Scratchpad")
+let directTurn = try await directTimeline.startDirectTurn(
     "Continue the summary.",
     context: DirectTurnContext(systemInstructions: "")
 )
@@ -90,20 +90,20 @@ let agent = try await kit.agents.create(
     name: "Researcher",
     description: "Summarizes source material."
 )
-let managedThread = try await kit.threads.create(
+let managedTimeline = try await kit.timelines.create(
     title: "Research",
     attaching: agent.id
 )
-let managedTurn = try await managedThread.startTurn("Use the attached identity.")
+let managedTurn = try await managedTimeline.startTurn("Use the attached identity.")
 let outcome = try await managedTurn.outcome()
 ```
 
-Read a Thread's durable history through `kit.threads.messages(for:)`. The result is ordered from
+Read a Timeline's durable history through `kit.timelines.messages(for:)`. The result is ordered from
 oldest to newest by message timestamp. Messages with the same timestamp keep their append order,
-and an unknown Thread ID returns an empty array.
+and an unknown Timeline ID returns an empty array.
 
 ```swift
-let history = try await kit.threads.messages(for: directThread.id)
+let history = try await kit.timelines.messages(for: directTimeline.id)
 for message in history {
     print("\(message.messageRole): \(message.content)")
 }
@@ -112,9 +112,10 @@ for message in history {
 This history is separate from `PromptJournal`, which observes assembled prompt state for provider
 prompt reuse.
 
-The capability values are the supported consumer entry points. `kit.model` is thread-free
-inference; `kit.threads` returns a stateful `ThreadHandle`; `kit.agents` manages identities and
-their Thread attachments; and `kit.workspaces` owns the workspace catalog. Concrete managers,
+The capability values are the supported consumer entry points. `kit.model` is timeline-free
+inference; `kit.timelines` returns a stateful `TimelineHandle`; `kit.agents` manages identities and
+their Timeline attachments; and `kit.workspaces` owns the workspace catalog. Concrete managers,
+
 registries, and the Turn pipeline are implementation details.
 
 Managed Turns capture typed Agent continuity at admission through `AgentContextSource`. The
@@ -143,12 +144,12 @@ The coarser `await kit.model.isConfigured` signal remains available when a Boole
 Use `try await kit.model.checkHealth()` separately for provider connectivity. A health check may
 perform network I/O; it throws `ModelHealthError.unsupported` when a custom client does not
 conform to `HealthCheckable`. Neither check guarantees that a later request will succeed. Treat
-`ThreadHandle.startTurn(_:options:)`, `kit.model.stream`, or `kit.model.generate` as authoritative
+`TimelineHandle.startTurn(_:options:)`, `kit.model.stream`, or `kit.model.generate` as authoritative
 because model state can change after the check.
 
-`ThreadHandle.startTurn(_:options:)` validates the message and captures the Agent from durable
-Thread attachment state. Per-Turn options such as sidecars, tools, and generation parameters go
-in `TurnOptions`, which does not repeat the handle's Thread identity. A detached Thread uses
+`TimelineHandle.startTurn(_:options:)` validates the message and captures the Agent from durable
+Timeline attachment state. Per-Turn options such as sidecars, tools, and generation parameters go
+in `TurnOptions`, which does not repeat the handle's Timeline identity. A detached Timeline uses
 `startDirectTurn(_:context:options:)`, where the caller supplies the complete system prompt
 (including an intentional empty prompt). The context uses the conventional `.host` contributor
 when the caller omits `contributors`; pass an explicit array when a different contributor set is
@@ -208,9 +209,9 @@ is tracked in [#176](https://github.com/phynics/PositronicKit/issues/176).
 
 Errors arrive at the boundary where the work occurs:
 
-- Request and preparation failures include an invalid `maxModelRounds`, Thread hydration,
+- Request and preparation failures include an invalid `maxModelRounds`, Timeline hydration,
   required-Agent preflight, provider configuration, sidecar validation, and input or history
-  preparation. They throw from `try await kit.threads.open(threadID).startTurn(...)` before a
+  preparation. They throw from `try await kit.timelines.open(timelineID).startTurn(...)` before a
   handle is returned.
 - Provider and pipeline failures after a `TurnHandle` is admitted arrive as terminal events on
   its nonthrowing `events()` stream. The durable `outcome()` remains authoritative for every
@@ -219,7 +220,7 @@ Errors arrive at the boundary where the work occurs:
   and provider failures both throw from the one-shot call. `kit.model.stream` returns immediately
   and reports provider failures during iteration.
 
-Cancelling a task that consumes a facade run cancels its provider work and releases the thread's
+Cancelling a task that consumes a facade run cancels its provider work and releases the timeline's
 active-task registration. Abandoning a facade `stream` iterator likewise cancels the provider;
 cancelling `complete` or `completeResult` surfaces `CancellationError` without foreign-error
 wrapping.
@@ -273,7 +274,7 @@ print(rendered.sections.map(\.id))
 
 ### Sidecar directives (piggy-backed auxiliary generations)
 
-Get a thread title, tone marker, or summary from the same request as the user-visible response.
+Get a timeline title, tone marker, or summary from the same request as the user-visible response.
 
 ```swift
 import JSONSchemaBuilder
@@ -282,13 +283,13 @@ import PositronicKit
 
 let title = SidecarDirective(
     name: "title",
-    instruction: "A short thread title (3-6 words). Return null if the thread already has a good title.",
+    instruction: "A short timeline title (3-6 words). Return null if the timeline already has a good title.",
     schema: JSONString().definition(),
     streaming: .buffered
 )
 
-let stream = try await kit.threads.open(threadID).run(.init(
-    threadID: threadID,
+let stream = try await kit.timelines.open(timelineID).run(.init(
+    timelineID: timelineID,
     message: "What's the deal with actors in Swift 6?",
     sidecars: [title]
 ))
@@ -373,7 +374,7 @@ print(compactedPlan?.overlaySections.isEmpty ?? false)
 
 ### How overlays are represented in model context
 
-`PromptJournalPlan` renders these state transitions as provider-neutral Thread messages with
+`PromptJournalPlan` renders these state transitions as provider-neutral Timeline messages with
 structured XML tags. The model receives section changes without another copy of each unchanged
 stable block:
 
@@ -383,7 +384,7 @@ stable block:
     Builds the package.
     </prompt_journal_snapshot>
     ```
-*   **Delta Mode (`.delta`):** When semi-stable sections change, the journal appends only the difference messages to the thread context:
+*   **Delta Mode (`.delta`):** When semi-stable sections change, the journal appends only the difference messages to the timeline context:
     *   **Additions:** Wrapped in `<prompt_journal_add>` tags.
     *   **Modifications:** Wrapped in `<prompt_journal_replace>` tags.
     *   **Removals:** Specified as `<prompt_journal_remove id="..." />`.
@@ -450,15 +451,15 @@ consumer's test target and keep native diagnostics at the call site:
 import PKTestSupport
 import PositronicKit
 
-@Test("my Thread repository conforms")
-func threadRepositoryConforms() async throws {
-    try await ThreadRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
-        MyThreadRuntimeRepository()
+@Test("my Timeline repository conforms")
+func timelineRepositoryConforms() async throws {
+    try await TimelineRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
+        MyTimelineRuntimeRepository()
     }
 }
 ```
 
-The package ships runners for `ThreadRuntimeRepository`, `WorkspaceStore`,
+The package ships runners for `TimelineRuntimeRepository`, `WorkspaceStore`,
 `ToolPersistenceProtocol`, `AgentStoreProtocol`, `RequestOriginStoreProtocol`, and
 `WorkspaceFactory`. Each scenario creates an isolated fixture and runs sequentially. Result
 ordering, storage schema, exact tool-source labels, and unsupported workspace-factory inputs
@@ -490,14 +491,14 @@ The harness follows these contracts:
   then awaited after unlocking.
 - `TestWorkspace` creates a unique directory and tries to remove it on deinitialization. Retain
   the `TestWorkspace` object, not only its `root` URL, for the entire time the directory is needed.
-- `TestRuntime.threads`, `agents`, and `workspaces` exercise the same facade capability values
+- `TestRuntime.timelines`, `agents`, and `workspaces` exercise the same facade capability values
   used by consumers; concrete coordinators remain internal to the runtime.
 
 ## Package layout
 
 Core modules:
 
-- `PositronicKit` contains Turn execution, Thread and Agent capabilities, Workspace management, tool
+- `PositronicKit` contains Turn execution, Timeline and Agent capabilities, Workspace management, tool
   routing, and provider-neutral model orchestration.
 - `PKPrompt` contains the `@PromptBuilder` DSL, structured compression, cache-aware assembly, and
   prompt journaling.
@@ -505,15 +506,16 @@ Core modules:
 
 Provider targets ship separately so you opt in only to the integrations you want:
 
-- `PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`, `PKAnthropicProvider`, and
-  `PKFoundationModelsProvider` contain concrete clients and compile-time factories. The Anthropic
+- `PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`, and `PKAnthropicProvider` expose
+  concrete clients and compile-time factories. The `PKFoundationModelsProvider` module exposes its
+  concrete `FoundationModelsClient` entry point. The Anthropic
   client uses the Messages API and maps structured output through a forced synthetic tool because
   that API has no `response_format` field.
 
 Supporting targets:
 
-- `PKObservable` contains opt-in `@Observable` wrappers. `ThreadController` mirrors
-  `ThreadHandle` stream state for SwiftUI clients.
+- `PKObservable` contains opt-in `@Observable` wrappers. `TimelineController` mirrors
+  `TimelineHandle` stream state for SwiftUI clients.
 - `PositronicKitExamples` contains runnable, compile-checked examples.
 - `PKTestSupport` is a test-only library product containing public mocks, fixtures, stream
   factories, `TestRuntime`, and reusable persistence/workspace conformance suites. Its ordinary

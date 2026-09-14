@@ -79,7 +79,7 @@ struct OpenRouterMessage: Codable {
     /// Reasoning to echo back to a reasoning model on follow-up turns (STAB-8). OpenRouter
     /// accepts a `reasoning` field on assistant history messages for reasoning models
     /// (https://openrouter.ai/docs#reasoning-models). Sourced from `LLMMessage.reasoning`
-    /// (which is itself threaded from persisted `Message.think`). When `nil`, synthesis uses
+    /// (which is itself derived from persisted `Message.think`). When `nil`, synthesis uses
     /// `encodeIfPresent`, so the key is omitted and non-reasoning request payloads stay
     /// byte-identical.
     let reasoning: String?

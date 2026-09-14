@@ -26,7 +26,7 @@ import PKUtilities
 ///   only the reported status changes from the `.none` case.
 ///
 /// The `sleep` closure is injected so tests can substitute an instant-timeout fake clock and
-/// exercise the timeout branch without `Task.sleep`'s real-time delay or a `ThreadManager`.
+/// exercise the timeout branch without `Task.sleep`'s real-time delay or a `TimelineManager`.
 package enum ToolTimeoutEnforcer {
     /// Default wall-clock sleep used when no fake clock is injected. Mirrors `Task.sleep(nanoseconds:)`.
     @usableFromInline
@@ -79,7 +79,7 @@ package enum ToolTimeoutEnforcer {
         // children it has cancelled. Two ad hoc `Task`s below instead race by reporting into a
         // shared `AsyncStream`, so the timeout path does not await a cancellation-ignoring
         // asynchronous loser. This does not preempt or isolate synchronous work that blocks the
-        // cooperative executor; Tool.execute implementations must suspend for waits. AsyncStream
+        // cooperative executor; PKTool.execute implementations must suspend for waits. AsyncStream
         // — unlike `CheckedContinuation` — tolerates being yielded into or finished more than
         // once, so a straggling loser can't crash a race that's already been resolved. Outer
         // cancellation is handled explicitly by cancelling both tasks and finishing the stream.

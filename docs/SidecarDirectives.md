@@ -11,7 +11,7 @@ Architecture summary: [Turn admission and execution](Architecture.md#turn-admiss
 
 ## Why
 
-Without sidecars, generating a thread title or summary alongside a reply means either a
+Without sidecars, generating a timeline title or summary alongside a reply means either a
 second LLM call after the turn completes (extra latency, extra cost) or hand-rolled prompt
 hacks. Sidecars solve this by asking the model for one structured JSON object per turn: a
 `response` field (streamed to the user like normal text) plus one field per directive, all
@@ -25,7 +25,7 @@ import PKContracts
 
 let title = SidecarDirective(
     name: "title",
-    instruction: "A short thread title (3-6 words). Return null if the thread already has a good title.",
+    instruction: "A short timeline title (3-6 words). Return null if the timeline already has a good title.",
     schema: JSONString().definition(),
     streaming: .buffered
 )
@@ -53,7 +53,7 @@ let tone = SidecarDirective(
 ## Running a turn with sidecars
 
 ```swift
-let turn = try await chat.threads.open(threadID).startTurn(
+let turn = try await chat.timelines.open(timelineID).startTurn(
     "What's the deal with actors in Swift 6?",
     options: TurnOptions(sidecars: [title, tone])
 )

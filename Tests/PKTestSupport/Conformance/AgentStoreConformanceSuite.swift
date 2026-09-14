@@ -1,15 +1,14 @@
 import Foundation
 import PKContracts
 import PositronicKit
-import struct PositronicKit.Thread
 internal import Testing
 
 /// Runs the documented behavioral checks for an ``AgentStoreProtocol`` implementation.
 public enum AgentStoreConformanceSuite {
-    /// Runs the Agent-store checks against an isolated store. The factory receives the threads
+    /// Runs the Agent-store checks against an isolated store. The factory receives the timelines
     /// that the query scenario requires before the store is returned.
     public static func run(
-        makeStore: ([Thread]) async throws -> any AgentStoreProtocol
+        makeStore: ([TimelineRecord]) async throws -> any AgentStoreProtocol
     ) async throws {
         try await runScenario("agent.empty") {
             try await emptyStoreReads(makeStore: makeStore)
@@ -26,8 +25,8 @@ public enum AgentStoreConformanceSuite {
         try await runScenario("agent.delete") {
             try await deletesOneAgent(makeStore: makeStore)
         }
-        try await runScenario("agent.threads.filter") {
-            try await fetchesAttachedThreads(makeStore: makeStore)
+        try await runScenario("agent.timelines.filter") {
+            try await fetchesAttachedTimelines(makeStore: makeStore)
         }
     }
 
@@ -53,7 +52,7 @@ public enum AgentStoreConformanceSuite {
     }
 
     private static func emptyStoreReads(
-        makeStore: ([Thread]) async throws -> any AgentStoreProtocol
+        makeStore: ([TimelineRecord]) async throws -> any AgentStoreProtocol
     ) async throws {
         let store = try await makeStore([])
         try #require(try await store.fetchAgent(id: UUID()) == nil, "agent.empty.fetch")
@@ -61,7 +60,7 @@ public enum AgentStoreConformanceSuite {
     }
 
     private static func savesAndFetches(
-        makeStore: ([Thread]) async throws -> any AgentStoreProtocol
+        makeStore: ([TimelineRecord]) async throws -> any AgentStoreProtocol
     ) async throws {
         let store = try await makeStore([])
         let agent = makeAgent()
@@ -70,7 +69,7 @@ public enum AgentStoreConformanceSuite {
     }
 
     private static func replacesByID(
-        makeStore: ([Thread]) async throws -> any AgentStoreProtocol
+        makeStore: ([TimelineRecord]) async throws -> any AgentStoreProtocol
     ) async throws {
         let store = try await makeStore([])
         let id = UUID()
@@ -82,7 +81,7 @@ public enum AgentStoreConformanceSuite {
     }
 
     private static func fetchesAllAgents(
-        makeStore: ([Thread]) async throws -> any AgentStoreProtocol
+        makeStore: ([TimelineRecord]) async throws -> any AgentStoreProtocol
     ) async throws {
         let store = try await makeStore([])
         let agents = [makeAgent(), makeAgent(), makeAgent()]
@@ -98,7 +97,7 @@ public enum AgentStoreConformanceSuite {
     }
 
     private static func deletesOneAgent(
-        makeStore: ([Thread]) async throws -> any AgentStoreProtocol
+        makeStore: ([TimelineRecord]) async throws -> any AgentStoreProtocol
     ) async throws {
         let store = try await makeStore([])
         let keep = makeAgent()
@@ -114,24 +113,24 @@ public enum AgentStoreConformanceSuite {
         try #require(try await store.fetchAgent(id: keep.id) != nil, "agent.delete.unknown-idempotent")
     }
 
-    private static func fetchesAttachedThreads(
-        makeStore: ([Thread]) async throws -> any AgentStoreProtocol
+    private static func fetchesAttachedTimelines(
+        makeStore: ([TimelineRecord]) async throws -> any AgentStoreProtocol
     ) async throws {
         let agentID = UUID()
         let otherAgentID = UUID()
-        let attached = Thread(attachedAgentID: agentID)
-        let other = Thread(attachedAgentID: otherAgentID)
-        let detached = Thread()
+        let attached = TimelineRecord(attachedAgentID: agentID)
+        let other = TimelineRecord(attachedAgentID: otherAgentID)
+        let detached = TimelineRecord()
         let store = try await makeStore([attached, other, detached])
 
-        let threads = try await store.fetchThreads(attachedToAgent: agentID)
-        try #require(threads.map(\.id) == [attached.id], "agent.threads.filter")
+        let timelines = try await store.fetchTimelines(attachedToAgent: agentID)
+        try #require(timelines.map(\.id) == [attached.id], "agent.timelines.filter")
     }
 
     private static func makeAgent(
         id: UUID = UUID(),
         name: String = "Contract Agent"
     ) -> Agent {
-        Agent(id: id, name: name, description: "description", privateThreadID: UUID())
+        Agent(id: id, name: name, description: "description", privateTimelineID: UUID())
     }
 }

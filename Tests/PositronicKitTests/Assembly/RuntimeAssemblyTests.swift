@@ -7,20 +7,20 @@ import Testing
 struct RuntimeAssemblyTests {
     @Test("default facade uses one cohesive in-memory repository")
     func defaultFacadeUsesCohesiveRepository() async throws {
-        let kit = PositronicKit(languageModel: MockLLMService())
+        let kit = PKRuntime(languageModel: MockLLMService())
         let repository = kit.runtimeRepository
 
         await expectCohesiveGraph(kit, repository: repository)
 
-        let thread = try await kit.threads.create(title: "Default assembly")
-        let managerThread = try #require(await kit.threadManager.thread(id: thread.id))
-        #expect(managerThread.id == thread.id)
-        #expect(try await repository.fetchThread(id: thread.id) != nil)
+        let timeline = try await kit.timelines.create(title: "Default assembly")
+        let managerTimeline = try #require(await kit.timelineManager.timeline(id: timeline.id))
+        #expect(managerTimeline.id == timeline.id)
+        #expect(try await repository.fetchTimeline(id: timeline.id) != nil)
     }
 
     @Test("explicit cohesive repository reaches every Turn durability consumer")
     func explicitRepositoryReachesEveryTurnConsumer() async throws {
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let workspaceStore = MockWorkspacePersistence()
         let bindingRepository = InMemoryWorkspaceBindingRepository()
         let model = MockLLMService()
@@ -40,23 +40,23 @@ struct RuntimeAssemblyTests {
             workspaceStore: workspaceStore
         )
 
-        let thread = try await kit.threads.create(title: "Explicit repository")
-        let turn = try await kit.threads.open(thread.id).startDirectTurn(
+        let timeline = try await kit.timelines.create(title: "Explicit repository")
+        let turn = try await kit.timelines.open(timeline.id).startDirectTurn(
             "persist through the repository",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         _ = await turn.events().collect()
 
         #expect(try await turn.outcome() == .completed)
-        #expect(try await repository.fetchThread(id: thread.id) != nil)
-        #expect(try await repository.fetchMessages(for: thread.id).map(\.content) == [
+        #expect(try await repository.fetchTimeline(id: timeline.id) != nil)
+        #expect(try await repository.fetchMessages(for: timeline.id).map(\.content) == [
             "persist through the repository", "cohesive reply",
         ])
     }
 
     @Test("explicit binding repository takes precedence over cohesive repository bindings")
     func explicitBindingRepositoryTakesPrecedence() async throws {
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let bindingRepository = InMemoryWorkspaceBindingRepository()
         let workspaceStore = MockWorkspacePersistence()
         let kit = makeKit(
@@ -66,23 +66,23 @@ struct RuntimeAssemblyTests {
             workspaceBindingRepository: bindingRepository
         )
 
-        let thread = try await kit.threads.create(title: "Binding precedence")
+        let timeline = try await kit.timelines.create(title: "Binding precedence")
         let workspace = WorkspaceReference(
             uri: WorkspaceURI(host: "test", path: "/binding-precedence"),
             location: .attached
         )
         try await workspaceStore.saveWorkspace(workspace)
-        try await kit.threads.attachWorkspace(workspace.id, to: thread.id)
+        try await kit.timelines.attachWorkspace(workspace.id, to: timeline.id)
 
-        #expect(try await bindingRepository.threadID(for: workspace.id) == thread.id)
-        #expect(try await repository.threadID(for: workspace.id) == nil)
-        let managerBindingRepository = await kit.threadManager.workspaceBindingRepository
+        #expect(try await bindingRepository.timelineID(for: workspace.id) == timeline.id)
+        #expect(try await repository.timelineID(for: workspace.id) == nil)
+        let managerBindingRepository = await kit.timelineManager.workspaceBindingRepository
         #expect(managerBindingRepository as AnyObject === bindingRepository as AnyObject)
     }
 
     @Test("cohesive repository supplies binding authority when it conforms to the binding protocol")
     func cohesiveRepositorySuppliesBindingAuthority() async throws {
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let workspaceStore = MockWorkspacePersistence()
         let kit = makeKit(
             model: MockLLMService(),
@@ -91,23 +91,23 @@ struct RuntimeAssemblyTests {
         )
 
         #expect(kit.workspaceBindingRepository as AnyObject === repository as AnyObject)
-        let managerBindingRepository = await kit.threadManager.workspaceBindingRepository
+        let managerBindingRepository = await kit.timelineManager.workspaceBindingRepository
         #expect(managerBindingRepository as AnyObject === repository as AnyObject)
 
-        let thread = try await kit.threads.create(title: "Repository binding")
+        let timeline = try await kit.timelines.create(title: "Repository binding")
         let workspace = WorkspaceReference(
             uri: WorkspaceURI(host: "test", path: "/repository-binding"),
             location: .attached
         )
         try await workspaceStore.saveWorkspace(workspace)
-        try await kit.threads.attachWorkspace(workspace.id, to: thread.id)
+        try await kit.timelines.attachWorkspace(workspace.id, to: timeline.id)
 
-        #expect(try await repository.threadID(for: workspace.id) == thread.id)
+        #expect(try await repository.timelineID(for: workspace.id) == timeline.id)
     }
 
     @Test("customization roles and subordinate stores reach the assembled Turn graph")
     func customizationRolesAndSubordinateStoresAreAssembled() async throws {
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let workspaceStore = MockWorkspacePersistence()
         let toolPersistence = MockToolPersistence()
         let agentStore = InMemoryAgentStore()
@@ -147,18 +147,18 @@ struct RuntimeAssemblyTests {
         } else {
             Issue.record("TurnEngine lost the configured TurnOutcomeSink")
         }
-        let managerThreadAuthority = await kit.agentManager.threadAuthorityCoordinator
+        let managerTimelineAuthority = await kit.agentManager.timelineAuthorityCoordinator
         let managerAgentAuthority = await kit.agentManager.agentAuthorityCoordinator
-        let threadAuthority = await kit.threadManager.threadAuthorityCoordinator
-        #expect(managerThreadAuthority === threadAuthority)
+        let timelineAuthority = await kit.timelineManager.timelineAuthorityCoordinator
+        #expect(managerTimelineAuthority === timelineAuthority)
         #expect(managerAgentAuthority === kit.agentAuthorityCoordinator)
         let managerAgentStore = await kit.agentManager.agentStore
-        let managerThreadStore = await kit.agentManager.threadStore
+        let managerTimelineStore = await kit.agentManager.timelineStore
         let managerMessageStore = await kit.agentManager.messageStore
         let managerWorkspaceStore = await kit.agentManager.workspaceStore
         let managerRuntimeRepository = await kit.agentManager.runtimeRepository
         #expect(managerAgentStore as AnyObject === agentStore as AnyObject)
-        #expect(managerThreadStore as AnyObject === repository as AnyObject)
+        #expect(managerTimelineStore as AnyObject === repository as AnyObject)
         #expect(managerMessageStore as AnyObject === repository as AnyObject)
         #expect(managerWorkspaceStore as AnyObject === workspaceStore as AnyObject)
         if let managerRuntimeRepository {
@@ -166,16 +166,16 @@ struct RuntimeAssemblyTests {
         } else {
             Issue.record("AgentManager lost the cohesive runtime repository")
         }
-        let managerToolPersistence = await kit.threadManager.toolPersistence
+        let managerToolPersistence = await kit.timelineManager.toolPersistence
         #expect(managerToolPersistence as AnyObject === toolPersistence as AnyObject)
         let agent = try await kit.agents.create(name: "Assembly Agent", description: "custom")
         let primaryWorkspaceID = try #require(agent.primaryWorkspaceID)
         #expect(try await agentStore.fetchAgent(id: agent.id) != nil)
         #expect(try await kit.workspaceCatalog.fetchWorkspace(id: primaryWorkspaceID, includeTools: false) != nil)
 
-        let thread = try await kit.threads.create(title: "Customization")
-        try await kit.agents.attach(agent.id, to: thread.id)
-        let turn = try await kit.threads.open(thread.id).startTurn("custom context")
+        let timeline = try await kit.timelines.create(title: "Customization")
+        try await kit.agents.attach(agent.id, to: timeline.id)
+        let turn = try await kit.timelines.open(timeline.id).startTurn("custom context")
         _ = await turn.events().collect()
 
         #expect(try await turn.outcome() == .completed)
@@ -191,7 +191,7 @@ struct RuntimeAssemblyTests {
 
     @Test("cohesive durability barriers are visible before provider and tool side effects")
     func cohesiveDurabilityBarriersAreVisible() async throws {
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let workspaceStore = MockWorkspacePersistence()
         let toolPersistence = MockToolPersistence()
         let model = MockLLMService()
@@ -204,8 +204,8 @@ struct RuntimeAssemblyTests {
             workspaceBindingRepository: InMemoryWorkspaceBindingRepository()
         )
 
-        let thread = try await kit.threads.create(title: "Durability barriers")
-        let turn = try await kit.threads.open(thread.id).startDirectTurn(
+        let timeline = try await kit.timelines.create(title: "Durability barriers")
+        let turn = try await kit.timelines.open(timeline.id).startDirectTurn(
             "admit before provider",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
@@ -217,13 +217,13 @@ struct RuntimeAssemblyTests {
         #expect(notices.first?.kind == "turn-admitted")
         #expect(notices.contains { $0.kind == "model-round-started" })
         #expect(notices.contains { $0.kind == "provider-request-durable" })
-        #expect(try await repository.fetchMessages(for: thread.id).first?.content == "admit before provider")
+        #expect(try await repository.fetchMessages(for: timeline.id).first?.content == "admit before provider")
         #expect(model.generationCaptureHistory.count == 1)
     }
 
     @Test("cohesive repository owns tool intent before deferred workspace execution")
     func cohesiveRepositoryOwnsToolIntentBeforeWorkspaceExecution() async throws {
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let bindingRepository = InMemoryWorkspaceBindingRepository()
         let workspaceStore = MockWorkspacePersistence()
         let toolPersistence = MockToolPersistence()
@@ -237,7 +237,7 @@ struct RuntimeAssemblyTests {
             workspaceBindingRepository: bindingRepository
         )
 
-        let thread = try await kit.threads.create(title: "Tool durability")
+        let timeline = try await kit.timelines.create(title: "PKTool durability")
         let attachedWorkspace = WorkspaceReference(
             uri: WorkspaceURI(host: "remote", path: "/tool-durability"),
             location: .attached,
@@ -250,14 +250,14 @@ struct RuntimeAssemblyTests {
             workspaceID: attachedWorkspace.id,
             tool: .known("cat")
         )
-        try await kit.threads.attachWorkspace(attachedWorkspace.id, to: thread.id)
+        try await kit.timelines.attachWorkspace(attachedWorkspace.id, to: timeline.id)
 
         model.mockClient.nextToolCalls = [[MockToolCall(
             id: "durable-tool-call",
             name: "call_tool",
             arguments: "{\"tool\":\"cat\",\"at\":\"\(attachedWorkspace.id.uuidString)\",\"arguments\":{\"path\":\"README.md\"}}"
         )]]
-        let turn = try await kit.threads.open(thread.id).startDirectTurn(
+        let turn = try await kit.timelines.open(timeline.id).startDirectTurn(
             "defer this tool",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
@@ -276,7 +276,7 @@ struct RuntimeAssemblyTests {
 
     @Test("reconfigured views preserve repositories, authorities, PromptJournal state, and live events")
     func reconfiguredViewsPreserveRuntimeState() async throws {
-        let repository = InMemoryThreadRuntimeRepository()
+        let repository = InMemoryTimelineRuntimeRepository()
         let bindingRepository = InMemoryWorkspaceBindingRepository()
         let workspaceStore = MockWorkspacePersistence()
         let originalModel = MockLLMService()
@@ -291,7 +291,7 @@ struct RuntimeAssemblyTests {
         let replacementModel = MockLLMService()
         let reconfiguredKit = originalKit.reconfigured(languageModel: replacementModel)
 
-        #expect(originalKit.threadManager === reconfiguredKit.threadManager)
+        #expect(originalKit.timelineManager === reconfiguredKit.timelineManager)
         #expect(originalKit.toolRouter as AnyObject !== reconfiguredKit.toolRouter as AnyObject)
         #expect(
             originalKit.turnEngine.dependencies.llmService as AnyObject
@@ -299,13 +299,13 @@ struct RuntimeAssemblyTests {
         )
         #expect(originalKit.agentAuthorityCoordinator === reconfiguredKit.agentAuthorityCoordinator)
         #expect(originalKit.turnEngine.dependencies.agentAuthorityCoordinator === reconfiguredKit.agentAuthorityCoordinator)
-        #expect(originalKit.turnEngine.dependencies.threadAuthorityCoordinator === reconfiguredKit.turnEngine.dependencies.threadAuthorityCoordinator)
+        #expect(originalKit.turnEngine.dependencies.timelineAuthorityCoordinator === reconfiguredKit.turnEngine.dependencies.timelineAuthorityCoordinator)
         #expect(originalKit.turnEngine.dependencies.eventHub === reconfiguredKit.turnEngine.dependencies.eventHub)
         #expect(originalKit.turnEngine.dependencies.promptHistoryRegistry === reconfiguredKit.turnEngine.dependencies.promptHistoryRegistry)
 
-        let managerRegistry = await originalKit.threadManager.promptHistoryRegistry
+        let managerRegistry = await originalKit.timelineManager.promptHistoryRegistry
         guard let managerRegistry else {
-            Issue.record("ThreadManager lost the shared PromptJournal registry")
+            Issue.record("TimelineManager lost the shared PromptJournal registry")
             return
         }
         #expect(managerRegistry === originalKit.turnEngine.dependencies.promptHistoryRegistry)
@@ -315,9 +315,9 @@ struct RuntimeAssemblyTests {
         #expect(originalKit.messageStore as AnyObject === reconfiguredKit.messageStore as AnyObject)
         #expect(originalKit.workspaceBindingRepository as AnyObject === reconfiguredKit.workspaceBindingRepository as AnyObject)
 
-        let thread = try await originalKit.threads.create(title: "Reconfigured assembly")
-        let requestID = thread.id
-        let original = try await originalKit.threads.open(thread.id).startDirectTurn(
+        let timeline = try await originalKit.timelines.create(title: "Reconfigured assembly")
+        let requestID = timeline.id
+        let original = try await originalKit.timelines.open(timeline.id).startDirectTurn(
             "same request",
             context: DirectTurnContext(systemInstructions: "", contributor: .host),
             options: TurnOptions(requestID: requestID)
@@ -329,13 +329,13 @@ struct RuntimeAssemblyTests {
             return
         }
 
-        let journalBefore = await originalKit.turnEngine.dependencies.promptHistoryRegistry.history(for: thread.id)
-        let joined = try await reconfiguredKit.threads.open(thread.id).startDirectTurn(
+        let journalBefore = await originalKit.turnEngine.dependencies.promptHistoryRegistry.history(for: timeline.id)
+        let joined = try await reconfiguredKit.timelines.open(timeline.id).startDirectTurn(
             "same request",
             context: DirectTurnContext(systemInstructions: "", contributor: .host),
             options: TurnOptions(requestID: requestID)
         )
-        let journalAfter = await reconfiguredKit.turnEngine.dependencies.promptHistoryRegistry.history(for: thread.id)
+        let journalAfter = await reconfiguredKit.turnEngine.dependencies.promptHistoryRegistry.history(for: timeline.id)
         #expect(journalBefore === journalAfter)
         #expect(joined.id == original.id)
 
@@ -346,7 +346,7 @@ struct RuntimeAssemblyTests {
         #expect(try await original.outcome() == .cancelled(reason: "Turn task cancelled."))
 
         replacementModel.mockClient.nextResponse = "replacement reply"
-        let replacementTurn = try await reconfiguredKit.threads.open(thread.id).startDirectTurn(
+        let replacementTurn = try await reconfiguredKit.timelines.open(timeline.id).startDirectTurn(
             "new provider view",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
@@ -357,13 +357,13 @@ struct RuntimeAssemblyTests {
 
     @Test("reconfigured views retain one per-Workspace execution lane")
     func reconfiguredViewsRetainWorkspaceSerialization() async throws {
-        let originalKit = PositronicKit(languageModel: MockLLMService())
+        let originalKit = PKRuntime(languageModel: MockLLMService())
         let reconfiguredKit = originalKit.reconfigured(languageModel: MockLLMService())
-        let workspaceID = (try await originalKit.threads.create(title: "Lane workspace")).id
+        let workspaceID = (try await originalKit.timelines.create(title: "Lane workspace")).id
         let probe = LaneProbe()
 
         let first = Task {
-            try await originalKit.threadManager.withWorkspaceExecution(workspaceID) {
+            try await originalKit.timelineManager.withWorkspaceExecution(workspaceID) {
                 await probe.enter(1)
                 await probe.waitForRelease()
                 await probe.leave()
@@ -372,7 +372,7 @@ struct RuntimeAssemblyTests {
         #expect(await probe.waitUntilEntryCount(1))
         let second = Task {
             await probe.markSecondReady()
-            try await reconfiguredKit.threadManager.withWorkspaceExecution(workspaceID) {
+            try await reconfiguredKit.timelineManager.withWorkspaceExecution(workspaceID) {
                 await probe.enter(2)
                 await probe.leave()
             }
@@ -397,14 +397,14 @@ struct RuntimeAssemblyTests {
         toolPersistence: (any ToolPersistenceProtocol)? = nil,
         agentStore: (any AgentStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
-        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+        runtimeRepository: (any TimelineRuntimeRepository)? = nil,
         workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
         customization: RuntimeCustomization = .default
-    ) -> PositronicKit {
-        PositronicKit(configuration: .init(
+    ) -> PKRuntime {
+        PKRuntime(configuration: .init(
             languageModel: model,
             persistence: .init(
-                runtimeRepository: runtimeRepository ?? InMemoryThreadRuntimeRepository(),
+                runtimeRepository: runtimeRepository ?? InMemoryTimelineRuntimeRepository(),
                 workspacePersistence: workspacePersistence,
                 toolPersistence: toolPersistence,
                 agentStore: agentStore,
@@ -421,11 +421,11 @@ struct RuntimeAssemblyTests {
         toolPersistence: any ToolPersistenceProtocol,
         agentStore: any AgentStoreProtocol,
         requestOriginStore: any RequestOriginStoreProtocol,
-        runtimeRepository: any ThreadRuntimeRepository,
+        runtimeRepository: any TimelineRuntimeRepository,
         workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
         customization: RuntimeCustomization = .default
-    ) -> PositronicKit {
-        PositronicKit(configuration: .init(
+    ) -> PKRuntime {
+        PKRuntime(configuration: .init(
             languageModel: model,
             persistence: .fullyPersistent(
                 runtimeRepository: runtimeRepository,
@@ -448,23 +448,23 @@ struct RuntimeAssemblyTests {
     }
 
     private func expectCohesiveGraph(
-        _ kit: PositronicKit,
-        repository: any ThreadRuntimeRepository,
+        _ kit: PKRuntime,
+        repository: any TimelineRuntimeRepository,
         bindingRepository: (any WorkspaceBindingRepository)? = nil,
         workspaceStore: (any WorkspaceStore)? = nil
     ) async {
         #expect(kit.runtimeRepository as AnyObject === repository as AnyObject)
         #expect(kit.messageStore as AnyObject === repository as AnyObject)
-        #expect(kit.threadPersistence as AnyObject === repository as AnyObject)
+        #expect(kit.timelinePersistence as AnyObject === repository as AnyObject)
         #expect(kit.turnEngine.dependencies.runtimeRepository as AnyObject === repository as AnyObject)
-        #expect(kit.turnEngine.dependencies.threadManager === kit.threadManager)
+        #expect(kit.turnEngine.dependencies.timelineManager === kit.timelineManager)
         #expect(kit.turnEngine.dependencies.toolRouter === kit.toolRouter)
 
-        let managerMessageStore = await kit.threadManager.messageStore
-        let managerThreadStore = await kit.threadManager.threadStore
-        let managerRepository = await kit.threadManager.runtimeRepository
+        let managerMessageStore = await kit.timelineManager.messageStore
+        let managerTimelineStore = await kit.timelineManager.timelineStore
+        let managerRepository = await kit.timelineManager.runtimeRepository
         #expect(managerMessageStore as AnyObject === repository as AnyObject)
-        #expect(managerThreadStore as AnyObject === repository as AnyObject)
+        #expect(managerTimelineStore as AnyObject === repository as AnyObject)
         #expect(managerRepository as AnyObject === repository as AnyObject)
 
         if let bindingRepository {
@@ -472,11 +472,11 @@ struct RuntimeAssemblyTests {
         }
         if let workspaceStore {
             #expect(kit.workspacePersistence as AnyObject === workspaceStore as AnyObject)
-            let managerWorkspaceStore = await kit.threadManager.workspaceStore
+            let managerWorkspaceStore = await kit.timelineManager.workspaceStore
             #expect(managerWorkspaceStore as AnyObject === workspaceStore as AnyObject)
         }
 
-        let managerBindingRepository = await kit.threadManager.workspaceBindingRepository
+        let managerBindingRepository = await kit.timelineManager.workspaceBindingRepository
         let expectedBindingRepository = bindingRepository ?? kit.workspaceBindingRepository
         #expect(managerBindingRepository as AnyObject === expectedBindingRepository as AnyObject)
     }
@@ -534,7 +534,7 @@ private actor LaneProbe {
 private actor AssemblyAgentContextSource: AgentContextSource {
     private(set) var callCount = 0
 
-    func snapshot(for agent: Agent, thread _: Thread) async throws -> AgentContextSnapshot {
+    func snapshot(for agent: Agent, timeline _: TimelineRecord) async throws -> AgentContextSnapshot {
         callCount += 1
         return AgentContextSnapshot(agent: agent, instructions: "assembly agent context")
     }

@@ -2,7 +2,7 @@ import Foundation
 
 /// UI message model for chat interface.
 ///
-/// This model is used by clients to display messages in the thread. It supports
+/// This model is used by clients to display messages in the timeline. It supports
 /// Chain of Thought (CoT) reasoning models that use `<think>` tags to show their
 /// reasoning process separately from the final answer.
 public struct Message: Identifiable, Equatable, Sendable, Codable {
@@ -28,13 +28,13 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
     /// Only present for models that support reasoning tags (e.g., DeepSeek R1, QwQ).
     public var reasoning: String?
 
-    /// Tool calls extracted from `<tool_call>...</tool_call>` blocks.
+    /// PKTool calls extracted from `<tool_call>...</tool_call>` blocks.
     public var toolCalls: [ToolCall]?
 
     /// ID of the tool call this message is a response to (only for `.tool` role).
     public var toolCallID: String?
 
-    /// Optional ID of the parent message in the thread forest structure.
+    /// Optional ID of the parent message in the timeline forest structure.
     public var parentID: UUID?
 
     /// Whether this message represents a system summary or truncation notice.
@@ -51,7 +51,7 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
     /// see `TurnEngine.persistPartialAssistantIfNeeded` (STAB-1).
     public var status: MessageStatus?
 
-    /// Represents the role of a message in a thread.
+    /// Represents the role of a message in a timeline.
     public enum MessageRole: String, Sendable, Codable, CaseIterable {
         /// A message from the user.
         case user
@@ -61,15 +61,15 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         case system
         /// A message containing the output of a tool execution.
         case tool
-        /// A system-generated summary of the thread.
+        /// A system-generated summary of the timeline.
         case summary
     }
 
-    /// Types of thread summaries.
+    /// Types of timeline summaries.
     public enum SummaryType: String, Codable, Sendable {
         /// A summary marking a specific topic shift.
         case topic
-        /// A broad summary of preceding thread context.
+        /// A broad summary of preceding timeline context.
         case broad
     }
 

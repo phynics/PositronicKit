@@ -22,7 +22,7 @@ public struct LoggingConfiguration: Sendable {
     }
 }
 
-/// Redaction rules for structured PositronicKit logs.
+/// Redaction rules for structured PKRuntime logs.
 public struct LogRedactionPolicy: Sendable, Equatable {
     public let logsPayloads: Bool
 

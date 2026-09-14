@@ -183,8 +183,8 @@ public actor OpenRouterClient: LLMClientProtocol {
     }
 
     /// Exposes the configured attribution for `@testable` verification that the public
-    /// `PositronicKit.init(openRouterKey:...)` → `LLMConfiguration` → registry factory path
-    /// actually threads `applicationURL`/`applicationTitle` through to a real client (PKR-4).
+    /// `PKRuntime.init(openRouterKey:...)` → `LLMConfiguration` → registry factory path
+    /// actually timelines `applicationURL`/`applicationTitle` through to a real client (PKR-4).
     var currentAttribution: Attribution {
         attribution
     }

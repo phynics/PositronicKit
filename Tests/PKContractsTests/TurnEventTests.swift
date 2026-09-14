@@ -103,7 +103,7 @@ import ErrorKit
         }
     }
 
-    @Test("Tool-call identifier APIs preserve legacy construction and wire keys")
+    @Test("PKTool-call identifier APIs preserve legacy construction and wire keys")
     func toolCallIdentifierCompatibility() throws {
         let status = ToolExecutionStatus.executionError("bad args")
         let canonicalEvents: [TurnEvent] = [
@@ -243,10 +243,10 @@ import ErrorKit
         // Blocked-error classification now lives on PKError.isBlocked, so we verify
         // via ErrorIdentity.extracting(from:) with actual error instances rather than
         // hand-listed (domain, code) pairs. WorkspaceError.accessDenied (workspace:3002)
-        // is covered in PositronicKitTests since WorkspaceError lives in PositronicKit.
+        // is covered in PositronicKitTests since WorkspaceError lives in PKRuntime.
         let blockedErrors: [Error] = [
             ToolError.permissionDenied("rm"),
-            ToolError.attachedToolsDisallowedOnPrivateThread,
+            ToolError.attachedToolsDisallowedOnPrivateTimeline,
             PathSanitizer.PathError.accessDenied("/etc/passwd"),
         ]
         for error in blockedErrors {

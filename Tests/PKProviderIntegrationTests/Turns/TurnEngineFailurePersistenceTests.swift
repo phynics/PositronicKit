@@ -15,26 +15,26 @@ import Testing
 /// still be persisted — tagged so it's distinguishable from a complete turn. These tests drive
 /// the full `TurnEngine` turn loop (not a bare stage) so the error-path persistence in
 /// `runOneTurn` is exercised end to end. The helpers intentionally omit a
-/// `ThreadRuntimeRepository`, so retry assertions describe the independent-store compatibility
+/// `TimelineRuntimeRepository`, so retry assertions describe the independent-store compatibility
 /// path; atomic admission and terminal replay are covered by `TurnAdmissionSeamTests`.
 @Suite(.serialized, .tags(.integration)) @MainActor
 struct TurnEngineFailurePersistenceTests {
-    private let threadID = UUID()
+    private let timelineID = UUID()
 
     /// Mirrors `TurnEngineTests.withTurnEngineDependencies` but is kept local so this suite is
-    /// self-contained. Seeds a hydrated thread the engine can run a turn against.
+    /// self-contained. Seeds a hydrated timeline the engine can run a turn against.
     private func withTurnEngineDependencies<T>(
         streamTimeout: TimeInterval = 60,
-        promptHistoryRegistry: ThreadPromptJournals? = nil,
+        promptHistoryRegistry: TimelinePromptJournals? = nil,
         turnOutcomeSink: (any TurnOutcomeSink)? = nil,
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let registry = promptHistoryRegistry ?? ThreadPromptJournals()
-        let threadManager = ThreadManager(
+        let registry = promptHistoryRegistry ?? TimelinePromptJournals()
+        let timelineManager = TimelineManager(
             stores: .init(
-                threadStore: mockPersistence,
+                timelineStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
@@ -45,12 +45,12 @@ struct TurnEngineFailurePersistenceTests {
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
-            threadManager: threadManager,
+            timelineManager: timelineManager,
             runtimeRepository: mockPersistence
         )
         let engine = TurnEngine(
             dependencies: .init(
-                threadManager: threadManager,
+                timelineManager: timelineManager,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 runtimeRepository: mockPersistence,
@@ -62,22 +62,22 @@ struct TurnEngineFailurePersistenceTests {
             )
         )
 
-        let session = Thread(id: threadID, title: "STAB-1 Session")
-        try await mockPersistence.saveThread(session)
+        let session = TimelineRecord(id: timelineID, title: "STAB-1 Session")
+        try await mockPersistence.saveTimeline(session)
 
         let wsId = UUID()
         let workspaceRef = WorkspaceReference(
             id: wsId,
             uri: WorkspaceURI(parsing: "pk://local")!,
-            location: .runtimeThread,
+            location: .runtimeTimeline,
             originID: nil,
             rootPath: "/tmp"
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await threadManager.attachWorkspace(wsId, to: threadID)
+        try await timelineManager.attachWorkspace(wsId, to: timelineID)
         try await mockPersistence.addToolToWorkspace(workspaceID: wsId, tool: .known("mock_tool"))
 
-        try await threadManager.hydrateThread(id: threadID)
+        try await timelineManager.hydrateTimeline(id: timelineID)
 
         return try await test(engine, mockLLM, mockPersistence)
     }
@@ -91,9 +91,9 @@ struct TurnEngineFailurePersistenceTests {
         let mockLLM = MockLLMService()
         let persistence = MockPersistenceService()
         persistence.recordToolResultFailureAfter = 0
-        let threadManager = ThreadManager(
+        let timelineManager = TimelineManager(
             stores: .init(
-                threadStore: persistence,
+                timelineStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
@@ -104,12 +104,12 @@ struct TurnEngineFailurePersistenceTests {
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
-            threadManager: threadManager,
+            timelineManager: timelineManager,
             runtimeRepository: persistence
         )
         let engine = TurnEngine(
             dependencies: .init(
-                threadManager: threadManager,
+                timelineManager: timelineManager,
                 agentStore: persistence,
                 requestOriginStore: persistence,
                 runtimeRepository: persistence,
@@ -120,24 +120,24 @@ struct TurnEngineFailurePersistenceTests {
             )
         )
 
-        let session = Thread(id: threadID, title: "Tool persistence failure")
-        try await persistence.saveThread(session)
+        let session = TimelineRecord(id: timelineID, title: "PKTool persistence failure")
+        try await persistence.saveTimeline(session)
         let wsId = UUID()
         let workspaceRef = WorkspaceReference(
             id: wsId,
             uri: WorkspaceURI(parsing: "pk://local")!,
-            location: .runtimeThread,
+            location: .runtimeTimeline,
             originID: nil,
             tools: [.known(PersistenceTestTool.toolID)],
             rootPath: "/tmp"
         )
         try await persistence.saveWorkspace(workspaceRef)
-        try await threadManager.attachWorkspace(wsId, to: threadID)
+        try await timelineManager.attachWorkspace(wsId, to: timelineID)
         try await persistence.addToolToWorkspace(workspaceID: wsId, tool: .known(PersistenceTestTool.toolID))
-        try await threadManager.hydrateThread(id: threadID)
-        if let toolManager = await threadManager.getToolManager(for: threadID) {
+        try await timelineManager.hydrateTimeline(id: timelineID)
+        if let toolManager = await timelineManager.getToolManager(for: timelineID) {
             await toolManager.updateAvailableTools([AnyTool(PersistenceTestTool())])
-            if let workspace = try await threadManager.workspaceResolver.workspace(id: wsId) {
+            if let workspace = try await timelineManager.workspaceResolver.workspace(id: wsId) {
                 await toolManager.registerWorkspace(workspace)
             }
         }
@@ -171,7 +171,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "stream then fail",
                     tools: []
                 )
@@ -183,9 +183,9 @@ struct TurnEngineFailurePersistenceTests {
                 _ = try await collect(stream)
             }
 
-            let messages = try await mockPersistence.fetchMessages(for: threadID)
+            let messages = try await mockPersistence.fetchMessages(for: timelineID)
 
-            // The user message (persisted during prepareSession) must remain.
+            // The user message (persisted during prepareTurn) must remain.
             let userMessages = messages.filter { $0.role == "user" }
             #expect(userMessages.count == 1)
             #expect(userMessages[0].content == "stream then fail")
@@ -226,7 +226,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "stream then fail with saveMessage broken",
                     tools: []
                 )
@@ -236,7 +236,7 @@ struct TurnEngineFailurePersistenceTests {
                 _ = try await collect(stream)
             }
 
-            let messages = try await mockPersistence.fetchMessages(for: threadID)
+            let messages = try await mockPersistence.fetchMessages(for: timelineID)
             let assistantMessages = messages.filter { $0.role == "assistant" }
             #expect(assistantMessages.count == 1)
             let assistant = try #require(assistantMessages.first)
@@ -258,7 +258,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let failedStream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     requestID: requestID,
                     message: "run the retryable tool",
                     tools: [AnyTool(tool)]
@@ -284,7 +284,7 @@ struct TurnEngineFailurePersistenceTests {
             let storedRecord = try #require(try await messageStore.fetchTurn(id: outcomeRecord.turnID))
             #expect(storedRecord.outcome == .failed(message: "Tool result persistence failed."))
 
-            let pendingMessages = try await messageStore.fetchMessages(for: threadID)
+            let pendingMessages = try await messageStore.fetchMessages(for: timelineID)
             #expect(pendingMessages.filter { $0.role == "assistant" }.count == 1)
             #expect(pendingMessages.filter { $0.role == "tool" }.isEmpty)
             let pendingAssistant = try #require(pendingMessages.first { $0.role == "assistant" })
@@ -297,7 +297,7 @@ struct TurnEngineFailurePersistenceTests {
             mockLLM.mockClient.nextResponse = "Recovered after retry"
             let retryStream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     requestID: requestID,
                     message: "",
                     tools: [AnyTool(tool)],
@@ -314,13 +314,13 @@ struct TurnEngineFailurePersistenceTests {
                 return false
             }))
             #expect(mockLLM.generationCaptureHistory.count == 2)
-            let recoveredMessages = try await messageStore.fetchMessages(for: threadID)
+            let recoveredMessages = try await messageStore.fetchMessages(for: timelineID)
             #expect(recoveredMessages.filter { $0.role == "tool" && $0.toolCallID == "persist_retry_call" }.count == 1)
             #expect(recoveredMessages.filter { $0.role == "assistant" }.count == 2)
         }
     }
 
-    @Test("A Workspace Tool Result persistence failure prevents success and follow-up rounds")
+    @Test("A Workspace PKTool Result persistence failure prevents success and follow-up rounds")
     func workspaceToolResultPersistenceFailureStopsLoop() async throws {
         try await withToolResultPersistenceFailureDependencies { engine, mockLLM, messageStore in
             mockLLM.mockClient.nextResponses = [""]
@@ -334,7 +334,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     requestID: UUID(),
                     message: "run the workspace tool",
                     tools: []
@@ -356,7 +356,7 @@ struct TurnEngineFailurePersistenceTests {
             }))
             #expect(mockLLM.generationCaptureHistory.count == 1)
 
-            let pendingMessages = try await messageStore.fetchMessages(for: threadID)
+            let pendingMessages = try await messageStore.fetchMessages(for: timelineID)
             #expect(pendingMessages.filter { $0.role == "assistant" }.count == 1)
             #expect(pendingMessages.filter { $0.role == "tool" }.isEmpty)
         }
@@ -380,7 +380,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let failedStream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     requestID: requestID,
                     message: "start external work",
                     tools: []
@@ -396,7 +396,7 @@ struct TurnEngineFailurePersistenceTests {
             mockLLM.mockClient.nextResponse = "retry succeeded"
             let retryStream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     requestID: requestID,
                     message: "",
                     tools: [],
@@ -411,7 +411,7 @@ struct TurnEngineFailurePersistenceTests {
             }))
             #expect(mockLLM.generationCaptureHistory.count == 2, "Retry must reach the provider")
 
-            let messages = try await mockPersistence.fetchMessages(for: threadID)
+            let messages = try await mockPersistence.fetchMessages(for: timelineID)
             #expect(messages.filter { $0.role == "user" }.count == 1)
             #expect(messages.filter { $0.role == "tool" && $0.toolCallID == "retry_call" }.count == 1)
         }
@@ -419,26 +419,26 @@ struct TurnEngineFailurePersistenceTests {
 
     @Test("A fail-once prompt-history update retries inputs idempotently")
     func promptHistoryFailureRetryIsInputIdempotent() async throws {
-        let registry = ThreadPromptJournals()
+        let registry = TimelinePromptJournals()
         try await withTurnEngineDependencies(promptHistoryRegistry: registry) { engine, mockLLM, mockPersistence in
             let requestID = UUID()
             let toolCallID = "history_retry_call"
             let toolCalls = [ToolCall(id: toolCallID, name: "external_tool", arguments: [:])]
             let toolCallsData = try SerializationUtils.jsonEncoder.encode(toolCalls)
-            try await mockPersistence.saveMessage(ThreadMessage(
-                threadID: threadID,
+            try await mockPersistence.saveMessage(TimelineMessage(
+                timelineID: timelineID,
                 role: .assistant,
                 content: "",
                 toolCalls: String(decoding: toolCallsData, as: UTF8.self)
             ))
 
-            let history = await registry.history(for: threadID)
+            let history = await registry.history(for: timelineID)
             await history.failNextUpdate(with: .duplicateSectionIDs(["fail-once"]))
 
             do {
                 _ = try await engine.execute(TurnExecutionRequest(
                     TurnRequest(
-                        threadID: threadID,
+                        timelineID: timelineID,
                         requestID: requestID,
                         message: "retry after history failure",
                         tools: [],
@@ -456,7 +456,7 @@ struct TurnEngineFailurePersistenceTests {
                 Issue.record("Expected TurnEngineError.promptHistoryInconsistent, got \(error)")
             }
 
-            let messagesAfterFailure = try await mockPersistence.fetchMessages(for: threadID)
+            let messagesAfterFailure = try await mockPersistence.fetchMessages(for: timelineID)
             #expect(messagesAfterFailure.filter { $0.role == "user" }.count == 1)
             #expect(messagesAfterFailure.first(where: { $0.role == "user" })?.content == "retry after history failure")
             #expect(messagesAfterFailure.filter { $0.role == "tool" }.isEmpty)
@@ -464,7 +464,7 @@ struct TurnEngineFailurePersistenceTests {
             mockLLM.mockClient.nextResponse = "Recovered reply"
             let retryStream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     requestID: requestID,
                     message: "retry after history failure",
                     tools: [],
@@ -473,7 +473,7 @@ struct TurnEngineFailurePersistenceTests {
             ))
             _ = try await collect(retryStream)
 
-            let messagesAfterRetry = try await mockPersistence.fetchMessages(for: threadID)
+            let messagesAfterRetry = try await mockPersistence.fetchMessages(for: timelineID)
             let userMessages = messagesAfterRetry.filter { $0.role == "user" }
             #expect(userMessages.count == 1)
             #expect(userMessages.first?.id == requestID)
@@ -499,7 +499,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "stream then cancel",
                     tools: []
                 )
@@ -510,7 +510,7 @@ struct TurnEngineFailurePersistenceTests {
                 _ = try await collect(stream)
             }
 
-            let messages = try await mockPersistence.fetchMessages(for: threadID)
+            let messages = try await mockPersistence.fetchMessages(for: timelineID)
 
             let userMessages = messages.filter { $0.role == "user" }
             #expect(userMessages.count == 1)
@@ -542,7 +542,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let cancelledStream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     requestID: requestID,
                     message: "start cancellable work",
                     tools: []
@@ -556,7 +556,7 @@ struct TurnEngineFailurePersistenceTests {
             mockLLM.mockClient.nextResponse = "retry after cancellation"
             let retryStream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     requestID: requestID,
                     message: "",
                     tools: [],
@@ -566,7 +566,7 @@ struct TurnEngineFailurePersistenceTests {
             _ = try await collect(retryStream)
 
             #expect(mockLLM.generationCaptureHistory.count == 2, "Cancellation retry must reach the provider")
-            let messages = try await mockPersistence.fetchMessages(for: threadID)
+            let messages = try await mockPersistence.fetchMessages(for: timelineID)
             #expect(messages.filter { $0.role == "user" }.count == 1)
             #expect(messages.filter { $0.role == "tool" && $0.toolCallID == "cancel_retry_call" }.count == 1)
         }
@@ -581,7 +581,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "succeed cleanly",
                     tools: []
                 )
@@ -595,7 +595,7 @@ struct TurnEngineFailurePersistenceTests {
                 return false
             }))
 
-            let messages = try await mockPersistence.fetchMessages(for: threadID)
+            let messages = try await mockPersistence.fetchMessages(for: timelineID)
 
             let userMessages = messages.filter { $0.role == "user" }
             #expect(userMessages.count == 1)
@@ -618,7 +618,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "extension stage fails",
                     tools: []
                 )
@@ -628,7 +628,7 @@ struct TurnEngineFailurePersistenceTests {
                 _ = try await collect(stream)
             }
 
-            let assistantMessages = try await mockPersistence.fetchMessages(for: threadID)
+            let assistantMessages = try await mockPersistence.fetchMessages(for: timelineID)
                 .filter { $0.role == "assistant" }
             #expect(assistantMessages.count == 1)
             #expect(assistantMessages[0].content == "Complete before extension failure")
@@ -652,7 +652,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "fail immediately",
                     tools: []
                 )
@@ -662,7 +662,7 @@ struct TurnEngineFailurePersistenceTests {
                 _ = try await collect(stream)
             }
 
-            let messages = try await mockPersistence.fetchMessages(for: threadID)
+            let messages = try await mockPersistence.fetchMessages(for: timelineID)
             // Only the user message; no empty assistant row.
             #expect(messages.count == 1)
             #expect(messages[0].role == "user")
@@ -688,7 +688,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "foreign drop",
                     tools: []
                 )
@@ -740,7 +740,7 @@ struct TurnEngineFailurePersistenceTests {
 
             let stream = try await engine.execute(TurnExecutionRequest(
                 TurnRequest(
-                    threadID: threadID,
+                    timelineID: timelineID,
                     message: "cancel stream",
                     tools: []
                 )
@@ -762,7 +762,7 @@ struct TurnEngineFailurePersistenceTests {
 
     @Test("WorkspaceError.accessDenied is classified as blocked (PKAPI-004)")
     func workspaceErrorAccessDeniedIsBlocked() {
-        // WorkspaceError lives in PositronicKit, so its blocked classification is
+        // WorkspaceError lives in PKRuntime, so its blocked classification is
         // tested here rather than in PKContractsTests/TurnEventTests.
         let identity = TurnEvent.ErrorIdentity.extracting(from: WorkspaceError.accessDenied)
         #expect(identity?.domain == PKErrorDomain.workspace)
@@ -781,7 +781,7 @@ private struct ThrowingExtensionStage: PipelineStage {
     }
 }
 
-private struct PersistenceTestTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+private struct PersistenceTestTool: PKContracts.PKTool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     static let toolID = "retryable_tool"
 
     let callName = Self.toolID

@@ -10,7 +10,7 @@ import Testing
 @Suite("ToolSideEffects")
 struct ToolSideEffectsTests {
     /// A tool that does not declare `sideEffects` — must default to `.mutating`.
-    private struct UndeclaredTool: PKContracts.Tool {
+    private struct UndeclaredTool: PKContracts.PKTool {
         let callName = "undeclared"
         let name = "undeclared"
         let toolDescription = "does not declare sideEffects"
@@ -26,7 +26,7 @@ struct ToolSideEffectsTests {
         }
     }
 
-    private struct NoneTool: PKContracts.Tool {
+    private struct NoneTool: PKContracts.PKTool {
         let callName = "none_tool"
         let name = "none_tool"
         let toolDescription = "declares .none"
@@ -43,7 +43,7 @@ struct ToolSideEffectsTests {
         }
     }
 
-    private struct ExternalProcessTool: PKContracts.Tool {
+    private struct ExternalProcessTool: PKContracts.PKTool {
         let callName = "external_tool"
         let name = "external_tool"
         let toolDescription = "declares .externalProcess"

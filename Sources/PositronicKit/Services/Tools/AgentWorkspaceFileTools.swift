@@ -9,7 +9,7 @@ import PKUtilities
 /// back an Agent workspace with a remote or database implementation. The bundled provider is a
 /// jailed local adapter used when a persisted workspace has a filesystem root but no registered
 /// provider.
-struct AgentWorkspaceFileTool: Tool, Sendable {
+struct AgentWorkspaceFileTool: PKTool, Sendable {
     private static let maxReadBytes = 256 * 1_024
     fileprivate static let maxWriteBytes = 1_024 * 1_024
     private static let maxListedOutputBytes = 128 * 1_024

@@ -3,8 +3,8 @@ import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
-/// Tool to search text content in files (grep-like)
-package struct SearchFileContentTool: Tool, Sendable {
+/// PKTool to search text content in files (grep-like)
+package struct SearchFileContentTool: PKTool, Sendable {
     package let callName = "grep"
     package let name = "Search File Content"
     package let toolDescription = "Search for text content within files in a directory"

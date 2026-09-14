@@ -2,7 +2,7 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Thread-safe in-memory tool persistence for prototyping and development.
+/// Timeline-safe in-memory tool persistence for prototyping and development.
 public actor InMemoryToolPersistence: ToolPersistenceProtocol {
     private var workspaces: [WorkspaceReference] = []
 

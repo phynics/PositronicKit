@@ -21,14 +21,14 @@ public struct TurnOutcomeTimedOut: Error, Sendable {
 /// repository by outcome() and can therefore be replayed after the live stream has ended.
 public struct TurnHandle: Identifiable, Sendable {
     public let id: UUID
-    public let threadID: UUID
+    public let timelineID: UUID
 
     private let eventStream: AsyncStream<TurnEvent>
-    private let kit: PositronicKit
+    private let kit: PKRuntime
 
-    init(id: UUID, threadID: UUID, eventStream: AsyncStream<TurnEvent>, kit: PositronicKit) {
+    init(id: UUID, timelineID: UUID, eventStream: AsyncStream<TurnEvent>, kit: PKRuntime) {
         self.id = id
-        self.threadID = threadID
+        self.timelineID = timelineID
         self.eventStream = eventStream
         self.kit = kit
     }
@@ -89,7 +89,7 @@ public struct TurnHandle: Identifiable, Sendable {
 
     /// Waits for and returns the same durable consolidated result seen by every joiner.
     ///
-    /// The outcome and final assistant message are read from the atomic Thread
+    /// The outcome and final assistant message are read from the atomic Timeline
     /// runtime repository after the Turn reaches a terminal state — never
     /// synthesized from observed events — so this returns the same `TurnResult`
     /// for every caller, including callers that never consumed `events()` or
@@ -105,6 +105,6 @@ public struct TurnHandle: Identifiable, Sendable {
 
     /// Requests cancellation of exactly this Turn.
     public func cancel() async {
-        await kit.cancelTurn(id: id, threadID: threadID)
+        await kit.cancelTurn(id: id, timelineID: timelineID)
     }
 }

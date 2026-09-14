@@ -9,23 +9,23 @@ import Testing
 ///
 /// `TurnHandle.generatedText()` streams assistant text without nested event
 /// switching; `TurnHandle.result()` returns one consolidated, durable
-/// `TurnResult` (outcome + final assistant message) read from the Thread
+/// `TurnResult` (outcome + final assistant message) read from the Timeline
 /// runtime repository. The full `events()` stream remains available.
 @Suite("Turn result and generated-text helpers (#143)", .serialized, .timeLimit(.minutes(2)), .tags(.integration))
 struct TurnResultTests {
-    private func makeKit(_ llm: MockLLMService) -> PositronicKit {
-        PositronicKit(languageModel: llm)
+    private func makeKit(_ llm: MockLLMService) -> PKRuntime {
+        PKRuntime(languageModel: llm)
     }
 
     private func makeManagedTurn(
-        _ kit: PositronicKit,
+        _ kit: PKRuntime,
         message: String = "hello",
         options: TurnOptions = .init()
-    ) async throws -> (ThreadHandle, TurnHandle) {
-        let thread = try await kit.threads.create(title: "TurnResult")
+    ) async throws -> (TimelineHandle, TurnHandle) {
+        let timeline = try await kit.timelines.create(title: "TurnResult")
         let agent = try await kit.agents.create(name: "TurnResult Agent", description: "test")
-        try await kit.agents.attach(agent.id, to: thread.id)
-        let driver = kit.threads.open(thread.id)
+        try await kit.agents.attach(agent.id, to: timeline.id)
+        let driver = kit.timelines.open(timeline.id)
         let turn = try await driver.startTurn(message, options: options)
         return (driver, turn)
     }
@@ -45,7 +45,7 @@ struct TurnResultTests {
 
         let result = try await turn.result()
         #expect(result.turnID == turn.id)
-        #expect(result.threadID == turn.threadID)
+        #expect(result.timelineID == turn.timelineID)
         #expect(result.outcome == .completed)
         #expect(result.message?.content == "Hello, world!")
     }
@@ -75,8 +75,8 @@ struct TurnResultTests {
         let workspace = TestWorkspace()
         let persistence = MockPersistenceService()
         let llm = MockLLMService()
-        let repository = InMemoryThreadRuntimeRepository()
-        let kit = PositronicKit(configuration: .init(
+        let repository = InMemoryTimelineRuntimeRepository()
+        let kit = PKRuntime(configuration: .init(
             languageModel: llm,
             persistence: .init(
                 runtimeRepository: repository,
@@ -91,7 +91,7 @@ struct TurnResultTests {
                 workspaceCreator: MockWorkspaceCreator()
             )
         ))
-        let thread = try await kit.threads.create(title: "Deferred Result")
+        let timeline = try await kit.timelines.create(title: "Deferred Result")
         let attachedWorkspace = WorkspaceReference(
             uri: WorkspaceURI(host: "remote", path: "/deferred"),
             location: .attached,
@@ -100,7 +100,7 @@ struct TurnResultTests {
         )
         try await persistence.saveWorkspace(attachedWorkspace)
         try await persistence.addToolToWorkspace(workspaceID: attachedWorkspace.id, tool: .known("cat"))
-        try await kit.threads.attachWorkspace(attachedWorkspace.id, to: thread.id)
+        try await kit.timelines.attachWorkspace(attachedWorkspace.id, to: timeline.id)
 
         llm.mockClient.nextToolCalls = [[MockToolCall(
             id: "deferred-call",
@@ -109,7 +109,7 @@ struct TurnResultTests {
         )]]
         llm.mockClient.nextResponse = ""
 
-        let turn = try await thread.startDirectTurn(
+        let turn = try await timeline.startDirectTurn(
             "Use the attached workspace",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )

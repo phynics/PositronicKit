@@ -4,7 +4,7 @@ Deep dive into the current PositronicKit runtime design.
 
 ## Modularity
 
-PositronicKit keeps transport-neutral runtime orchestration in `PositronicKit`, shared contracts in `PKContracts`, and prompt composition/rendering in `PKPrompt`.
+PKRuntime keeps transport-neutral runtime orchestration in `PKRuntime`, shared contracts in `PKContracts`, and prompt composition/rendering in `PKPrompt`.
 
 ## Facade-Backed Wiring
 
@@ -13,12 +13,12 @@ The runtime is assembled through explicit facade initializers so orchestration s
 ### Example Usage
 
 ```swift
-let kit = PositronicKit(languageModel: myLLM)
+let kit = PKRuntime(languageModel: myLLM)
 let answer = try await kit.model.generate("Summarize this note.")
-let thread = try await kit.threads.create(title: "Research")
+let timeline = try await kit.timelines.create(title: "Research")
 let agent = try await kit.agents.create(name: "Researcher", description: "Summarizes sources.")
-try await kit.agents.attach(agent.id, to: thread.id)
-let turn = try await thread.startTurn("Summarize the attached sources.")
+try await kit.agents.attach(agent.id, to: timeline.id)
+let turn = try await timeline.startTurn("Summarize the attached sources.")
 for await event in turn.events() {
     // Render future Turn events.
     _ = event
@@ -30,8 +30,8 @@ for await event in turn.events() {
 1. **User Query**: Received via `TurnEngine`.
 2. **Agent continuity**: Managed admission captures a typed `AgentContextSnapshot` from the
    configured `AgentContextSource`; direct Turns skip Agent context entirely.
-3. **Context Gathering**: Thread-scoped context remains injectable and independent of Agent continuity.
+3. **Context Gathering**: Timeline-scoped context remains injectable and independent of Agent continuity.
 4. **Prompt Construction**: `PKPrompt` DSL builds a provider-specific prompt with reserved
-   `agent.identity`, `agent.instructions`, `agent.memory`, and `agent.primary-thread-summary` sections.
+   `agent.identity`, `agent.instructions`, `agent.memory`, and `agent.primary-timeline-summary` sections.
 5. **Execution**: `LLMService` communicates with the AI provider.
-6. **Tool Routing**: If the AI calls a tool, the internal router executes runtime-managed tools and defers attached tools for host-side execution when needed.
+6. **PKTool Routing**: If the AI calls a tool, the internal router executes runtime-managed tools and defers attached tools for host-side execution when needed.

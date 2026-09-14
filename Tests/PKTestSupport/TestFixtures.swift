@@ -18,7 +18,7 @@ import PositronicKit
     public extension WorkspaceReference {
         static func fixture(
             id: UUID = UUID(),
-            uri: WorkspaceURI = .threadWorkspace(UUID()),
+            uri: WorkspaceURI = .timelineWorkspace(UUID()),
             location: WorkspaceLocation = .runtime,
             originID: UUID? = nil,
             rootPath: String? = nil,

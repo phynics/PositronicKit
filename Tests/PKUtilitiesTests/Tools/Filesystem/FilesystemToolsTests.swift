@@ -31,7 +31,7 @@ struct FilesystemToolsTests {
         try? FileManager.default.removeItem(at: tempURL)
     }
 
-    @Test("List Directory Tool")
+    @Test("List Directory PKTool")
     func listDirectoryTool() async throws {
         defer { cleanup() }
         let tool = ListDirectoryTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
@@ -46,7 +46,7 @@ struct FilesystemToolsTests {
         #expect(!content.contains("nested.txt"))
     }
 
-    @Test("Read File Tool")
+    @Test("Read File PKTool")
     func readFileTool() async throws {
         defer { cleanup() }
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
@@ -56,7 +56,7 @@ struct FilesystemToolsTests {
         #expect(result.output == "Hello World")
     }
 
-    @Test("Find File Tool")
+    @Test("Find File PKTool")
     func findFileTool() async throws {
         defer { cleanup() }
         let tool = FindFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
@@ -69,7 +69,7 @@ struct FilesystemToolsTests {
         #expect(content.contains("subdir/nested.txt"))
     }
 
-    @Test("Search File Content Tool")
+    @Test("Search File Content PKTool")
     func searchFileContentTool() async throws {
         defer { cleanup() }
         let tool = SearchFileContentTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
@@ -87,7 +87,7 @@ struct FilesystemToolsTests {
         #expect(result2.output.contains("nested.txt"))
     }
 
-    @Test("Search Files Tool")
+    @Test("Search Files PKTool")
     func searchFilesTool() async throws {
         defer { cleanup() }
         let tool = SearchFilesTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
@@ -109,7 +109,7 @@ struct FilesystemToolsTests {
         #expect(resultSingleFile.output.contains("file1.txt"))
     }
 
-    @Test("Search Files Tool fails when grep output exceeds resource limit")
+    @Test("Search Files PKTool fails when grep output exceeds resource limit")
     func searchFilesToolFailsWhenOutputLimitExceeded() async throws {
         defer { cleanup() }
         let highOutputFile = tempURL.appendingPathComponent("high-output.txt")
@@ -129,7 +129,7 @@ struct FilesystemToolsTests {
         #expect(result.error?.contains("output byte limit") == true)
     }
 
-    @Test("Search Files Tool fails before reading files over per-file byte limit")
+    @Test("Search Files PKTool fails before reading files over per-file byte limit")
     func searchFilesToolFailsWhenPerFileLimitExceeded() async throws {
         defer { cleanup() }
         let largeFile = tempURL.appendingPathComponent("large-search.txt")
@@ -147,7 +147,7 @@ struct FilesystemToolsTests {
         #expect(result.error?.contains("per-file byte limit") == true)
     }
 
-    @Test("Search Files Tool fails at file-count limit")
+    @Test("Search Files PKTool fails at file-count limit")
     func searchFilesToolFailsAtFileCountLimit() async throws {
         defer { cleanup() }
         let tool = SearchFilesTool(
@@ -161,7 +161,7 @@ struct FilesystemToolsTests {
         #expect(result.error?.contains("file-count limit") == true)
     }
 
-    @Test("Search Files Tool fails at wall-clock limit")
+    @Test("Search Files PKTool fails at wall-clock limit")
     func searchFilesToolFailsAtWallClockLimit() async throws {
         defer { cleanup() }
         let tool = SearchFilesTool(
@@ -175,7 +175,7 @@ struct FilesystemToolsTests {
         #expect(result.error?.contains("timed out") == true)
     }
 
-    @Test("Search File Content Tool fails before reading files over per-file byte limit")
+    @Test("Search File Content PKTool fails before reading files over per-file byte limit")
     func searchFileContentToolFailsWhenPerFileLimitExceeded() async throws {
         defer { cleanup() }
         let largeFile = tempURL.appendingPathComponent("large.txt")
@@ -189,7 +189,7 @@ struct FilesystemToolsTests {
         #expect(result.error?.contains("per-file byte limit") == true)
     }
 
-    @Test("Search File Content Tool fails at file-count limit")
+    @Test("Search File Content PKTool fails at file-count limit")
     func searchFileContentToolFailsAtFileCountLimit() async throws {
         defer { cleanup() }
         let tool = SearchFileContentTool(
@@ -203,7 +203,7 @@ struct FilesystemToolsTests {
         #expect(result.error?.contains("file-count limit") == true)
     }
 
-    @Test("Search File Content Tool fails at total byte limit")
+    @Test("Search File Content PKTool fails at total byte limit")
     func searchFileContentToolFailsAtTotalByteLimit() async throws {
         defer { cleanup() }
         let tool = SearchFileContentTool(
@@ -217,7 +217,7 @@ struct FilesystemToolsTests {
         #expect(result.error?.contains("total byte limit") == true)
     }
 
-    @Test("Search File Content Tool fails at wall-clock limit")
+    @Test("Search File Content PKTool fails at wall-clock limit")
     func searchFileContentToolFailsAtWallClockLimit() async throws {
         defer { cleanup() }
         let tool = SearchFileContentTool(
@@ -231,7 +231,7 @@ struct FilesystemToolsTests {
         #expect(result.error?.contains("timed out") == true)
     }
 
-    @Test("Search File Content Tool enforces match limit across files")
+    @Test("Search File Content PKTool enforces match limit across files")
     func searchFileContentToolEnforcesMatchLimitAcrossFiles() async throws {
         defer { cleanup() }
         try """

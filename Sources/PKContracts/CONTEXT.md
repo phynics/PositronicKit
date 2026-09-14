@@ -7,7 +7,7 @@ is a leaf context and does not own runtime orchestration.
 
 **Model Message**:
 A provider-neutral request or response message with ordered content and role semantics.
-_Avoid_: Thread Message, ThreadMessage
+_Avoid_: Timeline Message, TimelineMessage
 
 **Modality**:
 A supported form of model content, such as text, image, audio, or structured data.

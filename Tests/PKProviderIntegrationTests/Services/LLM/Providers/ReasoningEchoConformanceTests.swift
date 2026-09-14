@@ -31,7 +31,7 @@ struct ReasoningEchoConformanceTests {
     }
 
     @Test("History reconstruction sets LLMMessage.reasoning from persisted Message.reasoning")
-    func historyReconstructionThreadsThink() async throws {
+    func historyReconstructionTimelinesThink() async throws {
         let history = [
             Message(content: "answer", role: .assistant, reasoning: "step-by-step reasoning"),
         ]

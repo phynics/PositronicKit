@@ -11,7 +11,7 @@ _Avoid_: runtime context, message pipeline
 
 **PromptNode**:
 The canonical internal intermediate representation produced from Prompt values.
-_Avoid_: provider message, Thread history
+_Avoid_: provider message, Timeline history
 
 **PromptBuilder**:
 The result-builder surface used to compose Prompt values from structural children.
@@ -47,4 +47,4 @@ _Avoid_: model retry, history compaction
 **PromptJournal**:
 State that tracks rendered prompt emission and cache transitions. It can be discarded and rebuilt
 without changing runtime meaning.
-_Avoid_: ThreadRuntimeRepository, semantic summary
+_Avoid_: TimelineRuntimeRepository, semantic summary

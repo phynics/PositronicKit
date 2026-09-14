@@ -22,8 +22,8 @@ The tagged version applies to the public products documented in
    milestone P0/P1 blocker.
 2. Reconcile any evaluated-but-removed runtime experiments with their decision records before
    reviewing the public API. In particular, primary-Workspace tool activity is durable only on the
-   executing Thread in v4; `AgentActivitySink` is lifecycle-only and must not become a hidden
-   cross-Thread history path without a new issue and an accepted history contract.
+   executing Timeline in v4; `AgentActivitySink` is lifecycle-only and must not become a hidden
+   cross-Timeline history path without a new issue and an accepted history contract.
 3. Review the public API inventory with `make verify-public-api` on Linux and macOS. The platform
    graphs differ, especially for Apple-only products, so the release requires reviewed
    `api/4.0-public-api-linux.json` and `api/4.0-public-api-macos.json` files. For an intentional

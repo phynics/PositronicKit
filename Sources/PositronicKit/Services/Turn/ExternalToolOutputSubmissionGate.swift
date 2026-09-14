@@ -1,16 +1,16 @@
 import Foundation
 import PKContracts
 
-// MARK: - External Tool Output Submission Gate
+// MARK: - External PKTool Output Submission Gate
 
 /// Runtime-scoped guard against duplicate external tool-output submission.
 ///
-/// Reservations are keyed by `(threadID, toolCallId)` only, so this type must never be shared
-/// across independent runtime instances — two `PositronicKit` instances constructed in one
+/// Reservations are keyed by `(timelineID, toolCallId)` only, so this type must never be shared
+/// across independent runtime instances — two `PKRuntime` instances constructed in one
 /// process are documented to start independent histories, and a process-global gate would let
-/// them contend over identical keys. `PositronicKit` owns exactly one instance per runtime
-/// identity (see `PositronicKit.RuntimeState`) and threads it through
-/// `TurnEngine.Dependencies`, the same way `TurnEventHub` is threaded through.
+/// them contend over identical keys. `PKRuntime` owns exactly one instance per runtime
+/// identity (see `PKRuntime.RuntimeState`) and timelines it through
+/// `TurnEngine.Dependencies`, the same way `TurnEventHub` is carried through.
 actor ExternalToolOutputSubmissionGate {
     private var reservedToolOutputs: Set<ReservedToolOutput> = []
 
@@ -28,13 +28,13 @@ actor ExternalToolOutputSubmissionGate {
     /// - Returns: The subset of `toolOutputs` that are validated and still need persistence.
     func validate(
         _ toolOutputs: [ToolOutputSubmission],
-        threadID: UUID,
+        timelineID: UUID,
         inputMessageID: UUID? = nil,
-        runtimeRepository: any ThreadRuntimeRepository
+        runtimeRepository: any TimelineRuntimeRepository
     ) async throws -> [ToolOutputSubmission] {
         guard !toolOutputs.isEmpty else { return [] }
 
-        let existingMessages = try await runtimeRepository.fetchMessages(for: threadID)
+        let existingMessages = try await runtimeRepository.fetchMessages(for: timelineID)
         var pendingToolCallIds = Set<String>()
 
         // Only the latest uninterrupted assistant tool-call set is externally resumable.
@@ -56,7 +56,7 @@ actor ExternalToolOutputSubmissionGate {
         }
 
         // Remove call IDs already reserved by concurrent submissions.
-        for reservation in reservedToolOutputs where reservation.threadID == threadID {
+        for reservation in reservedToolOutputs where reservation.timelineID == timelineID {
             pendingToolCallIds.remove(reservation.toolCallId)
         }
 
@@ -77,13 +77,13 @@ actor ExternalToolOutputSubmissionGate {
                 guard pendingToolCallIds.remove(output.toolCallID) != nil else {
                     throw ToolError.unmatchedToolOutput(output.toolCallID)
                 }
-                let reservation = ReservedToolOutput(threadID: threadID, toolCallId: output.toolCallID)
+                let reservation = ReservedToolOutput(timelineID: timelineID, toolCallId: output.toolCallID)
                 reservedToolOutputs.insert(reservation)
                 validated.append(output)
             }
         } catch {
             for output in validated {
-                reservedToolOutputs.remove(ReservedToolOutput(threadID: threadID, toolCallId: output.toolCallID))
+                reservedToolOutputs.remove(ReservedToolOutput(timelineID: timelineID, toolCallId: output.toolCallID))
             }
             throw error
         }
@@ -97,18 +97,18 @@ actor ExternalToolOutputSubmissionGate {
     /// External output is intentionally message-only. The source Turn has already become terminal
     /// after external deferral, and `ToolOutputSubmission` does not carry its originating Turn ID;
     /// recording a `RuntimeToolResult` here would either attach it to the wrong Turn or reopen the
-    /// terminal lifecycle. Runtime-local results use `ThreadRuntimeRepository`'s atomic result plus
+    /// terminal lifecycle. Runtime-local results use `TimelineRuntimeRepository`'s atomic result plus
     /// message boundary in `ToolRouter` instead.
     func commit(
         _ validatedOutputs: [ToolOutputSubmission],
-        threadID: UUID,
-        runtimeRepository: any ThreadRuntimeRepository
+        timelineID: UUID,
+        runtimeRepository: any TimelineRuntimeRepository
     ) async throws {
         guard !validatedOutputs.isEmpty else { return }
 
         // Re-check for already-persisted outputs — a prior partial batch may have persisted
         // some messages before failing.
-        let existingMessages = try await runtimeRepository.fetchMessages(for: threadID)
+        let existingMessages = try await runtimeRepository.fetchMessages(for: timelineID)
         let persistedToolCallIds = Set(
             existingMessages
                 .filter { $0.messageRole == .tool }
@@ -117,8 +117,8 @@ actor ExternalToolOutputSubmissionGate {
 
         for output in validatedOutputs {
             if persistedToolCallIds.contains(output.toolCallID) { continue }
-            let msg = ThreadMessage(
-                threadID: threadID,
+            let msg = TimelineMessage(
+                timelineID: timelineID,
                 role: .tool,
                 content: output.output,
                 toolCallID: output.toolCallID
@@ -128,14 +128,14 @@ actor ExternalToolOutputSubmissionGate {
 
         // Release reservations for all validated outputs (persisted or already-present).
         for output in validatedOutputs {
-            reservedToolOutputs.remove(ReservedToolOutput(threadID: threadID, toolCallId: output.toolCallID))
+            reservedToolOutputs.remove(ReservedToolOutput(timelineID: timelineID, toolCallId: output.toolCallID))
         }
     }
 
     /// Releases reservations for the specified tool call IDs (on preparation failure).
-    func releaseReservations(threadID: UUID, toolCallIds: [String]) {
+    func releaseReservations(timelineID: UUID, toolCallIds: [String]) {
         for toolCallId in toolCallIds {
-            reservedToolOutputs.remove(ReservedToolOutput(threadID: threadID, toolCallId: toolCallId))
+            reservedToolOutputs.remove(ReservedToolOutput(timelineID: timelineID, toolCallId: toolCallId))
         }
     }
 
@@ -146,6 +146,6 @@ actor ExternalToolOutputSubmissionGate {
 }
 
 private struct ReservedToolOutput: Hashable {
-    let threadID: UUID
+    let timelineID: UUID
     let toolCallId: String
 }

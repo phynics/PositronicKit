@@ -2,7 +2,7 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// A thread-safe, in-memory configuration service for transient state.
+/// A timeline-safe, in-memory configuration service for transient state.
 /// Useful for prototyping and cases where persistence is not required.
 public actor InMemoryConfigurationService: ConfigurationServiceProtocol {
     private var configuration: LLMConfiguration

@@ -23,8 +23,8 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     /// Filesystem root for the workspace
     public var rootPath: String? // Filesystem root for the workspace
     public var trustLevel: WorkspaceTrustLevel
-    /// The id of the thread that last modified this workspace, if any.
-    public var lastModifiedBy: UUID? // Thread ID that last modified
+    /// The id of the timeline that last modified this workspace, if any.
+    public var lastModifiedBy: UUID? // Timeline ID that last modified
     public var status: WorkspaceStatus
     /// Optional extra text injected into the prompt context when this workspace is active.
     public var contextInjection: String?
@@ -32,10 +32,10 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
 
     /// Where a workspace lives relative to the runtime.
     public enum WorkspaceLocation: RawRepresentable, Codable, Sendable, Equatable {
-        /// A workspace owned directly by the runtime, not tied to a specific thread.
+        /// A workspace owned directly by the runtime, not tied to a specific timeline.
         case runtime
-        /// A workspace specific to a thread in this runtime.
-        case runtimeThread
+        /// A workspace specific to a timeline in this runtime.
+        case runtimeTimeline
         /// A workspace attached from outside the runtime (e.g. an existing filesystem location).
         case attached
 
@@ -44,7 +44,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         public var rawValue: String {
             switch self {
             case .runtime: "runtime"
-            case .runtimeThread: "runtimeThread"
+            case .runtimeTimeline: "runtimeThread"
             case .attached: "attached"
             }
         }
@@ -52,7 +52,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         public init?(rawValue: String) {
             switch rawValue {
             case "runtime": self = .runtime
-            case "runtimeThread": self = .runtimeThread
+            case "runtimeThread": self = .runtimeTimeline
             case "attached": self = .attached
             default: return nil
             }
@@ -129,13 +129,13 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         )
     }
 
-    /// Creates a primary workspace for a thread.
+    /// Creates a primary workspace for a timeline.
     public static func makePrimary(
-        forThread threadID: UUID,
+        forTimeline timelineID: UUID,
         rootPath: String
     ) -> WorkspaceReference {
         WorkspaceReference(
-            uri: .threadWorkspace(threadID),
+            uri: .timelineWorkspace(timelineID),
             location: .runtime,
             rootPath: rootPath,
             trustLevel: .full

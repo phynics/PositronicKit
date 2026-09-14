@@ -4,7 +4,7 @@ import PKTestSupport
 import PositronicKit
 import Testing
 
-private struct CaptureProbeTool: Tool {
+private struct CaptureProbeTool: PKTool {
     let callName = "capture_probe"
     let name = "Capture Probe"
     let toolDescription = "Verifies that mock service requests preserve tool metadata."

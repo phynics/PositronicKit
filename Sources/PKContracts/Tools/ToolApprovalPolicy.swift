@@ -9,7 +9,7 @@ public enum ToolApprovalDecision: Sendable, Equatable {
 }
 
 /// Gate consulted at the runtime execution sink before any tool whose
-/// ``Tool/requiresPermission`` is `true` runs.
+/// ``PKTool/requiresPermission`` is `true` runs.
 ///
 /// `ToolRouter` calls ``requestApproval(tool:arguments:)`` for every permissioned tool — for both
 /// structured provider tool calls and text-fallback `<tool_call>` calls, since both converge on the
@@ -25,7 +25,7 @@ public protocol ToolApprovalPolicy: Sendable {
     /// Returns the approval decision for a permissioned tool call.
     ///
     /// - Parameters:
-    ///   - tool: The resolved tool about to execute. ``Tool/requiresPermission`` is always `true` here.
+    ///   - tool: The resolved tool about to execute. ``PKTool/requiresPermission`` is always `true` here.
     ///   - arguments: The decoded arguments the tool will run with (routing-only keys already stripped).
     func requestApproval(tool: AnyTool, arguments: [String: AnyCodable]) async -> ToolApprovalDecision
 }

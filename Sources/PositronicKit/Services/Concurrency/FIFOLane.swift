@@ -4,7 +4,7 @@ import Synchronization
 /// A process-local, cancellation-aware FIFO execution lane keyed by `Key`.
 ///
 /// `FIFOLane` is the single implementation backing every "run exclusively for this identity, in
-/// arrival order" coordinator in the runtime (Agent lifecycle, Thread authority, Workspace
+/// arrival order" coordinator in the runtime (Agent lifecycle, Timeline authority, Workspace
 /// execution). Calls that share a key never overlap and preserve arrival order; calls with
 /// different keys may run concurrently. A caller whose task is cancelled while queued is removed
 /// from the lane and never runs its operation — ``run(_:operation:)`` throws `CancellationError`

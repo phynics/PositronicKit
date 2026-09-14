@@ -1,6 +1,5 @@
 import Foundation
 @testable import PositronicKit
-import struct PositronicKit.Thread
 @testable import PKContracts
 import PKUtilities
 import Testing
@@ -14,8 +13,8 @@ struct PersistenceProtocolTests {
         let mock = MockPersistenceStore()
 
         // Verify it conforms to all required domains
-        let _: ThreadMessageStoreProtocol = mock
-        let _: ThreadPersistenceProtocol = mock
+        let _: TimelineMessageStoreProtocol = mock
+        let _: TimelinePersistenceProtocol = mock
         let _: AgentTemplateStoreProtocol = mock
         let _: WorkspaceStore = mock
         let _: ToolPersistenceProtocol = mock
@@ -24,16 +23,16 @@ struct PersistenceProtocolTests {
 
 /// Minimal mock to verify protocol definitions exist
 final class MockPersistenceStore:
-    ThreadMessageStoreProtocol,
-    ThreadPersistenceProtocol,
+    TimelineMessageStoreProtocol,
+    TimelinePersistenceProtocol,
     AgentTemplateStoreProtocol,
     WorkspaceStore,
     ToolPersistenceProtocol,
     @unchecked Sendable // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
 {
     // MessageStoreProtocol
-    func saveMessage(_: ThreadMessage) async throws {}
-    func fetchMessages(for _: UUID) async throws -> [ThreadMessage] {
+    func saveMessage(_: TimelineMessage) async throws {}
+    func fetchMessages(for _: UUID) async throws -> [TimelineMessage] {
         []
     }
 
@@ -46,18 +45,18 @@ final class MockPersistenceStore:
         []
     }
 
-    // ThreadPersistenceProtocol
-    func saveThread(_: Thread) async throws {}
-    func fetchThread(id _: UUID) async throws -> Thread? {
+    // TimelinePersistenceProtocol
+    func saveTimeline(_: TimelineRecord) async throws {}
+    func fetchTimeline(id _: UUID) async throws -> TimelineRecord? {
         nil
     }
 
-    func fetchAllThreads(includeArchived _: Bool) async throws -> [Thread] {
+    func fetchAllTimelines(includeArchived _: Bool) async throws -> [TimelineRecord] {
         []
     }
 
-    func deleteThread(id _: UUID) async throws {}
-    func pruneThreads(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int {
+    func deleteTimeline(id _: UUID) async throws {}
+    func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int {
         0
     }
 

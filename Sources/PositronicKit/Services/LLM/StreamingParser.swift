@@ -203,7 +203,7 @@ struct StreamingParser {
         return (text, isThinking, false)
     }
 
-    // MARK: - Tool Parsing
+    // MARK: - PKTool Parsing
 
     /// Extract tool calls from text containing XML tags
     func extractToolCalls(from text: String) -> (cleanText: String, toolCalls: [ToolCall]) {

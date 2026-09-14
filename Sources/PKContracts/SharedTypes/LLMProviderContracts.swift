@@ -109,7 +109,7 @@ public struct LLMToolCall: Sendable, Codable, Equatable {
 
 /// Provider-neutral chat message sent to/received from an `LLMClientProtocol` conformer.
 public struct LLMMessage: Sendable, Codable, Equatable {
-    /// The message's speaker role in the thread.
+    /// The message's speaker role in the timeline.
     public enum Role: String, Sendable, Codable {
         /// System-level instructions.
         case system
@@ -137,7 +137,7 @@ public struct LLMMessage: Sendable, Codable, Equatable {
     public let toolCalls: [LLMToolCall]?
 
     /// Structured reasoning/thinking to echo back on follow-up turns for reasoning models that
-    /// require it (STAB-8). Threaded from persisted `Message.reasoning` by the history-reconstruction
+    /// require it (STAB-8). Derived from persisted `Message.reasoning` by the history-reconstruction
     /// path (`RenderedPrompt.buildMessages()` / `buildAssistantMessage`). The field name is
     /// provider-neutral; each provider adapter maps it onto its own wire field:
     /// Ollama → `thinking`, OpenRouter → `reasoning`. The OpenAI Chat Completions adapter

@@ -11,7 +11,7 @@ public struct PreparedStructuredOutputRequest: Sendable {
     public let messages: [LLMMessage]
     /// Tools to send, including any synthetic tool injected to carry the structured schema.
     public let tools: [LLMToolDefinition]?
-    /// Tool-choice constraint; set to force the synthetic structured-output tool where used.
+    /// PKTool-choice constraint; set to force the synthetic structured-output tool where used.
     public let toolChoice: LLMToolChoice?
     /// Native response-format constraint, when the provider supports one directly (`nil` when
     /// structured output is instead carried via a synthetic tool call).
@@ -41,8 +41,8 @@ public struct PreparedStructuredOutputRequest: Sendable {
 
 /// Provider-specific preparation of structured-output requests.
 ///
-/// Concrete implementations live in dedicated provider targets (`PKOpenAIProvider`,
-/// `PKOllamaProvider`, etc.) and are supplied by the client that uses them. This keeps
+/// Concrete implementations live in dedicated provider targets (`PKOpenAI`,
+/// `PKOllama`, etc.) and are supplied by the client that uses them. This keeps
 /// provider knowledge out of the core runtime without global mutable registration.
 public protocol StructuredOutputAdapter: Sendable {
     /// Transforms a neutral structured-output request into the provider-specific shape.

@@ -267,7 +267,7 @@ public actor OllamaClient: LLMClientProtocol {
     }
 
     /// Maps Ollama's completion signal onto the shared `FinishReason` vocabulary (PKR-13).
-    /// Tool-call detection takes priority (matching prior behavior): it is driven by the
+    /// PKTool-call detection takes priority (matching prior behavior): it is driven by the
     /// presence of `message.tool_calls`, not by `done_reason`, since Ollama does not
     /// consistently populate `done_reason` with a tool-call-specific value. Otherwise,
     /// `done_reason` is mapped directly — most notably `"length"`, which previously collapsed
