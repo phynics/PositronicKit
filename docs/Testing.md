@@ -125,7 +125,11 @@ Every script in `Scripts/` is either wired into a Make gate (and CI through
 it) or removed. `check-canonical-turn-api.sh` and the unused
 `annotate-guardrail-exceptions.py` helper were removed for this reason;
 `validate-docc.sh` runs inside `validate-docs.sh` on the macOS gate because
-its later stages need an Apple toolchain.
+its later stages need an Apple toolchain. It also accepts `--stories-only`,
+which runs the public-Stories import rule and stops before those stages, so
+its fixture test can assert a real exit 0 on any platform rather than
+whitelisting whichever tool is missing on the host. The flag runs the rule; it
+does not skip it, and a violating tree still exits non-zero under it.
 
 Every gate script has a fixture test in `Tests/Scripts/` that feeds it a
 violating input and asserts a non-zero exit. Shell harnesses end in

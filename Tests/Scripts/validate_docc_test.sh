@@ -3,10 +3,11 @@
 #
 # Copies the gate script into a synthetic fixture repository and asserts the
 # public-Stories ordinary-import rule rejects an internal import. The later
-# DocC stages cannot run in the fixture, so the clean case only asserts the
-# tree passes the Stories rule (it then stops at the first expected
-# post-Stories boundary: a missing `xcrun` on Linux, or missing SwiftPM build
-# products on macOS where `xcrun` resolves) rather than asserting a full pass.
+# DocC stages need an Apple toolchain and a built SwiftPM tree, neither of
+# which a fixture has, so the clean case runs the script under
+# `--stories-only` and asserts a real exit 0. That keeps the assertion
+# identical on every platform instead of whitelisting whichever tool happens
+# to be missing on the host.
 set -euo pipefail
 
 test_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,17 +37,18 @@ make_fixture() {
     fi
 }
 
-# run_case <name> <kind> <expected-exit> [expected-message-substring]
+# run_case <name> <kind> <expected-exit> [expected-message-substring] [script-args...]
 run_case() {
     local name="$1"
     local kind="$2"
     local expected_exit="$3"
     local expected_message="${4:-}"
+    shift 4 || shift $#
     local fixture="$tmp_dir/$name"
     make_fixture "$fixture" "$kind"
     local output
     local actual_exit=0
-    output="$(bash "$fixture/Scripts/validate-docc.sh" 2>&1)" || actual_exit=$?
+    output="$(bash "$fixture/Scripts/validate-docc.sh" "$@" 2>&1)" || actual_exit=$?
     if [ "$actual_exit" -ne "$expected_exit" ]; then
         printf 'FAIL %s: expected exit %s, got %s\n%s\n' "$name" "$expected_exit" "$actual_exit" "$output"
         fail=$((fail + 1))
@@ -64,40 +66,34 @@ run_case() {
 run_case "internal-import-fails" "internal-import" 1 "ordinary imports"
 run_case "provider-internal-import-fails" "provider-internal-import" 1 "ordinary imports"
 
-# Clean tree: the Stories rule must not fire. Later DocC stages need an Apple
-# toolchain, so any remaining failure must come from those stages, not the
-# Stories rule. Encode that as "exit 0, or exit non-zero without the Stories
-# diagnostic". The script also emits a marker after this stage so a clean
-# fixture proves the stage actually ran before the Apple-only tools are needed.
+# Clean tree under --stories-only: the Stories rule must not fire, the stage
+# marker must be present, and the script must exit 0. The flag stops the script
+# before the Apple-only DocC stages, so this asserts the same thing on Linux and
+# macOS and any other early failure still fails the fixture.
 clean_fixture="$tmp_dir/clean-tree-passes-stories-rule"
 make_fixture "$clean_fixture" "clean"
-clean_output="$(bash "$clean_fixture/Scripts/validate-docc.sh" 2>&1)" && clean_exit=0 || clean_exit=$?
-if printf '%s\n' "$clean_output" | grep -qF "ordinary imports"; then
+clean_output="$(bash "$clean_fixture/Scripts/validate-docc.sh" --stories-only 2>&1)" && clean_exit=0 || clean_exit=$?
+if [ "$clean_exit" -ne 0 ]; then
+    printf 'FAIL clean-tree-passes-stories-rule: expected exit 0, got %s:\n%s\n' "$clean_exit" "$clean_output"
+    fail=$((fail + 1))
+elif printf '%s\n' "$clean_output" | grep -qF "ordinary imports"; then
     printf 'FAIL clean-tree-passes-stories-rule: Stories rule fired on a clean tree:\n%s\n' "$clean_output"
     fail=$((fail + 1))
 elif ! printf '%s\n' "$clean_output" | grep -qF "DocC public story import checks passed."; then
     printf 'FAIL clean-tree-passes-stories-rule: expected the public story check marker:\n%s\n' "$clean_output"
     fail=$((fail + 1))
 else
-    if [ "$clean_exit" -eq 0 ]; then
-        printf 'ok clean-tree-passes-stories-rule (exit 0)\n'
-        pass=$((pass + 1))
-    elif [ "$clean_exit" -eq 127 ] && printf '%s\n' "$clean_output" | grep -qE 'xcrun: (command )?not found'; then
-        # Linux has no xcrun. Accept the expected platform boundary explicitly;
-        # an unrelated early failure must still fail this fixture.
-        printf 'ok clean-tree-passes-stories-rule (expected missing xcrun)\n'
-        pass=$((pass + 1))
-    elif [ "$clean_exit" -eq 1 ] && printf '%s\n' "$clean_output" | grep -qF 'Missing build products at'; then
-        # macOS resolves xcrun, so the fixture stops at the next expected
-        # boundary instead: it has no SwiftPM build products. Any other
-        # post-Stories failure must still fail this fixture.
-        printf 'ok clean-tree-passes-stories-rule (expected missing build products)\n'
-        pass=$((pass + 1))
-    else
-        printf 'FAIL clean-tree-passes-stories-rule: unexpected exit %s:\n%s\n' "$clean_exit" "$clean_output"
-        fail=$((fail + 1))
-    fi
+    printf 'ok clean-tree-passes-stories-rule (exit 0)\n'
+    pass=$((pass + 1))
 fi
+
+# --stories-only must not become an escape hatch: it runs the rule, it does not
+# skip it. A violating tree still has to exit non-zero under the flag.
+run_case "stories-only-still-rejects-internal-import" "internal-import" 1 "ordinary imports" --stories-only
+
+# An unrecognised flag must be rejected rather than silently ignored, so a
+# typo in a caller cannot quietly turn the gate into a no-op.
+run_case "unknown-argument-is-rejected" "clean" 2 "unknown argument" --not-a-real-flag
 
 printf 'validate_docc_test: %s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
