@@ -78,8 +78,18 @@ elif ! printf '%s\n' "$clean_output" | grep -qF "DocC public story import checks
     printf 'FAIL clean-tree-passes-stories-rule: expected the public story check marker:\n%s\n' "$clean_output"
     fail=$((fail + 1))
 else
-    printf 'ok clean-tree-passes-stories-rule (exit %s)\n' "$clean_exit"
-    pass=$((pass + 1))
+    if [ "$clean_exit" -eq 0 ]; then
+        printf 'ok clean-tree-passes-stories-rule (exit 0)\n'
+        pass=$((pass + 1))
+    elif [ "$clean_exit" -eq 127 ] && printf '%s\n' "$clean_output" | grep -qE 'xcrun: (command )?not found'; then
+        # Linux has no xcrun. Accept the expected platform boundary explicitly;
+        # an unrelated early failure must still fail this fixture.
+        printf 'ok clean-tree-passes-stories-rule (expected missing xcrun)\n'
+        pass=$((pass + 1))
+    else
+        printf 'FAIL clean-tree-passes-stories-rule: unexpected exit %s:\n%s\n' "$clean_exit" "$clean_output"
+        fail=$((fail + 1))
+    fi
 fi
 
 printf 'validate_docc_test: %s passed, %s failed\n' "$pass" "$fail"

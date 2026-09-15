@@ -215,6 +215,7 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/migrate_turn_execution_request_test.py
 	@python3 -B Tests/Scripts/check_workspace_tool_dispatch_test.py
 	@python3 -B Tests/Scripts/validate_documentation_test.py
+	@python3 -B Tests/Scripts/check_documentation_currency_test.py
 	@python3 -B Tests/Scripts/generate_doc_navigation_test.py
 	@python3 -B Tests/Scripts/validate_release_readiness_test.py
 	@python3 -B Tests/Scripts/check_v4_vocabulary_test.py
