@@ -23,8 +23,8 @@ file also imports SwiftUI. This is the call site the DSL is written for.
 Outside a result-builder context the collision is real and this decision does not remove it. A file
 that imports both SwiftUI and PKPrompt and names `ForEach` in an ordinary expression must write
 `PKPrompt.ForEach`. That cost is accepted: the qualified spelling is a normal Swift disambiguation
-at an uncommon call site, not the repeated `import struct` workaround that motivated the Thread
-rename, and it never appears in the authored-prompt syntax the DSL exists to provide.
+at an uncommon call site, not the repeated selective-type-import workaround that motivated the
+Timeline rename, and it never appears in the authored-prompt syntax the DSL exists to provide.
 `Tests/PublicProductConsumer/CollisionConsumer.swift` compiles both call sites so neither claim
 depends on prose.
 
