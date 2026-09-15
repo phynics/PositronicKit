@@ -3,9 +3,10 @@
 #
 # Copies the gate script into a synthetic fixture repository and asserts the
 # public-Stories ordinary-import rule rejects an internal import. The later
-# DocC stages require an Apple toolchain, so the clean case only asserts the
-# tree passes the Stories rule (it may still stop at the missing `docc`
-# binary outside macOS) rather than asserting a full pass.
+# DocC stages cannot run in the fixture, so the clean case only asserts the
+# tree passes the Stories rule (it then stops at the first expected
+# post-Stories boundary: a missing `xcrun` on Linux, or missing SwiftPM build
+# products on macOS where `xcrun` resolves) rather than asserting a full pass.
 set -euo pipefail
 
 test_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -85,6 +86,12 @@ else
         # Linux has no xcrun. Accept the expected platform boundary explicitly;
         # an unrelated early failure must still fail this fixture.
         printf 'ok clean-tree-passes-stories-rule (expected missing xcrun)\n'
+        pass=$((pass + 1))
+    elif [ "$clean_exit" -eq 1 ] && printf '%s\n' "$clean_output" | grep -qF 'Missing build products at'; then
+        # macOS resolves xcrun, so the fixture stops at the next expected
+        # boundary instead: it has no SwiftPM build products. Any other
+        # post-Stories failure must still fail this fixture.
+        printf 'ok clean-tree-passes-stories-rule (expected missing build products)\n'
         pass=$((pass + 1))
     else
         printf 'FAIL clean-tree-passes-stories-rule: unexpected exit %s:\n%s\n' "$clean_exit" "$clean_output"

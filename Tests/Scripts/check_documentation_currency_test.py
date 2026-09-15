@@ -2,10 +2,17 @@
 """Fail-closed tests for Scripts/check-documentation-currency.py.
 
 The script resolves its repository from its own location, so each case copies
-it into a synthetic fixture tree containing the current-document set. Only the
-fail-closed directions are asserted here: a retired phrase or a missing
-required phrase must exit non-zero naming the violation. The positive
-direction is covered by `make verify-documentation` on a full checkout.
+it into a synthetic fixture tree containing the current-document set. The
+clean fixture tree must pass, and the fail-closed directions are asserted: a
+retired phrase or a missing required phrase must exit non-zero naming the
+violation. The full-checkout positive direction is additionally covered by
+`make verify-documentation`.
+
+Note: CURRENT_DOCS and REQUIRED_SNIPPETS below are hand-mirrored from
+Scripts/check-documentation-currency.py, which is the source of truth. If the
+script gains a document or a required phrase, the clean fixture fails here
+with a FileNotFoundError (or a "must mention" failure) until this mirror is
+updated alongside it.
 """
 
 from __future__ import annotations
