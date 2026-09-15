@@ -4,6 +4,34 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# --stories-only runs the Stories import rule and stops before the DocC stages.
+# Those stages need an Apple toolchain and a built SwiftPM tree, so the fixture
+# test in Tests/Scripts/validate_docc_test.sh cannot reach them; this flag lets
+# it assert a real exit 0 instead of pattern-matching whichever tool is absent.
+STORIES_ONLY=0
+for argument in "$@"; do
+  case "$argument" in
+    --stories-only) STORIES_ONLY=1 ;;
+    *)
+      echo "validate-docc.sh: unknown argument $argument" >&2
+      exit 2
+      ;;
+  esac
+done
+
+if grep -R -n -E '^[[:space:]]*@testable[[:space:]]+import([[:space:]]|$)' \
+  "$ROOT/Tests/PositronicKitTests/Stories" \
+  "$ROOT/Tests/PKProviderIntegrationTests/Stories"; then
+  echo "Public Stories must compile with ordinary imports; move internal-only cases to InternalStories." >&2
+  exit 1
+fi
+
+echo "DocC public story import checks passed."
+
+if [[ "$STORIES_ONLY" -eq 1 ]]; then
+  exit 0
+fi
+
 resolve_build_dir() {
   if [ -n "${BUILD_DIR:-}" ]; then
     echo "$BUILD_DIR"
@@ -32,15 +60,6 @@ if [ -d "$BUILD_DIR/Modules" ]; then
 else
   MODULES_DIR="$BUILD_DIR"
 fi
-
-if grep -R -n -E '^[[:space:]]*@testable[[:space:]]+import([[:space:]]|$)' \
-  "$ROOT/Tests/PositronicKitTests/Stories" \
-  "$ROOT/Tests/PKProviderIntegrationTests/Stories"; then
-  echo "Public Stories must compile with ordinary imports; move internal-only cases to InternalStories." >&2
-  exit 1
-fi
-
-echo "DocC public story import checks passed."
 
 DOCC_BIN="$(xcrun --find docc)"
 SYMBOLGRAPH_BIN="$(xcrun --find swift-symbolgraph-extract)"

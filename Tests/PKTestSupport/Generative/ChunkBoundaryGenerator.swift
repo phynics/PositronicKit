@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Covers the issue #155 property: an arbitrary chunk-boundary split of a valid stream
 /// must decode to the same result as the unsplit stream. Splits are computed over
-/// `String` character offsets (never inside a multi-byte scalar in a way that breaks
+/// Unicode-scalar offsets (never inside a multi-byte scalar in a way that breaks
 /// `String` itself — offsets are clamped to valid indices), so every split is a faithful
 /// re-framing of the same bytes a provider could emit.
 public enum ChunkBoundaryGenerator {

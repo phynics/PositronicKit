@@ -59,6 +59,24 @@ def main() -> None:
         assert "SuiteA.flakyOne: failed 1/2 iterations" in result.stdout, result.stdout
         assert "SuiteB.alwaysRed: failed 2/2 iterations" in result.stdout, result.stdout
 
+        # Skipped cases do not count as passes, and an absent case is a failed
+        # observation for the iteration rather than disappearing from the denominator.
+        fifth = root / "iter-5.xml"
+        sixth = root / "iter-6.xml"
+        write_xunit(fifth, [("SuiteC", "intermittent", True)])
+        sixth.write_text('<testsuites><testcase classname="SuiteC" name="intermittent"><skipped/></testcase></testsuites>', encoding="utf-8")
+        result = run_report([fifth, sixth])
+        assert result.returncode == 1, result.stdout
+        assert "SuiteC.intermittent: failed 1/2 iterations" in result.stdout, result.stdout
+
+        seventh = root / "iter-7.xml"
+        eighth = root / "iter-8.xml"
+        write_xunit(seventh, [("SuiteD", "absent", True)])
+        write_xunit(eighth, [])
+        result = run_report([seventh, eighth])
+        assert result.returncode == 1, result.stdout
+        assert "SuiteD.absent: failed 1/2 iterations" in result.stdout, result.stdout
+
         # A single iteration cannot detect flakes: exit 2.
         result = run_report([first])
         assert result.returncode == 2, result.stdout

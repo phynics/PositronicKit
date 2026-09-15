@@ -23,7 +23,11 @@ from pathlib import Path
 
 
 def parse_xunit(path: Path) -> dict[str, bool]:
-    """Map test ID to True (passed) for one iteration's xUnit file."""
+    """Map test ID to True when it passed for one iteration's xUnit file.
+
+    Skipped cases are recorded as failures: a skipped run did not pass and
+    must not hide an intermittent failure.
+    """
     try:
         root = ET.parse(path).getroot()
     except ET.ParseError as error:
@@ -33,7 +37,8 @@ def parse_xunit(path: Path) -> dict[str, bool]:
         classname = case.get("classname", "")
         name = case.get("name", "")
         test_id = f"{classname}.{name}" if classname else name
-        failed = case.find("failure") is not None or case.find("error") is not None
+        failed = (case.find("failure") is not None or case.find("error") is not None
+                  or case.find("skipped") is not None)
         results[test_id] = not failed
     return results
 
@@ -72,9 +77,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     per_test: dict[str, list[bool]] = {}
-    for path in paths:
-        for name, passed in parse_xunit(path).items():
-            per_test.setdefault(name, []).append(passed)
+    for iteration_index, path in enumerate(paths):
+        iteration = parse_xunit(path)
+        new_names = set(iteration) - set(per_test)
+        for name in new_names:
+            per_test[name] = [False] * iteration_index
+        for name in per_test:
+            per_test[name].append(iteration.get(name, False))
 
     flaky, failing = classify(per_test)
     total = len(per_test)
