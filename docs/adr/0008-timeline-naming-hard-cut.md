@@ -26,3 +26,6 @@ but current Swift declarations, active documentation, and filenames use Timeline
 The `PK` prefix is reserved for names that need disambiguation in ordinary imports or that identify
 the PositronicKit surface itself. Collision-free domain values keep their descriptive names, so the
 API uses `PKRuntime` and `PKTool` alongside `TimelineHandle`, `AnyTool`, and `ToolResult`.
+
+[ADR 0009](0009-prompt-dsl-keeps-swiftui-shaped-names.md) narrows that prefix rule for the PKPrompt
+result-builder DSL, where names are resolved by builder context rather than ordinary import lookup.

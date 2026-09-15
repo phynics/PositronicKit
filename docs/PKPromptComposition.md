@@ -222,5 +222,8 @@ then lowers those values into `PromptNode`, the canonical internal IR.
 
 - Use `AnyPrompt.build { ... }` for an explicit root container.
 - Plain `for` loops use positional identity (`item_0`, `item_1`, ...).
-- Use `ForEach(...)`, `PromptForEach(...)`, or `PromptBuilder.forEach(...)` when loop identity must come from domain data.
+- Use `ForEach(...)` when loop identity must come from domain data. Inside a `@PromptBuilder`
+  context the unqualified name resolves to `PKPrompt.ForEach` even when the file also imports
+  SwiftUI; outside a builder context, write `PKPrompt.ForEach(...)`. See
+  [ADR 0009](adr/0009-prompt-dsl-keeps-swiftui-shaped-names.md).
 - Trait modifiers like `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` inherit through the subtree and are resolved once during assembly.

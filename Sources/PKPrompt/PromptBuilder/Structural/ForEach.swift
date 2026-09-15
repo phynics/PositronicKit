@@ -14,6 +14,11 @@ import Foundation
 ///     TextPrompt(workspace.summary, id: "workspace-\(workspace.id)")
 /// }
 /// ```
+///
+/// This type intentionally shares its name with `SwiftUI.ForEach`. Inside a `@PromptBuilder`
+/// closure the builder accepts only `Prompt` content, so the unqualified name resolves here even
+/// when the same file imports SwiftUI. Outside a result-builder context, write
+/// `PKPrompt.ForEach` to disambiguate.
 public struct ForEach<Data: Sendable, Content: Prompt & Sendable>: Prompt {
     package let elements: [Data]
     package let content: @Sendable (_ element: Data) -> Content

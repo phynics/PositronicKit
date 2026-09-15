@@ -90,6 +90,34 @@ def test_retired_filename_term_is_rejected() -> None:
         assert retired_name in result.stderr, result.stderr
 
 
+def test_selective_first_party_import_is_rejected() -> None:
+    """#156's acceptance criterion: no file may disambiguate a PositronicKit
+    type from a platform type with a selective submodule import."""
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = make_fixture(root)
+        (root / "Tests/ConsumerTests.swift").write_text(
+            "import Foundation\nimport struct PositronicKit.TimelineRecord\n",
+            encoding="utf-8",
+        )
+        result = run_gate(script)
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "selective-import" in result.stderr, result.stderr
+
+
+def test_selective_third_party_import_is_allowed() -> None:
+    """JSONSchema.Schema is an upstream type, not a collision workaround."""
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = make_fixture(root)
+        (root / "Sources/Tool.swift").write_text(
+            "import Foundation\nimport struct JSONSchema.Schema\n",
+            encoding="utf-8",
+        )
+        result = run_gate(script)
+        assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_duplicate_timeline_entry_point_is_rejected() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
@@ -110,6 +138,8 @@ if __name__ == "__main__":
         test_retired_content_term_is_rejected,
         test_retired_filename_term_is_rejected,
         test_duplicate_timeline_entry_point_is_rejected,
+        test_selective_first_party_import_is_rejected,
+        test_selective_third_party_import_is_allowed,
     ]
     for test in tests:
         test()
