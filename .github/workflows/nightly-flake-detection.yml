@@ -46,15 +46,34 @@ jobs:
           n="${ITERATIONS:-5}"
           for i in $(seq 1 "$n"); do
             echo "=== flake-detection: iteration $i/$n ==="
-            swift test --xunit-output ".build/flake-detection/iteration-$i.xml" 2>&1 | tee ".build/flake-detection/iteration-$i.log"
+            # A failing iteration is the data this job collects, not a step error: without
+            # `|| true` the shell's `-e -o pipefail` would abort the loop on the first flake
+            # and leave the remaining iterations unrun, which is exactly the signal we need.
+            # Each iteration draws a fresh generative seed so the nightly run explores cases
+            # beyond the fixed default seed the PR gate pins; the seed is echoed (and lands
+            # in the per-iteration log) so any failure reproduces with PK_GENERATIVE_SEED.
+            seed="$(( GITHUB_RUN_ID + i ))"
+            echo "PK_GENERATIVE_SEED=$seed"
+            PK_GENERATIVE_SEED="$seed" \
+              swift test --xunit-output ".build/flake-detection/iteration-$i.xml" 2>&1 \
+              | tee ".build/flake-detection/iteration-$i.log" || true
           done
 
       - name: Report flaky tests by name
         if: always()
         run: |
+          # Write the Markdown summary once, via --summary, then echo it to the step log.
+          # Piping the script into `tee` on the same path would race the script's own write.
+          # Exit 1 means flakes were found: record it in the job summary and keep the step
+          # red as the nightly signal, but never let it mask a missing report.
+          status=0
           python3 Scripts/detect-flaky-tests.py \
             --report .build/flake-detection/iteration-*.xml \
-            --summary .build/flake-detection/flake-report.md | tee .build/flake-detection/flake-report.md
+            --summary .build/flake-detection/flake-report.md || status=$?
+          if [ -f .build/flake-detection/flake-report.md ]; then
+            cat .build/flake-detection/flake-report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$status"
 
       - name: Publish flake-detection artifacts
         if: always()

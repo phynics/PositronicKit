@@ -135,7 +135,12 @@ dispatch) — never on pull requests. It runs the full suite N times (default 5)
 records one xUnit file per iteration via `swift test --xunit-output`, then runs
 `Scripts/detect-flaky-tests.py --report iteration-*.xml`, which reports every test
 that did not pass every run by name with the failing iteration count
-(`make detect-flakes XUNIT_FILES='...'` runs the report locally). A `.serialized`
+(`make detect-flakes XUNIT_FILES='...'` runs the report locally). Each iteration
+runs under its own `PK_GENERATIVE_SEED` (derived from the run ID) and echoes it, so the
+nightly job explores generative cases beyond the fixed seed the PR gate pins while any
+failure still reproduces from the log. A failing iteration does not stop the loop: all N
+iterations always run, because a test that fails only sometimes is the signal being
+collected. A `.serialized`
 marker is kept only for a real ordering requirement (loopback-listener churn,
 process-global protocol registration, wall-clock timing sensitivity, or contained
 stress load); each remaining marker carries a comment stating that requirement.
