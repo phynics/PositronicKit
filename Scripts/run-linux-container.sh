@@ -14,7 +14,9 @@ EOF
 }
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-podman_bin="${PODMAN:-podman}"
+# Podman is the preferred runtime; Docker is an equally supported alternative.
+# CONTAINER_RUNTIME pins an explicit binary and disables auto-detection.
+container_runtime="${CONTAINER_RUNTIME:-}"
 linux_image="${LINUX_IMAGE:-positronickit-linux-dev}"
 git_common_dir=""
 build_only=0
@@ -62,29 +64,98 @@ if [ "$build_only" -eq 0 ] && [ "$#" -eq 0 ]; then
   exit 2
 fi
 
-run_gate() {
-  local podman_path
-  local runtime_error
-  local -a run_command
+# Prints the runtime's own name, used to select runtime-specific flags. The
+# probe reads `--version` output rather than the binary's filename so an
+# explicit CONTAINER_RUNTIME path still gets the right flags.
+runtime_flavor() {
+  case "$("$1" --version 2>/dev/null | head -n1)" in
+    [Pp]odman*) printf 'podman\n' ;;
+    *) printf 'docker\n' ;;
+  esac
+}
 
-  if ! podman_path="$(command -v "$podman_bin" 2>/dev/null)"; then
-    printf 'PositronicKit Linux testing requires Podman; no native Linux fallback is supported.\n' >&2
-    printf 'Install Podman or set PODMAN=/absolute/path/to/podman.\n' >&2
+# Reports whether the runtime is reachable, capturing its diagnostic in
+# $probe_error for the caller to surface.
+runtime_is_usable() {
+  "$1" info >/dev/null 2>"$probe_error"
+}
+
+require_runtime_unavailable_hint() {
+  printf 'PositronicKit Linux testing requires Podman or Docker; no native Linux fallback is supported.\n' >&2
+  printf 'Install Podman (preferred) or Docker, or set CONTAINER_RUNTIME=/absolute/path/to/runtime.\n' >&2
+}
+
+report_blocked_runtime() {
+  printf '%s is installed but unavailable to this process:\n' "$1" >&2
+  sed 's/^/  /' "$probe_error" >&2
+  printf '\nIf an agent sandbox blocked the container runtime, rerun the same make command with escalated container-runtime permissions.\n' >&2
+}
+
+# Resolves the container runtime into $runtime_path, preferring an explicit
+# CONTAINER_RUNTIME, then Podman, then Docker.
+resolve_runtime() {
+  local candidate
+  local candidate_path
+  local blocked_name=""
+
+  if [ -n "$container_runtime" ]; then
+    if ! candidate_path="$(command -v "$container_runtime" 2>/dev/null)"; then
+      printf "CONTAINER_RUNTIME='%s' is not an executable container runtime.\n" \
+        "$container_runtime" >&2
+      require_runtime_unavailable_hint
+      return 1
+    fi
+    if ! runtime_is_usable "$candidate_path"; then
+      report_blocked_runtime "$candidate_path"
+      return 1
+    fi
+    runtime_path="$candidate_path"
+    return 0
+  fi
+
+  for candidate in podman docker; do
+    if ! candidate_path="$(command -v "$candidate" 2>/dev/null)"; then
+      continue
+    fi
+    if runtime_is_usable "$candidate_path"; then
+      runtime_path="$candidate_path"
+      return 0
+    fi
+    # Remember the first installed-but-unreachable runtime so a sandboxed
+    # Podman still produces the escalation hint instead of "not installed".
+    if [ -z "$blocked_name" ]; then
+      blocked_name="$candidate_path"
+    fi
+  done
+
+  if [ -n "$blocked_name" ]; then
+    report_blocked_runtime "$blocked_name"
     return 1
   fi
 
+  require_runtime_unavailable_hint
+  return 1
+}
+
+run_gate() {
+  local runtime_path=""
+  local runtime_error
+  local flavor
+  local -a run_command
+
   runtime_error="$(mktemp)"
-  if ! "$podman_path" info >/dev/null 2>"$runtime_error"; then
-    printf 'Podman is installed but unavailable to this process:\n' >&2
-    sed 's/^/  /' "$runtime_error" >&2
-    printf '\nIf an agent sandbox blocked Podman, rerun the same make command with escalated container-runtime permissions.\n' >&2
+  probe_error="$runtime_error"
+
+  if ! resolve_runtime; then
     rm -f "$runtime_error"
     return 1
   fi
   rm -f "$runtime_error"
 
-  printf 'Building Linux development image %s...\n' "$linux_image"
-  "$podman_path" build -t "$linux_image" -f "$repo_root/.devcontainer/Dockerfile" "$repo_root"
+  flavor="$(runtime_flavor "$runtime_path")"
+
+  printf 'Building Linux development image %s with %s...\n' "$linux_image" "$flavor"
+  "$runtime_path" build -t "$linux_image" -f "$repo_root/.devcontainer/Dockerfile" "$repo_root"
 
   if [ "$build_only" -eq 1 ]; then
     return 0
@@ -99,7 +170,16 @@ run_gate() {
   fi
 
   run_command=(
-    "$podman_path" run --rm --userns=keep-id
+    "$runtime_path" run --rm
+  )
+
+  # --userns=keep-id is Podman-only. Docker maps --user directly onto the host
+  # uid/gid, so the bind-mounted checkout stays host-owned either way.
+  if [ "$flavor" = "podman" ]; then
+    run_command+=(--userns=keep-id)
+  fi
+
+  run_command+=(
     --user "$(id -u):$(id -g)"
     -e HOME=/tmp
     -v "$repo_root:/workspace:Z"

@@ -22,11 +22,20 @@ chmod +x "$fake_bin/swift"
 fake_podman="$fake_bin/podman"
 printf '%s\n' '#!/bin/sh' \
   'if [ "${1:-}" = "info" ]; then' \
-  '  [ "${FAKE_PODMAN_INFO_OK:-0}" = "1" ]' \
+  '  [ "${FAKE_RUNTIME_INFO_OK:-0}" = "1" ]' \
   'elif [ "${1:-}" = "--version" ]; then' \
   '  printf "%s\n" "podman version 5.0.0"' \
   'fi' > "$fake_podman"
 chmod +x "$fake_podman"
+
+fake_docker="$fake_bin/docker"
+printf '%s\n' '#!/bin/sh' \
+  'if [ "${1:-}" = "info" ]; then' \
+  '  [ "${FAKE_RUNTIME_INFO_OK:-0}" = "1" ]' \
+  'elif [ "${1:-}" = "--version" ]; then' \
+  '  printf "%s\n" "Docker version 29.8.0, build abcdef"' \
+  'fi' > "$fake_docker"
+chmod +x "$fake_docker"
 
 bash_path="$(command -v bash)"
 no_swift_bin="$tmp_dir/no-swift-bin"
@@ -100,8 +109,8 @@ run_missing_swift_case() {
 
 run_linux_case() {
   local name="$1"
-  local podman_argument="$2"
-  local podman_info_ok="$3"
+  local runtime_argument="$2"
+  local runtime_info_ok="$3"
   local expected_status="$4"
   local expected_text="$5"
   local output
@@ -110,9 +119,9 @@ run_linux_case() {
   set +e
   output="$(
     DOCTOR_HOST_OS=Linux \
-      FAKE_PODMAN_INFO_OK="$podman_info_ok" \
+      FAKE_RUNTIME_INFO_OK="$runtime_info_ok" \
       PATH="$fake_bin:$path_without_swift" \
-      "$bash_path" "$doctor" "$podman_argument" 2>&1
+      "$bash_path" "$doctor" "$runtime_argument" 2>&1
   )"
   status=$?
   set -e
@@ -153,6 +162,15 @@ run_case 'rejects empty output' '' 1 'Swift 6.2+'
 run_case 'rejects malformed output' 'not a Swift version' 1 'Swift 6.2+'
 run_linux_case 'Linux ignores host Swift and accepts usable Podman' \
   "$fake_podman" 1 0 'host Swift is ignored'
-run_linux_case 'Linux requires Podman' '' 0 1 'no native or Docker fallback'
-run_linux_case 'Linux reports sandbox-blocked Podman' \
+run_linux_case 'Linux names the resolved Podman runtime' \
+  "$fake_podman" 1 0 'podman version 5.0.0'
+run_linux_case 'Linux accepts Docker as the container runtime' \
+  "$fake_docker" 1 0 'Docker version 29.8.0'
+run_linux_case 'Linux requires a container runtime' \
+  '' 0 1 'Install Podman (preferred) or Docker'
+run_linux_case 'Linux names CONTAINER_RUNTIME in the missing-runtime hint' \
+  '' 0 1 'CONTAINER_RUNTIME'
+run_linux_case 'Linux reports a sandbox-blocked runtime' \
   "$fake_podman" 0 1 'escalated container-runtime permissions'
+run_linux_case 'Linux reports a sandbox-blocked Docker' \
+  "$fake_docker" 0 1 'escalated container-runtime permissions'
