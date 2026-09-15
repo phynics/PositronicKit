@@ -10,10 +10,13 @@ if [ -n "${LINUX_COVERAGE_SCRATCH_PATH:-}" ]; then
   swiftpm_args+=(--scratch-path "$LINUX_COVERAGE_SCRATCH_PATH")
 fi
 
+# `swiftpm_args` is empty unless a scratch path is set, and `set -u` in Bash
+# 3.2 — the macOS system shell — treats "${array[@]}" on an empty array as an
+# unbound variable. The `+` form expands to no argument instead of erroring.
 echo "Running Linux tests with code coverage..."
-swift test "${swiftpm_args[@]}" ${SWIFT_BUILD_FLAGS:--Xswiftc -warnings-as-errors} --enable-code-coverage
+swift test ${swiftpm_args[@]+"${swiftpm_args[@]}"} ${SWIFT_BUILD_FLAGS:--Xswiftc -warnings-as-errors} --enable-code-coverage
 
-raw_report="$(swift test "${swiftpm_args[@]}" --show-codecov-path)"
+raw_report="$(swift test ${swiftpm_args[@]+"${swiftpm_args[@]}"} --show-codecov-path)"
 if [ ! -s "$raw_report" ]; then
   printf 'Linux coverage report is missing or empty: %s\n' "$raw_report" >&2
   exit 1
