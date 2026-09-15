@@ -47,8 +47,8 @@ The tagged version applies to the public products documented in
    are releasing from.
 
 On Linux, use `make agent-verify` as the release gate. It runs the product, example,
-PKTestSupport, and default-test gates inside the pinned Podman environment. If an
-agent sandbox blocks Podman, rerun the same command with escalated container-runtime permissions;
+PKTestSupport, and default-test gates inside the pinned container environment. If an
+agent sandbox blocks the container runtime, rerun the same command with escalated permissions;
 do not fall back to host Swift or compose an ad hoc container command.
 
 ## Tagging Steps

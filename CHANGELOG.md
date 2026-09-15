@@ -84,6 +84,11 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **Linux gate accepts Podman or Docker:** the container runner resolves a runtime instead of
+  requiring Podman, preferring Podman and falling back to Docker. The Podman-only
+  `--userns=keep-id` flag is applied only to Podman. The `PODMAN` Make variable is replaced by
+  `CONTAINER_RUNTIME`, which pins an explicit runtime binary and skips auto-detection. Linux
+  verification still has no native host-Swift fallback.
 - **Contributor verification commands:** removed unused Make targets and obsolete Rust packages
   from the Linux development image. Use `make verify` on macOS, `make agent-verify` on Linux,
   and `make agent-test FILTER='...'` for focused Linux tests.

@@ -239,7 +239,7 @@ Use these guides for details:
 - [Setup](docs/Setup.md) covers providers, persistence, customization, logging, and errors.
 - [Usage](docs/Usage.md) covers managed and direct Turns, Agents, and Workspaces.
 - [Architecture](docs/Architecture.md) covers v5 boundaries, durability, and execution authority.
-- [Development](docs/Development.md) covers contributor setup and the Linux Podman gates.
+- [Development](docs/Development.md) covers contributor setup and the containerized Linux gates.
 - [Context map](CONTEXT-MAP.md) defines the canonical runtime vocabulary and ownership boundaries.
 - [Architecture decisions](docs/adr/) record accepted decisions and their trade-offs.
 - [Prompt composition](docs/PKPromptComposition.md) covers assembly, rendering, compression, and
@@ -528,25 +528,25 @@ for each product.
 ## Verification
 
 On macOS, build and test with standard SwiftPM commands (`swift build`, `swift test`,
-`swift run PositronicKitExamples`). Linux verification always runs through Podman:
+`swift run PositronicKitExamples`). Linux verification always runs through a container runtime:
 
 ```bash
 make verify            # Default build, docs, linkage audit, and tests (macOS)
-make agent-verify      # Canonical full Linux gate in Podman
-make agent-test FILTER='MessageContentTests' # Focused Linux test in Podman
+make agent-verify      # Canonical full Linux gate in a container
+make agent-test FILTER='MessageContentTests' # Focused Linux test in a container
 make verify-products   # Build every supported product on the current host
 make verify-documentation # Check catalog, generated navigation, links, anchors, pins, and vocabulary
 ```
 
-`make agent-verify` needs Podman on the host. The pinned image supplies Swift and Python.
-If an agent sandbox blocks Podman, rerun the same command with container-runtime permission.
-Do not fall back to host Swift.
+`make agent-verify` needs Podman or Docker on the host. The pinned image supplies Swift and
+Python. If an agent sandbox blocks the container runtime, rerun the same command with
+container-runtime permission. Do not fall back to host Swift.
 
 ## Linux development
 
-PositronicKit uses one reproducible Linux development path: the pinned Podman image.
+PositronicKit uses one reproducible Linux development path: the pinned container image.
 
-### Podman
+### Container runtime
 
 The included Dev Container provides Swift 6.3.3 and Python on Ubuntu 24.04:
 
@@ -557,7 +557,10 @@ make agent-verify  # Run the complete product, example, support, and test gate
 make agent-test FILTER='MessageContentTests' # Run one focused test selection
 ```
 
-The shared runner verifies Podman access, builds the pinned image, applies the required
+Podman and Docker are both supported. The runner prefers Podman when both are installed; set
+`CONTAINER_RUNTIME=/absolute/path/to/runtime` to pin one explicitly.
+
+The shared runner verifies container runtime access, builds the pinned image, applies the required
 rootless identity and native-linker environment, serializes shared build state, and logs
 the gate under `.build/agent-logs/`. The checkout is bind-mounted at `/workspace`, so host
 edits are visible immediately and reusable artifacts stay under the gitignored `.build/`
