@@ -40,13 +40,13 @@ product, protocol, plugin bus, compatibility alias, or migration path.
 Run `make doctor` before a full gate.
 
 - On macOS, run `make verify`.
-- On Linux, run `make agent-verify` through the repository-owned Podman runner. Use
+- On Linux, run `make agent-verify` through the repository-owned container runner. Use
   `make agent-test FILTER='…'` for a focused test.
 - Run `make verify-products`, `make verify-examples`, or `make verify-pktestsupport` when a focused
   product check helps during development.
 
-On Linux, use the pinned Podman environment. Do not run host Swift or compose another container
-command. See [docs/Development.md](docs/Development.md) for setup.
+On Linux, use the pinned container environment, which accepts Podman (preferred) or Docker. Do
+not run host Swift or compose another container command. See [docs/Development.md](docs/Development.md) for setup.
 
 For an intentional public API change, inspect `make verify-public-api` on every affected platform
 before running `make update-public-api-baseline`. Generate the Linux baseline on Linux.

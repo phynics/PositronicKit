@@ -43,6 +43,14 @@ private let promptForEachConsumer: any PKPrompt.Prompt = PKPrompt.AnyPrompt.buil
     }
 }
 
+// Outside a result-builder context the unqualified name is genuinely ambiguous under
+// `import SwiftUI`, so ADR 0009 documents `PKPrompt.ForEach` as the explicit spelling.
+// Compiling it here keeps that escape hatch verified rather than asserted in prose.
+@available(macOS 26.0, *)
+private let qualifiedForEachConsumer = PKPrompt.ForEach(["one", "two"]) { value in
+    PKPrompt.TextPrompt(value, id: value)
+}
+
 @available(macOS 26.0, *)
 private let qualifiedPromptBuilder: PKPrompt.PromptBuilder.Type = PKPrompt.PromptBuilder.self
 

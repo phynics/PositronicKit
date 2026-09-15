@@ -86,6 +86,18 @@ done < <(
         Sources Tests 2>/dev/null || true
 )
 
+# A selective `import struct/class/enum/protocol PKModule.Type` is how a consumer works around a
+# type that shadows a platform name. #156 requires that no first-party type need one. Upstream
+# packages are exempt: `import struct JSONSchema.Schema` narrows a dependency, it does not
+# disambiguate a PositronicKit name.
+while IFS= read -r match; do
+    matches+=("selective-import:$match")
+done < <(
+    grep -RInE --include='*.swift' \
+        '^[[:space:]]*import[[:space:]]+(struct|class|enum|protocol|actor|typealias|func|var|let)[[:space:]]+(PositronicKit|PKContracts|PKPrompt|PKObservable|PKTestSupport|PKUtilities)\.' \
+        Sources Tests 2>/dev/null || true
+)
+
 # TimelineHandle has one public admission surface. Reject an unqualified/internal/private
 # duplicate of a canonical entry point (including the old implicit-internal `send`/`run` forms)
 # so a second execution path cannot quietly return during the hard cut.

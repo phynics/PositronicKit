@@ -3,7 +3,7 @@
 	verify-linux-agent verify-linux-filter verify-linux-coverage \
 	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-v4-vocabulary \
 	verify-public-api update-public-api-baseline verify-release \
-	agent-verify agent-test linux-image linux-build linux-coverage require-podman
+	agent-verify agent-test linux-image linux-build linux-coverage require-container-runtime
 
 LINUX_IMAGE ?= positronickit-linux-dev
 LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/agent-scratch/swift-6.3.3
@@ -11,7 +11,9 @@ LINUX_COVERAGE_SCRATCH_DIR ?= $(CURDIR)/.build/linux-coverage-scratch
 LINUX_TEST_TRAITS ?=
 AGENT_LOG_DIR ?= $(CURDIR)/.build/agent-logs
 AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock
-PODMAN ?= $(shell command -v podman 2>/dev/null)
+# Podman is preferred; Docker is an equally supported alternative. Set
+# CONTAINER_RUNTIME to pin an explicit binary and skip auto-detection.
+CONTAINER_RUNTIME ?= $(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null)
 FILTER ?=
 TRAITS ?=
 # Inner-loop selection for `make test-fast`. Swift 6.3.3 does not support
@@ -38,8 +40,8 @@ help:
 	@echo "  make clean                 Clean build artifacts"
 	@echo ""
 	@echo "Development:"
-	@echo "  make agent-verify          Canonical full gate (Podman-only on Linux)"
-	@echo "  make agent-test FILTER='…' Run a focused Podman Linux test"
+	@echo "  make agent-verify          Canonical full gate (container-only on Linux)"
+	@echo "  make agent-test FILTER='…' Run a focused containerized Linux test"
 	@echo "  make linux-coverage         Generate Linux llvm-cov reports in .build/linux-coverage"
 	@echo "  make test                  Run tests"
 	@echo "  make test-fast             Run generated fast test filter"
@@ -57,11 +59,11 @@ help:
 	@echo "  make verify-v4-vocabulary  Check the v4 Timeline/Turn/Agent vocabulary"
 	@echo "  make verify-documentation  Check docs catalog, navigation, links, pins, products, and vocabulary"
 	@echo "  make verify-agent-harness Run agent test-entrypoint regression tests"
+	@echo "  make doctor                Report missing Swift and container runtime prerequisites"
 	@echo "  make verify-gate-script-coverage  Check every gate script has a wired fixture test"
-	@echo "  make doctor                Report missing Swift and Podman prerequisites"
 	@echo ""
-	@echo "Linux (Podman):"
-	@echo "  make linux-image           Build the Linux development Podman image"
+	@echo "Linux (Podman or Docker):"
+	@echo "  make linux-image           Build the pinned Linux development image"
 	@echo "  make linux-build           Build in a Linux container (bind-mounted)"
 
 build:
@@ -112,9 +114,9 @@ verify-runtime-architecture:
 	@python3 Scripts/migrate-turn-execution-request.py --check
 	@python3 Scripts/check-workspace-tool-dispatch.py
 
-# Preflight: report the Swift and Podman prerequisites for the current platform.
+# Preflight: report the Swift and container runtime prerequisites for the current platform.
 doctor:
-	@bash Scripts/doctor.sh "$(PODMAN)"
+	@bash Scripts/doctor.sh "$(CONTAINER_RUNTIME)"
 
 verify: verify-concurrency-scan verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test-fast test
 
@@ -122,7 +124,7 @@ verify-linux-coverage:
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
 	@bash Scripts/run-linux-coverage.sh
 
-# The inner Linux gate used by both GitHub Actions and the outer Podman agent
+# The inner Linux gate used by both GitHub Actions and the outer containerized agent
 # entrypoint. Native-linker discovery is exported once for every product,
 # example, support, and test command so callers cannot accidentally omit it.
 verify-linux-agent:
@@ -231,36 +233,36 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/generate_test_fast_filter_test.py
 	@bash Tests/Scripts/check_gate_script_coverage_test.sh
 
-# Linux testing intentionally has no native or Docker fallback. The shared
-# runner performs the deeper access check and prints the sandbox-escalation
-# remediation when Podman is installed but unavailable.
-require-podman:
-	@if [ -z "$(PODMAN)" ]; then \
-		echo "make: PositronicKit Linux testing requires Podman." >&2; \
-		echo "    Install Podman or set PODMAN=/absolute/path/to/podman." >&2; \
+# Linux testing intentionally has no native fallback. The shared runner
+# performs the deeper access check and prints the sandbox-escalation
+# remediation when a runtime is installed but unavailable.
+require-container-runtime:
+	@if [ -z "$(CONTAINER_RUNTIME)" ]; then \
+		echo "make: PositronicKit Linux testing requires Podman or Docker." >&2; \
+		echo "    Install Podman (preferred) or Docker, or set CONTAINER_RUNTIME=/absolute/path/to/runtime." >&2; \
 		echo "    Run 'make doctor' for a full prerequisite check." >&2; \
 		exit 1; \
 	fi
 
-# --- Linux Podman targets ----------------------------------------------------
+# --- Linux container targets -------------------------------------------------
 # Bind-mount the checkout so host edits are immediately visible in the container.
 # Build artifacts land in the host .build/ directory (gitignored).
 
-agent-verify: require-podman
+agent-verify: require-container-runtime
 	@mkdir -p "$(AGENT_LOG_DIR)"
-	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
 		bash Scripts/run-linux-container.sh \
 		--log "$(AGENT_LOG_DIR)/verify.log" \
 		--lock "$(AGENT_LOCK_FILE)" \
 		-- make verify-linux-agent
 
-agent-test: require-podman
+agent-test: require-container-runtime
 	@if [ -z "$(FILTER)" ]; then \
 		echo "make: FILTER is required (for example: make agent-test FILTER='MessageContentTests')." >&2; \
 		exit 2; \
 	fi
 	@mkdir -p "$(AGENT_LOG_DIR)" "$(LINUX_SCRATCH_DIR)"
-	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
 		LINUX_TEST_FILTER="$(FILTER)" LINUX_TEST_TRAITS="$(TRAITS)" \
 		bash Scripts/run-linux-container.sh \
 		--log "$(AGENT_LOG_DIR)/test.log" \
@@ -268,17 +270,17 @@ agent-test: require-podman
 		--scratch "$(LINUX_SCRATCH_DIR)" \
 		-- make verify-linux-filter
 
-linux-image: require-podman
-	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+linux-image: require-container-runtime
+	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
 		bash Scripts/run-linux-container.sh --build-only
 
-linux-build: require-podman
-	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+linux-build: require-container-runtime
+	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
 		bash Scripts/run-linux-container.sh --lock "$(AGENT_LOCK_FILE)" -- make build
 
-linux-coverage: require-podman
+linux-coverage: require-container-runtime
 	@mkdir -p "$(LINUX_COVERAGE_SCRATCH_DIR)"
-	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
 		bash Scripts/run-linux-container.sh \
 		--lock "$(AGENT_LOCK_FILE)" \
 		--scratch "$(LINUX_COVERAGE_SCRATCH_DIR)" \

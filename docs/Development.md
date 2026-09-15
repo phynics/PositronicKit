@@ -7,7 +7,8 @@ This guide covers contributor and agent setup. Application configuration belongs
 
 Use native Swift/Xcode on macOS. The canonical macOS gate is `make verify`.
 
-Linux verification runs only through the repository-owned Podman runner:
+Linux verification runs only through the repository-owned container runner, which accepts Podman
+(preferred) or Docker:
 
 ```bash
 make doctor
@@ -18,8 +19,13 @@ make linux-coverage
 
 The runner owns image selection, rootless identity, checkout mounts, logs, and shared-build locking.
 Host edits are visible in `/workspace`. Build artifacts remain in
-the gitignored `.build/` directory. If a sandbox blocks Podman, rerun the same Make target with
-container-runtime permission rather than composing a different container command.
+the gitignored `.build/` directory. If a sandbox blocks the container
+runtime, rerun the same Make target with container-runtime permission rather than composing a
+different container command.
+
+Podman is preferred when both runtimes are installed. Set
+`CONTAINER_RUNTIME=/absolute/path/to/runtime` to pin one explicitly; `make doctor` reports which
+runtime resolved.
 
 ## Linux image and prerequisites
 

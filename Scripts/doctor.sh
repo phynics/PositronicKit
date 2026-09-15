@@ -2,14 +2,15 @@
 # doctor.sh — preflight prerequisite check for PositronicKit.
 #
 # Reports the presence and version of tools the Makefile gates depend on.
-# Linux verification is Podman-only, so host Swift is ignored there. macOS
+# Linux verification runs in a container, so host Swift is ignored there. macOS
 # verification requires a complete native Swift toolchain.
 #
-# Invoked by `make doctor`, which passes its Podman path so the report reflects
-# the Makefile's own configuration. The script itself does not require Swift to run.
+# Invoked by `make doctor`, which passes its resolved container runtime path so
+# the report reflects the Makefile's own configuration. The script itself does
+# not require Swift to run.
 set -euo pipefail
 
-podman_bin="${1:-}"
+container_runtime="${1:-}"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -33,7 +34,7 @@ required_swift_minor="${required_swift_version#*.}"
 swift_requirement_hint="Native macOS gates require Swift ${required_swift_version:-6.1}+ with SwiftPM and Foundation."
 
 if [ "$host_os" = "Linux" ]; then
-  ok "Linux verification backend: Podman (host Swift is ignored)"
+  ok "Linux verification backend: container runtime (host Swift is ignored)"
 elif [ -z "$required_swift_version" ]; then
   miss "Swift tools version could not be read from Package.swift"
   hint "Required for all Swift gates: use the Swift version declared by Package.swift."
@@ -78,21 +79,25 @@ else
 fi
 
 if [ "$host_os" = "Linux" ]; then
-  ok "Swift and Python 3 supplied by the Podman image"
+  ok "Swift and Python 3 supplied by the pinned Linux image"
 fi
 
-# --- Podman (required for every Linux build/test entrypoint) ----------------
-if [ -n "$podman_bin" ] && command -v "$podman_bin" >/dev/null 2>&1; then
-  if [ "$host_os" = "Linux" ] && ! "$podman_bin" info >/dev/null 2>&1; then
-    miss "Podman is installed but unavailable to this process"
-    hint "If an agent sandbox blocked Podman, rerun the same make command with escalated container-runtime permissions."
+# --- Container runtime (required for every Linux build/test entrypoint) -----
+# Podman is preferred and Docker is equally supported; the Makefile resolves one
+# and passes its path here. Linux verification still has no native fallback.
+runtime_install_hint="Linux verification has no native fallback. Install Podman (preferred) or Docker, or set CONTAINER_RUNTIME=/absolute/path/to/runtime."
+
+if [ -n "$container_runtime" ] && command -v "$container_runtime" >/dev/null 2>&1; then
+  if [ "$host_os" = "Linux" ] && ! "$container_runtime" info >/dev/null 2>&1; then
+    miss "Container runtime is installed but unavailable to this process"
+    hint "If an agent sandbox blocked the container runtime, rerun the same make command with escalated container-runtime permissions."
     missing_required=1
   else
-    ok "Podman: $podman_bin ($("$podman_bin" --version 2>/dev/null | head -n1 || echo unknown))"
+    ok "Container runtime: $container_runtime ($("$container_runtime" --version 2>/dev/null | head -n1 || echo unknown))"
   fi
 else
-  miss "Podman not found (PODMAN='${podman_bin:-<empty>}')"
-  hint "Linux verification has no native or Docker fallback. Install Podman or set PODMAN=/absolute/path/to/podman."
+  miss "Container runtime not found (CONTAINER_RUNTIME='${container_runtime:-<empty>}')"
+  hint "$runtime_install_hint"
   if [ "$host_os" = "Linux" ]; then missing_required=1; fi
 fi
 
