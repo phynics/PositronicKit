@@ -31,13 +31,13 @@ public struct SeededRNG: RandomNumberGenerator, Sendable {
     }
 
     /// Uniform integer in `range`.
-    public mutating func nextInt(in range: Range<Int>) -> Int {
+    package mutating func nextInt(in range: Range<Int>) -> Int {
         precondition(!range.isEmpty, "SeededRNG.nextInt requires a non-empty range")
         return range.lowerBound + nextInt(upperBound: range.upperBound - range.lowerBound)
     }
 
     /// Uniform integer in `range` (closed).
-    public mutating func nextInt(in range: ClosedRange<Int>) -> Int {
+    package mutating func nextInt(in range: ClosedRange<Int>) -> Int {
         nextInt(in: range.lowerBound ..< range.upperBound + 1)
     }
 

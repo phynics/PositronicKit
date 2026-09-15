@@ -13622,26 +13622,6 @@
       "declaration": "mutating func nextInt(upperBound: Int) -> Int"
     },
     {
-      "precise": "s:13PKTestSupport9SeededRNGV7nextInt2inSiSNySiG_tF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "SeededRNG",
-        "nextInt(in:)"
-      ],
-      "declaration": "mutating func nextInt(in range: Range<Int>) -> Int"
-    },
-    {
-      "precise": "s:13PKTestSupport9SeededRNGV7nextInt2inSiSnySiG_tF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "SeededRNG",
-        "nextInt(in:)"
-      ],
-      "declaration": "mutating func nextInt(in range: ClosedRange<Int>) -> Int"
-    },
-    {
       "precise": "s:13PositronicKit10AgentErrorO",
       "module": "PositronicKit",
       "kind": "swift.enum",
@@ -50048,18 +50028,6 @@
       "kind": "memberOf",
       "module": "PKTestSupport",
       "source": "s:13PKTestSupport9SeededRNGV7nextInt10upperBoundS2i_tF",
-      "target": "s:13PKTestSupport9SeededRNGV"
-    },
-    {
-      "kind": "memberOf",
-      "module": "PKTestSupport",
-      "source": "s:13PKTestSupport9SeededRNGV7nextInt2inSiSNySiG_tF",
-      "target": "s:13PKTestSupport9SeededRNGV"
-    },
-    {
-      "kind": "memberOf",
-      "module": "PKTestSupport",
-      "source": "s:13PKTestSupport9SeededRNGV7nextInt2inSiSnySiG_tF",
       "target": "s:13PKTestSupport9SeededRNGV"
     },
     {
