@@ -7,10 +7,13 @@ import PKTestSupport
 /// Chunk-boundary property for `StreamingParser` (issue #155).
 ///
 /// Property: feeding a document through `process(_:)` in arbitrarily split chunks must
-/// produce the same `(thinking, content)` as feeding it whole — a provider can split a
-/// token anywhere in a byte stream. Bounded (`caseCount` splits per document) and
-/// deterministic under a fixed seed (`PK_GENERATIVE_SEED` overrides; the effective seed
-/// is reported with every failure so a failure reproduces from the log alone).
+/// produce the same finalized `(thinking, content)` as feeding it whole — a provider can
+/// split a token anywhere in a byte stream. Both sides call `finish()` so held trailing
+/// input (a partial tag, fence, or marker with no next chunk to disambiguate it) is
+/// emitted verbatim instead of compared mid-hold. Bounded (`caseCount` splits per
+/// document) and deterministic under a fixed seed (`PK_GENERATIVE_SEED` overrides; the
+/// effective seed is reported with every failure so a failure reproduces from the log
+/// alone).
 @Suite("StreamingParser chunk-split property", .tags(.generative))
 struct StreamingParserChunkSplitPropertyTests {
     private let seed = GenerativeConfig.effectiveSeed()
@@ -24,6 +27,7 @@ struct StreamingParserChunkSplitPropertyTests {
     private func decodeWhole(_ document: String) -> (thinking: String, content: String) {
         var parser = StreamingParser()
         parser.process(document)
+        parser.finish()
         return (parser.thinking, parser.content)
     }
 
@@ -32,6 +36,7 @@ struct StreamingParserChunkSplitPropertyTests {
         for chunk in chunks {
             parser.process(chunk)
         }
+        parser.finish()
         return (parser.thinking, parser.content)
     }
 

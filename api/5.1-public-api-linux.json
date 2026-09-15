@@ -11084,6 +11084,55 @@
       "declaration": "static func streaming(statusCode: Int = 200, headers: [String : String] = [:], chunks: [Data], delay: TimeInterval = 0.05) -> TestHTTPServer.Response"
     },
     {
+      "precise": "s:13PKTestSupport16GenerativeConfigO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "GenerativeConfig"
+      ],
+      "declaration": "enum GenerativeConfig"
+    },
+    {
+      "precise": "s:13PKTestSupport16GenerativeConfigO11defaultSeeds6UInt64VvpZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.property",
+      "path": [
+        "GenerativeConfig",
+        "defaultSeed"
+      ],
+      "declaration": "static let defaultSeed: UInt64"
+    },
+    {
+      "precise": "s:13PKTestSupport16GenerativeConfigO12maxCaseCountSivpZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.property",
+      "path": [
+        "GenerativeConfig",
+        "maxCaseCount"
+      ],
+      "declaration": "static let maxCaseCount: Int"
+    },
+    {
+      "precise": "s:13PKTestSupport16GenerativeConfigO13effectiveSeed11environments6UInt64VSDyS2SG_tFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "GenerativeConfig",
+        "effectiveSeed(environment:)"
+      ],
+      "declaration": "static func effectiveSeed(environment: [String : String] = ProcessInfo.processInfo.environment) -> UInt64"
+    },
+    {
+      "precise": "s:13PKTestSupport16GenerativeConfigO16defaultCaseCountSivpZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.property",
+      "path": [
+        "GenerativeConfig",
+        "defaultCaseCount"
+      ],
+      "declaration": "static let defaultCaseCount: Int"
+    },
+    {
       "precise": "s:13PKTestSupport16MockMessageStoreC",
       "module": "PKTestSupport",
       "kind": "swift.class",
@@ -11634,6 +11683,45 @@
         "fetchAllWorkspaces()"
       ],
       "declaration": "func fetchAllWorkspaces() async throws -> [WorkspaceReference]"
+    },
+    {
+      "precise": "s:13PKTestSupport22ChunkBoundaryGeneratorO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "ChunkBoundaryGenerator"
+      ],
+      "declaration": "enum ChunkBoundaryGenerator"
+    },
+    {
+      "precise": "s:13PKTestSupport22ChunkBoundaryGeneratorO10splittings2of5count4seedSaySaySSGGSS_Sis6UInt64VtFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "ChunkBoundaryGenerator",
+        "splittings(of:count:seed:)"
+      ],
+      "declaration": "static func splittings(of text: String, count: Int, seed: UInt64) -> [[String]]"
+    },
+    {
+      "precise": "s:13PKTestSupport22ChunkBoundaryGeneratorO11truncations2of11sampleCount4seedSaySSGSS_Sis6UInt64VtFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "ChunkBoundaryGenerator",
+        "truncations(of:sampleCount:seed:)"
+      ],
+      "declaration": "static func truncations(of payload: String, sampleCount: Int = GenerativeConfig.defaultCaseCount, seed: UInt64 = GenerativeConfig.defaultSeed) -> [String]"
+    },
+    {
+      "precise": "s:13PKTestSupport22ChunkBoundaryGeneratorO5split_10chunkCount3rngSaySSGSS_SiAA9SeededRNGVztFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "ChunkBoundaryGenerator",
+        "split(_:chunkCount:rng:)"
+      ],
+      "declaration": "static func split(_ text: String, chunkCount: Int, rng: inout SeededRNG) -> [String]"
     },
     {
       "precise": "s:13PKTestSupport22FailingToolPersistenceC",
@@ -12662,6 +12750,25 @@
       "declaration": "init()"
     },
     {
+      "precise": "s:13PKTestSupport24AdversarialPathGeneratorO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "AdversarialPathGenerator"
+      ],
+      "declaration": "enum AdversarialPathGenerator"
+    },
+    {
+      "precise": "s:13PKTestSupport24AdversarialPathGeneratorO5paths5count4seedSaySSGSi_s6UInt64VtFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "AdversarialPathGenerator",
+        "paths(count:seed:)"
+      ],
+      "declaration": "static func paths(count: Int, seed: UInt64) -> [String]"
+    },
+    {
       "precise": "s:13PKTestSupport24BatchFailingMessageStoreC",
       "module": "PKTestSupport",
       "kind": "swift.class",
@@ -13204,6 +13311,45 @@
       "declaration": "var deleteAttemptCount: Int { get }"
     },
     {
+      "precise": "s:13PKTestSupport26GenerativeRegressionCorpusO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "GenerativeRegressionCorpus"
+      ],
+      "declaration": "enum GenerativeRegressionCorpus"
+    },
+    {
+      "precise": "s:13PKTestSupport26GenerativeRegressionCorpusO13jsonDocumentsSaySSGvpZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.property",
+      "path": [
+        "GenerativeRegressionCorpus",
+        "jsonDocuments"
+      ],
+      "declaration": "static let jsonDocuments: [String]"
+    },
+    {
+      "precise": "s:13PKTestSupport26GenerativeRegressionCorpusO16adversarialPathsSaySSGvpZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.property",
+      "path": [
+        "GenerativeRegressionCorpus",
+        "adversarialPaths"
+      ],
+      "declaration": "static let adversarialPaths: [String]"
+    },
+    {
+      "precise": "s:13PKTestSupport26GenerativeRegressionCorpusO18streamingDocumentsSaySSGvpZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.property",
+      "path": [
+        "GenerativeRegressionCorpus",
+        "streamingDocuments"
+      ],
+      "declaration": "static let streamingDocuments: [String]"
+    },
+    {
       "precise": "s:13PKTestSupport28MockTimelinePersistenceStoreC",
       "module": "PKTestSupport",
       "kind": "swift.class",
@@ -13425,6 +13571,75 @@
         "run(staleAfter:makeRepository:)"
       ],
       "declaration": "static func run(staleAfter: TimeInterval, makeRepository: nonisolated(nonsending) () async throws -> any TimelineRuntimeRepository) async throws"
+    },
+    {
+      "precise": "s:13PKTestSupport9SeededRNGV",
+      "module": "PKTestSupport",
+      "kind": "swift.struct",
+      "path": [
+        "SeededRNG"
+      ],
+      "declaration": "struct SeededRNG"
+    },
+    {
+      "precise": "s:13PKTestSupport9SeededRNGV11nextElementyxSayxGlF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "SeededRNG",
+        "nextElement(_:)"
+      ],
+      "declaration": "mutating func nextElement<T>(_ values: [T]) -> T"
+    },
+    {
+      "precise": "s:13PKTestSupport9SeededRNGV4nexts6UInt64VyF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "SeededRNG",
+        "next()"
+      ],
+      "declaration": "mutating func next() -> UInt64"
+    },
+    {
+      "precise": "s:13PKTestSupport9SeededRNGV4seedACs6UInt64V_tcfc",
+      "module": "PKTestSupport",
+      "kind": "swift.init",
+      "path": [
+        "SeededRNG",
+        "init(seed:)"
+      ],
+      "declaration": "init(seed: UInt64)"
+    },
+    {
+      "precise": "s:13PKTestSupport9SeededRNGV7nextInt10upperBoundS2i_tF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "SeededRNG",
+        "nextInt(upperBound:)"
+      ],
+      "declaration": "mutating func nextInt(upperBound: Int) -> Int"
+    },
+    {
+      "precise": "s:13PKTestSupport9SeededRNGV7nextInt2inSiSNySiG_tF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "SeededRNG",
+        "nextInt(in:)"
+      ],
+      "declaration": "mutating func nextInt(in range: Range<Int>) -> Int"
+    },
+    {
+      "precise": "s:13PKTestSupport9SeededRNGV7nextInt2inSiSnySiG_tF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "SeededRNG",
+        "nextInt(in:)"
+      ],
+      "declaration": "mutating func nextInt(in range: ClosedRange<Int>) -> Int"
     },
     {
       "precise": "s:13PositronicKit10AgentErrorO",
@@ -35008,6 +35223,27 @@
       "targetFallback": "Swift.Sendable"
     },
     {
+      "kind": "conformsTo",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport9SeededRNGV",
+      "target": "s:SG",
+      "targetFallback": "Swift.RandomNumberGenerator"
+    },
+    {
+      "kind": "conformsTo",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport9SeededRNGV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "kind": "conformsTo",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport9SeededRNGV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit10AgentErrorO",
@@ -47933,6 +48169,30 @@
       "target": "s:13PKTestSupport14TestHTTPServerC8ResponseV"
     },
     {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport16GenerativeConfigO11defaultSeeds6UInt64VvpZ",
+      "target": "s:13PKTestSupport16GenerativeConfigO"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport16GenerativeConfigO12maxCaseCountSivpZ",
+      "target": "s:13PKTestSupport16GenerativeConfigO"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport16GenerativeConfigO13effectiveSeed11environments6UInt64VSDyS2SG_tFZ",
+      "target": "s:13PKTestSupport16GenerativeConfigO"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport16GenerativeConfigO16defaultCaseCountSivpZ",
+      "target": "s:13PKTestSupport16GenerativeConfigO"
+    },
+    {
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport16MockMessageStoreC04saveD0yy13PositronicKit08TimelineD0VYaKF",
@@ -48339,6 +48599,24 @@
         "identifier": "s:13PositronicKit14WorkspaceStoreP18fetchAllWorkspacesSay11PKContracts0C9ReferenceVGyYaKF",
         "displayName": "WorkspaceStore.fetchAllWorkspaces()"
       }
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport22ChunkBoundaryGeneratorO10splittings2of5count4seedSaySaySSGGSS_Sis6UInt64VtFZ",
+      "target": "s:13PKTestSupport22ChunkBoundaryGeneratorO"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport22ChunkBoundaryGeneratorO11truncations2of11sampleCount4seedSaySSGSS_Sis6UInt64VtFZ",
+      "target": "s:13PKTestSupport22ChunkBoundaryGeneratorO"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport22ChunkBoundaryGeneratorO5split_10chunkCount3rngSaySSGSS_SiAA9SeededRNGVztFZ",
+      "target": "s:13PKTestSupport22ChunkBoundaryGeneratorO"
     },
     {
       "module": "PKTestSupport",
@@ -49239,6 +49517,12 @@
       "target": "s:13PKTestSupport23MockTimelinePersistenceC"
     },
     {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport24AdversarialPathGeneratorO5paths5count4seedSaySSGSi_s6UInt64VtFZ",
+      "target": "s:13PKTestSupport24AdversarialPathGeneratorO"
+    },
+    {
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport24BatchFailingMessageStoreC04saveE0yy13PositronicKit08TimelineE0VYaKF",
@@ -49605,6 +49889,24 @@
       "target": "s:13PKTestSupport26FailingTimelinePersistenceC"
     },
     {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport26GenerativeRegressionCorpusO13jsonDocumentsSaySSGvpZ",
+      "target": "s:13PKTestSupport26GenerativeRegressionCorpusO"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport26GenerativeRegressionCorpusO16adversarialPathsSaySSGvpZ",
+      "target": "s:13PKTestSupport26GenerativeRegressionCorpusO"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport26GenerativeRegressionCorpusO18streamingDocumentsSaySSGvpZ",
+      "target": "s:13PKTestSupport26GenerativeRegressionCorpusO"
+    },
+    {
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport28MockTimelinePersistenceStoreC04saveD0yy13PositronicKit0D6RecordVYaKF",
@@ -49719,6 +50021,46 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run10staleAfter04makeE0ySd_13PositronicKit0cdE0_pyYaKYCXEtYaKFZ",
       "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport9SeededRNGV11nextElementyxSayxGlF",
+      "target": "s:13PKTestSupport9SeededRNGV"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport9SeededRNGV4nexts6UInt64VyF",
+      "sourceOrigin": {
+        "displayName": "RandomNumberGenerator.next()",
+        "identifier": "s:SG4nexts6UInt64VyF"
+      },
+      "target": "s:13PKTestSupport9SeededRNGV"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport9SeededRNGV4seedACs6UInt64V_tcfc",
+      "target": "s:13PKTestSupport9SeededRNGV"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport9SeededRNGV7nextInt10upperBoundS2i_tF",
+      "target": "s:13PKTestSupport9SeededRNGV"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport9SeededRNGV7nextInt2inSiSNySiG_tF",
+      "target": "s:13PKTestSupport9SeededRNGV"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKTestSupport",
+      "source": "s:13PKTestSupport9SeededRNGV7nextInt2inSiSnySiG_tF",
+      "target": "s:13PKTestSupport9SeededRNGV"
     },
     {
       "module": "PKTestSupport",
