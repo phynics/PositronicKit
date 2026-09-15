@@ -88,6 +88,8 @@ struct TokenBudgetPropertyTests {
                     #expect(duplicateIDs, "\(context): duplicate error without duplicates")
                 case .mandatorySectionOverflow, .budgetUnsatisfied:
                     break // Legal over-budget outcomes: never silently drop `.keep`.
+                case .duplicatePlannedNodeIDs:
+                    Issue.record("\(context): unexpected duplicatePlannedNodeIDs \(error)")
                 }
             } catch {
                 Issue.record("\(context): unexpected error \(error)")
@@ -110,6 +112,8 @@ struct TokenBudgetPropertyTests {
                 if case .duplicateSectionIDs = error {
                     Issue.record("seed=\(seed) iter#\(iteration): unique IDs threw duplicate error")
                 }
+            } catch {
+                Issue.record("seed=\(seed) iter#\(iteration): unexpected error \(error)")
             }
         }
     }

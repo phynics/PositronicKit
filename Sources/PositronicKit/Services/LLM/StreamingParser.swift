@@ -87,7 +87,26 @@ struct StreamingParser {
             if holdingPartialThinkTag() { return nil }
         }
 
+        // A chunk may end mid-marker (`<|tool_call` + `_end|>`): the regex only strips
+        // complete `<|...|>` markers, so hold a viable partial marker in the buffer until
+        // the next chunk arrives instead of emitting it as visible text.
+        if holdingPartialPipeMarker() { return nil }
+
         return flushBuffer()
+    }
+
+    /// Returns true if the buffer ends with a partial pipe-delimited marker (`<|...|>`)
+    /// that a later chunk could still complete.
+    private func holdingPartialPipeMarker() -> Bool {
+        guard let start = buffer.lastIndex(of: "<") else { return false }
+        let suffix = String(buffer[start...])
+        guard suffix.hasPrefix("<|"), !suffix.contains("|>") else { return false }
+        // Only `[a-z_]` (plus a single trailing `|` awaiting its `>`) can still grow
+        // into a marker; anything else (e.g. `<|foo bar` or a plain `<div>`) can never
+        // match and must be emitted normally.
+        var inner = suffix.dropFirst(2)
+        if inner.hasSuffix("|") { inner = inner.dropLast() }
+        return inner.allSatisfy { ("a" ... "z").contains($0) || $0 == "_" }
     }
 
     /// Tries to extract content around a code block delimiter ("```").

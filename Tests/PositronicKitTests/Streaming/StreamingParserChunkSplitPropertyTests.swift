@@ -96,4 +96,19 @@ struct StreamingParserChunkSplitPropertyTests {
         #expect(parser.thinking == "Inner")
         #expect(parser.content.isEmpty)
     }
+
+    /// A pipe-delimited marker split across chunks must strip exactly as the unsplit
+    /// stream does. Found by the chunk-split property (seed 1374605653, doc#20): the
+    /// leading partial (`<|tool_call`) was emitted as visible text before the fix held
+    /// viable partial markers in the buffer.
+    @Test("regression: pipe marker split across chunks strips identically")
+    func pipeMarkerSplitAcrossChunks() {
+        let chunks = ["reasoning hello <|tool_call", "_end|> ``", ">`>"]
+        var split = StreamingParser()
+        for chunk in chunks { split.process(chunk) }
+        var whole = StreamingParser()
+        whole.process(chunks.joined())
+        #expect(split.thinking == whole.thinking && split.content == whole.content)
+        #expect(!split.thinking.contains("<|") && !split.content.contains("<|"))
+    }
 }

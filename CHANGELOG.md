@@ -232,6 +232,15 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- **Streaming parser no longer leaks pipe-delimited markers split across chunks:**
+  `StreamingParser` strips markers like `<|tool_call_end|>` with a regex that only matches the
+  complete form, but it flushed the buffer as soon as a chunk was consumed. A marker straddling a
+  chunk boundary (`"<|tool_call"` + `"_end|>"`) therefore escaped into visible content or reasoning
+  text, so the same stream parsed differently depending on how the provider happened to frame it.
+  The parser now holds a still-viable partial marker in the buffer until the next chunk arrives,
+  matching the existing treatment of partial `<think>` tags and code-block delimiters, so split and
+  unsplit streams produce identical output. Found by the new seeded chunk-split property test.
+
 - **Permanent thread deletion no longer orphans message history:** `deleteThreadPermanently` used
   to remove the thread record while leaving its durable messages behind under a threadID that no
   longer existed, because `ThreadManager` called the append-only-history repository's
