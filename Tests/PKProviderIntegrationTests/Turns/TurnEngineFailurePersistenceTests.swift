@@ -17,9 +17,11 @@ import Testing
 /// `runOneTurn` is exercised end to end. The helpers intentionally omit a
 /// `TimelineRuntimeRepository`, so retry assertions describe the independent-store compatibility
 /// path; atomic admission and terminal replay are covered by `TurnAdmissionSeamTests`.
-// No `.serialized` marker: `@MainActor` already serializes this suite, and every test
-// builds fresh in-memory stores plus a unique workspace root (issue #155), so the old
-// marker only compensated for the shared `/tmp/pk-test` root that has been eliminated.
+// No `.serialized` marker: every test builds fresh in-memory stores plus a unique
+// workspace root (issue #155), so the old marker only compensated for the shared
+// `/tmp/pk-test` root that has been eliminated. Note that `@MainActor` alone would not
+// justify dropping it — it excludes concurrent *synchronous* regions, but async tests
+// still interleave at `await` points, so shared mutable state would remain unsafe.
 @Suite(.tags(.integration)) @MainActor
 struct TurnEngineFailurePersistenceTests {
     private let timelineID = UUID()

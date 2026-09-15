@@ -16,9 +16,11 @@ import Testing
 /// - Cancellation → `.error(.generationCancelled)`
 /// - Provider or pipeline failure → the stream throws for the package-internal engine seam
 /// - Terminal persistence failure → `.error(.durabilityFailure)` and a normally closed stream
-// No `.serialized` marker: `@MainActor` already serializes this suite, and every test
-// builds fresh in-memory stores plus a unique workspace root (issue #155), so the old
-// marker only compensated for the shared `/tmp/pk-test` root that has been eliminated.
+// No `.serialized` marker: every test builds fresh in-memory stores plus a unique
+// workspace root (issue #155), so the old marker only compensated for the shared
+// `/tmp/pk-test` root that has been eliminated. Note that `@MainActor` alone would not
+// justify dropping it — it excludes concurrent *synchronous* regions, but async tests
+// still interleave at `await` points, so shared mutable state would remain unsafe.
 @Suite(.tags(.integration)) @MainActor
 struct TurnEngineTerminalEventTests {
     private let timelineID = UUID()
