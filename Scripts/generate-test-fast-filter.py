@@ -5,11 +5,17 @@ Swift 6.3.3 does not support the Swift Testing ``tag:`` command-line
 specifier. The repository still records taxonomy tags in source, then uses
 the stable test-name regex interface to select tagged unit/platform suites.
 Module test targets without taxonomy annotations are included wholesale.
+
+Selection is per suite, not per file. A runtime file that declares one
+`.unit` suite alongside an `.integration` suite contributes only the `.unit`
+suite, and helper types that merely have "Test" in their name never reach
+the filter.
 """
 
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 
@@ -30,29 +36,55 @@ MODULE_TARGETS = (
     ROOT / "Tests/PKFoundationModelsProviderTests",
     ROOT / "Tests/PKTestSupportTests",
 )
-TYPE_RE = re.compile(r"\b(?:struct|class|actor)\s+(\w+)")
+
+FAST_TAGS = (".unit", ".platformSpecific")
+
+# A suite declaration: an optional `@Suite(...)` attribute, then any further
+# attributes, comments, and declaration modifiers, then the annotated type.
+# `@MainActor` and `final` both appear between `@Suite` and `struct`/`class`
+# in this repository, so neither may hide a suite from the filter.
+_ATTRIBUTE = r"@\w+(?:\((?:[^()]|\([^()]*\))*\))?"
+_MODIFIER = r"(?:public|package|internal|fileprivate|private|final)\b"
+_LEADING = r"(?:\s|//[^\n]*\n|" + _ATTRIBUTE + r"|" + _MODIFIER + r")*?"
+ANNOTATED_SUITE_RE = re.compile(
+    r"@Suite(?P<attributes>\((?:[^()]|\([^()]*\))*\))?"
+    + _LEADING
+    + r"\b(?:struct|class|actor)\s+(?P<name>\w+)"
+)
+TOP_LEVEL_SUITE_RE = re.compile(
+    r"^(?:(?:public|package|internal|final)\s+)*"
+    r"(?:struct|class|actor)\s+(?P<name>\w*Tests)\b",
+    re.MULTILINE,
+)
+
+
+def annotated_suites(text: str) -> list[tuple[str, str]]:
+    """Return (name, attribute-text) for every `@Suite`-annotated type."""
+    return [
+        (match.group("name"), match.group("attributes") or "")
+        for match in ANNOTATED_SUITE_RE.finditer(text)
+    ]
 
 
 def names_from_runtime(path: Path) -> set[str]:
+    """Runtime targets are taxonomy-tagged; take only the fast-tagged suites."""
     text = path.read_text(encoding="utf-8")
-    if ".tags(.unit)" not in text and ".tags(.platformSpecific)" not in text:
-        return set()
     return {
-        match.group(1)
-        for match in TYPE_RE.finditer(text)
-        if "Test" in match.group(1)
+        name
+        for name, attributes in annotated_suites(text)
+        if any(f".tags({tag})" in attributes for tag in FAST_TAGS)
     }
 
 
 def names_from_module(path: Path) -> set[str]:
-    return {
-        match.group(1)
-        for match in TYPE_RE.finditer(path.read_text(encoding="utf-8"))
-        if "Test" in match.group(1)
-    }
+    """Module targets carry no taxonomy; take every suite they declare."""
+    text = path.read_text(encoding="utf-8")
+    names = {name for name, _ in annotated_suites(text)}
+    names.update(match.group("name") for match in TOP_LEVEL_SUITE_RE.finditer(text))
+    return names
 
 
-def main() -> None:
+def main() -> int:
     names: set[str] = set()
     for target in RUNTIME_TARGETS:
         for path in target.rglob("*.swift"):
@@ -60,8 +92,16 @@ def main() -> None:
     for target in MODULE_TARGETS:
         for path in target.rglob("*.swift"):
             names.update(names_from_module(path))
+    if not names:
+        print(
+            "generate-test-fast-filter: no fast-tagged suites found; "
+            "check the taxonomy tags in Tests/",
+            file=sys.stderr,
+        )
+        return 1
     print("|".join(sorted(names)))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

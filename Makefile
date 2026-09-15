@@ -1,7 +1,7 @@
 .PHONY: help build clean test test-fast doctor validate-docs verify-documentation \
 	verify verify-concurrency-scan verify-runtime-architecture \
 	verify-linux-agent verify-linux-filter verify-linux-coverage \
-	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-story-coverage verify-v4-vocabulary \
+	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-v4-vocabulary \
 	verify-public-api update-public-api-baseline verify-release \
 	agent-verify agent-test linux-image linux-build linux-coverage require-container-runtime
 
@@ -60,6 +60,7 @@ help:
 	@echo "  make verify-documentation  Check docs catalog, navigation, links, pins, products, and vocabulary"
 	@echo "  make verify-agent-harness Run agent test-entrypoint regression tests"
 	@echo "  make doctor                Report missing Swift and container runtime prerequisites"
+	@echo "  make verify-gate-script-coverage  Check every gate script has a wired fixture test"
 	@echo ""
 	@echo "Linux (Podman or Docker):"
 	@echo "  make linux-image           Build the pinned Linux development image"
@@ -117,7 +118,7 @@ verify-runtime-architecture:
 doctor:
 	@bash Scripts/doctor.sh "$(CONTAINER_RUNTIME)"
 
-verify: verify-concurrency-scan verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-story-coverage validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test-fast test
+verify: verify-concurrency-scan verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test-fast test
 
 verify-linux-coverage:
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
@@ -128,7 +129,7 @@ verify-linux-coverage:
 # example, support, and test command so callers cannot accidentally omit it.
 verify-linux-agent:
 	@echo "Running agent/CI Linux verification contract..."
-	@$(MAKE) verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-story-coverage verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test-fast test
+	@$(MAKE) verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test-fast test
 
 verify-linux-filter:
 	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \
@@ -194,6 +195,9 @@ verify-release:
 verify-dependency-direction:
 	@bash Scripts/check-dependency-direction.sh
 
+verify-gate-script-coverage:
+	@bash Scripts/check-gate-script-coverage.sh
+
 verify-test-layout:
 	@bash Scripts/check-test-layout.sh
 
@@ -211,6 +215,9 @@ verify-agent-harness:
 	@bash Tests/Scripts/check_test_layout_test.sh
 	@bash Tests/Scripts/compile_doc_snippets_test.sh
 	@bash Tests/Scripts/validate_docc_test.sh
+	@bash Tests/Scripts/validate_docs_test.sh
+	@bash Tests/Scripts/run_linux_coverage_test.sh
+	@bash Tests/Scripts/list_library_products_test.sh
 	@bash Tests/Scripts/test_fast_test.sh
 	@python3 -B Tests/Scripts/provider_capability_matrix_test.py
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
@@ -223,6 +230,8 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/check_v4_vocabulary_test.py
 	@python3 -B Tests/Scripts/check_pr_docs_impact_test.py
 	@python3 -B Tests/Scripts/check_story_coverage_test.py
+	@python3 -B Tests/Scripts/generate_test_fast_filter_test.py
+	@bash Tests/Scripts/check_gate_script_coverage_test.sh
 
 # Linux testing intentionally has no native fallback. The shared runner
 # performs the deeper access check and prints the sandbox-escalation
