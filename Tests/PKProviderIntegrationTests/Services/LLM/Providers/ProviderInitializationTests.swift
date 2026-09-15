@@ -80,6 +80,9 @@ private final class NoNetworkURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
+// `.serialized`: `NoNetworkURLProtocol` registers a process-global `URLProtocol` that
+// answers the OpenAI SDK's dedicated session from memory. Serialization keeps that
+// global registration and the SDK session assertions ordered between tests (issue #155).
 @Suite("Provider initialization contracts", .serialized, .tags(.integration))
 struct ProviderInitializationTests {
     private func response(url: String, status: Int = 200) -> HTTPURLResponse {

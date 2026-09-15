@@ -15,6 +15,9 @@ import Testing
 /// untested — only the `init(timeoutIntervalForRequest:)` constructor was exercised
 /// indirectly through provider client tests. These tests drive the transport directly
 /// against a local HTTP server.
+// `.serialized`: each test drives `URLSession` against a loopback `TestHTTPServer`,
+// including the Linux delegate-based streaming bridge. Serialization avoids
+// ephemeral-port churn and streaming-callback interference between tests (issue #155).
 @Suite("URLSessionProviderHTTPTransport", .serialized)
 struct ProviderHTTPTransportTests {
 

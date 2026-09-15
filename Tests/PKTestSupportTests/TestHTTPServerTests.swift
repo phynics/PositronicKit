@@ -6,6 +6,9 @@ import PKTestSupport
 import Synchronization
 import Testing
 
+// `.serialized`: each test binds real loopback listeners (`NWListener`) on ephemeral
+// ports. Serialization avoids ephemeral-port churn and accept-queue interference under
+// parallel load (issue #155).
 @Suite("TestHTTPServer", .serialized)
 struct TestHTTPServerTests {
     @Test("parses a loopback HTTP request and returns the selected response")

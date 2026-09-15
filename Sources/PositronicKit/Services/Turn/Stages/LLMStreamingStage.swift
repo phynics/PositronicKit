@@ -326,16 +326,19 @@ struct LLMStreamingStage: PipelineStage {
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async {
         guard !parser.buffer.isEmpty else { return }
-        let kind = parser.isThinking ? "thinking" : "content"
-        logger.debug("Flushing remaining \(kind) buffer (\(parser.buffer.count) chars)")
-        if parser.isThinking {
-            let buffer = parser.buffer
-            await context.outputs.appendThinking(buffer)
-            continuation.yield(.reasoning(parser.buffer))
-        } else {
-            let buffer = parser.buffer
-            await context.outputs.appendResponse(buffer)
-            continuation.yield(.generation(parser.buffer))
+        let oldThinkingCount = parser.thinking.count
+        let oldContentCount = parser.content.count
+        logger.debug("Flushing remaining parser buffer (\(parser.buffer.count) chars)")
+        parser.finish()
+        let thinkingChunk = parser.thinking.dropFirst(oldThinkingCount)
+        let contentChunk: Substring = parser.hasReclassified ? "" : parser.content.dropFirst(oldContentCount)
+        if !thinkingChunk.isEmpty {
+            await context.outputs.appendThinking(String(thinkingChunk))
+            continuation.yield(.reasoning(String(thinkingChunk)))
+        }
+        if !contentChunk.isEmpty {
+            await context.outputs.appendResponse(String(contentChunk))
+            continuation.yield(.generation(String(contentChunk)))
         }
     }
 }

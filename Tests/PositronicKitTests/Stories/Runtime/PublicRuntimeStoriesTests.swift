@@ -46,6 +46,9 @@ private struct CapturingLogHandler: LogHandler {
     }
 }
 
+// `.serialized`: end-to-end facade stories drive streaming `MockLLMService` turns with
+// wall-clock stream waits. Serialization avoids timing interference between stories
+// (issue #155).
 @Suite("Public runtime stories", .serialized, .tags(.integration))
 struct PublicRuntimeStoriesTests {
     @Test("Timeline handle delegates managed execution to the facade")

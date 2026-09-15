@@ -2,7 +2,7 @@ import Testing
 
 /// Test-layer tags for this target's taxonomy (see docs/Testing.md).
 ///
-/// The same four tags are defined in `PositronicKitTests/Support/TestTags.swift`.
+/// The same five tags are defined in `PositronicKitTests/Support/TestTags.swift`.
 /// Tags cannot live in `PKTestSupport`: that module deliberately uses `internal import Testing`
 /// so the toolchain module never leaks into its public interface, while tags must be public to
 /// their consumers. Keep the two definitions in sync. Suites opt in with
@@ -16,4 +16,7 @@ extension Tag {
     @Tag static var slow: Self
     /// Behavior that differs by platform, such as conditional FoundationNetworking imports.
     @Tag static var platformSpecific: Self
+    /// Bounded, seeded generative/property suites. Excluded from the fast loop and the
+    /// default gate's critical path; run explicitly or on the nightly flake-detection job.
+    @Tag static var generative: Self
 }

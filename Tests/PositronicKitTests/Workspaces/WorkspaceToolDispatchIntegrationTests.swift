@@ -5,6 +5,9 @@ import PKTestSupport
 import Synchronization
 import Testing
 
+// `.serialized`: dispatch scenarios assert FIFO lane ordering through async latches with
+// wall-clock waits. Serialization avoids timing interference between the scenarios
+// (issue #155).
 @Suite("Workspace tool dispatch integration", .serialized, .tags(.integration))
 struct WorkspaceToolDispatchIntegrationTests {
     private actor ExecutionProbe {

@@ -4,8 +4,9 @@
 Swift 6.3.3 does not support the Swift Testing ``tag:`` command-line
 specifier. The repository still records taxonomy tags in source, then uses
 the stable test-name regex interface to select tagged unit/platform suites.
-Module test targets without taxonomy annotations are included wholesale.
-
+Module test targets without taxonomy annotations are included wholesale,
+except for bounded generative suites (``.tags(.generative)``), which run
+explicitly or on the nightly flake-detection job and never on the fast loop.
 Selection is per suite, not per file. A runtime file that declares one
 `.unit` suite alongside an `.integration` suite contributes only the `.unit`
 suite, and helper types that merely have "Test" in their name never reach
@@ -69,6 +70,10 @@ def annotated_suites(text: str) -> list[tuple[str, str]]:
 def names_from_runtime(path: Path) -> set[str]:
     """Runtime targets are taxonomy-tagged; take only the fast-tagged suites."""
     text = path.read_text(encoding="utf-8")
+    if ".tags(.generative)" in text:
+        return set()
+    if ".tags(.unit)" not in text and ".tags(.platformSpecific)" not in text:
+        return set()
     return {
         name
         for name, attributes in annotated_suites(text)
@@ -79,6 +84,8 @@ def names_from_runtime(path: Path) -> set[str]:
 def names_from_module(path: Path) -> set[str]:
     """Module targets carry no taxonomy; take every suite they declare."""
     text = path.read_text(encoding="utf-8")
+    if ".tags(.generative)" in text:
+        return set()
     names = {name for name, _ in annotated_suites(text)}
     names.update(match.group("name") for match in TOP_LEVEL_SUITE_RE.finditer(text))
     return names

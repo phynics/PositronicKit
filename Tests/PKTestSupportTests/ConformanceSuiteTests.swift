@@ -4,6 +4,9 @@ import PKTestSupport
 import PositronicKit
 import Testing
 
+// `.serialized`: each test runs the same conformance suite against several in-tree store
+// implementations back-to-back. Serialization keeps failure attribution ordered per
+// conformer (issue #155).
 @Suite("PKTestSupport conformance suites", .serialized)
 struct ConformanceSuiteTests {
     @Test("WorkspaceStore runs against in-tree conformers")

@@ -23,6 +23,9 @@ import Testing
 /// - `mapProviderError`'s `CancellationError` passthrough.
 /// - `PKOpenAI.makeClient(configuration:)` for both `.openAI` and
 ///   OpenAI-compatible providers.
+// `.serialized`: each test binds its own loopback `TestHTTPServer` and drives the OpenAI
+// SDK session against it. Serialization avoids ephemeral-port churn and SDK session
+// timing interference between tests (issue #155).
 @Suite("OpenAI client coverage", .serialized)
 struct OpenAIClientCoverageTests {
 

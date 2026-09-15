@@ -9,6 +9,9 @@ import Testing
 /// PKRR-002 cancellation invariants: `TimelineHandle.cancel()` must actually cancel the
 /// stream-driving task, the registry entry must be removed on every terminal path,
 /// eviction/deletion must cancel active work, and a stale request ID cannot cancel a newer turn.
+// `.serialized`: cancellation invariants use wall-clock stream waits with a one-minute
+// suite time limit. Serialization avoids timing interference between the cancellation
+// scenarios (issue #155).
 @Suite("Timeline cancellation invariants (PKRR-002)", .serialized, .timeLimit(.minutes(1)), .tags(.integration))
 struct TimelineCancellationTests {
     // MARK: - 1. cancel() stops an active stream

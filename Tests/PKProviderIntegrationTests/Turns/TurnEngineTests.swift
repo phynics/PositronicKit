@@ -6,7 +6,12 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
-@Suite(.serialized, .tags(.integration)) @MainActor
+// No `.serialized` marker: every test builds fresh in-memory stores plus a unique
+// workspace root (issue #155), so the old marker only compensated for the shared
+// `/tmp/pk-test` root that has been eliminated. Note that `@MainActor` alone would not
+// justify dropping it — it excludes concurrent *synchronous* regions, but async tests
+// still interleave at `await` points, so shared mutable state would remain unsafe.
+@Suite(.tags(.integration)) @MainActor
 struct TurnEngineTests {
     private let timelineID = UUID()
 
@@ -27,7 +32,7 @@ struct TurnEngineTests {
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
-            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
+            workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
@@ -1093,7 +1098,7 @@ struct TurnEngineTests {
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
-            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
+            workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(timelineManager: timelineManager, runtimeRepository: mockPersistence)
@@ -1226,7 +1231,7 @@ struct TurnEngineTests {
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
-            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
+            workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
@@ -1433,7 +1438,7 @@ struct TurnEngineTests {
                 runtimeRepository: repository,
                 toolPersistence: repository
             ),
-            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
+            workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
         )
         let dependencies = TurnEngine.Dependencies(
