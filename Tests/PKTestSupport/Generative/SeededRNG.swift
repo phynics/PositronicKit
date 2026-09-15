@@ -23,7 +23,8 @@ public struct SeededRNG: RandomNumberGenerator, Sendable {
         return z ^ (z >> 31)
     }
 
-    /// Uniform integer in `0..<upperBound` without modulo bias for small bounds.
+    /// Integer in `0..<upperBound` via modulo reduction. Bias is negligible for the
+    /// small bounds used in test generation; not suitable for uniformity-sensitive sampling.
     public mutating func nextInt(upperBound: Int) -> Int {
         precondition(upperBound > 0, "SeededRNG.nextInt requires a positive bound")
         return Int(next() % UInt64(upperBound))
