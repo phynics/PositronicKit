@@ -36,6 +36,9 @@ private final class CapturingMiddleware: OpenAIMiddleware, @unchecked Sendable {
     }
 }
 
+// `.serialized`: each test binds a loopback `TestHTTPServer` and observes SDK traffic
+// through a per-test middleware signal. Serialization keeps the request-observation
+// signals and port churn ordered between tests (issue #155).
 @Suite("OpenAI transport contract", .serialized)
 struct OpenAITransportContractTests {
     private func makeClient(

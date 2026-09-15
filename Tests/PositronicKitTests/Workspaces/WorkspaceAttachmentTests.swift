@@ -398,6 +398,8 @@ struct DetachWorkspaceTests {
 
 // MARK: - getWorkspaces
 
+// `.serialized`: attachment scenarios seed workspaces under one shared test-root parent.
+// Serialization avoids temporary-directory churn between the scenarios (issue #155).
 @Suite("TimelineManager.getWorkspaces", .serialized, .tags(.integration))
 struct GetWorkspacesTests {
     @Test("throws timelineNotFound for unknown timeline")

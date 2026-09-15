@@ -4,7 +4,9 @@
 Swift 6.3.3 does not support the Swift Testing ``tag:`` command-line
 specifier. The repository still records taxonomy tags in source, then uses
 the stable test-name regex interface to select tagged unit/platform suites.
-Module test targets without taxonomy annotations are included wholesale.
+Module test targets without taxonomy annotations are included wholesale,
+except for bounded generative suites (``.tags(.generative)``), which run
+explicitly or on the nightly flake-detection job and never on the fast loop.
 """
 
 from __future__ import annotations
@@ -35,6 +37,8 @@ TYPE_RE = re.compile(r"\b(?:struct|class|actor)\s+(\w+)")
 
 def names_from_runtime(path: Path) -> set[str]:
     text = path.read_text(encoding="utf-8")
+    if ".tags(.generative)" in text:
+        return set()
     if ".tags(.unit)" not in text and ".tags(.platformSpecific)" not in text:
         return set()
     return {
@@ -45,9 +49,12 @@ def names_from_runtime(path: Path) -> set[str]:
 
 
 def names_from_module(path: Path) -> set[str]:
+    text = path.read_text(encoding="utf-8")
+    if ".tags(.generative)" in text:
+        return set()
     return {
         match.group(1)
-        for match in TYPE_RE.finditer(path.read_text(encoding="utf-8"))
+        for match in TYPE_RE.finditer(text)
         if "Test" in match.group(1)
     }
 

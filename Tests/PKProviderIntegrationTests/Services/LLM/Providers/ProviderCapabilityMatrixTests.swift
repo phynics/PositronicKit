@@ -37,6 +37,9 @@ private let registeredCaseIDs: Set<String> = [
     "runtime.ollama.mixed-layout",
 ]
 
+// `.serialized`: the matrix runs every manifest row's executable assertion back-to-back
+// in manifest order. Serialization keeps provider conformance output and failure
+// attribution ordered (issue #155).
 @Suite("Provider capability matrix", .serialized, .tags(.integration))
 struct ProviderCapabilityMatrixTests {
     @Test("every manifest row has an executable assertion")

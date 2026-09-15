@@ -16,7 +16,10 @@ import Testing
 /// - Cancellation → `.error(.generationCancelled)`
 /// - Provider or pipeline failure → the stream throws for the package-internal engine seam
 /// - Terminal persistence failure → `.error(.durabilityFailure)` and a normally closed stream
-@Suite(.serialized, .tags(.integration)) @MainActor
+// No `.serialized` marker: `@MainActor` already serializes this suite, and every test
+// builds fresh in-memory stores plus a unique workspace root (issue #155), so the old
+// marker only compensated for the shared `/tmp/pk-test` root that has been eliminated.
+@Suite(.tags(.integration)) @MainActor
 struct TurnEngineTerminalEventTests {
     private let timelineID = UUID()
 
@@ -36,7 +39,7 @@ struct TurnEngineTerminalEventTests {
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
-            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
+            workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
@@ -103,7 +106,7 @@ struct TurnEngineTerminalEventTests {
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
-            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
+            workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(

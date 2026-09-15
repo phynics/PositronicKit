@@ -5,7 +5,9 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
-@Suite(.serialized, .tags(.integration))
+// No `.serialized` marker: every test builds a fresh in-memory repository and a unique
+// workspace root (issue #155), so tests are independent and may run in parallel.
+@Suite(.tags(.integration))
 struct TurnAdmissionSeamTests {
     @Test("managed admission captures authoritative Agent context")
     func managedAdmissionCapturesAuthority() async throws {
@@ -316,7 +318,7 @@ struct TurnAdmissionSeamTests {
                 runtimeRepository: repository,
                 toolPersistence: backing
             ),
-            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-admission")),
+            workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-admission-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(

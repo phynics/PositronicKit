@@ -17,7 +17,10 @@ import Testing
 /// `runOneTurn` is exercised end to end. The helpers intentionally omit a
 /// `TimelineRuntimeRepository`, so retry assertions describe the independent-store compatibility
 /// path; atomic admission and terminal replay are covered by `TurnAdmissionSeamTests`.
-@Suite(.serialized, .tags(.integration)) @MainActor
+// No `.serialized` marker: `@MainActor` already serializes this suite, and every test
+// builds fresh in-memory stores plus a unique workspace root (issue #155), so the old
+// marker only compensated for the shared `/tmp/pk-test` root that has been eliminated.
+@Suite(.tags(.integration)) @MainActor
 struct TurnEngineFailurePersistenceTests {
     private let timelineID = UUID()
 
@@ -41,7 +44,7 @@ struct TurnEngineFailurePersistenceTests {
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
-            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
+            workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
@@ -100,7 +103,7 @@ struct TurnEngineFailurePersistenceTests {
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
-            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
+            workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(

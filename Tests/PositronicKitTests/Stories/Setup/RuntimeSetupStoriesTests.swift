@@ -4,6 +4,9 @@ import PKTestSupport
 import PositronicKit
 import Testing
 
+// `.serialized`: facade setup stories assert whole-runtime initialization outcomes
+// (including the unconfigured-facade failure path). Serialization keeps those
+// facade-level assertions ordered between stories (issue #155).
 @Suite("Runtime setup stories", .serialized, .tags(.integration)) struct RuntimeSetupStoriesTests {
     @Test("PKRuntime default initialization")
     func defaultInitialization() async {

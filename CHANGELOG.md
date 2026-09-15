@@ -162,6 +162,22 @@ for tagged releases beginning with `1.0.0`.
   on both platform gates, the story coverage index is enforced by
   `make verify-story-coverage`, and `docs/Testing.md` defines the test layers, determinism
   rules, and gate policy.
+- **Generative coverage and nightly flake detection (#155):** adversarial parser surfaces
+  are now tested generatively with a small in-repo seeded generator (`SeededRNG`,
+  `ChunkBoundaryGenerator`, `AdversarialPathGenerator` in `PKTestSupport`, fixed default
+  seed with `PK_GENERATIVE_SEED` override) instead of a new package dependency: arbitrary
+  chunk-boundary splits of SSE/NDJSON streams and `StreamingParser` input must decode to
+  the same result as the unsplit stream, every byte-offset truncation of valid JSON must
+  throw the typed error or repair to re-encodable JSON, `TokenBudget` results never exceed
+  the budget and never drop required sections, and generated `PathSanitizer` inputs resolve
+  inside the jail or throw. Discovered counterexamples are committed to
+  `GenerativeRegressionCorpus`. The suites carry the new `.generative` tag, run bounded
+  off the default gate's critical path, and the scheduled
+  `.github/workflows/nightly-flake-detection.yml` job runs the full suite N times and
+  reports any test that does not pass every run by name with the failing iteration count
+  (`Scripts/detect-flaky-tests.py`, `make detect-flakes`). Four `.serialized` markers that
+  only compensated for shared fixed `/tmp` workspace roots were removed with the roots;
+  every remaining marker carries a comment stating its real ordering requirement.
 
 ## [5.1.0] - 2026-09-08
 

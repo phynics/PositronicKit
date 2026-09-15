@@ -1,7 +1,7 @@
 .PHONY: help build clean test test-fast doctor validate-docs verify-documentation \
 	verify verify-concurrency-scan verify-runtime-architecture \
 	verify-linux-agent verify-linux-filter verify-linux-coverage \
-	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-story-coverage verify-v4-vocabulary \
+	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-story-coverage verify-v4-vocabulary detect-flakes \
 	verify-public-api update-public-api-baseline verify-release \
 	agent-verify agent-test linux-image linux-build linux-coverage require-podman
 
@@ -201,6 +201,17 @@ verify-story-coverage:
 verify-v4-vocabulary:
 	@bash Scripts/check-v4-vocabulary.sh
 
+# Nightly flake-detection report entrypoint (see .github/workflows/nightly-flake-detection.yml).
+# Aggregates per-iteration xUnit files produced by repeated full-suite runs and reports
+# every test that did not pass every run, by name with the failing iteration count.
+# This target reports only; it never gates pull requests.
+detect-flakes:
+	@if [ -z "$(XUNIT_FILES)" ]; then \
+		echo "make: XUNIT_FILES is required (for example: make detect-flakes XUNIT_FILES='.build/flake-detection/iteration-*.xml')." >&2; \
+		exit 2; \
+	fi
+	@python3 Scripts/detect-flaky-tests.py --report $(XUNIT_FILES)
+
 verify-agent-harness:
 	@bash Tests/Scripts/doctor_test.sh
 	@bash Tests/Scripts/run_linux_container_test.sh
@@ -220,6 +231,7 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/check_v4_vocabulary_test.py
 	@python3 -B Tests/Scripts/check_pr_docs_impact_test.py
 	@python3 -B Tests/Scripts/check_story_coverage_test.py
+	@python3 -B Tests/Scripts/detect_flaky_tests_test.py
 
 # Linux testing intentionally has no native or Docker fallback. The shared
 # runner performs the deeper access check and prints the sandbox-escalation

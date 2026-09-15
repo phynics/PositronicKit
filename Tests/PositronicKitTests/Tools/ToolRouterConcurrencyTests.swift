@@ -5,6 +5,9 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
+// `.serialized`: this stress suite fires concurrent `execute` calls at one router.
+// Serialization contains that load to one scenario at a time so the scenarios do not
+// perturb each other's timing (issue #155).
 @Suite(.serialized, .tags(.slow)) struct ToolRouterConcurrencyTests {
     private func makeSetup() async throws -> (ToolRouter, TimelineManager, MockPersistenceService) {
         let persistence = MockPersistenceService()

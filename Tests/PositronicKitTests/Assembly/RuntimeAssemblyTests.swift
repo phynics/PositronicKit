@@ -3,6 +3,9 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
+// `.serialized`: each test assembles a full `PKRuntime` graph and asserts cross-cutting
+// cohesion (one shared repository, one shared prompt-journal registry). Serialization
+// keeps those whole-graph assertions ordered between tests (issue #155).
 @Suite("Runtime assembly", .serialized, .tags(.integration))
 struct RuntimeAssemblyTests {
     @Test("default facade uses one cohesive in-memory repository")

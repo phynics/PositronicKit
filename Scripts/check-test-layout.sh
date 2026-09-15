@@ -32,8 +32,8 @@ provider_tags="Tests/PKProviderIntegrationTests/Support/TestTags.swift"
 if [[ ! -f "$runtime_tags" || ! -f "$provider_tags" ]]; then
     report_failure "both runtime test targets must define synchronized TestTags.swift files"
 else
-    runtime_tag_declarations="$(grep -E '^[[:space:]]*@Tag static var (unit|integration|slow|platformSpecific)' "$runtime_tags" || true)"
-    provider_tag_declarations="$(grep -E '^[[:space:]]*@Tag static var (unit|integration|slow|platformSpecific)' "$provider_tags" || true)"
+    runtime_tag_declarations="$(grep -E '^[[:space:]]*@Tag static var (unit|integration|slow|platformSpecific|generative)' "$runtime_tags" || true)"
+    provider_tag_declarations="$(grep -E '^[[:space:]]*@Tag static var (unit|integration|slow|platformSpecific|generative)' "$provider_tags" || true)"
     if [[ -z "$runtime_tag_declarations" || "$runtime_tag_declarations" != "$provider_tag_declarations" ]]; then
         report_failure "runtime test target tag definitions differ between $runtime_tags and $provider_tags"
     fi

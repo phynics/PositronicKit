@@ -65,6 +65,7 @@ their consumers. Keep the two definitions in sync.)
 | `.integration` | Multi-component runtime behavior: Turns, Timelines, Workspaces, stores, stories, providers, examples. |
 | `.slow` | Long-running stress and concurrency suites. |
 | `.platformSpecific` | Behavior that differs by platform, such as conditional FoundationNetworking imports. |
+| `.generative` | Bounded, seeded property suites for adversarial surfaces. Excluded from the fast loop and the default gate's critical path; run explicitly or on the nightly flake-detection job. |
 
 Annotate every suite: `@Suite("Name", .tags(.unit))`, or a bare
 `@Suite(.tags(.unit))` when the suite keeps its default name. Tags are
@@ -106,6 +107,38 @@ tag it; that is a rewrite, and test splits here are moves, not rewrites.
 - Filesystem access goes through a unique temporary directory per suite.
 - Randomness is seeded or scripted; concurrency suites synchronize on events,
   not on timeouts, wherever the API allows it.
+
+## Generative suites
+
+Adversarial parser surfaces (streaming decoders, `PartialJSON` recovery, prompt token
+budgeting, `PathSanitizer`) are tested generatively with a small in-repo generator in
+`Tests/PKTestSupport/Generative/` (`SeededRNG`, `ChunkBoundaryGenerator`,
+`AdversarialPathGenerator`) rather than a package dependency:
+
+- Every generative suite runs bounded (`GenerativeConfig.defaultCaseCount` cases per
+  corpus entry) and deterministic under a fixed default seed. `PK_GENERATIVE_SEED`
+  overrides the seed for exploration; the effective seed is reported with every
+  failure so a failure reproduces from the log alone.
+- A discovered counterexample is committed to `GenerativeRegressionCorpus` as a
+  regression fixture, not left to be rediscovered.
+- Generative suites carry `.tags(.generative)` and never appear on the default gate's
+  critical path: `Scripts/generate-test-fast-filter.py` excludes them from
+  `make test-fast`, and the full gates run them only inside the complete `test` pass.
+  Module targets (`PKContractsTests`, `PKPromptTests`, `PKUtilitiesTests`) define only
+  the `.generative` tag locally; the canonical taxonomy still lives in the two runtime
+  `TestTags.swift` files.
+
+## Nightly flake detection
+
+`.github/workflows/nightly-flake-detection.yml` runs on a schedule (plus manual
+dispatch) — never on pull requests. It runs the full suite N times (default 5),
+records one xUnit file per iteration via `swift test --xunit-output`, then runs
+`Scripts/detect-flaky-tests.py --report iteration-*.xml`, which reports every test
+that did not pass every run by name with the failing iteration count
+(`make detect-flakes XUNIT_FILES='...'` runs the report locally). A `.serialized`
+marker is kept only for a real ordering requirement (loopback-listener churn,
+process-global protocol registration, wall-clock timing sensitivity, or contained
+stress load); each remaining marker carries a comment stating that requirement.
 
 ## File layout rules
 

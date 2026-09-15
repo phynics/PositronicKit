@@ -5,6 +5,9 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
+// `.serialized`: this stress suite hammers one manager with concurrent task groups.
+// Serialization contains that load to one scenario at a time so the scenarios do not
+// perturb each other's timing (issue #155).
 @Suite(.serialized, .tags(.slow)) struct TimelineManagerConcurrencyTests {
     private func makeTimelineManager() async throws -> TimelineManager {
         let workspace = TestWorkspace()
