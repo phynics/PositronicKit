@@ -113,6 +113,20 @@ let configuredProvider = PKOpenAI.makeConfiguredProvider(apiKey: "test-key")
 let configuredKit = PKRuntime(provider: configuredProvider)
 _ = configuredKit.model
 
+// The durable provider path keeps `LLMService` and `LLMClientSet` out of consumer code too:
+// the same configured value feeds a grouped `Configuration` with explicit persistent stores.
+let durableConfiguredKit = PKRuntime(configuration: .init(
+    provider: configuredProvider,
+    persistence: .fullyPersistent(
+        runtimeRepository: InMemoryTimelineRuntimeRepository(),
+        workspacePersistence: InMemoryWorkspacePersistence(),
+        toolPersistence: InMemoryToolPersistence(),
+        agentStore: InMemoryAgentStore(),
+        requestOriginStore: InMemoryRequestOriginStore()
+    )
+))
+_ = durableConfiguredKit.model
+
 // A stream-only implementation is sufficient for the facade and strict utility generator;
 // configuration administration and health capabilities are deliberately not required here.
 private let streamOnly = StreamOnlyLLMClient()

@@ -175,6 +175,23 @@ let provider = PKOpenAI.makeConfiguredProvider(
 let core = PKRuntime(provider: provider)
 ```
 
+That form uses in-memory persistence, so use it for prototyping. For production, pass the same
+configured value to the provider overload of `Configuration` with your durable stores; you still
+never name `LLMService` or `LLMClientSet`:
+
+```swift
+let core = PKRuntime(configuration: .init(
+    provider: provider,
+    persistence: .fullyPersistent(
+        runtimeRepository: myTimelineRuntimeRepository,
+        workspacePersistence: myWorkspaceStore,
+        toolPersistence: myToolStore,
+        agentStore: myAgentStore,
+        requestOriginStore: myRequestOriginStore
+    )
+))
+```
+
 The same shape is available for OpenRouter, Ollama, and Anthropic:
 
 ```swift
