@@ -156,7 +156,7 @@ public final class PKRuntime: Sendable {
     /// ``PKRuntime/init(configuration:)``; that path also keeps both types out of the
     /// consumer's code.
     public convenience init(provider: ConfiguredLLMProvider) {
-        self.init(languageModel: LLMService(provider: provider))
+        self.init(configuration: .init(provider: provider, persistence: .inMemory()))
     }
 
     convenience init(

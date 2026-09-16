@@ -3,10 +3,8 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-// `.serialized`: each test assembles a full `PKRuntime` graph and executes a Turn, matching the
-// whole-graph ordering requirement documented in `RuntimeAssemblyTests` (issue #155).
-@Suite("Provider configuration path", .serialized, .tags(.integration))
-struct ProviderConfigurationTests {
+@Suite("Configured provider construction", .tags(.integration))
+struct ConfiguredProviderConstructionTests {
     @Test("durable configuration accepts a configured provider without client-set assembly")
     func durableConfigurationAcceptsConfiguredProvider() async throws {
         let client = MockLLMClient()

@@ -179,10 +179,6 @@ configured value to the provider overload of `Configuration` with your durable s
 never name `LLMService` or `LLMClientSet`:
 
 ```swift
-let provider = PKOpenAI.makeConfiguredProvider(
-    apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "",
-    model: "gpt-4o"
-)
 let core = PKRuntime(configuration: .init(
     provider: provider,
     persistence: .fullyPersistent(
