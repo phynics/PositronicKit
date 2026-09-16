@@ -245,11 +245,13 @@ import PKObservable
 import PositronicKit
 
 // Agent-attached Timeline: managed Turns.
-let managed = TimelineController(managedHandle)
+let managedTimeline = try await kit.timelines.create(title: "Chat", attaching: agent.id)
+let managed = TimelineController(managedTimeline)
 
 // Detached Timeline: direct Turns with explicit context.
+let directTimeline = try await kit.timelines.create(title: "Scratchpad")
 let direct = TimelineController(
-    directHandle,
+    directTimeline,
     context: DirectTurnContext(systemInstructions: "You are a helpful assistant.")
 )
 

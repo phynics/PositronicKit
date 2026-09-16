@@ -200,6 +200,10 @@ struct TimelineControllerTests {
 @Suite("Timeline controller direct path")
 @MainActor
 struct TimelineControllerDirectPathTests {
+    private func makeController(_ driver: TimelineHandle) -> TimelineController {
+        TimelineController(driver, context: DirectTurnContext(systemInstructions: ""))
+    }
+
     @Test("mirrors streamed text and completed messages")
     func mirrorsStreamedTextAndCompletedMessages() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
@@ -207,16 +211,31 @@ struct TimelineControllerDirectPathTests {
         runtime.llm.mockClient.nextChunks = [["Hello, ", "world!"]]
         let kit = runtime.runtime
         let driver = try await kit.timelines.create(title: "Controller")
-        let controller = TimelineController(
-            driver,
-            context: DirectTurnContext(systemInstructions: "")
-        )
+        let controller = makeController(driver)
 
         try await controller.send("Hi")
 
         #expect(controller.isStreaming == false)
         #expect(controller.streamingText.isEmpty)
         #expect(controller.messages.map(\.content) == ["Hi", "Hello, world!"])
+    }
+
+    @Test("a completed send clears its active task")
+    func completedSendClearsActiveTask() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.nextResponses = ["reply"]
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        var controller: TimelineController? = makeController(driver)
+        weak var releasedController: TimelineController? = nil
+        releasedController = controller
+
+        try await controller!.send("Hi")
+        controller = nil
+        await Task.yield()
+
+        #expect(releasedController == nil)
     }
 
     @Test("a provider failure is thrown with its terminal event and clears state")
@@ -226,10 +245,7 @@ struct TimelineControllerDirectPathTests {
         runtime.llm.mockClient.shouldThrowError = true
         let kit = runtime.runtime
         let driver = try await kit.timelines.create(title: "Controller")
-        let controller = TimelineController(
-            driver,
-            context: DirectTurnContext(systemInstructions: "")
-        )
+        let controller = makeController(driver)
 
         let error = await #expect(throws: TimelineControllerError.self) {
             try await controller.send("Hi")
@@ -251,10 +267,7 @@ struct TimelineControllerDirectPathTests {
         runtime.llm.mockClient.neverFinishingStreamCallIndices = [1]
         let kit = runtime.runtime
         let driver = try await kit.timelines.create(title: "Controller")
-        let controller = TimelineController(
-            driver,
-            context: DirectTurnContext(systemInstructions: "")
-        )
+        let controller = makeController(driver)
 
         let sendTask = Task { try await controller.send("Hi") }
         while controller.isStreaming == false {
@@ -285,10 +298,7 @@ struct TimelineControllerDirectPathTests {
         )
         let kit = runtime.runtime
         let driver = try await kit.timelines.create(title: "Controller")
-        let controller = TimelineController(
-            driver,
-            context: DirectTurnContext(systemInstructions: "")
-        )
+        let controller = makeController(driver)
 
         let error = await #expect(throws: TimelineControllerError.self) {
             try await controller.send("Hi")
@@ -310,10 +320,7 @@ struct TimelineControllerDirectPathTests {
         runtime.llm.mockClient.nextResponses = ["second reply"]
         let kit = runtime.runtime
         let driver = try await kit.timelines.create(title: "Controller")
-        let controller = TimelineController(
-            driver,
-            context: DirectTurnContext(systemInstructions: "")
-        )
+        let controller = makeController(driver)
 
         let first = Task { try await controller.send("first") }
         while controller.isStreaming == false {
@@ -339,10 +346,7 @@ struct TimelineControllerDirectPathTests {
         runtime.llm.mockClient.nextResponses = ["replacement reply"]
         let kit = runtime.runtime
         let driver = try await kit.timelines.create(title: "Controller")
-        let controller = TimelineController(
-            driver,
-            context: DirectTurnContext(systemInstructions: "")
-        )
+        let controller = makeController(driver)
 
         let first = Task { try await controller.send("first") }
         while controller.isStreaming == false {
