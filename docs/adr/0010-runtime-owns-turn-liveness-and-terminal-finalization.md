@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Runtime owns Turn liveness and terminal finalization
@@ -103,7 +103,7 @@ its `recover` and `forceClear` cases for interrupt dispositions, first-writer-wi
 `docs/Testing.md` stop describing store-side stale recovery. The #195 `Task {}` wrapper is not
 needed; its cancellation-durability tests move to the finalizer.
 
-When this ADR is accepted, ADR 0003 gains a note that stale-Turn recovery is governed here.
+ADR 0003 carries a note that stale-Turn recovery is governed here.
 
 ## Rejected alternatives
 
