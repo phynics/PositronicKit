@@ -101,6 +101,13 @@ func exercisePublicTurnAdmission(_ timeline: TimelineHandle) async {
         context: DirectTurnContext(systemInstructions: "Be concise.", contributor: .host))
 }
 
+// Ordinary-import compile coverage for both `TimelineController` admission paths.
+@MainActor
+func exerciseTimelineControllerPaths(_ managed: TimelineHandle, direct: TimelineHandle) {
+    _ = TimelineController(managed)
+    _ = TimelineController(direct, context: DirectTurnContext(systemInstructions: "Be concise."))
+}
+
 // Provider packages return one runtime-neutral value for ordinary application setup.
 let configuredProvider = PKOpenAI.makeConfiguredProvider(apiKey: "test-key")
 let configuredKit = PKRuntime(provider: configuredProvider)

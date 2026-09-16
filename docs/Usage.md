@@ -236,6 +236,33 @@ let turn = try await timeline.startDirectTurn(
 
 Pass an explicit contributor array when a `TurnContextSource` needs a different selection.
 
+### Observing a Turn with a controller
+
+`PKObservable.TimelineController` is the package's SwiftUI-shaped helper. It accumulates streamed
+deltas and completed messages, and it supersedes an in-flight send. Choose the initializer by
+Timeline attachment:
+
+```swift
+import PKObservable
+import PositronicKit
+
+// Agent-attached Timeline: managed Turns.
+let managedTimeline = try await kit.timelines.create(title: "Chat", attaching: agent.id)
+let managed = TimelineController(managedTimeline)
+
+// Detached Timeline: direct Turns with explicit context.
+let directTimeline = try await kit.timelines.create(title: "Scratchpad")
+let direct = TimelineController(
+    directTimeline,
+    context: DirectTurnContext(systemInstructions: "You are a helpful assistant.")
+)
+
+try await direct.send("Hi") // streams into direct.streamingText / direct.messages
+```
+
+Both paths share `send(_:)`, superseding behavior, and error semantics: cancellation surfaces
+`CancellationError`, while runtime and durability failures surface `TimelineControllerError`.
+
 ### Reading Timeline history
 
 Read durable messages through `kit.timelines.messages(for:)`. The result is ordered from oldest to

@@ -515,7 +515,7 @@ Provider targets ship separately so you opt in only to the integrations you want
 Supporting targets:
 
 - `PKObservable` contains opt-in `@Observable` wrappers. `TimelineController` mirrors
-  `TimelineHandle` stream state for SwiftUI clients.
+  `TimelineHandle` stream state for SwiftUI clients on both the managed and direct paths.
 - `PositronicKitExamples` contains runnable, compile-checked examples.
 - `PKTestSupport` is a test-only library product containing public mocks, fixtures, stream
   factories, `TestRuntime`, and reusable persistence/workspace conformance suites. Its ordinary

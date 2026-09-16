@@ -1,6 +1,7 @@
 import Foundation
 import PKObservable
 import PKTestSupport
+import PositronicKit
 import Testing
 
 @Suite("Timeline controller")
@@ -169,6 +170,183 @@ struct TimelineControllerTests {
         let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
         try await kit.agents.attach(agent.id, to: driver.id)
         let controller = TimelineController(driver)
+
+        let first = Task { try await controller.send("first") }
+        while controller.isStreaming == false {
+            await Task.yield()
+        }
+        while runtime.llm.mockClient.streamCallCount < 1 {
+            await Task.yield()
+        }
+
+        let second = Task { try await controller.send("second") }
+        while runtime.llm.mockClient.streamCallCount < 2 {
+            await Task.yield()
+        }
+        for _ in 0..<10 {
+            await Task.yield()
+        }
+
+        #expect(controller.isStreaming)
+
+        try await controller.send("replacement")
+        second.cancel()
+        first.cancel()
+        _ = await second.result
+        _ = await first.result
+    }
+}
+
+@Suite("Timeline controller direct path")
+@MainActor
+struct TimelineControllerDirectPathTests {
+    private func makeController(_ driver: TimelineHandle) -> TimelineController {
+        TimelineController(driver, context: DirectTurnContext(systemInstructions: ""))
+    }
+
+    @Test("mirrors streamed text and completed messages")
+    func mirrorsStreamedTextAndCompletedMessages() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.nextChunks = [["Hello, ", "world!"]]
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let controller = makeController(driver)
+
+        try await controller.send("Hi")
+
+        #expect(controller.isStreaming == false)
+        #expect(controller.streamingText.isEmpty)
+        #expect(controller.messages.map(\.content) == ["Hi", "Hello, world!"])
+    }
+
+    @Test("a completed send clears its active task")
+    func completedSendClearsActiveTask() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.nextResponses = ["reply"]
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        var controller: TimelineController? = makeController(driver)
+        weak var releasedController: TimelineController? = nil
+        releasedController = controller
+
+        try await controller!.send("Hi")
+        controller = nil
+        await Task.yield()
+
+        #expect(releasedController == nil)
+    }
+
+    @Test("a provider failure is thrown with its terminal event and clears state")
+    func providerFailurePropagatesAsControllerError() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.shouldThrowError = true
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let controller = makeController(driver)
+
+        let error = await #expect(throws: TimelineControllerError.self) {
+            try await controller.send("Hi")
+        }
+
+        #expect(controller.isStreaming == false)
+        #expect(controller.streamingText.isEmpty)
+        if let event = error?.event, case .error = event {
+            // The provider/runtime failure remains distinguishable from cancellation.
+        } else {
+            Issue.record("Expected the controller error to carry a general runtime error event")
+        }
+    }
+
+    @Test("cancellation is thrown as CancellationError and clears state")
+    func cancellationPropagatesAsCancellationError() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.neverFinishingStreamCallIndices = [1]
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let controller = makeController(driver)
+
+        let sendTask = Task { try await controller.send("Hi") }
+        while controller.isStreaming == false {
+            await Task.yield()
+        }
+        while runtime.llm.mockClient.streamCallCount < 1 {
+            await Task.yield()
+        }
+        sendTask.cancel()
+        await driver.cancel()
+
+        let result = await sendTask.result
+        if case .failure(let error) = result {
+            #expect(error is CancellationError)
+        } else {
+            Issue.record("Expected cancellation to fail the controller send")
+        }
+        #expect(controller.isStreaming == false)
+    }
+
+    @Test("a terminal persistence failure is thrown with its durability event")
+    func terminalPersistenceFailurePropagatesAsControllerError() async throws {
+        let persistence = MockPersistenceService()
+        persistence.completeTurnFails = true
+        let runtime = TestRuntime(
+            workspaceRoot: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString),
+            persistence: persistence
+        )
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let controller = makeController(driver)
+
+        let error = await #expect(throws: TimelineControllerError.self) {
+            try await controller.send("Hi")
+        }
+
+        #expect(controller.isStreaming == false)
+        if let event = error?.event, case .durabilityFailure = event {
+            // Terminal persistence remains distinguishable from provider/runtime failure.
+        } else {
+            Issue.record("Expected the controller error to carry a durability failure event")
+        }
+    }
+
+    @Test("a superseding send cancels the previous stream")
+    func supersedingSendCancelsPreviousStream() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.neverFinishingStreamCallIndices = [1]
+        runtime.llm.mockClient.nextResponses = ["second reply"]
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let controller = makeController(driver)
+
+        let first = Task { try await controller.send("first") }
+        while controller.isStreaming == false {
+            await Task.yield()
+        }
+        while runtime.llm.mockClient.streamCallCount < 1 {
+            await Task.yield()
+        }
+
+        try await controller.send("second")
+        first.cancel()
+        _ = await first.result
+
+        #expect(controller.isStreaming == false)
+        #expect(controller.messages.map(\.content).contains("second reply"))
+    }
+
+    @Test("a superseded send cannot clear replacement streaming state")
+    func supersededSendCannotClearReplacementStreamingState() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.neverFinishingStreamCallIndices = [1, 2]
+        runtime.llm.mockClient.nextResponses = ["replacement reply"]
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let controller = makeController(driver)
 
         let first = Task { try await controller.send("first") }
         while controller.isStreaming == false {

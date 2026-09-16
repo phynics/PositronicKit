@@ -14,6 +14,10 @@ public struct TimelineControllerError: Error, Sendable {
 
 /// A SwiftUI-friendly controller for a PKRuntime timeline handle.
 ///
+/// Create a controller with ``init(_:messages:)`` for an Agent-attached Timeline (managed Turns) or
+/// with ``init(_:context:messages:)`` for a detached Timeline (direct Turns). The initializer
+/// selects the admission path; `send(_:)` behavior is identical on both.
+///
 /// Issuing a new `send(_:)` while one is already in flight cancels/supersedes it: the prior
 /// task is cancelled, the driver's underlying generation is cancelled, and the new send starts
 /// fresh — mirroring the same superseding-send behavior provided by the timeline driver.
@@ -29,12 +33,28 @@ public final class TimelineController {
 
     /// The underlying handle this controller mirrors.
     public let driver: TimelineHandle
+    private let directContext: DirectTurnContext?
     private var activeSendTask: Task<Void, Error>? // swiftlint:disable:this concurrency_stored_task -- owned by actor/@MainActor (see docs/Concurrency/exception-manifest.md)
     private var activeSendGeneration = 0
 
-    /// Creates a controller for a TimelineRecord handle, optionally seeded with prior messages.
+    /// Creates a managed-path controller for an Agent-attached Timeline, optionally seeded with
+    /// prior messages. `send(_:)` admits managed Turns through `TimelineHandle.startTurn(_:)`.
     public init(_ driver: TimelineHandle, messages: [Message] = []) {
         self.driver = driver
+        self.directContext = nil
+        self.messages = messages
+    }
+
+    /// Creates a direct-path controller for a detached Timeline, optionally seeded with prior
+    /// messages. `send(_:)` admits direct Turns through
+    /// `TimelineHandle.startDirectTurn(_:context:)` using the captured context.
+    public init(
+        _ driver: TimelineHandle,
+        context: DirectTurnContext,
+        messages: [Message] = []
+    ) {
+        self.driver = driver
+        self.directContext = context
         self.messages = messages
     }
 
@@ -74,7 +94,11 @@ public final class TimelineController {
             }
         }
 
-        let turn = try await driver.startTurn(content)
+        let turn = if let directContext {
+            try await driver.startDirectTurn(content, context: directContext)
+        } else {
+            try await driver.startTurn(content)
+        }
         for await event in turn.events() {
             try Task.checkCancellation()
             guard activeSendGeneration == generation else { return }
