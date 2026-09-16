@@ -23292,6 +23292,17 @@
       "declaration": "let runtime: PKRuntime.RuntimeConfiguration"
     },
     {
+      "precise": "s:13PositronicKit9PKRuntimeC13ConfigurationV8provider11persistence7runtime20generationParameters7loggingAE11PKContracts21ConfiguredLLMProviderV_AC011PersistenceD0VAC07RuntimeD0VAK010GenerationI0VSgAK07LoggingD0Vtcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "PKRuntime",
+        "Configuration",
+        "init(provider:persistence:runtime:generationParameters:logging:)"
+      ],
+      "declaration": "init(provider: ConfiguredLLMProvider, persistence: PKRuntime.PersistenceConfiguration, runtime: PKRuntime.RuntimeConfiguration = .default, generationParameters: GenerationParameters? = nil, logging: LoggingConfiguration = .default)"
+    },
+    {
       "precise": "s:13PositronicKit9PKRuntimeC13configurationA2C13ConfigurationV_tcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
@@ -55752,6 +55763,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit9PKRuntimeC13ConfigurationV7runtimeAC07RuntimeD0Vvp",
+      "target": "s:13PositronicKit9PKRuntimeC13ConfigurationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC13ConfigurationV8provider11persistence7runtime20generationParameters7loggingAE11PKContracts21ConfiguredLLMProviderV_AC011PersistenceD0VAC07RuntimeD0VAK010GenerationI0VSgAK07LoggingD0Vtcfc",
       "target": "s:13PositronicKit9PKRuntimeC13ConfigurationV"
     },
     {

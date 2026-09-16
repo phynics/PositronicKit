@@ -157,6 +157,12 @@ for tagged releases beginning with `1.0.0`.
 - Added `ConfiguredLLMProvider` and provider-specific `makeConfiguredProvider(...)` factories so
   common OpenAI, OpenRouter, Ollama, and Anthropic setup can pass one value to
   `PKRuntime(provider:)` without exposing service or client-set assembly.
+- **Durable provider construction (#182):** `PKRuntime.Configuration` now has a
+  `provider:persistence:runtime:generationParameters:logging:` initializer, so a consumer holding a
+  `ConfiguredLLMProvider` can build a fully persistent runtime without naming `LLMService` or
+  `LLMClientSet`. The existing `PKRuntime(provider:)` stays the in-memory prototyping path. The
+  provider overload resolves to the same stored `languageModel: any LLMStreamClient` shape, so no
+  second representation is introduced.
 - **Test taxonomy and runtime test split (#154):** provider-touching suites moved from
   `PositronicKitTests` into the new `PKProviderIntegrationTests` target, so the runtime test
   target no longer depends on any adapter, `PositronicKitExamples`, or the raw `OpenAI`

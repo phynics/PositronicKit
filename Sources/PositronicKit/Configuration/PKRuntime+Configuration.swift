@@ -38,6 +38,36 @@ public extension PKRuntime {
             self.generationParameters = generationParameters
             self.logging = logging
         }
+
+        /// Creates a grouped configuration from a provider-package value.
+        ///
+        /// The durable counterpart to ``PKRuntime/init(provider:)``: it resolves the
+        /// provider's configuration and client into the same ``LLMService`` the facade's
+        /// in-memory provider path uses, so applications still never assemble
+        /// ``LLMService`` or ``LLMClientSet`` themselves. Pass the result to
+        /// ``PKRuntime/init(configuration:)``.
+        ///
+        /// - Parameters:
+        ///   - provider: The configured provider value a provider package created.
+        ///   - persistence: The persistence stores the runtime writes to.
+        ///   - runtime: The non-store runtime knobs and bounded customization roles.
+        ///   - generationParameters: The default generation parameters, or `nil` for provider defaults.
+        ///   - logging: The logging configuration used for runtime diagnostics.
+        public init(
+            provider: ConfiguredLLMProvider,
+            persistence: PersistenceConfiguration,
+            runtime: RuntimeConfiguration = .default,
+            generationParameters: GenerationParameters? = nil,
+            logging: LoggingConfiguration = .default
+        ) {
+            self.init(
+                languageModel: LLMService(provider: provider),
+                persistence: persistence,
+                runtime: runtime,
+                generationParameters: generationParameters,
+                logging: logging
+            )
+        }
     }
 
     /// Groups the persistence stores the runtime writes to. A cohesive runtime repository is

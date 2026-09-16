@@ -147,11 +147,14 @@ public final class PKRuntime: Sendable {
         )
     }
 
-    /// Creates a facade from a configured provider value.
+    /// Creates a facade from a configured provider value with in-memory persistence.
     ///
     /// Provider packages expose the concrete factory methods that create this
     /// value. Applications do not need to assemble ``LLMService`` or
-    /// ``LLMClientSet`` for the common setup path.
+    /// ``LLMClientSet`` for the common setup path. For durable stores, use the
+    /// provider overload on ``PKRuntime/Configuration`` and pass it to
+    /// ``PKRuntime/init(configuration:)``; that path also keeps both types out of the
+    /// consumer's code.
     public convenience init(provider: ConfiguredLLMProvider) {
         self.init(languageModel: LLMService(provider: provider))
     }
