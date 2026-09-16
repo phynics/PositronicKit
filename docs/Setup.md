@@ -125,6 +125,7 @@ target. The runners are ordinary async or throwing functions, not discovered tes
 downstream target owns test names, tags, and source locations:
 
 ```swift
+import Testing
 import PKTestSupport
 import PositronicKit
 

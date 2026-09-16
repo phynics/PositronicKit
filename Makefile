@@ -1,7 +1,7 @@
 .PHONY: help build clean test test-fast doctor validate-docs verify-documentation \
 	verify verify-concurrency-scan verify-runtime-architecture \
 	verify-linux-agent verify-linux-filter verify-linux-coverage \
-	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-v4-vocabulary detect-flakes \
+	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-v4-vocabulary verify-doc-snippets detect-flakes \
 	verify-public-api update-public-api-baseline verify-release \
 	agent-verify agent-test linux-image linux-build linux-coverage require-container-runtime
 
@@ -58,6 +58,7 @@ help:
 	@echo "  make verify-dependency-direction  Check the v4 target dependency boundaries"
 	@echo "  make verify-v4-vocabulary  Check the v4 Timeline/Turn/Agent vocabulary"
 	@echo "  make verify-documentation  Check docs catalog, navigation, links, pins, products, and vocabulary"
+	@echo "  make verify-doc-snippets  Type-check every Swift fenced block under docs/"
 	@echo "  make verify-agent-harness Run agent test-entrypoint regression tests"
 	@echo "  make doctor                Report missing Swift and container runtime prerequisites"
 	@echo "  make verify-gate-script-coverage  Check every gate script has a wired fixture test"
@@ -99,6 +100,12 @@ verify-documentation:
 	@python3 Scripts/validate-provider-capability-matrix.py
 	@python3 Scripts/check-documentation-currency.py
 	@bash Scripts/check-v4-vocabulary.sh
+	@$(MAKE) verify-doc-snippets
+
+# Type-check every ```swift block under docs/ against the real modules by
+# building the generated DocSnippetConsumer target. Standalone entry point for
+# the docs-snippet gate that `verify-documentation` also runs.
+verify-doc-snippets:
 	@bash Scripts/compile-doc-snippets.sh
 
 # Enforce the concurrency exception manifest: fail on any un-annotated

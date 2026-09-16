@@ -141,6 +141,8 @@ for await event in stream {
             print("\nThinking: \(text)", terminator: "")
         case .generation(let text):
             print(text, terminator: "")
+        case .audio(let delta):
+            print("\nAudio: \(delta.transcript ?? "<audio delta>")")
         case .toolCall(let delta):
             print("\nTool delta: \(delta.name ?? "<continuation>")")
         case .toolExecution(let toolCallId, let status):
