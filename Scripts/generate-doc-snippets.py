@@ -55,6 +55,7 @@ PLACEHOLDERS = [
     ("myLLM", "any LLMStreamClient"),
     ("myLanguageModel", "any LLMStreamClient"),
     ("streamClient", "any LLMStreamClient"),
+    ("provider", "ConfiguredLLMProvider"),
     ("myRuntimeRepository", "any TimelineRuntimeRepository"),
     ("myTimelineRuntimeRepository", "any TimelineRuntimeRepository"),
     ("myWorkspacePersistence", "any WorkspaceStore"),

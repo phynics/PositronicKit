@@ -192,6 +192,7 @@ let package = Package(
             name: "DocSnippetConsumer",
             dependencies: [
                 "PositronicKit",
+                "PKObservable",
                 "PKContracts",
                 "PKPrompt",
                 "PKOpenAIProvider",
