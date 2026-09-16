@@ -312,8 +312,9 @@ lenient JSON repair throws `StructuredOutputDecodingError.invalidJSONPayload`; v
 cannot decode as the requested type throws `.decodingFailed`, including custom decoder failures.
 Provider, idle-timeout, and cancellation errors retain their existing identities. Call
 `kit.model.generate` with a `structuredOutput:` request instead of a `from:` type when you need
-the raw JSON payload or a hand-built schema; that overload returns the provider's JSON string
-without decoding it, and you can decode the payload with `StructuredOutputDecoder`.
+the raw JSON payload, a hand-built schema, or plain JSON-object mode; that overload returns the
+provider's JSON string without decoding it, and you can decode the payload with
+`StructuredOutputDecoder`.
 
 ### Enabling Prompt Assembly Logs
 

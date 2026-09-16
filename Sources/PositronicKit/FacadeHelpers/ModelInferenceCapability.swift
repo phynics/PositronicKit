@@ -164,7 +164,7 @@ public struct ModelInferenceCapability: Sendable {
     /// This is the raw-payload companion to
     /// ``generate(_:from:generationParameters:idleTimeout:decoder:)``: it returns the
     /// provider's JSON string instead of decoding it into a value. Use it when the caller needs
-    /// the payload itself or supplies a hand-built `StructuredOutputRequest`.
+    /// the raw payload, a hand-built schema, or plain JSON-object mode.
     ///
     /// - Parameters:
     ///   - prompt: The user prompt to send.

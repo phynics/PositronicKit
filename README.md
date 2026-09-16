@@ -187,8 +187,8 @@ let metadata = try await kit.model.generate(
 
 The type must be `Decodable`, `Sendable`, and `Schemable`. `CodingKeys` and the decoder's key
 strategy must agree with the generated schema; pass a configured `JSONDecoder` when decoding
-needs custom behavior. For callers that need the raw JSON payload or a hand-built schema, call
-`generate` with a `structuredOutput:` request instead of a `from:` type:
+needs custom behavior. For callers that need the raw JSON payload, a hand-built schema, or plain
+JSON-object mode, call `generate` with a `structuredOutput:` request instead of a `from:` type:
 
 ```swift
 let json = try await kit.model.generate(

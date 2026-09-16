@@ -92,6 +92,13 @@ for tagged releases beginning with `1.0.0`.
   no deprecation window, consistent with the #156/ADR 0008 breaking-release policy. Parameter
   labels, the returned payload, thrown errors, and the provider execution path are unchanged.
 
+  ```swift
+  // before
+  try await kit.model.generateStructured(prompt, structuredOutput: request)
+  // after
+  try await kit.model.generate(prompt, structuredOutput: request)
+  ```
+
 ### Changed
 
 - **Docs snippets are type-checked, not just parsed (PKRR-025, #181):**

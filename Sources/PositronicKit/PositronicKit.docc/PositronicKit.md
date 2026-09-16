@@ -66,8 +66,8 @@ Typed structured one-shot requests use the same provider adapter path as full ru
 `Decodable` value. The requested type must conform to `Decodable`, `Sendable`, and `Schemable`;
 its generated schema and decoder key strategy must agree. Pass a configured `JSONDecoder` when
 custom decoding is required. The `generate` overload that takes a `structuredOutput:` request
-returns the provider's raw JSON string when callers need the payload itself or a hand-built schema.
-The overload that takes a `from:` type returns the decoded value.
+returns the provider's raw JSON string when callers need the raw payload, a hand-built schema, or
+plain JSON-object mode. The overload that takes a `from:` type returns the decoded value.
 
 Typed structured generation reports `StructuredGenerationError.schemaConstructionFailed` before
 provider execution when the generated schema cannot be represented as Draft 2020-12 JSON Schema.
