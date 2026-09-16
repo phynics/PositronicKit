@@ -33,6 +33,8 @@ GENERATED_DIR="$TARGET_DIR/Generated"
 # Skipped blocks are only parse-checked, so they must stay outside the SwiftPM
 # target path or `swift build` would compile the raw snippets.
 PARSE_DIR="${DOC_SNIPPET_PARSE_DIR:-$REPO_ROOT/.build/doc-snippet-parse}"
+work_dir="$(mktemp -d)"
+trap 'rm -rf "$work_dir"' EXIT
 
 if ! command -v python3 >/dev/null 2>&1; then
     echo "compile-doc-snippets: python3 not found on PATH; skipping." >&2
@@ -93,15 +95,14 @@ fi
 # rest of `make verify`; a standalone run without it still type-checks.
 build_fail=0
 # shellcheck disable=SC2086
-if ! "$SWIFT_BIN" build --package-path "$REPO_ROOT" --target DocSnippetConsumer ${SWIFT_BUILD_FLAGS:-} >"$TARGET_DIR/build.log" 2>&1; then
+if ! "$SWIFT_BIN" build --package-path "$REPO_ROOT" --target DocSnippetConsumer ${SWIFT_BUILD_FLAGS:-} >"$work_dir/build.log" 2>&1; then
     build_fail=1
 fi
 
 if [ "$build_fail" -ne 0 ]; then
     echo "compile-doc-snippets: FAIL type-check (generated sources under $GENERATED_DIR)"
-    sed 's/^/  /' "$TARGET_DIR/build.log"
+    sed 's/^/  /' "$work_dir/build.log"
 fi
-rm -f "$TARGET_DIR/build.log"
 
 if [ "$build_fail" -ne 0 ] || [ "$parse_fail" -ne 0 ]; then
     echo "compile-doc-snippets: $checked type-checked, $skipped parse-only; failures above." >&2
