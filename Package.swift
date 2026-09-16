@@ -194,6 +194,7 @@ let package = Package(
                 "PositronicKit",
                 "PKContracts",
                 "PKPrompt",
+                "PKObservable",
                 "PKOpenAIProvider",
                 "PKOllamaProvider",
                 "PKAnthropicProvider",

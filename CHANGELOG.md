@@ -94,9 +94,10 @@ for tagged releases beginning with `1.0.0`.
   `swift-tools-version: 6.2`; 6.4-only syntax is out of scope until the toolchain-floor ADR
   decides it.
 - **Docs-snippet gate stays green after #201/#202:** the generated snippet wrapper now runs on the
-  main actor, so guides that document the `@MainActor` `TimelineController` type-check, and the
-  prelude binds the `provider` placeholder the durable-provider setup guide uses. Without this the
-  Linux and macOS gates stopped at `make verify-doc-snippets` before reaching the toolchain checks.
+  main actor, so guides that document the `@MainActor` `TimelineController` type-check, the
+  prelude binds the `provider` placeholder the durable-provider setup guide uses, and the
+  `DocSnippetConsumer` target declares its `PKObservable` dependency. Without this the Linux and
+  macOS gates stopped at `make verify-doc-snippets` before reaching the toolchain checks.
 - **Docs snippets are type-checked, not just parsed (PKRR-025, #181):**
   `make verify-documentation` now extracts every ` ```swift ` block under `docs/`,
   binds placeholder identifiers from a generated prelude, and builds the
