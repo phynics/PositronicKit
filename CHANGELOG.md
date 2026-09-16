@@ -82,6 +82,23 @@ for tagged releases beginning with `1.0.0`.
   (Monad `AgentDataRepository`, Yakamoz `SwiftDataAgentStore`) adopt the new
   spelling and labels with the next major, coordinated with #141.
 
+- **Raw structured one-shot generation moves under `generate` (#176):**
+  `kit.model.generateStructured` is now the `structuredOutput:` overload
+  `kit.model.generate(_:structuredOutput:generationParameters:idleTimeout:)`, which returns the
+  provider's raw JSON string. It sits alongside the text
+  `kit.model.generate(_:generationParameters:idleTimeout:)` and typed
+  `kit.model.generate(_:from:generationParameters:idleTimeout:decoder:)` overloads, so call sites no
+  longer read the raw result as a decoded value. This is a hard cut with no compatibility alias and
+  no deprecation window, consistent with the #156/ADR 0008 breaking-release policy. Parameter
+  labels, the returned payload, thrown errors, and the provider execution path are unchanged.
+
+  ```swift
+  // before
+  try await kit.model.generateStructured(prompt, structuredOutput: request)
+  // after
+  try await kit.model.generate(prompt, structuredOutput: request)
+  ```
+
 ### Changed
 
 - **Docs snippets are type-checked, not just parsed (PKRR-025, #181):**
@@ -127,7 +144,7 @@ for tagged releases beginning with `1.0.0`.
   derives a Draft 2020-12 schema from a `Schemable` `Decodable & Sendable` output type, uses the
   existing native/synthetic structured-output path, and returns the decoded value. Schema
   construction and payload-decoding failures have stable, actionable error identities; the raw
-  `generateStructured` operation remains available for advanced callers.
+  `generate(_:structuredOutput:)` operation remains available for advanced callers.
 - **Stable repository error identity and durable failure messages (#167):** `TimelineRuntimeRepositoryError`
   now uses `PKErrorDomain.timeline` codes `6101` through `6117`, with `6118` reserved. Each
   `WorkspaceBindingRepositoryError` case uses `PKErrorDomain.workspace` codes `3101` through

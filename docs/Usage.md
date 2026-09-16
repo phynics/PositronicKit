@@ -242,7 +242,7 @@ Pass an explicit contributor array when a `TurnContextSource` needs a different 
 deltas and completed messages, and it supersedes an in-flight send. Choose the initializer by
 Timeline attachment:
 
-```swift
+```swift skip
 import PKObservable
 import PositronicKit
 
@@ -310,10 +310,11 @@ agree with its `CodingKeys` and the decoder's key strategy. A schema constructio
 `StructuredGenerationError.schemaConstructionFailed`. A response that remains invalid after
 lenient JSON repair throws `StructuredOutputDecodingError.invalidJSONPayload`; valid JSON that
 cannot decode as the requested type throws `.decodingFailed`, including custom decoder failures.
-Provider, idle-timeout, and cancellation errors retain their existing identities. Use the
-advanced `kit.model.generateStructured` operation when you need the raw JSON payload or a
-hand-built schema; its next breaking-release rename is tracked in
-[#176](https://github.com/phynics/PositronicKit/issues/176).
+Provider, idle-timeout, and cancellation errors retain their existing identities. Call
+`kit.model.generate` with a `structuredOutput:` request instead of a `from:` type when you need
+the raw JSON payload, a hand-built schema, or plain JSON-object mode; that overload returns the
+provider's JSON string without decoding it, and you can decode the payload with
+`StructuredOutputDecoder`.
 
 ### Enabling Prompt Assembly Logs
 

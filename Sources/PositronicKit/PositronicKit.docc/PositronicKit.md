@@ -65,17 +65,17 @@ seconds, measures provider inactivity rather than total duration, and resets aft
 Typed structured one-shot requests use the same provider adapter path as full runs and return a
 `Decodable` value. The requested type must conform to `Decodable`, `Sendable`, and `Schemable`;
 its generated schema and decoder key strategy must agree. Pass a configured `JSONDecoder` when
-custom decoding is required. The lower-level `generateStructured` operation remains available
-when callers need the raw JSON payload or a hand-built schema.
+custom decoding is required. The `generate` overload that takes a `structuredOutput:` request
+returns the provider's raw JSON string when callers need the raw payload, a hand-built schema, or
+plain JSON-object mode. The overload that takes a `from:` type returns the decoded value.
 
 Typed structured generation reports `StructuredGenerationError.schemaConstructionFailed` before
 provider execution when the generated schema cannot be represented as Draft 2020-12 JSON Schema.
 After a response arrives, `StructuredOutputDecodingError.invalidJSONPayload` means the payload was
 not parseable even after repair, while `.decodingFailed` means valid JSON could not be decoded as
 the requested type, including failures raised by custom decoding. Provider failures, idle
-timeouts, and cancellation retain their existing error identities. The raw operation's rename for
-the next breaking release is tracked in
-[#176](https://github.com/phynics/PositronicKit/issues/176).
+timeouts, and cancellation retain their existing error identities. The raw operation never decodes;
+decode its payload with `StructuredOutputDecoder`.
 
 ### Timeline history
 

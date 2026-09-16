@@ -246,6 +246,44 @@ struct FacadeOneShotTests {
         #expect(llm.mockClient.lastParameters == defaults)
     }
 
+    @Test("generate(_:structuredOutput:) returns the raw JSON payload and forwards the request")
+    func generateStructuredOutputOverloadReturnsRawPayload() async throws {
+        let llm = MockLLMService()
+        try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
+        llm.mockClient.nextChunks = [[#"{"tags":["#, #""swift"]}"#]]
+        let kit = PKRuntime(configuration: .init(
+            languageModel: llm,
+            persistence: .init(
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
+            )
+        ))
+        let parameters = GenerationParameters(temperature: 0.2, maxTokens: 24)
+
+        let payload = try await kit.model.generate(
+            "extract tags",
+            structuredOutput: .jsonObject,
+            generationParameters: parameters
+        )
+
+        #expect(payload == #"{"tags":["swift"]}"#)
+        #expect(llm.mockClient.lastResponseFormat == .jsonObject)
+        #expect(llm.mockClient.lastParameters == parameters)
+
+        let schema = StructuredOutputFixtures.tagSchemaDefinition()
+        llm.mockClient.nextChunks = [[#"{"tags":["swift"]}"#]]
+        let schemaPayload = try await kit.model.generate(
+            "extract tags",
+            structuredOutput: .jsonSchema(schema)
+        )
+
+        #expect(schemaPayload == #"{"tags":["swift"]}"#)
+        guard case let .jsonSchema(responseSchema)? = llm.mockClient.lastResponseFormat else {
+            Issue.record("Expected a JSON-schema response format, got \(String(describing: llm.mockClient.lastResponseFormat))")
+            return
+        }
+        #expect(responseSchema.name == schema.name)
+    }
+
     @Test("structured complete times out when the provider stream stays idle")
     func structuredCompleteIdleTimeout() async throws {
         let llm = MockLLMService()
