@@ -189,6 +189,22 @@ let package = Package(
             swiftSettings: approachableConcurrency
         ),
         .target(
+            name: "DocSnippetConsumer",
+            dependencies: [
+                "PositronicKit",
+                "PKContracts",
+                "PKPrompt",
+                "PKOpenAIProvider",
+                "PKOllamaProvider",
+                "PKAnthropicProvider",
+                "PKTestSupport",
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
+            ],
+            path: "Tests/DocSnippetConsumer",
+            swiftSettings: approachableConcurrency
+        ),
+        .target(
             name: "PKTestSupport",
             dependencies: [
                 "PositronicKit",

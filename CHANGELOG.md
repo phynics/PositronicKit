@@ -84,6 +84,17 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **Docs snippets are type-checked, not just parsed (PKRR-025, #181):**
+  `make verify-documentation` now extracts every ` ```swift ` block under `docs/`,
+  binds placeholder identifiers from a generated prelude, and builds the
+  compile-only `DocSnippetConsumer` target, so a stale argument label, removed
+  symbol, or wrong argument type in a guide fails the gate. A block that is
+  deliberately illustrative opts out with the greppable ` ```swift skip ` marker
+  and keeps the `swiftc -parse` syntax check. The standalone
+  `make verify-doc-snippets` target runs the same gate. While wiring this up,
+  two stale guides were corrected: `docs/Setup.md`'s conformance-suite example
+  now imports `Testing`, and `docs/Usage.md`'s event switch handles
+  `.audio(delta:)`.
 - **Linux gate accepts Podman or Docker:** the container runner resolves a runtime instead of
   requiring Podman, preferring Podman and falling back to Docker. The Podman-only
   `--userns=keep-id` flag is applied only to Podman. The `PODMAN` Make variable is replaced by
