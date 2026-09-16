@@ -152,6 +152,12 @@ run_case 'accepts Swift 6.2' \
 run_case 'accepts newer Swift' \
   'Swift version 6.3.3 (swift-6.3.3-RELEASE)' \
   0 'SwiftPM and Foundation available'
+run_case 'accepts the qualified Swift 6.4' \
+  'Swift version 6.4 (swift-6.4-RELEASE)' \
+  0 'Swift: Swift version 6.4'
+run_case 'names the qualified Swift ceiling' \
+  'Swift version 5.10.1 (swift-5.10.1-RELEASE)' \
+  1 'qualified through 6.4'
 run_case 'rejects Swift without SwiftPM' \
   'Swift version 6.3.3 (swift-6.3.3-RELEASE)' \
   1 'SwiftPM is unavailable' 0 1

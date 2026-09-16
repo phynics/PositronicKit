@@ -84,6 +84,19 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **Swift 6.4 toolchain qualification (#193):** CI now runs a Swift 6.4 Linux lane beside the
+  Swift 6.3.3 lane, and both run the same contract. The Linux development image selects its base
+  toolchain with the `SWIFT_VERSION` build argument, and `LINUX_SWIFT_VERSION` on the `make`
+  command line selects the qualified lane (`6.3.3` current, `6.4` next), namespacing the image tag
+  and the shared SwiftPM scratch directory so the lanes never reuse each other's build state.
+  `make doctor` reports the supported range, and `api/` remains a single per-release,
+  per-platform baseline verified by both lanes. The consumer floor stays at
+  `swift-tools-version: 6.2`; 6.4-only syntax is out of scope until the toolchain-floor ADR
+  decides it.
+- **Docs-snippet gate stays green after #201/#202:** the generated snippet wrapper now runs on the
+  main actor, so guides that document the `@MainActor` `TimelineController` type-check, and the
+  prelude binds the `provider` placeholder the durable-provider setup guide uses. Without this the
+  Linux and macOS gates stopped at `make verify-doc-snippets` before reaching the toolchain checks.
 - **Docs snippets are type-checked, not just parsed (PKRR-025, #181):**
   `make verify-documentation` now extracts every ` ```swift ` block under `docs/`,
   binds placeholder identifiers from a generated prelude, and builds the

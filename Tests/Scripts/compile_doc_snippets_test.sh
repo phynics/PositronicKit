@@ -87,6 +87,17 @@ else
     printf 'FAIL typecheck-ok-generates-source: missing generated wrapper\n'
     fail=$((fail + 1))
 fi
+# The wrapper runs on the main actor so guides can document @MainActor helpers,
+# and the prelude binds the `provider` placeholder the setup guide uses.
+if grep -q "@MainActor" "$tmp_dir/typecheck-ok/target/Generated/Example.1.swift" \
+    && grep -q "static func provider() -> ConfiguredLLMProvider" \
+        "$tmp_dir/typecheck-ok/target/Generated/Prelude.swift"; then
+    printf 'ok typecheck-ok-main-actor-wrapper-and-prelude\n'
+    pass=$((pass + 1))
+else
+    printf 'FAIL typecheck-ok-main-actor-wrapper-and-prelude: expected @MainActor run() and provider stub\n'
+    fail=$((fail + 1))
+fi
 
 # 2. A failing target build fails the gate and surfaces the compiler output.
 make_docs "$tmp_dir/typecheck-fail/docs" "swift" 'let answer = 42'

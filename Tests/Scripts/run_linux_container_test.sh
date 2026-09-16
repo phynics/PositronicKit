@@ -32,7 +32,8 @@ assert_failure() {
 }
 
 # Writes a container runtime stub that reports $2 for `--version`, succeeds for
-# `info` and `build`, and records its `run` arguments in $RUNTIME_ARGS_OUT.
+# `info`, records its `build` arguments in $RUNTIME_BUILD_ARGS_OUT and its `run`
+# arguments in $RUNTIME_ARGS_OUT.
 make_fake_runtime() {
   local path="$1"
   local version="$2"
@@ -40,7 +41,8 @@ make_fake_runtime() {
   printf '%s\n' '#!/usr/bin/env bash' \
     'case "${1:-}" in' \
     "  --version) printf '%s\\n' '$version' ;;" \
-    '  info|build) exit 0 ;;' \
+    '  info) exit 0 ;;' \
+    '  build) printf "%s\n" "$@" > "${RUNTIME_BUILD_ARGS_OUT:-/dev/null}" ;;' \
     '  run) printf "%s\n" "$@" > "$RUNTIME_ARGS_OUT" ;;' \
     'esac' > "$path"
   chmod +x "$path"
@@ -145,6 +147,37 @@ if grep -Fx -- '--userns=keep-id' "$runtime_args" >/dev/null; then
   exit 1
 fi
 printf 'ok: CONTAINER_RUNTIME overrides an installed Podman\n'
+
+# --- image toolchain selection ----------------------------------------------
+
+build_args="$tmp_dir/build-args"
+build_probe="$tmp_dir/build-probe-bin"
+make_probe_path "$build_probe"
+make_fake_runtime "$build_probe/podman" 'podman version 5.0.0'
+
+env -u CONTAINER_RUNTIME PATH="$build_probe" RUNTIME_BUILD_ARGS_OUT="$build_args" \
+  LINUX_IMAGE="positronickit-linux-dev-6.4" LINUX_SWIFT_VERSION="6.4" \
+  "$bash_path" "$runner" --build-only
+if ! grep -Fx -- 'SWIFT_VERSION=6.4' "$build_args" >/dev/null; then
+  printf 'FAIL: image build did not receive the selected Swift version\n' >&2
+  exit 1
+fi
+if ! grep -Fx -- 'positronickit-linux-dev-6.4' "$build_args" >/dev/null; then
+  printf 'FAIL: image build did not receive the selected image tag\n' >&2
+  exit 1
+fi
+printf 'ok: passes the selected Swift version and image tag to the build\n'
+
+# With no version selected the runner leaves the Dockerfile default in place.
+: > "$build_args"
+env -u CONTAINER_RUNTIME -u LINUX_SWIFT_VERSION PATH="$build_probe" \
+  RUNTIME_BUILD_ARGS_OUT="$build_args" LINUX_IMAGE="positronickit-linux-dev" \
+  "$bash_path" "$runner" --build-only
+if grep -Fx -- '--build-arg' "$build_args" >/dev/null; then
+  printf 'FAIL: image build received a Swift version argument with no version selected\n' >&2
+  exit 1
+fi
+printf 'ok: omits the Swift version build argument when the version is unset\n'
 
 # --- repository layout handling ---------------------------------------------
 

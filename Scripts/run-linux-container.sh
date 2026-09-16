@@ -10,6 +10,11 @@ Options:
   --lock PATH        Serialize the container run with a host-side file lock.
   --log PATH         Write combined output to PATH while preserving the exit status.
   --scratch PATH     Mount PATH at /scratch for isolated SwiftPM builds.
+
+Environment:
+  LINUX_SWIFT_VERSION  Swift toolchain baked into the image (default 6.3.3).
+                       The value selects the swift:<version>-noble base image via
+                       the SWIFT_VERSION build argument.
 EOF
 }
 
@@ -18,6 +23,9 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 # CONTAINER_RUNTIME pins an explicit binary and disables auto-detection.
 container_runtime="${CONTAINER_RUNTIME:-}"
 linux_image="${LINUX_IMAGE:-positronickit-linux-dev}"
+# Do not fall back to the generic SWIFT_VERSION: the swift:<version> base images
+# export it (for example `swift-6.3.3-RELEASE`), which is not a valid image tag.
+linux_swift_version="${LINUX_SWIFT_VERSION:-}"
 git_common_dir=""
 build_only=0
 lock_path=""
@@ -155,7 +163,13 @@ run_gate() {
   flavor="$(runtime_flavor "$runtime_path")"
 
   printf 'Building Linux development image %s with %s...\n' "$linux_image" "$flavor"
-  "$runtime_path" build -t "$linux_image" -f "$repo_root/.devcontainer/Dockerfile" "$repo_root"
+  if [ -n "$linux_swift_version" ]; then
+    "$runtime_path" build -t "$linux_image" \
+      --build-arg "SWIFT_VERSION=$linux_swift_version" \
+      -f "$repo_root/.devcontainer/Dockerfile" "$repo_root"
+  else
+    "$runtime_path" build -t "$linux_image" -f "$repo_root/.devcontainer/Dockerfile" "$repo_root"
+  fi
 
   if [ "$build_only" -eq 1 ]; then
     return 0

@@ -63,6 +63,59 @@ jobs:
           path: .build/linux-current.log
           if-no-files-found: ignore
 
+  linux-next:
+    name: "Linux — Swift 6.4 (Ubuntu 24.04)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # The runner image provides the current 6.3.3 toolchain, so only the next
+      # lane installs its pinned toolchain explicitly.
+      - name: Install Swift 6.4
+        uses: swift-actions/setup-swift@7591e4f04c00624cb043783da51a7fd6ee0a6bf6 # v2
+        with:
+          swift-version: "6.4"
+
+      - name: Cache SwiftPM downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build/checkouts
+            ~/.swiftpm
+          key: swiftpm-${{ runner.os }}-swift-6.4-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            swiftpm-${{ runner.os }}-swift-6.4-
+
+      - name: Install SwiftLint
+        run: |
+          curl -fsSL -o /tmp/swiftlint_linux.zip \
+            https://github.com/realm/SwiftLint/releases/download/0.65.1/swiftlint_linux_amd64.zip
+          unzip -o /tmp/swiftlint_linux.zip -d /tmp/swiftlint-bin
+          echo "/tmp/swiftlint-bin" >> "$GITHUB_PATH"
+
+      - name: Concurrency guardrail scan
+        run: |
+          swiftlint lint --strict
+
+      - name: Require documentation impact declaration
+        if: github.event_name == 'pull_request'
+        run: python3 Scripts/check-pr-docs-impact.py
+
+      - name: Verify agent/CI Linux contract
+        run: |
+          mkdir -p .build
+          make verify-linux-agent 2>&1 | tee .build/linux-next.log
+
+      - name: Publish next Linux test log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-next-test-log
+          path: .build/linux-next.log
+          if-no-files-found: ignore
+
   macos-verify:
     name: "macOS — make verify (macos-latest)"
     runs-on: macos-latest

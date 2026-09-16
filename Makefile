@@ -5,8 +5,13 @@
 	verify-public-api update-public-api-baseline verify-release \
 	agent-verify agent-test linux-image linux-build linux-coverage require-container-runtime
 
-LINUX_IMAGE ?= positronickit-linux-dev
-LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/agent-scratch/swift-6.3.3
+# Swift toolchain baked into the Linux development image. It also namespaces the
+# shared scratch directory so the current (6.3.3) and next (6.4) lanes never
+# reuse each other's SwiftPM build state. Override per command, for example
+# `make agent-verify LINUX_SWIFT_VERSION=6.4`.
+LINUX_SWIFT_VERSION ?= 6.3.3
+LINUX_IMAGE ?= positronickit-linux-dev-$(LINUX_SWIFT_VERSION)
+LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/agent-scratch/swift-$(LINUX_SWIFT_VERSION)
 LINUX_COVERAGE_SCRATCH_DIR ?= $(CURDIR)/.build/linux-coverage-scratch
 LINUX_TEST_TRAITS ?=
 AGENT_LOG_DIR ?= $(CURDIR)/.build/agent-logs
@@ -270,6 +275,7 @@ require-container-runtime:
 agent-verify: require-container-runtime
 	@mkdir -p "$(AGENT_LOG_DIR)"
 	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		LINUX_SWIFT_VERSION="$(LINUX_SWIFT_VERSION)" \
 		bash Scripts/run-linux-container.sh \
 		--log "$(AGENT_LOG_DIR)/verify.log" \
 		--lock "$(AGENT_LOCK_FILE)" \
@@ -282,6 +288,7 @@ agent-test: require-container-runtime
 	fi
 	@mkdir -p "$(AGENT_LOG_DIR)" "$(LINUX_SCRATCH_DIR)"
 	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		LINUX_SWIFT_VERSION="$(LINUX_SWIFT_VERSION)" \
 		LINUX_TEST_FILTER="$(FILTER)" LINUX_TEST_TRAITS="$(TRAITS)" \
 		bash Scripts/run-linux-container.sh \
 		--log "$(AGENT_LOG_DIR)/test.log" \
@@ -291,15 +298,18 @@ agent-test: require-container-runtime
 
 linux-image: require-container-runtime
 	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		LINUX_SWIFT_VERSION="$(LINUX_SWIFT_VERSION)" \
 		bash Scripts/run-linux-container.sh --build-only
 
 linux-build: require-container-runtime
 	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		LINUX_SWIFT_VERSION="$(LINUX_SWIFT_VERSION)" \
 		bash Scripts/run-linux-container.sh --lock "$(AGENT_LOCK_FILE)" -- make build
 
 linux-coverage: require-container-runtime
 	@mkdir -p "$(LINUX_COVERAGE_SCRATCH_DIR)"
 	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		LINUX_SWIFT_VERSION="$(LINUX_SWIFT_VERSION)" \
 		bash Scripts/run-linux-container.sh \
 		--lock "$(AGENT_LOCK_FILE)" \
 		--scratch "$(LINUX_COVERAGE_SCRATCH_DIR)" \

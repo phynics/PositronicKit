@@ -55,6 +55,7 @@ PLACEHOLDERS = [
     ("myLLM", "any LLMStreamClient"),
     ("myLanguageModel", "any LLMStreamClient"),
     ("streamClient", "any LLMStreamClient"),
+    ("provider", "ConfiguredLLMProvider"),
     ("myRuntimeRepository", "any TimelineRuntimeRepository"),
     ("myTimelineRuntimeRepository", "any TimelineRuntimeRepository"),
     ("myWorkspacePersistence", "any WorkspaceStore"),
@@ -185,6 +186,10 @@ def render_block(
         lines.append("")
     if statements.strip():
         lines.append(f"internal enum {source_label_identifier(source_label)} {{")
+        # Guides document main-actor UI helpers such as `TimelineController`, so
+        # the wrapper runs on the main actor. The generated `run()` is never
+        # called; the annotation only gives the block a main-actor context.
+        lines.append("    @MainActor")
         lines.append("    static func run() async throws {")
         for name, _ in PLACEHOLDERS:
             lines.append(f"        let {name} = DocSnippetPrelude.{name}()")
