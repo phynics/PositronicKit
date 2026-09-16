@@ -79,6 +79,14 @@ func exercisePublicTypedStructuredGeneration() async {
     )
 }
 
+// Ordinary-import compile coverage for the raw-payload structured-generation API.
+func exercisePublicStructuredPayloadGeneration() async {
+    _ = try? await kit.model.generate(
+        "Extract the project name.",
+        structuredOutput: .jsonObject
+    )
+}
+
 // Ordinary-import compile coverage for the durable Timeline history capability.
 func exercisePublicTimelineHistory(_ timelineID: UUID) async {
     _ = try? await kit.timelines.messages(for: timelineID)

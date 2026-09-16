@@ -158,8 +158,13 @@ public struct ModelInferenceCapability: Sendable {
         )
     }
 
-    /// Generates a structured response for a single prompt, without creating or updating a
-    /// Timeline.
+    /// Generates the raw structured-output payload for a single prompt, without creating or
+    /// updating a Timeline.
+    ///
+    /// This is the raw-payload companion to
+    /// ``generate(_:from:generationParameters:idleTimeout:decoder:)``: it returns the
+    /// provider's JSON string instead of decoding it into a value. Use it when the caller needs
+    /// the payload itself or supplies a hand-built `StructuredOutputRequest`.
     ///
     /// - Parameters:
     ///   - prompt: The user prompt to send.
@@ -172,7 +177,7 @@ public struct ModelInferenceCapability: Sendable {
     ///     here would change this method's public signature. Pass the value explicitly to match
     ///     a non-default runtime configuration.
     /// - Returns: The raw structured payload (JSON), decodable via `StructuredOutputDecoder`.
-    public func generateStructured(
+    public func generate(
         _ prompt: String,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
