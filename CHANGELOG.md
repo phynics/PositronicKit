@@ -98,6 +98,12 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Direct-path `TimelineController` initializer (#169):** `TimelineController` gains
+  `init(_:context:messages:)`, which captures a `DirectTurnContext` and admits direct Turns from a
+  detached Timeline into `streamingText` and `messages`. `send(_:)` selects
+  `TimelineHandle.startDirectTurn(_:context:)` when a context is present and keeps
+  `TimelineHandle.startTurn(_:)` otherwise; superseding behavior and the
+  `TimelineControllerError`/`CancellationError` split are unchanged.
 - **Common Turn result and generated-text helpers (#143):** `TurnHandle.generatedText()`
   streams assistant text fragments in order without nested event switching, and
   `TurnHandle.result()` awaits one consolidated, durable `TurnResult` (terminal

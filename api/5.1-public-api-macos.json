@@ -10058,6 +10058,16 @@
       "declaration": "@MainActor var messages: [Message] { get set }"
     },
     {
+      "precise": "s:12PKObservable18TimelineControllerC_7context8messagesAC13PositronicKit0B6HandleV_AF17DirectTurnContextVSay11PKContracts7MessageVGtcfc",
+      "module": "PKObservable",
+      "kind": "swift.init",
+      "path": [
+        "TimelineController",
+        "init(_:context:messages:)"
+      ],
+      "declaration": "@MainActor init(_ driver: TimelineHandle, context: DirectTurnContext, messages: [Message] = [])"
+    },
+    {
       "precise": "s:12PKObservable18TimelineControllerC_8messagesAC13PositronicKit0B6HandleV_Say11PKContracts7MessageVGtcfc",
       "module": "PKObservable",
       "kind": "swift.init",
@@ -45607,6 +45617,12 @@
       "module": "PKObservable",
       "kind": "memberOf",
       "source": "s:12PKObservable18TimelineControllerC8messagesSay11PKContracts7MessageVGvp",
+      "target": "s:12PKObservable18TimelineControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
+      "source": "s:12PKObservable18TimelineControllerC_7context8messagesAC13PositronicKit0B6HandleV_AF17DirectTurnContextVSay11PKContracts7MessageVGtcfc",
       "target": "s:12PKObservable18TimelineControllerC"
     },
     {
