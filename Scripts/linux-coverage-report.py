@@ -175,15 +175,18 @@ def normalize(report: dict[str, Any], package_root: Path) -> dict[str, Any]:
 
     present_modules = [module for module in MODULES if files_by_module[module]]
     missing_modules = [module for module in MODULES if not files_by_module[module]]
-    if not present_modules:
+    # Swift 6.4's default Swift Build coverage export does not include the
+    # standalone PKObservable product (see #212). Scope the workaround to that
+    # one known case so a regression that drops any other configured module
+    # still fails the reporting-only gate instead of passing silently.
+    known_omitted = {"PKObservable"}
+    unexpected = [module for module in missing_modules if module not in known_omitted]
+    if unexpected:
         raise CoverageReportError(
             "coverage report has no source files for configured modules: "
-            + ", ".join(MODULES)
+            + ", ".join(unexpected)
         )
     if missing_modules:
-        # Swift 6.4's default Swift Build coverage export does not include the
-        # standalone PKObservable product. Report what the export provides and
-        # record the omission instead of failing the reporting-only gate.
         print(
             "linux-coverage-report: coverage export omits configured modules; reporting the rest: "
             + ", ".join(missing_modules),

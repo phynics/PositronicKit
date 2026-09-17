@@ -31,8 +31,9 @@ runtime resolved.
 
 `Package.swift` sets the consumer floor at Swift 6.4 (`swift-tools-version: 6.4`). Linux CI runs
 the `make verify-linux-agent` contract on Swift 6.4.0 installed from swift.org. The native macOS
-gate runs whatever Xcode `macos-latest` ships, so it is floor-only. `make doctor` reports the
-required toolchain.
+gate installs the swift.org Swift 6.4.0 toolchain on top of the runner's Xcode, because
+`macos-latest` only ships Xcode 26.x (Swift 6.2) and Xcode 27 is not on the standard runner image.
+`make doctor` reports the required toolchain.
 
 ## Linux image and prerequisites
 
@@ -50,12 +51,9 @@ refresh it with `make linux-image`. Compile in it with `make linux-build`.
 The supported lane uses one Swift 6.4.0 build state; remove `.build` after changing build options
 or dependencies so stale modules cannot survive a rebuild.
 
-The `api/` public-symbol baselines are keyed by release, platform, and compiler major.minor.
-`make verify-public-api` prefers the reviewed toolchain-scoped file
-(`<release>-public-api-<platform>-swift-<X.Y>.json`) and falls back to the primary
-`<release>-public-api-<platform>.json` when no scoped file exists. Swift 6.4 emits
-extension-member relationships that 6.3 does not (and reports its graph output under `.build/out`),
-so the 5.1 Linux surface carries both a primary and a scoped 6.4 baseline.
+The `api/` public-symbol baselines are keyed by release and platform and are generated with the
+supported Swift 6.4 toolchain. `make verify-public-api` compares against the primary
+`<release>-public-api-<platform>.json` baseline.
 `make update-public-api-baseline` records an intentional change for the running toolchain.
 
 The supported toolchain is the version declared by `swift-tools-version` in `Package.swift`, which
@@ -101,8 +99,9 @@ The target writes the raw `llvm-cov` JSON, a normalized summary for `PositronicK
 `PKContracts`, `PKPrompt`, `PKUtilities`, and `PKObservable`, and a platform-asymmetry report.
 Provider targets, `PKTestSupport`, executables, and test targets are excluded. Swift 6.4's default
 Swift Build coverage export does not include the standalone `PKObservable` product, so the report
-records it under `omittedModules` and in the asymmetry report rather than failing. Restoring that
-coverage needs a follow-up once the build system exports it.
+records it under `omittedModules` and in the asymmetry report rather than failing. The omission is
+scoped to `PKObservable`; a regression that drops any other configured module still fails the gate.
+Restoring that coverage is tracked in [#212](https://github.com/phynics/PositronicKit/issues/212).
 
 This milestone reports Linux coverage only. It does not set floors, compare changed lines,
 commit a baseline, or enforce macOS parity. A follow-up issue owns those decisions.

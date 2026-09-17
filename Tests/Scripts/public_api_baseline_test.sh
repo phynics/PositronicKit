@@ -137,7 +137,7 @@ if [[ "$success_output" != *'Public API matches'* ]]; then
   exit 1
 fi
 if [[ "$success_output" != *"$baseline_release-public-api-$host_platform.json"* ]]; then
-  printf 'FAIL: expected the primary baseline when no toolchain-scoped file exists\n' >&2
+  printf 'FAIL: expected the primary baseline\n' >&2
   printf '%s\n' "$success_output" >&2
   exit 1
 fi

@@ -4,8 +4,8 @@ status: accepted
 
 # Swift 6.4 toolchain floor
 
-Epic #192 adopts Swift 6.4. The package declares `swift-tools-version: 6.4`, and CI and the
-Linux image pin 6.4.0. This ADR decides when PositronicKit may use 6.4 language and stdlib
+Epic #192 adopts Swift 6.4. The package declares `swift-tools-version: 6.2`, while CI and the
+Linux image pin 6.3.3. This ADR decides when PositronicKit may use 6.4 language and stdlib
 features, and what happens to consumers still on a 6.3 toolchain. Issues #198 and #200 are blocked
 on it, and ADR 0010 already assumes its answers.
 
@@ -86,6 +86,11 @@ The `Package.swift` concurrency-gate comment stands as written. `NonisolatedNons
 and `InferIsolatedConformances` stay enabled as upcoming features under the 6.4 tools version;
 #193 confirms against the shipped toolchain whether 6.4 changes their default status, and the
 comment is rewritten only if it does.
+
+## Implementation
+
+Implemented in #210: the tools version is 6.4, the 6.3.3 lane and Linux image variant are removed,
+and the Linux and macOS public-symbol baselines are regenerated under 6.4.
 
 ## Rejected alternatives
 

@@ -147,7 +147,7 @@ run_case 'rejects Swift 6.3' \
   'Swift version 6.3 (swift-6.3-RELEASE)' \
   1 'Swift 6.4+'
 run_case 'accepts newer Swift' \
-  'Swift version 6.4.0 (swift-6.4.0-RELEASE)' \
+  'Swift version 6.5 (swift-6.5-RELEASE)' \
   0 'SwiftPM and Foundation available'
 run_case 'accepts Swift 6.4' \
   'Swift version 6.4 (swift-6.4-RELEASE)' \
@@ -182,7 +182,7 @@ run_linux_case 'Linux reports a sandbox-blocked Docker' \
 
 # The doctor's qualified ceiling and the CI next lane each hardcode the version,
 # so fail if they drift apart.
-ci_next="$(sed -nE 's/^[[:space:]]*SWIFT_NEXT_VERSION:[[:space:]]*"([0-9.]+)".*/\1/p' \
+ci_next="$(sed -nE 's/^[[:space:]]*SWIFT_TOOLCHAIN_VERSION:[[:space:]]*"([0-9.]+)".*/\1/p' \
   "$repo_root/.github/workflows/ci.yml" | head -n1)"
 doctor_ceiling="$(sed -nE 's/^qualified_swift_version="([0-9.]+)".*/\1/p' \
   "$repo_root/Scripts/doctor.sh" | head -n1)"

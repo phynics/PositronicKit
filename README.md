@@ -555,8 +555,6 @@ make linux-image   # Build the development image (swift:6.4.0-noble)
 make linux-build   # Compile in the container (bind-mounts your checkout)
 make agent-verify  # Run the complete product, example, support, and test gate
 make agent-test FILTER='MessageContentTests' # Run one focused test selection
-
-make agent-verify  # Run the same gate on Swift 6.4.0
 ```
 
 Podman and Docker are both supported. The runner prefers Podman when both are installed; set

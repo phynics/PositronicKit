@@ -10,6 +10,10 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Swift 6.4 required (#194, ADR 0011):** `swift-tools-version` is now 6.4; apps on a Swift 6.3
+  toolchain / Xcode 26 cannot take this release. Deployment targets are unchanged (macOS 15,
+  iOS 18).
+
 - **Public naming hard cut (#156):** the runtime facade is now `PKRuntime`; the provider factory
   namespaces are `PKOpenAI`, `PKOpenRouter`, `PKOllama`, and `PKAnthropic`; the durable history
   family is `TimelineRecord`/`TimelineHandle`/`TimelineCapability`; and the executable contract is
@@ -111,7 +115,8 @@ for tagged releases beginning with `1.0.0`.
   floor is `swift-tools-version: 6.4`. The macOS DocC gate uses the toolchain on `PATH` so its
   symbol-graph extractor matches the modules it reads, and the Linux coverage report records the
   `PKObservable` module as omitted because Swift 6.4's default Swift Build coverage export does not
-  include that standalone product.
+  include that standalone product ([#212](https://github.com/phynics/PositronicKit/issues/212)
+  tracks restoring that coverage).
 - **Docs-snippet gate stays green after #201/#202:** guides that document the `@MainActor`
   `TimelineController` opt into a main-actor wrapper with the ` ```swift main-actor ` fence marker
   (every other block keeps the nonisolated wrapper, so the gate stays as strict as code pasted

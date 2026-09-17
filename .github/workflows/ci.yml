@@ -16,10 +16,11 @@ defaults:
   run:
     shell: bash
 
-# Single source for the supported toolchain lane: cache key, install step, and
-# assert step all read it.
+# Single source for the supported toolchain: cache key, install step, and
+# assert step all read it. Named to avoid SWIFT_VERSION, which the swift: images
+# export.
 env:
-  SWIFT_NEXT_VERSION: "6.4.0"
+  SWIFT_TOOLCHAIN_VERSION: "6.4.0"
 
 jobs:
   linux-verify:
@@ -32,18 +33,18 @@ jobs:
 
       # Install the supported release directly because no pinned runner image
       # or setup-swift entry exists for it.
-      - name: Install Swift ${{ env.SWIFT_NEXT_VERSION }}
+      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
         run: |
           set -euo pipefail
-          archive="swift-${SWIFT_NEXT_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          archive="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-ubuntu24.04.tar.gz"
           curl -fsSL -o "/tmp/${archive}" \
-            "https://download.swift.org/swift-${SWIFT_NEXT_VERSION}-release/ubuntu2404/swift-${SWIFT_NEXT_VERSION}-RELEASE/${archive}"
+            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/ubuntu2404/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${archive}"
           sudo mkdir -p /opt/swift
           sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
           echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
 
-      # Fail before the gate if the selected compiler is not the next lane, so
-      # the job name cannot certify a different toolchain.
+      # Fail before the gate if the selected compiler is not the supported lane,
+      # so the job name cannot certify a different toolchain.
       - name: Assert Swift 6.4
         run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
 
@@ -53,9 +54,9 @@ jobs:
           path: |
             .build/checkouts
             ~/.swiftpm
-          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_NEXT_VERSION }}-${{ hashFiles('Package.resolved') }}
+          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-${{ hashFiles('Package.resolved') }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_NEXT_VERSION }}-
+            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-
 
       - name: Install SwiftLint
         run: |
@@ -92,14 +93,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Swift ${{ env.SWIFT_NEXT_VERSION }}
+      # macos-latest only ships Xcode 26.x (Swift 6.2); Xcode 27 is not on the
+      # standard runner image, so install the swift.org toolchain to reach the
+      # 6.4 floor. The symbol-graph extractors are resolved from this toolchain
+      # rather than xcrun so they match the modules built here.
+      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
         run: |
           set -euo pipefail
-          pkg="swift-${SWIFT_NEXT_VERSION}-RELEASE-osx.pkg"
+          pkg="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-osx.pkg"
           curl -fsSL -o "/tmp/${pkg}" \
-            "https://download.swift.org/swift-${SWIFT_NEXT_VERSION}-release/xcode/swift-${SWIFT_NEXT_VERSION}-RELEASE/${pkg}"
+            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/xcode/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${pkg}"
           sudo installer -pkg "/tmp/${pkg}" -target /
-          toolchain="/Library/Developer/Toolchains/swift-${SWIFT_NEXT_VERSION}-RELEASE.xctoolchain"
+          toolchain="/Library/Developer/Toolchains/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE.xctoolchain"
           if [ ! -x "$toolchain/usr/bin/swift" ]; then
             echo "Swift toolchain not found at $toolchain" >&2
             exit 1
@@ -143,12 +148,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Swift ${{ env.SWIFT_NEXT_VERSION }}
+      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
         run: |
           set -euo pipefail
-          archive="swift-${SWIFT_NEXT_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          archive="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-ubuntu24.04.tar.gz"
           curl -fsSL -o "/tmp/${archive}" \
-            "https://download.swift.org/swift-${SWIFT_NEXT_VERSION}-release/ubuntu2404/swift-${SWIFT_NEXT_VERSION}-RELEASE/${archive}"
+            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/ubuntu2404/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${archive}"
           sudo mkdir -p /opt/swift
           sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
           echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
@@ -162,9 +167,9 @@ jobs:
           path: |
             .build/checkouts
             ~/.swiftpm
-          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_NEXT_VERSION }}-${{ hashFiles('Package.resolved') }}
+          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-${{ hashFiles('Package.resolved') }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_NEXT_VERSION }}-
+            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-
 
       - name: Run Linux coverage target
         run: |

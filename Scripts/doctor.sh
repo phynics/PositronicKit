@@ -34,7 +34,8 @@ required_swift_minor="${required_swift_version#*.}"
 # Highest toolchain the Linux CI matrix qualifies. The required floor comes from
 # Package.swift's swift-tools-version; the ceiling is the newest lane in
 # .github/workflows/ci.yml. Raise it only after a lane proves the full gate. The
-# native macOS gate runs whatever Xcode the runner ships, so it is floor-only.
+# native macOS gate installs the swift.org Swift 6.4.0 toolchain on top of the
+# runner's Xcode because macos-latest only ships Xcode 26.x.
 current_swift_version="6.4.0"
 qualified_swift_version="6.4.0"
 swift_requirement_hint="Native macOS gates require Swift ${required_swift_version:-6.2}+ with SwiftPM and Foundation."
