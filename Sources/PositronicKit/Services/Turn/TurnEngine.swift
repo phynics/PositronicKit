@@ -394,15 +394,23 @@ struct TurnEngine {
         try SidecarSchemaComposer.validate(request.sidecars)
 
         let turnID = UUID()
-        let prepared = try await prepareTurn(
-            executionRequest,
-            turnID: turnID,
-            agent: agentPreflight.instance,
-            agentDiagnostics: agentPreflight.diagnostics,
-            onAdmission: { [eventHub = dependencies.eventHub] in
-                await eventHub.begin(turnID: turnID)
-            }
-        )
+        let prepared: PreparedTurn
+        do {
+            prepared = try await prepareTurn(
+                executionRequest,
+                turnID: turnID,
+                agent: agentPreflight.instance,
+                agentDiagnostics: agentPreflight.diagnostics,
+                onAdmission: { [eventHub = dependencies.eventHub] in
+                    await eventHub.begin(turnID: turnID)
+                }
+            )
+        } catch {
+            // Preparation failed before a task could register. Drop the admission marker so a
+            // Turn this process can no longer drive is never mistaken for an in-process owner.
+            await dependencies.timelineManager.removeAdmitted(turnID: turnID, for: timelineID)
+            throw error
+        }
 
         if case let .existing(admission) = prepared {
             let stream: AsyncThrowingStream<TurnEvent, Error>

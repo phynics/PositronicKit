@@ -53,19 +53,6 @@ private struct TerminalDecision {
         self.streamError = streamError.map(TerminalStreamFailure.init(error:))
     }
 
-    static func delivery(for outcome: TurnOutcome) -> Delivery {
-        switch outcome {
-        case .completed:
-            return .completion
-        case .cancelled:
-            return .event(.generationCancelled())
-        case let .failed(message):
-            return .event(.error(message))
-        case let .interrupted(reason):
-            return .event(.error(reason))
-        }
-    }
-
     /// Creates a failed decision with user-facing durable text and the original stream error.
     static func failed(because error: Error, streamError: Error) -> Self {
         TerminalDecision(

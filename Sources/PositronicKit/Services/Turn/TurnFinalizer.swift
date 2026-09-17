@@ -62,8 +62,13 @@ actor TurnFinalizer {
     private let logger = Logger.module(named: "turn-finalizer")
 
     /// Per-Timeline serialization tails. Stored tasks are owned by this actor, which is the sole
-    /// owner of their cancellation and lifetime (see docs/Concurrency/exception-manifest.md).
-    private var tails: [UUID: Task<Void, Never>] = [:] // swiftlint:disable:this concurrency_stored_task -- actor owns per-Timeline finalizer tails (see docs/Concurrency/exception-manifest.md)
+    /// owner of their cancellation and lifetime; each task removes its own tail on completion so a
+    /// finished commit is not retained (see docs/Concurrency/exception-manifest.md).
+    private var tails: [UUID: Tail] = [:] // swiftlint:disable:this concurrency_stored_task -- actor owns per-Timeline finalizer tails (see docs/Concurrency/exception-manifest.md)
+    private struct Tail {
+        let turnID: UUID
+        let task: Task<Void, Never> // swiftlint:disable:this concurrency_stored_task -- actor-owned per-Timeline finalizer tail (see docs/Concurrency/exception-manifest.md)
+    }
 
     /// When a Turn's terminal commit was handed off, keyed by Turn. Used by liveness
     /// classification to bound how long a Timeline stays busy for a stalled commit.
@@ -82,17 +87,29 @@ actor TurnFinalizer {
     }
 
     /// Enqueues a terminal commit and returns without waiting for it.
+    ///
+    /// The commit runs in an unstructured task that is never cancelled by the Turn's cancellation
+    /// and holds this actor strongly until it completes, so a submitted commit always finishes even
+    /// if the runtime is released before the store returns.
     func submit(_ commit: TerminalCommit) {
         pendingSince[commit.turnID] = clock.now()
-        let previous = tails[commit.timelineID]
+        let previous = tails[commit.timelineID]?.task
         let turnID = commit.turnID
-        let task = Task.detached { [weak self] in
+        let timelineID = commit.timelineID
+        let task = Task.detached {
             await previous?.value
-            guard let self else { return }
             await self.perform(commit)
+            await self.removeTail(timelineID: timelineID, turnID: turnID)
             await self.clearPending(turnID: turnID)
         }
-        tails[commit.timelineID] = task
+        tails[commit.timelineID] = Tail(turnID: turnID, task: task)
+    }
+
+    /// Removes the timeline's serialization tail only when it still belongs to `turnID`, so a
+    /// finished commit releases its task and a newer commit's tail is never disturbed.
+    private func removeTail(timelineID: UUID, turnID: UUID) {
+        guard tails[timelineID]?.turnID == turnID else { return }
+        tails.removeValue(forKey: timelineID)
     }
 
     /// When the given Turn's terminal commit was handed off, or `nil` if none is pending.

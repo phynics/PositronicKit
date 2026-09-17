@@ -615,16 +615,26 @@ extension TurnEngine {
         _ request: TurnAdmissionRequest,
         capturedAgentID: UUID?
     ) async throws -> TurnAdmission {
+        let admission: TurnAdmission
         do {
-            return try await admitToRepositoryOnce(request, capturedAgentID: capturedAgentID)
+            admission = try await admitToRepositoryOnce(request, capturedAgentID: capturedAgentID)
         } catch let error as TimelineRuntimeRepositoryError {
             guard case let .timelineBusy(timelineID, activeTurnID) = error,
                   await interruptIfAbandoned(timelineID: timelineID, activeTurnID: activeTurnID)
             else {
                 throw error
             }
-            return try await admitToRepositoryOnce(request, capturedAgentID: capturedAgentID)
+            admission = try await admitToRepositoryOnce(request, capturedAgentID: capturedAgentID)
         }
+        if admission.disposition == .admitted {
+            // The Turn's task is not registered until preparation completes, so close the
+            // ownership window now; liveness must not treat this preparing Turn as an orphan.
+            await dependencies.timelineManager.markAdmitted(
+                turnID: request.turnID,
+                for: request.timelineID
+            )
+        }
+        return admission
     }
 
     private func admitToRepositoryOnce(

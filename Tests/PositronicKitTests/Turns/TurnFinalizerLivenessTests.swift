@@ -40,6 +40,46 @@ struct TurnFinalizerLivenessTests {
         consumer.cancel()
     }
 
+    @Test("admission does not interrupt a Turn this process is still preparing")
+    func admissionSparesPreparingTurn() async throws {
+        let llm = MockLLMService()
+        llm.mockClient.nextResponse = "prepared reply"
+        let gate = PreparationGate()
+        let kit = PKRuntime(configuration: .init(
+            languageModel: llm,
+            persistence: .inMemory(),
+            runtime: .init(customization: RuntimeCustomization(turnContextSource: gate))
+        ))
+        let timeline = try await kit.timelines.create(title: "Prepare in-process")
+
+        let first = Task {
+            try await timeline.startDirectTurn(
+                "first request",
+                context: DirectTurnContext(systemInstructions: "", contributor: .host)
+            )
+        }
+        #expect(await gate.waitUntilEntered(), "the first Turn should reach preparation")
+
+        // A different request during preparation must stay busy, not interrupt the preparing Turn.
+        let active = try #require(try await kit.runtimeRepository.fetchActiveTurn(for: timeline.id))
+        do {
+            _ = try await timeline.startDirectTurn(
+                "second request",
+                context: DirectTurnContext(systemInstructions: "", contributor: .host)
+            )
+            Issue.record("expected timelineBusy while the first Turn prepares")
+        } catch let error as TimelineRuntimeRepositoryError {
+            #expect(error == .timelineBusy(timelineID: timeline.id, activeTurnID: active.identity.turnID))
+        }
+        #expect(try await kit.runtimeRepository.fetchTurn(id: active.identity.turnID)?.outcome == nil,
+                "the preparing Turn must not be interrupted")
+
+        await gate.release()
+        let turn = try await first.value
+        _ = await turn.events().collect()
+        #expect(try await kit.runtimeRepository.fetchTurn(id: turn.id)?.outcome == .completed)
+    }
+
     @Test("admission interrupts an orphaned active Turn and admits the next request")
     func admissionInterruptsOrphanedActiveTurn() async throws {
         let persistence = MockPersistenceService()
@@ -74,6 +114,31 @@ struct TurnFinalizerLivenessTests {
         #expect(orphanRecord.outcome == .interrupted(reason: "Runtime recovered a Turn that was not owned by this process."))
         #expect(orphanRecord.isQuarantined == false)
         #expect(try await persistence.fetchTurn(id: turn.id)?.outcome == .completed)
+    }
+}
+
+/// A gate that parks the first Turn in context contributions until the test releases it.
+private actor PreparationGate: TurnContextSource {
+    private var entered = false
+    private var continuation: CheckedContinuation<Void, Never>? // swiftlint:disable:this concurrency_stored_continuation -- test-only one-shot waiter (see docs/Concurrency/exception-manifest.md)
+
+    func contributions(for _: TurnContextRequest) async throws -> [TurnContextContribution] {
+        entered = true
+        await withCheckedContinuation { continuation = $0 }
+        return []
+    }
+
+    func waitUntilEntered() async -> Bool {
+        for _ in 0..<10_000 {
+            if entered { return true }
+            await Task.yield()
+        }
+        return false
+    }
+
+    func release() {
+        continuation?.resume()
+        continuation = nil
     }
 }
 

@@ -223,10 +223,21 @@ actor TimelineManager {
         await taskRegistry.hasActiveTurn(for: timelineID)
     }
 
-    /// The Turn this process is currently driving for the timeline, or `nil` when no task is
-    /// registered. Liveness classification uses this to tell an in-process Turn from an orphan.
+    /// The Turn this process is currently driving or preparing for the timeline, or `nil` when it
+    /// owns none. Liveness classification uses this to tell an in-process Turn from an orphan.
     func activeTurnID(for timelineID: UUID) async -> UUID? {
         await taskRegistry.activeTurnID(for: timelineID)
+    }
+
+    /// Records that this process admitted a Turn whose stream-driving task has not been registered
+    /// yet, closing the admission-to-registration ownership window (ADR 0010).
+    func markAdmitted(turnID: UUID, for timelineID: UUID) async {
+        await taskRegistry.markAdmitted(turnID: turnID, for: timelineID)
+    }
+
+    /// Drops the admission marker when preparation fails before a task could register.
+    func removeAdmitted(turnID: UUID, for timelineID: UUID) async {
+        await taskRegistry.removeAdmitted(turnID: turnID, for: timelineID)
     }
 
     /// Rejects authority-changing operations while a Turn still owns this Timeline's execution
