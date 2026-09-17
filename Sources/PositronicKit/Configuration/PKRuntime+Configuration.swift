@@ -94,11 +94,11 @@ public extension PKRuntime {
         /// Creates a persistence configuration, defaulting omitted stores to in-memory.
         public init(
             runtimeRepository: any TimelineRuntimeRepository,
-            workspacePersistence: (any WorkspaceStore)? = nil,
-            toolPersistence: (any ToolPersistenceProtocol)? = nil,
-            agentStore: (any AgentStoreProtocol)? = nil,
-            requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
-            workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil
+            workspacePersistence: any WorkspaceStore? = nil,
+            toolPersistence: any ToolPersistenceProtocol? = nil,
+            agentStore: any AgentStoreProtocol? = nil,
+            requestOriginStore: any RequestOriginStoreProtocol? = nil,
+            workspaceBindingRepository: any WorkspaceBindingRepository? = nil
         ) {
             let resolvedWorkspaceStore = workspacePersistence ?? InMemoryWorkspacePersistence()
             self.runtimeRepository = runtimeRepository
@@ -126,7 +126,7 @@ public extension PKRuntime {
             toolPersistence: any ToolPersistenceProtocol,
             agentStore: any AgentStoreProtocol,
             requestOriginStore: any RequestOriginStoreProtocol,
-            workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil
+            workspaceBindingRepository: any WorkspaceBindingRepository? = nil
         ) -> PersistenceConfiguration {
             PersistenceConfiguration(
                 runtimeRepository: runtimeRepository,

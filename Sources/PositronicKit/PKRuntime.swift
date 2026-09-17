@@ -168,10 +168,10 @@ public final class PKRuntime: Sendable {
         languageModel: any LLMStreamClient,
         runtimeRepository: any TimelineRuntimeRepository,
         workspaceBindingRepository: any WorkspaceBindingRepository,
-        agentStore: (any AgentStoreProtocol)? = nil,
-        requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
-        workspacePersistence: (any WorkspaceStore)? = nil,
-        toolPersistence: (any ToolPersistenceProtocol)? = nil,
+        agentStore: any AgentStoreProtocol? = nil,
+        requestOriginStore: any RequestOriginStoreProtocol? = nil,
+        workspacePersistence: any WorkspaceStore? = nil,
+        toolPersistence: any ToolPersistenceProtocol? = nil,
         workspaceProfile: WorkspaceProfile = .noWorkspace,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         customization: RuntimeCustomization = .default,
@@ -257,7 +257,7 @@ public final class PKRuntime: Sendable {
         if let hostActivitySink = self.customization.agentActivitySink {
             activitySinks.append(hostActivitySink)
         }
-        let resolvedActivitySink: (any AgentActivitySink)? = activitySinks.isEmpty
+        let resolvedActivitySink: any AgentActivitySink? = activitySinks.isEmpty
             ? nil
             : AgentActivityFanout(sinks: activitySinks)
 

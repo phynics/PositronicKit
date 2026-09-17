@@ -144,9 +144,9 @@ struct TurnEngine {
         /// `isConfigured`/`configuration` precondition checks depend only on this.
         let llmService: any LLMStreamClient
         let toolRouter: ToolRouter
-        let turnContextSource: (any TurnContextSource)?
-        let agentActivitySink: (any AgentActivitySink)?
-        let turnOutcomeSink: (any TurnOutcomeSink)?
+        let turnContextSource: any TurnContextSource?
+        let agentActivitySink: any AgentActivitySink?
+        let turnOutcomeSink: any TurnOutcomeSink?
         let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         let loggingConfiguration: LoggingConfiguration
         let degradationPolicy: TurnDegradationPolicy
@@ -164,16 +164,16 @@ struct TurnEngine {
         init(
             timelineManager: TimelineManager,
             agentStore: any AgentStoreProtocol,
-            agentContextSource: (any AgentContextSource)? = nil,
+            agentContextSource: any AgentContextSource? = nil,
             requestOriginStore: any RequestOriginStoreProtocol,
             runtimeRepository: any TimelineRuntimeRepository,
             timelineAuthorityCoordinator: TimelineAuthorityCoordinator? = nil,
             agentAuthorityCoordinator: AgentAuthorityCoordinator? = nil,
             llmService: any LLMStreamClient,
             toolRouter: ToolRouter,
-            turnContextSource: (any TurnContextSource)? = nil,
-            agentActivitySink: (any AgentActivitySink)? = nil,
-            turnOutcomeSink: (any TurnOutcomeSink)? = nil,
+            turnContextSource: any TurnContextSource? = nil,
+            agentActivitySink: any AgentActivitySink? = nil,
+            turnOutcomeSink: any TurnOutcomeSink? = nil,
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             loggingConfiguration: LoggingConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired,

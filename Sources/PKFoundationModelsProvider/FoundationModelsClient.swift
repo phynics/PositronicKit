@@ -67,7 +67,7 @@ public actor FoundationModelsClient: LLMClientProtocol {
             self.makeSession = makeSession
         } else {
             #if canImport(FoundationModels)
-                if #available(macOS 26.0, *) {
+                if #available(anyAppleOS 26.0, *) {
                     self.makeSession = { turnTools, instructions in
                         let executableTools = turnTools == nil || turnTools?.isEmpty == false ? tools : []
                         return LiveFoundationModelsSession(bridging: executableTools, instructions: instructions)
@@ -166,7 +166,7 @@ public actor FoundationModelsClient: LLMClientProtocol {
     private nonisolated func resolveSession(
         tools: [LLMToolDefinition]?,
         instructions: String?
-    ) -> (any FoundationModelsSessionProtocol)? {
+    ) -> any FoundationModelsSessionProtocol? {
         makeSession?(tools, instructions)
     }
 
@@ -241,6 +241,6 @@ public enum FoundationModelsPlatformError: PKError, Equatable {
 
     /// A suggested next step for the caller.
     public var remediation: String? {
-        "Use a different provider, or run on macOS 26+ with the FoundationModels SDK available."
+        "Use a different provider, or run on an Apple OS 26+ host with the FoundationModels SDK available."
     }
 }

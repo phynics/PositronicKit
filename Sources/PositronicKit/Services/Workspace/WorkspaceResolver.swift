@@ -8,7 +8,7 @@ public protocol WorkspaceResolver: Sendable {
     var activeWorkspaceCount: Int { get async }
 
     /// Retrieves an active workspace provider by its ID, creating and caching it if necessary.
-    func workspace(id: UUID) async throws -> (any WorkspaceProvider)?
+    func workspace(id: UUID) async throws -> any WorkspaceProvider?
 
     /// Closes and removes a workspace from the active cache.
     func closeWorkspace(id: UUID) async

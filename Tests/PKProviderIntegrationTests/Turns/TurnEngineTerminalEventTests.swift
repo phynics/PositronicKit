@@ -27,7 +27,7 @@ struct TurnEngineTerminalEventTests {
 
     /// Standard dependencies with a `.runtimeTimeline` workspace (tools execute locally).
     private func withTurnEngineDependencies<T>(
-        turnOutcomeSink: (any TurnOutcomeSink)? = nil,
+        turnOutcomeSink: any TurnOutcomeSink? = nil,
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()

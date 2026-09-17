@@ -16,7 +16,7 @@ struct TimelineManagerWorkspaceResolverContractTests {
 
         var activeWorkspaceCount: Int { opened.count }
 
-        func workspace(id: UUID) async throws -> (any WorkspaceProvider)? {
+        func workspace(id: UUID) async throws -> any WorkspaceProvider? {
             opened.insert(id)
             return CustomFixedWorkspace(id: id)
         }
