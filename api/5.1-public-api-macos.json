@@ -785,6 +785,16 @@
       "declaration": "var underlyingCauses: [any Error] { get }"
     },
     {
+      "precise": "s:11PKContracts11CausalErrorP25usesOwnIdentityAsFallbackSbvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "CausalError",
+        "usesOwnIdentityAsFallback"
+      ],
+      "declaration": "var usesOwnIdentityAsFallback: Bool { get }"
+    },
+    {
       "precise": "s:11PKContracts11CausalErrorPAAE25usesOwnIdentityAsFallbackSbvp",
       "module": "PKContracts",
       "kind": "swift.property",
@@ -3969,6 +3979,16 @@
       "declaration": "protocol LLMClientProtocol : Sendable"
     },
     {
+      "precise": "s:11PKContracts17LLMClientProtocolP10chatStream8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputScsyAA14LLMStreamChunkVs5Error_pGSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0uI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LLMClientProtocol",
+        "chatStream(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, any Error>"
+    },
+    {
       "precise": "s:11PKContracts17LLMClientProtocolP10chatStream8messages5tools10toolChoice14responseFormat20generationParametersScsyAA14LLMStreamChunkVs5Error_pGSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0rI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgtYaF",
       "module": "PKContracts",
       "kind": "swift.method",
@@ -3987,6 +4007,16 @@
         "sendMessage(_:responseFormat:generationParameters:)"
       ],
       "declaration": "func sendMessage(_ content: String, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async throws -> String"
+    },
+    {
+      "precise": "s:11PKContracts17LLMClientProtocolP20fetchAvailableModelsSaySSGSgyYaKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LLMClientProtocol",
+        "fetchAvailableModels()"
+      ],
+      "declaration": "func fetchAvailableModels() async throws -> [String]?"
     },
     {
       "precise": "s:11PKContracts17LLMClientProtocolP23structuredOutputAdapterAA010StructuredeF0_pvp",
@@ -8170,6 +8200,26 @@
       "declaration": "func canExecute() async -> Bool"
     },
     {
+      "precise": "s:11PKContracts6PKToolP11sideEffectsAA08ToolSideD0Ovp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "PKTool",
+        "sideEffects"
+      ],
+      "declaration": "var sideEffects: ToolSideEffects { get }"
+    },
+    {
+      "precise": "s:11PKContracts6PKToolP12usageExampleSSSgvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "PKTool",
+        "usageExample"
+      ],
+      "declaration": "var usageExample: String? { get }"
+    },
+    {
       "precise": "s:11PKContracts6PKToolP13PositronicKitE19toLLMToolDefinitionAA0fG0VyF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -8198,6 +8248,16 @@
         "parametersSchema"
       ],
       "declaration": "var parametersSchema: Schema { get }"
+    },
+    {
+      "precise": "s:11PKContracts6PKToolP18requiresPermission3forSbSDySSAA10AnyCodableOG_tF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "PKTool",
+        "requiresPermission(for:)"
+      ],
+      "declaration": "func requiresPermission(for parameters: [String : AnyCodable]) -> Bool"
     },
     {
       "precise": "s:11PKContracts6PKToolP18requiresPermissionSbvp",
@@ -8238,6 +8298,26 @@
         "callName"
       ],
       "declaration": "var callName: String { get }"
+    },
+    {
+      "precise": "s:11PKContracts6PKToolP8identityAA13ToolReferenceOvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "PKTool",
+        "identity"
+      ],
+      "declaration": "var identity: ToolReference { get }"
+    },
+    {
+      "precise": "s:11PKContracts6PKToolP9summarize10parameters6resultSSSDySSAA10AnyCodableOG_AA10ToolResultVtF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "PKTool",
+        "summarize(parameters:result:)"
+      ],
+      "declaration": "func summarize(parameters: [String : AnyCodable], result: ToolResult) -> String"
     },
     {
       "precise": "s:11PKContracts6PKToolPAAE11sideEffectsAA08ToolSideD0Ovp",
@@ -8871,6 +8951,16 @@
       "declaration": "var errorDomain: String { get }"
     },
     {
+      "precise": "s:11PKContracts7PKErrorP11remediationSSSgvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "PKError",
+        "remediation"
+      ],
+      "declaration": "var remediation: String? { get }"
+    },
+    {
       "precise": "s:11PKContracts7PKErrorP9errorCodeSivp",
       "module": "PKContracts",
       "kind": "swift.property",
@@ -8879,6 +8969,16 @@
         "errorCode"
       ],
       "declaration": "var errorCode: Int { get }"
+    },
+    {
+      "precise": "s:11PKContracts7PKErrorP9isBlockedSbvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "PKError",
+        "isBlocked"
+      ],
+      "declaration": "var isBlocked: Bool { get }"
     },
     {
       "precise": "s:11PKContracts7PKErrorPAAE11remediationSSSgvp",
@@ -15841,6 +15941,16 @@
       "declaration": "protocol DurabilityAware : Sendable"
     },
     {
+      "precise": "s:13PositronicKit15DurabilityAwareP9isDurableSbvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "DurabilityAware",
+        "isDurable"
+      ],
+      "declaration": "var isDurable: Bool { get }"
+    },
+    {
       "precise": "s:13PositronicKit15DurabilityAwarePAAE9isDurableSbvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -15956,6 +16066,36 @@
         "generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
       ],
       "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
+    },
+    {
+      "precise": "s:13PositronicKit15LLMStreamClientP23structuredOutputAdapter3for11PKContracts010StructuredfG0_pAA9ModelTierO_tYaF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "LLMStreamClient",
+        "structuredOutputAdapter(for:)"
+      ],
+      "declaration": "func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter"
+    },
+    {
+      "precise": "s:13PositronicKit15LLMStreamClientP27generationStreamWithContextyAA0C6ResultVAA20LLMGenerationRequestVYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "LLMStreamClient",
+        "generationStreamWithContext(_:)"
+      ],
+      "declaration": "func generationStreamWithContext(_ request: LLMGenerationRequest) async throws -> LLMStreamResult"
+    },
+    {
+      "precise": "s:13PositronicKit15LLMStreamClientP9readiness11PKContracts14ModelReadinessOvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "LLMStreamClient",
+        "readiness"
+      ],
+      "declaration": "var readiness: ModelReadiness { get async }"
     },
     {
       "precise": "s:13PositronicKit15LLMStreamClientPAAE14sendStructured_16structuredOutput2as7decoder20generationParameters9modelTierqd__SS_11PKContracts0fH7RequestOqd__m10Foundation11JSONDecoderCAJ010GenerationL0VSgAA05ModelN0OtYaKSeRd__s8SendableRd__lF",
@@ -17970,6 +18110,16 @@
         "contributions(for:)"
       ],
       "declaration": "func contributions(for request: TurnContextRequest) async throws -> [TurnContextContribution]"
+    },
+    {
+      "precise": "s:13PositronicKit17TurnContextSourceP18failureRequirementAA0cd12ContributionG0Ovp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnContextSource",
+        "failureRequirement"
+      ],
+      "declaration": "var failureRequirement: TurnContextContributionRequirement { get }"
     },
     {
       "precise": "s:13PositronicKit17TurnContextSourcePAAE18failureRequirementAA0cd12ContributionG0Ovp",
@@ -27081,6 +27231,16 @@
       "declaration": "protocol SectionCompressor : Sendable"
     },
     {
+      "precise": "s:8PKPrompt17SectionCompressorP9summarize7requestSSAA14SummaryRequestV_tYaKF",
+      "module": "PKPrompt",
+      "kind": "swift.method",
+      "path": [
+        "SectionCompressor",
+        "summarize(request:)"
+      ],
+      "declaration": "func summarize(request: SummaryRequest) async throws -> String"
+    },
+    {
       "precise": "s:8PKPrompt17SectionCompressorP9summarizeyS2SYaKF",
       "module": "PKPrompt",
       "kind": "swift.method",
@@ -28087,6 +28247,16 @@
       "declaration": "protocol Prompt<Body> : Sendable"
     },
     {
+      "precise": "s:8PKPrompt6PromptP04makeB4NodeAA0bD0VSgyF",
+      "module": "PKPrompt",
+      "kind": "swift.method",
+      "path": [
+        "Prompt",
+        "makePromptNode()"
+      ],
+      "declaration": "func makePromptNode() -> PromptNode?"
+    },
+    {
       "precise": "s:8PKPrompt6PromptP4BodyQa",
       "module": "PKPrompt",
       "kind": "swift.associatedtype",
@@ -28424,6 +28594,15 @@
         "Message"
       ],
       "declaration": "extension Message"
+    },
+    {
+      "precise": "s:e:s:8PKPrompt14RenderedPromptV13PositronicKitE13buildMessagesSay11PKContracts10LLMMessageVGyF",
+      "module": "PositronicKit",
+      "kind": "swift.extension",
+      "path": [
+        "RenderedPrompt"
+      ],
+      "declaration": "extension RenderedPrompt"
     },
     {
       "precise": "s:e:s:8PKPrompt14RenderedPromptV13PositronicKitE21buildTimelineMessagesSay11PKContracts7MessageVGyF",
