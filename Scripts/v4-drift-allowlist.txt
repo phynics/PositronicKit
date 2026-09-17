@@ -33,4 +33,8 @@ Tests/PKContractsTests/SharedModelCoverageTests.swift|runtimeThread
 Tests/PKContractsTests/WorkspaceURITests.swift|/threads/
 docs/Setup.md|thread_send
 docs/Usage.md|privateThreadId
+# SE-0491 module-selector examples name platform declarations, not retired vocabulary.
+docs/Usage.md|Foundation::Thread
+docs/adr/0012-*.md|the original .Thread. collision
+docs/adr/0012-*.md|Foundation::Thread
 docs/PublicIDParameterInventory.md|threadId
