@@ -75,6 +75,10 @@ public enum FoundationModelsAvailabilityError: PKError, Equatable {
 }
 
 #if canImport(FoundationModels)
+    // Extensions do not inherit the availability of the type they extend, so this needs its own
+    // `anyAppleOS 26` annotation in addition to the enum's; without it the extension compiles at
+    // the package's macOS 15 / iOS 18 floor and references OS 26 Foundation Models symbols there.
+    @available(anyAppleOS 26.0, *)
     extension FoundationModelsAvailabilityError {
         /// Maps `SystemLanguageModel.Availability` onto the typed error vocabulary above.
         /// Returns `nil` when the model is available (no error to surface).

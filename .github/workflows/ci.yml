@@ -152,10 +152,15 @@ jobs:
           restore-keys: |
             swiftpm-ios-simulator-${{ runner.os }}-
 
+      # `-skipMacroValidation` is required on an unattended runner: xcodebuild otherwise refuses
+      # the vendored `JSONSchemaMacro` from `swift-json-schema` until a human approves it in the
+      # Xcode UI. The macro is already pinned through `Package.resolved`, so this trusts the
+      # resolved dependency rather than an arbitrary remote one.
       - name: Build PKFoundationModelsProvider for the iOS Simulator
         run: |
           mkdir -p .build
           xcodebuild build \
+            -skipMacroValidation \
             -scheme PKFoundationModelsProvider \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath .build/ios-simulator \
