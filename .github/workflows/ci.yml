@@ -86,31 +86,18 @@ jobs:
           if-no-files-found: ignore
 
   macos-verify:
-    name: "macOS — make verify (macos-latest)"
-    runs-on: macos-latest
+    name: "macOS — make verify (xcode-27)"
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      # macos-latest only ships Xcode 26.x (Swift 6.2); Xcode 27 is not on the
-      # standard runner image, so install the swift.org toolchain to reach the
-      # 6.4 floor. The symbol-graph extractors are resolved from this toolchain
-      # rather than xcrun so they match the modules built here.
-      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
-        run: |
-          set -euo pipefail
-          pkg="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-osx.pkg"
-          curl -fsSL -o "/tmp/${pkg}" \
-            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/xcode/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${pkg}"
-          sudo installer -pkg "/tmp/${pkg}" -target /
-          toolchain="/Library/Developer/Toolchains/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE.xctoolchain"
-          if [ ! -x "$toolchain/usr/bin/swift" ]; then
-            echo "Swift toolchain not found at $toolchain" >&2
-            exit 1
-          fi
-          echo "$toolchain/usr/bin" >> "$GITHUB_PATH"
-
+      # The xcode-27 image ships Xcode 27, whose bundled Swift 6.4 toolchain is
+      # the floor and whose Testing library declares `CustomTestReflectable`.
+      # macos-latest still ships the Xcode 26 SDK (Testing 6.3), which lacks it.
+      # Using the image toolchain also keeps the symbol-graph extractors in step
+      # with the modules built here.
       - name: Assert Swift 6.4
         run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
 
