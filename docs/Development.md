@@ -99,7 +99,10 @@ Run `make linux-coverage` in the pinned Linux environment to execute the tests w
 
 The target writes the raw `llvm-cov` JSON, a normalized summary for `PositronicKit`,
 `PKContracts`, `PKPrompt`, `PKUtilities`, and `PKObservable`, and a platform-asymmetry report.
-Provider targets, `PKTestSupport`, executables, and test targets are excluded.
+Provider targets, `PKTestSupport`, executables, and test targets are excluded. Swift 6.4's default
+Swift Build coverage export does not include the standalone `PKObservable` product, so the report
+records it under `omittedModules` and in the asymmetry report rather than failing. Restoring that
+coverage needs a follow-up once the build system exports it.
 
 This milestone reports Linux coverage only. It does not set floors, compare changed lines,
 commit a baseline, or enforce macOS parity. A follow-up issue owns those decisions.

@@ -108,7 +108,10 @@ for tagged releases beginning with `1.0.0`.
   and `LINUX_SWIFT_VERSION` derives the `6.4.0` image tag. `make doctor` reports the supported
   range. The 5.1 Linux public-symbol baseline is regenerated under Swift 6.4 because that compiler
   emits extension-member relationships and graph locations introduced by Swift 6.4. The consumer
-  floor is `swift-tools-version: 6.4`.
+  floor is `swift-tools-version: 6.4`. The macOS DocC gate uses the toolchain on `PATH` so its
+  symbol-graph extractor matches the modules it reads, and the Linux coverage report records the
+  `PKObservable` module as omitted because Swift 6.4's default Swift Build coverage export does not
+  include that standalone product.
 - **Docs-snippet gate stays green after #201/#202:** guides that document the `@MainActor`
   `TimelineController` opt into a main-actor wrapper with the ` ```swift main-actor ` fence marker
   (every other block keeps the nonisolated wrapper, so the gate stays as strict as code pasted
