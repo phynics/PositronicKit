@@ -30,6 +30,7 @@ public final class MockPersistenceService: TimelineRuntimeRepository, WorkspaceS
         var fetchTimelineFails = false
         var completeTurnFails = false
         var completeTurnBlocker: (@Sendable () async -> Void)?
+        var completeTurnChecksCancellation = false
         var unorderedMessagesForTimelineID: UUID?
         var deletedMessageTimelineIDs: Set<UUID> = []
         var saveMessageFailureAfter: Int?
@@ -91,6 +92,14 @@ public final class MockPersistenceService: TimelineRuntimeRepository, WorkspaceS
     public var completeTurnBlocker: (@Sendable () async -> Void)? {
         get { state.withLock { $0.completeTurnBlocker } }
         set { state.withLock { $0.completeTurnBlocker = newValue } }
+    }
+
+    /// When enabled, `completeTurn` throws `CancellationError` if the executing task is cancelled.
+    /// The terminal commit runs in the runtime-owned finalizer, which is never the cancelled Turn
+    /// task, so a cancellation-aware store must still commit (ADR 0010, #195).
+    public var completeTurnChecksCancellation: Bool {
+        get { state.withLock { $0.completeTurnChecksCancellation } }
+        set { state.withLock { $0.completeTurnChecksCancellation = newValue } }
     }
 
     /// Package-only test control that reverses fetched messages for one fixture Timeline to prove
@@ -499,6 +508,9 @@ extension MockPersistenceService {
         // linkage scenario keep working while the completion scenario observes the failure.
         if case .completed = outcome, state.withLock({ $0.completeTurnFails }) {
             throw FailingStoreError.saveFailed
+        }
+        if state.withLock({ $0.completeTurnChecksCancellation }), Task.isCancelled {
+            throw CancellationError()
         }
         if let blocker = state.withLock({ $0.completeTurnBlocker }) {
             await blocker()

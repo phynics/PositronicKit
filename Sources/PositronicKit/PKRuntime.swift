@@ -48,19 +48,24 @@ public final class PKRuntime: Sendable {
         /// instances — documented to start independent histories — never contend over the
         /// same `(timelineID, toolCallId)` reservation keys (D-03).
         let submissionGate: ExternalToolOutputSubmissionGate
+        /// Runtime-owned terminal-commit executor. Shared across `reconfigured` views so a
+        /// view cannot mistake another view's in-flight commit for an orphan (ADR 0010).
+        let finalizer: TurnFinalizer
 
         init(
             timelineManager: TimelineManager,
             promptHistoryRegistry: TimelinePromptJournals,
             agentAuthorityCoordinator: AgentAuthorityCoordinator,
             eventHub: TurnEventHub,
-            submissionGate: ExternalToolOutputSubmissionGate
+            submissionGate: ExternalToolOutputSubmissionGate,
+            finalizer: TurnFinalizer
         ) {
             self.timelineManager = timelineManager
             self.promptHistoryRegistry = promptHistoryRegistry
             self.agentAuthorityCoordinator = agentAuthorityCoordinator
             self.eventHub = eventHub
             self.submissionGate = submissionGate
+            self.finalizer = finalizer
         }
     }
 
@@ -248,6 +253,23 @@ public final class PKRuntime: Sendable {
             ?? dependencies.sharedRegistry
         promptHistoryRegistry = resolvedPromptHistoryRegistry
 
+        var activitySinks: [any AgentActivitySink] = []
+        if let hostActivitySink = self.customization.agentActivitySink {
+            activitySinks.append(hostActivitySink)
+        }
+        let resolvedActivitySink: (any AgentActivitySink)? = activitySinks.isEmpty
+            ? nil
+            : AgentActivityFanout(sinks: activitySinks)
+
+        // One finalizer per runtime identity: `reconfigured` views share it so they see each
+        // other's in-flight terminal commits instead of treating them as orphans (ADR 0010).
+        let resolvedFinalizer = runtimeState?.finalizer ?? TurnFinalizer(
+            repository: self.runtimeRepository,
+            agentActivitySink: resolvedActivitySink,
+            turnOutcomeSink: self.customization.turnOutcomeSink,
+            clock: dependencies.clock
+        )
+
         // The catalog root anchors agent-private workspace provisioning (a separate, opt-in
         // path from timeline workspaces). For `.noWorkspace` there is no profile root, so fall
         // back to a process-temporary path so the catalog still has somewhere to anchor if a
@@ -277,7 +299,8 @@ public final class PKRuntime: Sendable {
                 workspaceProfile: dependencies.workspaceProfile,
                 workspaceCreator: dependencies.workspaceCreator,
                 runtimeToolPolicy: dependencies.runtimeToolPolicy,
-                promptHistoryRegistry: resolvedPromptHistoryRegistry
+                promptHistoryRegistry: resolvedPromptHistoryRegistry,
+                finalizer: resolvedFinalizer
             )
             resolvedTimelineManager = newTimelineManager
             resolvedEventHub = TurnEventHub()
@@ -320,21 +343,14 @@ public final class PKRuntime: Sendable {
             promptHistoryRegistry: resolvedPromptHistoryRegistry,
             agentAuthorityCoordinator: resolvedAgentAuthorityCoordinator,
             eventHub: resolvedEventHub,
-            submissionGate: resolvedSubmissionGate
+            submissionGate: resolvedSubmissionGate,
+            finalizer: resolvedFinalizer
         )
         self.runtimeState = resolvedRuntimeState
         timelineManager = resolvedRuntimeState.timelineManager
         workspaceCatalog = resolvedWorkspaceCatalog
         agentManager = resolvedAgentManager
         toolRouter = resolvedToolRouter
-
-        var activitySinks: [any AgentActivitySink] = []
-        if let hostActivitySink = self.customization.agentActivitySink {
-            activitySinks.append(hostActivitySink)
-        }
-        let resolvedActivitySink: (any AgentActivitySink)? = activitySinks.isEmpty
-            ? nil
-            : AgentActivityFanout(sinks: activitySinks)
 
         var engine = TurnEngine(
             dependencies: .init(
@@ -360,6 +376,7 @@ public final class PKRuntime: Sendable {
                 submissionGate: resolvedSubmissionGate,
                 streamTimeout: dependencies.streamTimeout,
                 clock: dependencies.clock,
+                finalizer: resolvedRuntimeState.finalizer,
                 terminalCommitStallLimit: dependencies.terminalCommitStallLimit
             )
         )

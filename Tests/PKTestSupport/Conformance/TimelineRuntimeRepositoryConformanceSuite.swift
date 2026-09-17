@@ -651,6 +651,21 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
         try #require(released.isQuarantined == false, "timeline.quarantine.release.cleared")
         try #require(try await repository.fetchTurn(id: turnID)?.isQuarantined == false, "timeline.quarantine.release.durable-cleared")
 
+        // Releasing a Turn that is no longer quarantined must report the opposite of
+        // "quarantined", not re-use `timelineQuarantined`.
+        do {
+            _ = try await repository.releaseQuarantine(
+                timelineID: timelineID,
+                turnID: turnID,
+                confirmation: QuarantineReleaseConfirmation(phrase: QuarantineReleaseConfirmation.requiredPhrase),
+                now: fixedDate(15)
+            )
+            Issue.record("timeline.quarantine.release.not-found-must-fail")
+            return
+        } catch let error as TimelineRuntimeRepositoryError {
+            try #require(error == .quarantineNotFound(timelineID: timelineID, turnID: turnID), "timeline.quarantine.release.not-found-error")
+        }
+
         let admitted = try await repository.admitTurn(
             timelineID: timelineID,
             requestID: UUID(),

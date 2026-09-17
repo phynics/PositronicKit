@@ -657,26 +657,36 @@ extension TurnEngine {
     /// abandoned. Returns whether the interruption happened, so admission can retry once.
     ///
     /// Under the single-owner store assumption (ADR 0010):
-    /// - a Turn this process is actively driving is making progress and stays busy;
+    /// - a Turn this process is actively driving or preparing is making progress and stays busy;
     /// - a Turn whose terminal commit has been pending no longer than
     ///   `terminalCommitStallLimit` stays busy;
     /// - everything else — an orphan from an earlier process, or a commit stalled past the limit
-    ///   — is interrupted.
+    ///   — is interrupted, with a reason that distinguishes the two.
+    ///
+    /// When the store cannot answer whether a side effect is pending, this does not interrupt
+    /// (leaving `timelineBusy`), so it never retries without evidence.
     func interruptIfAbandoned(timelineID: UUID, activeTurnID: UUID) async -> Bool {
         if await dependencies.timelineManager.activeTurnID(for: timelineID) == activeTurnID {
             return false
         }
-        if let pendingSince = await dependencies.finalizer.pendingCommitStartedAt(turnID: activeTurnID) {
+        let pendingSince = await dependencies.finalizer.pendingCommitStartedAt(turnID: activeTurnID)
+        if let pendingSince {
             let pending = pendingSince.duration(to: dependencies.clock.now())
             if pending < .seconds(dependencies.terminalCommitStallLimit) {
                 return false
             }
         }
-        let disposition = await interruptDisposition(for: activeTurnID, timelineID: timelineID)
+        let reason = pendingSince == nil
+            ? "Turn was active but not owned by this runtime (orphaned)."
+            : "Terminal commit exceeded terminalCommitStallLimit (\(dependencies.terminalCommitStallLimit)s)."
         do {
+            let disposition = try await TurnAbandonment.disposition(
+                for: activeTurnID,
+                repository: dependencies.runtimeRepository
+            )
             _ = try await dependencies.runtimeRepository.interruptTurn(
                 turnID: activeTurnID,
-                reason: "Runtime recovered a Turn that was not owned by this process.",
+                reason: reason,
                 disposition: disposition,
                 now: Date()
             )
@@ -684,34 +694,6 @@ extension TurnEngine {
         } catch {
             return false
         }
-    }
-
-    /// Chooses between a retryable interruption and a quarantine.
-    ///
-    /// A quarantine is required only when retrying could repeat a side effect: an unresolved tool
-    /// intent for a tool that declares `.mutating` or `.externalProcess` side effects. Anything
-    /// else is safe to retry.
-    func interruptDisposition(for turnID: UUID, timelineID: UUID) async -> TurnInterruptDisposition {
-        guard let intents = try? await dependencies.runtimeRepository.fetchToolIntents(turnID: turnID),
-              !intents.isEmpty
-        else {
-            return .retryable
-        }
-        let results = (try? await dependencies.runtimeRepository.fetchToolResults(turnID: turnID)) ?? []
-        let resolved = Set(results.map(\.toolCallID))
-        let unresolved = intents.filter { !resolved.contains($0.toolCallID) }
-        guard !unresolved.isEmpty else { return .retryable }
-
-        let tools = await dependencies.timelineManager.enabledTools(for: timelineID)
-        let riskyNames = Set(
-            tools
-                .filter { $0.sideEffects == .mutating || $0.sideEffects == .externalProcess }
-                .map(\.callName)
-        )
-        if let pending = unresolved.first(where: { riskyNames.contains($0.name) }) {
-            return .quarantined("Unresolved tool intent \(pending.toolCallID) for a side-effecting tool.")
-        }
-        return .retryable
     }
 
     private func validateExecutionAuthority(

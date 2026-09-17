@@ -41,6 +41,7 @@ struct RepositoryPKErrorTests {
             TimelineErrorCase(error: .confirmationRequired, code: 6113),
             TimelineErrorCase(error: .runtimeRepositoryRequired(timelineID: timelineID), code: 6114),
             TimelineErrorCase(error: .authorityCoordinatorRequired(timelineID: timelineID), code: 6115),
+            TimelineErrorCase(error: .quarantineNotFound(timelineID: timelineID, turnID: turnID), code: 6118),
             TimelineErrorCase(
                 error: .inputMessageTimelineMismatch(
                     messageID: messageID,

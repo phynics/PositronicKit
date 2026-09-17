@@ -74,7 +74,7 @@ public extension ToolSource {
 /// payments, file changes, or remote operations. The enforcer uses this value to
 /// report a distinct terminal state (`ToolError.timedOutButMayStillBeRunning`)
 /// rather than a clean timeout when abandonment is not provably safe.
-public enum ToolSideEffects: Sendable, Equatable {
+public enum ToolSideEffects: String, Codable, Sendable, Equatable {
     /// No external state is mutated; safe to abandon after timeout.
     case none
     /// In-process state may be mutated (files, memory, in-process records).

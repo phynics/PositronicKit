@@ -170,6 +170,41 @@ extension TimelineManager {
             timeline: timeline,
             workspaceURL: timelineWorkspaceURL
         )
+        await classifyActiveTurnOnLoad(for: id)
+    }
+
+    /// Interrupts an active Turn this process does not own when the Timeline is loaded, so an
+    /// orphan from an earlier or crashed process is recovered even when nothing is sent next
+    /// (ADR 0010). A Turn this process is driving or preparing, or whose terminal commit is still
+    /// pending, stays busy; when the store cannot answer whether a side effect is pending, the
+    /// Turn is left busy rather than interrupted without evidence.
+    private func classifyActiveTurnOnLoad(for timelineID: UUID) async {
+        guard let finalizer else { return }
+        guard let active = try? await runtimeRepository.fetchActiveTurn(for: timelineID) else { return }
+        let activeTurnID = active.identity.turnID
+        guard await taskRegistry.activeTurnID(for: timelineID) != activeTurnID,
+              await finalizer.pendingCommitStartedAt(turnID: activeTurnID) == nil
+        else {
+            return
+        }
+        do {
+            let disposition = try await TurnAbandonment.disposition(
+                for: activeTurnID,
+                repository: runtimeRepository
+            )
+            _ = try await runtimeRepository.interruptTurn(
+                turnID: activeTurnID,
+                reason: "Turn was active but not owned by this runtime (orphaned).",
+                disposition: disposition,
+                now: Date()
+            )
+        } catch {
+            logger.warning("""
+            classifyActiveTurnOnLoad: unable to classify active Turn — \
+            timeline: \(timelineID.uuidString.prefix(8)), \
+            turn: \(activeTurnID.uuidString.prefix(8)), error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
+        }
     }
 
     /// Updates the title of a specific timeline.

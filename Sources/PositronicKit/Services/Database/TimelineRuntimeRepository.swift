@@ -231,6 +231,10 @@ public struct RuntimeToolIntent: Codable, Equatable, Hashable, Sendable {
     public let name: String
     public let arguments: String
     public let modelRoundIndex: Int
+    /// The tool's declared side-effect class at intent time. Liveness uses it to decide whether
+    /// interrupting an abandoned Turn may repeat a side effect, without needing the tool to be
+    /// registered again (ADR 0010).
+    public let sideEffects: ToolSideEffects
     public let workspaceID: UUID?
     public let workspaceRouting: WorkspaceToolRouting?
     public let createdAt: Date
@@ -238,7 +242,7 @@ public struct RuntimeToolIntent: Codable, Equatable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id, turnID
         case timelineID = "threadID"
-        case toolCallID, name, arguments, modelRoundIndex, workspaceID, workspaceRouting, createdAt
+        case toolCallID, name, arguments, modelRoundIndex, sideEffects, workspaceID, workspaceRouting, createdAt
     }
 
     public init(
@@ -249,6 +253,7 @@ public struct RuntimeToolIntent: Codable, Equatable, Hashable, Sendable {
         name: String,
         arguments: String,
         modelRoundIndex: Int,
+        sideEffects: ToolSideEffects = .mutating,
         workspaceID: UUID? = nil,
         workspaceRouting: WorkspaceToolRouting? = nil,
         createdAt: Date = Date()
@@ -260,6 +265,7 @@ public struct RuntimeToolIntent: Codable, Equatable, Hashable, Sendable {
         self.name = name
         self.arguments = arguments
         self.modelRoundIndex = modelRoundIndex
+        self.sideEffects = sideEffects
         self.workspaceID = workspaceID
         self.workspaceRouting = workspaceRouting
         self.createdAt = createdAt
@@ -443,6 +449,7 @@ public enum TimelineRuntimeRepositoryError: Error, Equatable, Sendable, CustomSt
     case authorityCoordinatorRequired(timelineID: UUID)
     case inputMessageTimelineMismatch(messageID: UUID, expectedTimelineID: UUID, actualTimelineID: UUID)
     case finalMessageTimelineMismatch(messageID: UUID, expectedTimelineID: UUID, actualTimelineID: UUID)
+    case quarantineNotFound(timelineID: UUID, turnID: UUID)
 
     private struct ErrorMetadata {
         let code: Int
@@ -490,6 +497,11 @@ public enum TimelineRuntimeRepositoryError: Error, Equatable, Sendable, CustomSt
             return ErrorMetadata(
                 code: 6117,
                 message: "Final message \(messageID) belongs to Timeline \(actualTimelineID), not Timeline \(expectedTimelineID)."
+            )
+        case let .quarantineNotFound(timelineID, turnID):
+            return ErrorMetadata(
+                code: 6118,
+                message: "Timeline \(timelineID) has no quarantined Turn \(turnID) to release."
             )
         }
     }

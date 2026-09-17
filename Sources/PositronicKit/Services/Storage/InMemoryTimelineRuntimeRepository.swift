@@ -473,7 +473,11 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         switch disposition {
         case .retryable:
             turn.quarantine = nil
-            quarantinedTurns.removeValue(forKey: turn.timelineID)
+            // Only clear this Turn's own quarantine marker; a marker for a different Turn (for
+            // example one quarantined by `deleteTimeline`) stays until the operator releases it.
+            if quarantinedTurns[turn.timelineID] == turnID {
+                quarantinedTurns.removeValue(forKey: turn.timelineID)
+            }
             turn.notices.append(TurnNotice(kind: "turn-interrupted", message: reason, createdAt: now))
         case let .quarantined(message):
             turn.quarantine = TurnQuarantine(reason: message, createdAt: now)
@@ -496,7 +500,7 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         }
         var turn = try mutableTurn(turnID)
         guard turn.timelineID == timelineID, turn.isQuarantined else {
-            throw TimelineRuntimeRepositoryError.timelineQuarantined(timelineID: timelineID, turnID: turnID)
+            throw TimelineRuntimeRepositoryError.quarantineNotFound(timelineID: timelineID, turnID: turnID)
         }
         turn.quarantine = nil
         turn.updatedAt = now

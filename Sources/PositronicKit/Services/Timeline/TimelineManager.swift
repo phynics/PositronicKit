@@ -137,6 +137,11 @@ actor TimelineManager {
     /// in-memory caches, so deleted/stale timelines don't leak journal-diff state.
     let promptHistoryRegistry: TimelinePromptJournals?
 
+    /// The runtime-owned terminal-commit executor. When present, hydration classifies an active
+    /// Turn this process does not own so an orphan is interrupted on load rather than only at the
+    /// next admission (ADR 0010). `nil` disables that load-time pass (direct-engine tests).
+    let finalizer: TurnFinalizer?
+
     let logger = Logger.module(named: "timeline-manager")
 
     // MARK: - Initialization
@@ -158,6 +163,7 @@ actor TimelineManager {
         resolver: any WorkspaceResolver,
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         promptHistoryRegistry: TimelinePromptJournals? = nil,
+        finalizer: TurnFinalizer? = nil,
         taskRegistry: TimelineTaskRegistry? = nil,
         workspaceExecutionCoordinator: WorkspaceExecutionCoordinator? = nil,
         timelineAuthorityCoordinator: TimelineAuthorityCoordinator? = nil
@@ -171,6 +177,7 @@ actor TimelineManager {
         self.workspaceProfile = workspaceProfile
         self.runtimeToolPolicy = runtimeToolPolicy
         self.promptHistoryRegistry = promptHistoryRegistry
+        self.finalizer = finalizer
         self.taskRegistry = taskRegistry ?? TimelineTaskRegistry()
         self.workspaceExecutionCoordinator = workspaceExecutionCoordinator ?? WorkspaceExecutionCoordinator()
         self.timelineAuthorityCoordinator = timelineAuthorityCoordinator ?? TimelineAuthorityCoordinator()

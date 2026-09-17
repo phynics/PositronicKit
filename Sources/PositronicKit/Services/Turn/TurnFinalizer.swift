@@ -52,23 +52,15 @@ struct TerminalCommit: Sendable {
 /// from the Turn task, a store call that hangs bounds how long a Timeline stays busy, not how long
 /// eviction takes.
 ///
-/// Commits are serialized per Timeline: a new commit waits for the previous one on the same
-/// Timeline so terminal writes and sinks cannot reorder. Different Timelines proceed independently.
+/// Commits run independently per Turn. Durable writes need no further serialization: a Turn is
+/// only admitted after its predecessor is terminal in the store, and `completeTurn` is
+/// first-writer-wins, so a commit that hangs can never poison later commits on the same Timeline.
 actor TurnFinalizer {
     private let repository: any TimelineRuntimeRepository
     private let agentActivitySink: (any AgentActivitySink)?
     private let turnOutcomeSink: (any TurnOutcomeSink)?
     private let clock: any RuntimeClock
     private let logger = Logger.module(named: "turn-finalizer")
-
-    /// Per-Timeline serialization tails. Stored tasks are owned by this actor, which is the sole
-    /// owner of their cancellation and lifetime; each task removes its own tail on completion so a
-    /// finished commit is not retained (see docs/Concurrency/exception-manifest.md).
-    private var tails: [UUID: Tail] = [:] // swiftlint:disable:this concurrency_stored_task -- actor owns per-Timeline finalizer tails (see docs/Concurrency/exception-manifest.md)
-    private struct Tail {
-        let turnID: UUID
-        let task: Task<Void, Never> // swiftlint:disable:this concurrency_stored_task -- actor-owned per-Timeline finalizer tail (see docs/Concurrency/exception-manifest.md)
-    }
 
     /// When a Turn's terminal commit was handed off, keyed by Turn. Used by liveness
     /// classification to bound how long a Timeline stays busy for a stalled commit.
@@ -88,28 +80,17 @@ actor TurnFinalizer {
 
     /// Enqueues a terminal commit and returns without waiting for it.
     ///
-    /// The commit runs in an unstructured task that is never cancelled by the Turn's cancellation
-    /// and holds this actor strongly until it completes, so a submitted commit always finishes even
-    /// if the runtime is released before the store returns.
+    /// The commit runs in an unstructured task that is never cancelled by the Turn's cancellation.
+    /// The task inherits this actor's isolation and task-locals but not the caller's cancellation,
+    /// and it holds the actor until the commit completes, so a submitted commit always finishes
+    /// even if the runtime is released before the store returns.
     func submit(_ commit: TerminalCommit) {
         pendingSince[commit.turnID] = clock.now()
-        let previous = tails[commit.timelineID]?.task
         let turnID = commit.turnID
-        let timelineID = commit.timelineID
-        let task = Task.detached {
-            await previous?.value
+        Task {
             await self.perform(commit)
-            await self.removeTail(timelineID: timelineID, turnID: turnID)
             await self.clearPending(turnID: turnID)
         }
-        tails[commit.timelineID] = Tail(turnID: turnID, task: task)
-    }
-
-    /// Removes the timeline's serialization tail only when it still belongs to `turnID`, so a
-    /// finished commit releases its task and a newer commit's tail is never disturbed.
-    private func removeTail(timelineID: UUID, turnID: UUID) {
-        guard tails[timelineID]?.turnID == turnID else { return }
-        tails.removeValue(forKey: timelineID)
     }
 
     /// When the given Turn's terminal commit was handed off, or `nil` if none is pending.

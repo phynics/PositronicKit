@@ -83,12 +83,13 @@ pattern already used by this file's subscriber `onTermination` cleanup.
 ## Runtime-owned terminal finalization
 
 `TurnFinalizer` (`Sources/PositronicKit/Services/Turn/TurnFinalizer.swift`) is the runtime-owned
-long-lived executor for terminal Turn commits (ADR 0010). It owns one detached `Task` per Timeline
-as a serialization tail, so terminal writes and sinks cannot reorder on the same Timeline. The
-actor is the sole owner of those tasks' creation and lifetime; a commit that hangs therefore
-retains only its own tail and never blocks eviction, because eviction joins the cancelled Turn task
-rather than the finalizer. `TurnFinalizer` also stores each Turn's commit-handoff instant for
-in-process liveness classification.
+long-lived executor for terminal Turn commits (ADR 0010). Each commit runs in an unstructured
+`Task` created inside the actor: it keeps task-locals, does not inherit the Turn's cancellation,
+and holds the actor until the commit completes, so a submitted commit always finishes even if the
+runtime is released before the store returns. Commits are deliberately not serialized per Timeline:
+a Turn is only admitted after its predecessor is terminal in the store and `completeTurn` is
+first-writer-wins, so a hung commit can never poison later commits. `TurnFinalizer` stores each
+Turn's commit-handoff instant for in-process liveness classification.
 
 `TerminalCommit` carries the stream `Continuation` the finalizer finishes after the durable commit,
 the sinks, and the consumer-facing terminal events. The continuation's lifecycle is owned end to
