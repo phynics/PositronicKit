@@ -31,12 +31,13 @@ printf "  host: %s %s\n\n" "$host_os" "$(uname -m)"
 required_swift_version="$(sed -nE 's|^// swift-tools-version:[[:space:]]*([0-9]+\.[0-9]+).*|\1|p' "$repo_root/Package.swift" | head -n1)"
 required_swift_major="${required_swift_version%%.*}"
 required_swift_minor="${required_swift_version#*.}"
-# Highest toolchain the repository has qualified in CI. The required floor comes
-# from Package.swift's swift-tools-version; the ceiling is the newest lane in
-# .github/workflows/ci.yml. Raise it only after a lane proves the full gate.
+# Highest toolchain the Linux CI matrix qualifies. The required floor comes from
+# Package.swift's swift-tools-version; the ceiling is the newest lane in
+# .github/workflows/ci.yml. Raise it only after a lane proves the full gate. The
+# native macOS gate runs whatever Xcode the runner ships, so it is floor-only.
 current_swift_version="6.3.3"
-qualified_swift_version="6.4"
-swift_requirement_hint="Native macOS gates require Swift ${required_swift_version:-6.2}+ (qualified through ${qualified_swift_version}) with SwiftPM and Foundation."
+qualified_swift_version="6.4.0"
+swift_requirement_hint="Native macOS gates require Swift ${required_swift_version:-6.2}+ with SwiftPM and Foundation."
 
 if [ "$host_os" = "Linux" ]; then
   ok "Linux verification backend: container runtime (host Swift is ignored)"
@@ -84,7 +85,7 @@ else
 fi
 
 if [ "$host_os" = "Linux" ]; then
-  ok "Swift and Python 3 supplied by the pinned Linux image (Swift ${current_swift_version} current, ${qualified_swift_version} next)"
+  ok "Pinned Linux image supplies Swift and Python 3; Linux CI qualifies Swift ${current_swift_version} (current) and ${qualified_swift_version} (next)"
 fi
 
 # --- Container runtime (required for every Linux build/test entrypoint) -----

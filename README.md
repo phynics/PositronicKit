@@ -17,7 +17,7 @@ Next channel.
 ## Current state
 
 The package requires Swift 6.2 and targets macOS 15 and iOS 18. The repository also maintains a
-pinned Linux development environment with Swift 6.3.3, and CI qualifies the Swift 6.4 lane.
+pinned Linux development environment with Swift 6.3.3, and CI qualifies the Swift 6.4.0 lane.
 
 The current runtime has four consumer-facing capability values: `model`, `timelines`, `agents`, and
 `workspaces`. A managed Turn captures its Agent and Workspace authority at admission. A direct Turn
@@ -549,7 +549,8 @@ PositronicKit uses one reproducible Linux development path: the pinned container
 ### Container runtime
 
 The included Dev Container provides Swift 6.3.3 and Python on Ubuntu 24.04. Pass
-`LINUX_SWIFT_VERSION=6.4` to build the qualified Swift 6.4 variant instead:
+`LINUX_SWIFT_VERSION=6.4.0` to build the qualified Swift 6.4.0 variant instead (it requires the
+`swift:6.4.0-noble` base image, which is not yet published to Docker Hub):
 
 ```bash
 make linux-image   # Build the development image (swift:6.3.3-noble)
@@ -557,7 +558,7 @@ make linux-build   # Compile in the container (bind-mounts your checkout)
 make agent-verify  # Run the complete product, example, support, and test gate
 make agent-test FILTER='MessageContentTests' # Run one focused test selection
 
-make agent-verify LINUX_SWIFT_VERSION=6.4 # Run the same gate on Swift 6.4
+make agent-verify LINUX_SWIFT_VERSION=6.4.0 # Run the same gate on Swift 6.4.0
 ```
 
 Podman and Docker are both supported. The runner prefers Podman when both are installed; set

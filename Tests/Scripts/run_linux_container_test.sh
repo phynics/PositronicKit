@@ -155,29 +155,34 @@ build_probe="$tmp_dir/build-probe-bin"
 make_probe_path "$build_probe"
 make_fake_runtime "$build_probe/podman" 'podman version 5.0.0'
 
-env -u CONTAINER_RUNTIME PATH="$build_probe" RUNTIME_BUILD_ARGS_OUT="$build_args" \
-  LINUX_IMAGE="positronickit-linux-dev-6.4" LINUX_SWIFT_VERSION="6.4" \
+env -u CONTAINER_RUNTIME -u LINUX_IMAGE PATH="$build_probe" RUNTIME_BUILD_ARGS_OUT="$build_args" \
+  LINUX_SWIFT_VERSION="6.4.0" \
   "$bash_path" "$runner" --build-only
-if ! grep -Fx -- 'SWIFT_VERSION=6.4' "$build_args" >/dev/null; then
+if ! grep -Fx -- 'SWIFT_VERSION=6.4.0' "$build_args" >/dev/null; then
   printf 'FAIL: image build did not receive the selected Swift version\n' >&2
   exit 1
 fi
-if ! grep -Fx -- 'positronickit-linux-dev-6.4' "$build_args" >/dev/null; then
-  printf 'FAIL: image build did not receive the selected image tag\n' >&2
+if ! grep -Fx -- 'positronickit-linux-dev-6.4.0' "$build_args" >/dev/null; then
+  printf 'FAIL: image tag was not derived from the selected Swift version\n' >&2
   exit 1
 fi
-printf 'ok: passes the selected Swift version and image tag to the build\n'
+printf 'ok: derives the image tag and build argument from the selected Swift version\n'
 
-# With no version selected the runner leaves the Dockerfile default in place.
+# With no version selected the runner defaults to the current lane, matching the
+# Makefile's LINUX_SWIFT_VERSION default.
 : > "$build_args"
-env -u CONTAINER_RUNTIME -u LINUX_SWIFT_VERSION PATH="$build_probe" \
-  RUNTIME_BUILD_ARGS_OUT="$build_args" LINUX_IMAGE="positronickit-linux-dev" \
+env -u CONTAINER_RUNTIME -u LINUX_IMAGE -u LINUX_SWIFT_VERSION \
+  PATH="$build_probe" RUNTIME_BUILD_ARGS_OUT="$build_args" \
   "$bash_path" "$runner" --build-only
-if grep -Fx -- '--build-arg' "$build_args" >/dev/null; then
-  printf 'FAIL: image build received a Swift version argument with no version selected\n' >&2
+if ! grep -Fx -- 'SWIFT_VERSION=6.3.3' "$build_args" >/dev/null; then
+  printf 'FAIL: default Swift version was not applied\n' >&2
   exit 1
 fi
-printf 'ok: omits the Swift version build argument when the version is unset\n'
+if ! grep -Fx -- 'positronickit-linux-dev-6.3.3' "$build_args" >/dev/null; then
+  printf 'FAIL: default image tag was not derived from the default version\n' >&2
+  exit 1
+fi
+printf 'ok: defaults to the current lane when no Swift version is selected\n'
 
 # --- repository layout handling ---------------------------------------------
 

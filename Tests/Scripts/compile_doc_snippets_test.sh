@@ -87,15 +87,27 @@ else
     printf 'FAIL typecheck-ok-generates-source: missing generated wrapper\n'
     fail=$((fail + 1))
 fi
-# The wrapper runs on the main actor so guides can document @MainActor helpers,
-# and the prelude binds the `provider` placeholder the setup guide uses.
-if grep -q "@MainActor" "$tmp_dir/typecheck-ok/target/Generated/Example.1.swift" \
+# An ordinary block keeps the nonisolated wrapper, and the prelude binds the
+# `provider` placeholder the setup guide uses.
+if ! grep -q "@MainActor" "$tmp_dir/typecheck-ok/target/Generated/Example.1.swift" \
     && grep -q "static func provider() -> ConfiguredLLMProvider" \
         "$tmp_dir/typecheck-ok/target/Generated/Prelude.swift"; then
-    printf 'ok typecheck-ok-main-actor-wrapper-and-prelude\n'
+    printf 'ok typecheck-ok-nonisolated-wrapper-and-prelude\n'
     pass=$((pass + 1))
 else
-    printf 'FAIL typecheck-ok-main-actor-wrapper-and-prelude: expected @MainActor run() and provider stub\n'
+    printf 'FAIL typecheck-ok-nonisolated-wrapper-and-prelude: expected a nonisolated wrapper and provider stub\n'
+    fail=$((fail + 1))
+fi
+
+# The `main-actor` fence marker opts a block into a @MainActor wrapper, and the
+# marker must not make other blocks main-actor isolated.
+make_docs "$tmp_dir/main-actor/docs" "swift main-actor" 'let answer = 42'
+run_case "main-actor" 0 0 0 "1 block(s) type-checked, 0 parse-only, all OK."
+if grep -q "@MainActor" "$tmp_dir/main-actor/target/Generated/Example.1.swift"; then
+    printf 'ok main-actor-marker-wraps-block\n'
+    pass=$((pass + 1))
+else
+    printf 'FAIL main-actor-marker-wraps-block: expected @MainActor wrapper\n'
     fail=$((fail + 1))
 fi
 

@@ -29,30 +29,44 @@ runtime resolved.
 
 ## Supported Swift toolchains
 
-`Package.swift` sets the consumer floor at Swift 6.2 (`swift-tools-version: 6.2`). CI qualifies
-the toolchains the repository builds and tests on: Swift 6.3.3 (current) and Swift 6.4 (next).
-Both lanes run the same Linux contract. `make doctor` reports the resolved toolchain and the
-qualified ceiling.
+`Package.swift` sets the consumer floor at Swift 6.2 (`swift-tools-version: 6.2`). Linux CI
+qualifies Swift 6.3.3 (current) and Swift 6.4.0 (next) by running the same `make verify-linux-agent`
+contract in each lane. The environments differ: `linux-current` uses the runner image's 6.3.3
+toolchain, while `linux-next` installs `swift-6.4.0-RELEASE` from swift.org. The native macOS gate
+runs whatever Xcode `macos-latest` ships, so it is floor-only. `make doctor` reports the resolved
+toolchain and the Linux CI ceiling.
 
 ## Linux image and prerequisites
 
 The development image supplies Swift and Python 3 for the documentation catalog gates on Ubuntu
-24.04. The default base image is `swift:6.3.3-noble`; select the qualified `6.4` variant by
-overriding `LINUX_SWIFT_VERSION`:
+24.04. The default base image is `swift:6.3.3-noble`; `LINUX_SWIFT_VERSION` selects another
+toolchain:
 
 ```bash
-make linux-image LINUX_SWIFT_VERSION=6.4   # Build the Swift 6.4 variant image
-make agent-verify LINUX_SWIFT_VERSION=6.4  # Run the full gate on Swift 6.4
+make linux-image LINUX_SWIFT_VERSION=6.4.0   # Build the Swift 6.4.0 variant image
+make agent-verify LINUX_SWIFT_VERSION=6.4.0  # Run the full gate in the Swift 6.4.0 image
 ```
 
-The version selects the `swift:<version>-noble` base image, namespaces the image tag
-(`positronickit-linux-dev-<version>`), and namespaces the shared scratch directory
-(`.build/agent-scratch/swift-<version>`), so the two lanes never reuse each other's SwiftPM state.
-Build or refresh the default image with `make linux-image`. Compile in it with `make linux-build`.
+The version selects the `swift:<version>-noble` base image and, unless `LINUX_IMAGE` is set,
+derives the `positronickit-linux-dev-<version>` image tag. The Swift 6.4.0 base image depends on
+`swift:6.4.0-noble`, which is not yet published to Docker Hub, so the local 6.4.0 container variant
+does not build until that tag exists; use the `linux-next` CI lane to exercise Swift 6.4.0 in the
+meantime. Build or refresh the default image with `make linux-image`. Compile in it with
+`make linux-build`.
 
-The `api/` public-symbol baselines are keyed by release and platform, not by toolchain, so both CI
-lanes verify the same file. If a future toolchain changes symbol-graph output, add a per-toolchain
-baseline before widening the qualified range.
+`agent-test` and `linux-coverage` give each toolchain its own SwiftPM scratch directory
+(`.build/agent-scratch/swift-<version>` and `.build/linux-coverage-scratch/swift-<version>`), so
+focused runs and coverage never mix compilers. `agent-verify` and `linux-build` use the
+bind-mounted checkout `.build`; remove that directory before switching `LINUX_SWIFT_VERSION`, or
+stale `.swiftmodule` files will fail or force a rebuild.
+
+The `api/` public-symbol baselines are keyed by release, platform, and compiler major.minor.
+`make verify-public-api` prefers the reviewed toolchain-scoped file
+(`<release>-public-api-<platform>-swift-<X.Y>.json`) and falls back to the primary
+`<release>-public-api-<platform>.json` when no scoped file exists. Swift 6.4 emits
+extension-member relationships that 6.3 does not (and reports its graph output under `.build/out`),
+so the 5.1 Linux surface carries both a primary and a scoped 6.4 baseline.
+`make update-public-api-baseline` records an intentional change for the running toolchain.
 
 ## Focused checks
 

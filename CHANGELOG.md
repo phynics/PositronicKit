@@ -84,20 +84,27 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
-- **Swift 6.4 toolchain qualification (#193):** CI now runs a Swift 6.4 Linux lane beside the
-  Swift 6.3.3 lane, and both run the same contract. The Linux development image selects its base
-  toolchain with the `SWIFT_VERSION` build argument, and `LINUX_SWIFT_VERSION` on the `make`
-  command line selects the qualified lane (`6.3.3` current, `6.4` next), namespacing the image tag
-  and the shared SwiftPM scratch directory so the lanes never reuse each other's build state.
-  `make doctor` reports the supported range, and `api/` remains a single per-release,
-  per-platform baseline verified by both lanes. The consumer floor stays at
+- **Swift 6.4 toolchain qualification (#193):** CI now runs a Swift 6.4.0 Linux lane beside the
+  Swift 6.3.3 lane, both running the same `make verify-linux-agent` contract; the next lane
+  installs `swift-6.4.0-RELEASE` from swift.org and asserts the compiler version before the gate.
+  The Linux development image selects its base toolchain with the `SWIFT_VERSION` build argument,
+  and `LINUX_SWIFT_VERSION` on the `make` command line selects the qualified lane (`6.3.3`
+  current, `6.4.0` next) and derives the image tag. `agent-test` and `linux-coverage` namespace
+  their SwiftPM scratch per toolchain; `agent-verify` and `linux-build` share the bind-mounted
+  `.build` and need a clean before switching toolchains. `make doctor` reports the supported
+  range. `api/` now scopes the reviewed public-symbol baseline per compiler major.minor:
+  `make verify-public-api` prefers `api/<release>-public-api-<platform>-swift-<X.Y>.json` and falls
+  back to the primary file, and the 5.1 Linux surface ships a scoped 6.4 baseline because 6.4 emits
+  extension-member relationships and graph locations that 6.3 does not. The consumer floor stays at
   `swift-tools-version: 6.2`; 6.4-only syntax is out of scope until the toolchain-floor ADR
   decides it.
-- **Docs-snippet gate stays green after #201/#202:** the generated snippet wrapper now runs on the
-  main actor, so guides that document the `@MainActor` `TimelineController` type-check, the
-  prelude binds the `provider` placeholder the durable-provider setup guide uses, and the
-  `DocSnippetConsumer` target declares its `PKObservable` dependency. Without this the Linux and
-  macOS gates stopped at `make verify-doc-snippets` before reaching the toolchain checks.
+- **Docs-snippet gate stays green after #201/#202:** guides that document the `@MainActor`
+  `TimelineController` opt into a main-actor wrapper with the ` ```swift main-actor ` fence marker
+  (every other block keeps the nonisolated wrapper, so the gate stays as strict as code pasted
+  into a nonisolated `async` function or actor), the prelude binds the `provider` placeholder the
+  durable-provider setup guide uses, and the `DocSnippetConsumer` target declares its
+  `PKObservable` dependency. Without this the Linux and macOS gates stopped at
+  `make verify-doc-snippets` before reaching the toolchain checks.
 - **Docs snippets are type-checked, not just parsed (PKRR-025, #181):**
   `make verify-documentation` now extracts every ` ```swift ` block under `docs/`,
   binds placeholder identifiers from a generated prelude, and builds the

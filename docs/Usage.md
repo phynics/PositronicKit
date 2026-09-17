@@ -242,7 +242,7 @@ Pass an explicit contributor array when a `TurnContextSource` needs a different 
 deltas and completed messages, and it supersedes an in-flight send. Choose the initializer by
 Timeline attachment:
 
-```swift
+```swift main-actor
 import PKObservable
 import PositronicKit
 

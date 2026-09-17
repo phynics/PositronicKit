@@ -5,14 +5,16 @@
 	verify-public-api update-public-api-baseline verify-release \
 	agent-verify agent-test linux-image linux-build linux-coverage require-container-runtime
 
-# Swift toolchain baked into the Linux development image. It also namespaces the
-# shared scratch directory so the current (6.3.3) and next (6.4) lanes never
-# reuse each other's SwiftPM build state. Override per command, for example
-# `make agent-verify LINUX_SWIFT_VERSION=6.4`.
+# Swift toolchain baked into the Linux development image and used to namespace
+# per-lane scratch directories. Override per command, for example
+# `make agent-verify LINUX_SWIFT_VERSION=6.4.0`.
 LINUX_SWIFT_VERSION ?= 6.3.3
 LINUX_IMAGE ?= positronickit-linux-dev-$(LINUX_SWIFT_VERSION)
+# `agent-test` and `linux-coverage` isolate their SwiftPM scratch per toolchain.
+# `agent-verify` and `linux-build` use the bind-mounted checkout `.build`, so
+# remove that directory before switching LINUX_SWIFT_VERSION.
 LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/agent-scratch/swift-$(LINUX_SWIFT_VERSION)
-LINUX_COVERAGE_SCRATCH_DIR ?= $(CURDIR)/.build/linux-coverage-scratch
+LINUX_COVERAGE_SCRATCH_DIR ?= $(CURDIR)/.build/linux-coverage-scratch/swift-$(LINUX_SWIFT_VERSION)
 LINUX_TEST_TRAITS ?=
 AGENT_LOG_DIR ?= $(CURDIR)/.build/agent-logs
 AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock

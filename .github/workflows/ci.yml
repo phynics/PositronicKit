@@ -16,6 +16,11 @@ defaults:
   run:
     shell: bash
 
+# Single source for the next toolchain lane: cache key, install step, and assert
+# step all read it. The current 6.3.3 lane uses the runner image's toolchain.
+env:
+  SWIFT_NEXT_VERSION: "6.4.0"
+
 jobs:
   linux-current:
     name: "Linux — Swift 6.3.3 (Ubuntu 24.04)"
@@ -71,12 +76,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      # The runner image provides the current 6.3.3 toolchain, so only the next
-      # lane installs its pinned toolchain explicitly.
-      - name: Install Swift 6.4
-        uses: swift-actions/setup-swift@7591e4f04c00624cb043783da51a7fd6ee0a6bf6 # v2
-        with:
-          swift-version: "6.4"
+      # The runner image provides the current 6.3.3 toolchain. The next lane
+      # installs its own release from swift.org because no pinned runner image
+      # or setup-swift entry exists for it yet.
+      - name: Install Swift ${{ env.SWIFT_NEXT_VERSION }}
+        run: |
+          set -euo pipefail
+          archive="swift-${SWIFT_NEXT_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          curl -fsSL -o "/tmp/${archive}" \
+            "https://download.swift.org/swift-${SWIFT_NEXT_VERSION}-release/ubuntu2404/swift-${SWIFT_NEXT_VERSION}-RELEASE/${archive}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      # Fail before the gate if the selected compiler is not the next lane, so
+      # the job name cannot certify a different toolchain.
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
 
       - name: Cache SwiftPM downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -84,25 +100,12 @@ jobs:
           path: |
             .build/checkouts
             ~/.swiftpm
-          key: swiftpm-${{ runner.os }}-swift-6.4-${{ hashFiles('Package.resolved') }}
+          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_NEXT_VERSION }}-${{ hashFiles('Package.resolved') }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-swift-6.4-
+            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_NEXT_VERSION }}-
 
-      - name: Install SwiftLint
-        run: |
-          curl -fsSL -o /tmp/swiftlint_linux.zip \
-            https://github.com/realm/SwiftLint/releases/download/0.65.1/swiftlint_linux_amd64.zip
-          unzip -o /tmp/swiftlint_linux.zip -d /tmp/swiftlint-bin
-          echo "/tmp/swiftlint-bin" >> "$GITHUB_PATH"
-
-      - name: Concurrency guardrail scan
-        run: |
-          swiftlint lint --strict
-
-      - name: Require documentation impact declaration
-        if: github.event_name == 'pull_request'
-        run: python3 Scripts/check-pr-docs-impact.py
-
+      # SwiftLint and the docs-impact declaration are toolchain-independent and
+      # already run in linux-current; only the toolchain-sensitive contract runs here.
       - name: Verify agent/CI Linux contract
         run: |
           mkdir -p .build
