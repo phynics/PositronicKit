@@ -2,7 +2,7 @@
 	verify verify-concurrency-scan verify-diagnose-scan verify-runtime-architecture \
 	verify-linux-agent verify-linux-filter verify-linux-repeat verify-linux-coverage \
 	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-v4-vocabulary verify-doc-snippets detect-flakes \
-	verify-public-api update-public-api-baseline verify-release \
+	verify-public-api update-public-api-baseline verify-release sbom \
 	agent-verify agent-test agent-test-repeat linux-image linux-build linux-coverage require-container-runtime
 
 # Swift toolchain baked into the supported Linux development image.
@@ -65,6 +65,7 @@ help:
 	@echo "  make verify-public-api    Compare public Swift symbols with the reviewed Next / v5 baseline"
 	@echo "  make update-public-api-baseline  Record an intentionally reviewed public API change"
 	@echo "  make verify-release VERSION=x.y.z  Check local tag and release artifacts agree"
+	@echo "  make sbom                  Generate the CycloneDX release SBOM (VERSION=x.y.z names it)"
 	@echo "  make verify-dependency-direction  Check the v4 target dependency boundaries"
 	@echo "  make verify-v4-vocabulary  Check the v4 Timeline/Turn/Agent vocabulary"
 	@echo "  make verify-documentation  Check docs catalog, navigation, links, pins, products, and vocabulary"
@@ -234,6 +235,15 @@ update-public-api-baseline:
 verify-release:
 	@python3 Scripts/validate-release-readiness.py "$(VERSION)"
 
+# Generate the release Software Bill of Materials (SE-0509, SwiftPM 6.4). The
+# script runs the accurate build-based CycloneDX path, validates product
+# attribution, and writes .build/sboms/PositronicKit-<VERSION>.cyclonedx.json.
+# Set SBOM_FORMAT=spdx to emit SPDX instead; omit VERSION for an untagged build.
+SBOM_FORMAT ?= cyclonedx
+sbom:
+	@python3 Scripts/generate-sbom.py --format "$(SBOM_FORMAT)" \
+		$(if $(VERSION),--version "$(VERSION)",)
+
 verify-dependency-direction:
 	@bash Scripts/check-dependency-direction.sh
 
@@ -281,6 +291,7 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/check_documentation_currency_test.py
 	@python3 -B Tests/Scripts/generate_doc_navigation_test.py
 	@python3 -B Tests/Scripts/validate_release_readiness_test.py
+	@python3 -B Tests/Scripts/generate_sbom_test.py
 	@python3 -B Tests/Scripts/check_v4_vocabulary_test.py
 	@python3 -B Tests/Scripts/check_pr_docs_impact_test.py
 	@python3 -B Tests/Scripts/check_story_coverage_test.py

@@ -181,6 +181,12 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Release SBOMs (#199):** `make sbom VERSION=5.1.0` generates a CycloneDX Software Bill of
+  Materials for the package graph with the SwiftPM 6.4 SBOM support (SE-0509) and writes
+  `.build/sboms/PositronicKit-5.1.0.cyclonedx.json`. `make verify-release` now treats generation
+  as blocking and validates that every public library product appears with its dependency edges
+  (`PKOpenAIProvider` lists `MacPaw/OpenAI`; `PKContracts` does not). The `Release SBOM` workflow
+  attaches the document to each published GitHub release.
 - **Swift Testing 6.4 adoption (#196):** the suite now uses the testing features that ship with
   Swift 6.4. `PKTestSupport` gives the large public domain values compared in `#expect` (`Message`,
   `TurnEvent`, `TurnOutcome`) a compact `CustomTestReflectable` mirror, so a failure names the
