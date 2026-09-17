@@ -1,11 +1,15 @@
-# Concurrency guardrail enforcement (see docs/Concurrency/exception-manifest.md).
+# Source guardrail enforcement.
 #
-# Only the reviewed custom rules below run — no default rules. Each rule flags a
-# concurrency anti-pattern the reference-box elimination work banned. Rules are
-# GLOBAL: any occurrence that has not been individually reviewed and annotated
-# with an inline `// swiftlint:disable:this` comment fails the gate
-# (`swiftlint lint --strict`). The annotation on each site's own line carries the
-# reviewer's justification; the manifest is the source of truth.
+# Only the reviewed custom rules below run — no default rules. Rules are GLOBAL:
+# any occurrence fails the gate (`swiftlint lint --strict`).
+#
+# The concurrency rules flag anti-patterns the reference-box elimination work
+# banned. Any occurrence needs an inline `// swiftlint:disable:this` annotation;
+# the annotation on each site's own line carries the reviewer's justification,
+# and docs/Concurrency/exception-manifest.md is the source of truth.
+#
+# `syntax_optional_existential_parentheses` enforces the SE-0521 `any P?`
+# spelling adopted in #200. Fix the spelling rather than annotating the site.
 
 only_rules:
   - concurrency_unchecked_sendable
@@ -13,6 +17,7 @@ only_rules:
   - concurrency_stored_continuation
   - concurrency_stored_task
   - concurrency_reference_box_naming
+  - syntax_optional_existential_parentheses
 
 excluded:
   - .build
@@ -52,4 +57,13 @@ custom_rules:
   concurrency_reference_box_naming:
     regex: '\b(class|actor|struct|enum)[[:space:]]+[A-Za-z_]*(Box|Cell|Holder)'
     message: 'Generic reference-box type name. Choose explicit ownership instead (see exception manifest).'
+    severity: error
+
+  # Optional existential sugar (SE-0521, #200): `(any P)?` and `(some P)?` are
+  # the redundant spellings. This only matches a bare optional existential (with
+  # an optional generic argument list), so existential metatypes
+  # (`(any P).self`), tuples, and protocol compositions are not flagged.
+  syntax_optional_existential_parentheses:
+    regex: '\((any|some)[[:space:]]+[A-Za-z_][A-Za-z0-9_.]*(<[^()]*>)?\)\?'
+    message: 'Redundant parentheses around an optional existential. Write `any P?` (SE-0521).'
     severity: error

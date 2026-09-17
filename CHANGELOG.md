@@ -134,6 +134,10 @@ for tagged releases beginning with `1.0.0`.
   `@diagnose` (SE-0522) is admitted only as
   `@diagnose(<Group>, as: warning, reason: "<why>")`, enforced by `make verify-diagnose-scan`; the
   `~Sendable` (SE-0518) audit found no public type that must be non-`Sendable`.
+- **Optional existential spelling is lint-enforced (#200):** the `TurnFinalizer` sink properties and
+  initializer parameters use `any P?` instead of `(any P)?`, and the
+  `syntax_optional_existential_parentheses` SwiftLint rule fails new `(any P)?` / `(some P)?`
+  spellings so the SE-0521 convention cannot regress.
 - **Swift 6.4 toolchain qualification (#193):** CI now runs the sole supported Swift 6.4.0 Linux
   lane with the `make verify-linux-agent` contract; it installs `swift-6.4.0-RELEASE` from swift.org
   and asserts the compiler version before the gate.
