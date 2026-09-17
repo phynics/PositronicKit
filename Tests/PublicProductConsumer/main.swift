@@ -56,7 +56,11 @@ _ = PKOpenAIProvider.OpenAIClient.self
 _ = PKOpenRouterProvider.OpenRouterClient.self
 _ = PKOllamaProvider.OllamaClient.self
 _ = PKAnthropicProvider.AnthropicClient.self
-_ = PKFoundationModelsProvider.FoundationModelsClient.self
+// The Foundation Models provider is OS 26 on Apple platforms; gate the reference so the
+// ordinary-import consumer still compiles below that version (Linux stays available).
+if #available(anyAppleOS 26.0, *) {
+    _ = PKFoundationModelsProvider.FoundationModelsClient.self
+}
 _ = String(describing: TestRuntime.self)
 
 let kit = PKRuntime()

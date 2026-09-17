@@ -11,6 +11,7 @@ import Testing
 /// `FoundationModelsSessionProtocol` — no live Apple Intelligence, no `FoundationModels` import
 /// needed here at all (PKPOST-003 acceptance criterion). Covers the streaming + termination
 /// conformance the ticket calls out: text, multi-tool, guardrail refusal, context-exceeded.
+@available(anyAppleOS 26.0, *)
 private actor FakeFoundationModelsSession: FoundationModelsSessionProtocol {
     let events: [FoundationModelsSessionEvent]
     let failure: Error?
@@ -38,6 +39,7 @@ private actor FakeFoundationModelsSession: FoundationModelsSessionProtocol {
 struct FoundationModelsClientTests {
     @Test("Text-only turn streams content deltas then a stop finish reason")
     func textOnlyTurnStreams() async throws {
+        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(events: [
             .textDelta("hello "),
             .textDelta("world"),
@@ -60,6 +62,7 @@ struct FoundationModelsClientTests {
 
     @Test("Explicit LLMToolChoice.none removes per-turn tools before session creation")
     func explicitNoneDisablesPerTurnTools() async throws {
+        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(events: [.finished(.stop)])
         let receivedTools = Mutex<[LLMToolDefinition]?>(nil)
         let client = FoundationModelsClient(makeSession: { turnTools, _ in
@@ -82,6 +85,7 @@ struct FoundationModelsClientTests {
 
     @Test("An omitted tool choice retains per-turn tools")
     func omittedChoiceRetainsPerTurnTools() async throws {
+        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(events: [.finished(.stop)])
         let receivedTools = Mutex<[LLMToolDefinition]?>(nil)
         let client = FoundationModelsClient(makeSession: { turnTools, _ in
@@ -104,6 +108,7 @@ struct FoundationModelsClientTests {
 
     @Test("Multi-tool turn surfaces both tool calls with distinct ordinals")
     func multiToolTurnSurfacesBothCalls() async throws {
+        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(events: [
             .toolCall(id: "call_1", name: "lookup_weather", argumentsJSON: "{\"city\":\"Berlin\"}"),
             .toolOutput(id: "call_1", name: "lookup_weather", output: "Sunny"),
@@ -131,6 +136,7 @@ struct FoundationModelsClientTests {
 
     @Test("Guardrail refusal surfaces as a thrown error, not a silent empty stream")
     func guardrailRefusalThrows() async throws {
+        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(
             events: [],
             failure: FoundationModelsGenerationErrorFixture.guardrailViolation
@@ -152,6 +158,7 @@ struct FoundationModelsClientTests {
 
     @Test("Context-exceeded surfaces as a thrown error, not a silent empty stream")
     func contextExceededThrows() async throws {
+        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(
             events: [.textDelta("partial")],
             failure: FoundationModelsGenerationErrorFixture.contextExceeded
@@ -177,6 +184,7 @@ struct FoundationModelsClientTests {
 
     @Test("sendMessage accumulates content deltas into a single string")
     func sendMessageAccumulatesContent() async throws {
+        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(events: [
             .textDelta("hello "),
             .textDelta("world"),
@@ -190,6 +198,7 @@ struct FoundationModelsClientTests {
 
     @Test("fetchAvailableModels returns the single configured model name")
     func fetchAvailableModelsReturnsConfiguredName() async throws {
+        guard #available(anyAppleOS 26.0, *) else { return }
         let client = FoundationModelsClient(modelName: "apple-on-device-test", makeSession: { _, _ in
             FakeFoundationModelsSession(events: [.finished(.stop)])
         })

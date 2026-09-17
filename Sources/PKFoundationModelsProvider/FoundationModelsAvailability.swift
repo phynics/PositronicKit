@@ -12,6 +12,11 @@ import PKUtilities
 /// feature disabled by the user, or the model assets not yet downloaded). Each is mapped to
 /// its own case so callers/UI can give reason-specific guidance rather than a single generic
 /// "unavailable" message — and so this never surfaces as a crash or a silently empty stream.
+///
+/// The on-device Foundation Models framework is OS 26 on Apple platforms, so this type is
+/// annotated `anyAppleOS 26`: callers below that version gate their use with `#available`
+/// (Linux and other non-Apple hosts remain available through the `*` clause).
+@available(anyAppleOS 26.0, *)
 public enum FoundationModelsAvailabilityError: PKError, Equatable {
     /// The current device does not support Apple Intelligence (e.g. no Apple Silicon /
     /// insufficient RAM tier).
@@ -70,7 +75,6 @@ public enum FoundationModelsAvailabilityError: PKError, Equatable {
 }
 
 #if canImport(FoundationModels)
-    @available(anyAppleOS 26.0, *)
     extension FoundationModelsAvailabilityError {
         /// Maps `SystemLanguageModel.Availability` onto the typed error vocabulary above.
         /// Returns `nil` when the model is available (no error to surface).

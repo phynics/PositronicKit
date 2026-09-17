@@ -106,6 +106,10 @@ import PKUtilities
     /// termination-outcome mapping, applied to the framework's guardrail/context-window/decoding
     /// failure vocabulary rather than a wire `finish_reason` string, since these arrive as thrown
     /// errors from the stream, not as a terminal chunk).
+    ///
+    /// Annotated `anyAppleOS 26` to match the framework it maps; Linux and other non-Apple
+    /// hosts do not compile this `canImport`-gated type at all.
+    @available(anyAppleOS 26.0, *)
     public struct FoundationModelsGenerationError: PKError, Equatable {
         /// The category of on-device generation failure.
         public enum Kind: Sendable, Equatable {
@@ -127,7 +131,6 @@ import PKUtilities
         /// diagnostics.
         public let debugDescription: String
 
-        @available(anyAppleOS 26.0, *)
         init(_ error: LanguageModelSession.GenerationError) {
             switch error {
             case let .exceededContextWindowSize(context):

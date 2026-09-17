@@ -254,6 +254,7 @@ struct ProviderCapabilityMatrixTests {
         part: MessageContentPart,
         expected: MultimodalContentError
     ) async throws {
+        guard #available(anyAppleOS 26.0, *) else { return }
         let factoryCalls = Mutex(0)
         let client = FoundationModelsClient(makeSession: { _, _ in
             factoryCalls.withLock { $0 += 1 }
@@ -372,6 +373,7 @@ struct ProviderCapabilityMatrixTests {
     }
 }
 
+@available(anyAppleOS 26.0, *)
 private struct MatrixFoundationModelsSession: FoundationModelsSessionProtocol {
     nonisolated func streamTurn(prompt _: String) -> AsyncThrowingStream<FoundationModelsSessionEvent, Error> {
         AsyncThrowingStream { continuation in continuation.finish() }

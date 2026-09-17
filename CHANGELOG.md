@@ -14,6 +14,16 @@ for tagged releases beginning with `1.0.0`.
   toolchain / Xcode 26 cannot take this release. Deployment targets are unchanged (macOS 15,
   iOS 18).
 
+- **Foundation Models provider is OS 26 on Apple platforms (#206):** every public type in
+  `PKFoundationModelsProvider` — `FoundationModelsClient`, `FoundationModelsAvailabilityError`,
+  `FoundationModelsPlatformError`, `FoundationModelsGenerationError`,
+  `FoundationModelsSessionProtocol`, and `FoundationModelsSessionEvent` — is now annotated
+  `@available(anyAppleOS 26, *)`, and `FoundationModelsClient.init` no longer carries a runtime
+  `#available` branch. Users on Apple OS below 26 must now gate calls with `#available` instead of
+  discovering the gap at runtime; Linux and other non-Apple hosts stay available through the `*`
+  clause and keep the `canImport(FoundationModels)` stub path. This fixes the module's iOS build,
+  which previously declared OS 26 Foundation Models API at the package's iOS 18 deployment floor.
+
 - **Runtime-owned Turn liveness and terminal finalization (ADR 0010, #207):** terminal commits run
   in a runtime-owned `TurnFinalizer` instead of the cancelled Turn task, so cancelling a Turn no
   longer risks an ambiguous durable outcome and a host store that hangs mid-commit cannot stall

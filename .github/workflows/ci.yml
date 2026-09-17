@@ -127,6 +127,49 @@ jobs:
           path: .build/macos-verify.log
           if-no-files-found: ignore
 
+  ios-verify:
+    name: "iOS Simulator — PKFoundationModelsProvider (xcode-27)"
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # The provider's public surface is `@available(anyAppleOS 26, *)`. The macOS
+      # lane builds it for macOS only, so a macOS-only availability spelling held
+      # the module to the package's iOS 18 floor and broke the iOS build (#206).
+      # Building for an iOS Simulator destination keeps that regression caught.
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
+
+      - name: Cache SwiftPM downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build/ios-simulator/SourcePackages
+            ~/.swiftpm
+          key: swiftpm-ios-simulator-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            swiftpm-ios-simulator-${{ runner.os }}-
+
+      - name: Build PKFoundationModelsProvider for the iOS Simulator
+        run: |
+          mkdir -p .build
+          xcodebuild build \
+            -scheme PKFoundationModelsProvider \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath .build/ios-simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee .build/ios-verify.log
+
+      - name: Publish iOS Simulator build log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-verify-build-log
+          path: .build/ios-verify.log
+          if-no-files-found: ignore
+
   linux-coverage:
     name: "Linux — coverage reports (Ubuntu 24.04)"
     runs-on: ubuntu-24.04
