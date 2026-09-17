@@ -16,59 +16,13 @@ defaults:
   run:
     shell: bash
 
-# Single source for the next toolchain lane: cache key, install step, and assert
-# step all read it. The current 6.3.3 lane uses the runner image's toolchain.
+# Single source for the supported toolchain lane: cache key, install step, and
+# assert step all read it.
 env:
   SWIFT_NEXT_VERSION: "6.4.0"
 
 jobs:
-  linux-current:
-    name: "Linux — Swift 6.3.3 (Ubuntu 24.04)"
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Cache SwiftPM downloads
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            .build/checkouts
-            ~/.swiftpm
-          key: swiftpm-${{ runner.os }}-swift-6.3.3-${{ hashFiles('Package.resolved') }}
-          restore-keys: |
-            swiftpm-${{ runner.os }}-swift-6.3.3-
-
-      - name: Install SwiftLint
-        run: |
-          curl -fsSL -o /tmp/swiftlint_linux.zip \
-            https://github.com/realm/SwiftLint/releases/download/0.65.1/swiftlint_linux_amd64.zip
-          unzip -o /tmp/swiftlint_linux.zip -d /tmp/swiftlint-bin
-          echo "/tmp/swiftlint-bin" >> "$GITHUB_PATH"
-
-      - name: Concurrency guardrail scan
-        run: |
-          swiftlint lint --strict
-
-      - name: Require documentation impact declaration
-        if: github.event_name == 'pull_request'
-        run: python3 Scripts/check-pr-docs-impact.py
-
-      - name: Verify agent/CI Linux contract
-        run: |
-          mkdir -p .build
-          make verify-linux-agent 2>&1 | tee .build/linux-current.log
-
-      - name: Publish current Linux test log
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: linux-current-test-log
-          path: .build/linux-current.log
-          if-no-files-found: ignore
-
-  linux-next:
+  linux-verify:
     name: "Linux — Swift 6.4 (Ubuntu 24.04)"
     runs-on: ubuntu-24.04
     steps:
@@ -76,9 +30,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      # The runner image provides the current 6.3.3 toolchain. The next lane
-      # installs its own release from swift.org because no pinned runner image
-      # or setup-swift entry exists for it yet.
+      # Install the supported release directly because no pinned runner image
+      # or setup-swift entry exists for it.
       - name: Install Swift ${{ env.SWIFT_NEXT_VERSION }}
         run: |
           set -euo pipefail
@@ -104,19 +57,31 @@ jobs:
           restore-keys: |
             swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_NEXT_VERSION }}-
 
-      # SwiftLint and the docs-impact declaration are toolchain-independent and
-      # already run in linux-current; only the toolchain-sensitive contract runs here.
+      - name: Install SwiftLint
+        run: |
+          curl -fsSL -o /tmp/swiftlint_linux.zip \
+            https://github.com/realm/SwiftLint/releases/download/0.65.1/swiftlint_linux_amd64.zip
+          unzip -o /tmp/swiftlint_linux.zip -d /tmp/swiftlint-bin
+          echo "/tmp/swiftlint-bin" >> "$GITHUB_PATH"
+
+      - name: Concurrency guardrail scan
+        run: swiftlint lint --strict
+
+      - name: Require documentation impact declaration
+        if: github.event_name == 'pull_request'
+        run: python3 Scripts/check-pr-docs-impact.py
+
       - name: Verify agent/CI Linux contract
         run: |
           mkdir -p .build
-          make verify-linux-agent 2>&1 | tee .build/linux-next.log
+          make verify-linux-agent 2>&1 | tee .build/linux-verify.log
 
-      - name: Publish next Linux test log
+      - name: Publish Linux test log
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: linux-next-test-log
-          path: .build/linux-next.log
+          name: linux-verify-test-log
+          path: .build/linux-verify.log
           if-no-files-found: ignore
 
   macos-verify:
@@ -167,9 +132,9 @@ jobs:
           path: |
             .build/checkouts
             ~/.swiftpm
-          key: swiftpm-${{ runner.os }}-swift-6.3.3-${{ hashFiles('Package.resolved') }}
+          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_NEXT_VERSION }}-${{ hashFiles('Package.resolved') }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-swift-6.3.3-
+            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_NEXT_VERSION }}-
 
       - name: Run Linux coverage target
         run: |

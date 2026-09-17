@@ -28,15 +28,28 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Swift 6.4.0
+        run: |
+          set -euo pipefail
+          archive="swift-6.4.0-RELEASE-ubuntu24.04.tar.gz"
+          curl -fsSL -o "/tmp/${archive}" \
+            "https://download.swift.org/swift-6.4.0-release/ubuntu2404/swift-6.4.0-RELEASE/${archive}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
+
       - name: Cache SwiftPM downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .build/checkouts
             ~/.swiftpm
-          key: swiftpm-${{ runner.os }}-swift-6.3.3-${{ hashFiles('Package.resolved') }}
+          key: swiftpm-${{ runner.os }}-swift-6.4.0-${{ hashFiles('Package.resolved') }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-swift-6.3.3-
+            swiftpm-${{ runner.os }}-swift-6.4.0-
 
       - name: Run the full suite N times
         env:

@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.4
 import PackageDescription
 
 // Enforce the concurrency gate required by the reference-box elimination handoff.

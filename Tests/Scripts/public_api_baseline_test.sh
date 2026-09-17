@@ -143,18 +143,6 @@ if [[ "$success_output" != *"$baseline_release-public-api-$host_platform.json"* 
 fi
 printf 'ok: uses reported SwiftPM symbol-graph output directory\n'
 
-# A reviewed toolchain-scoped baseline takes precedence over the primary.
-cp "$fixture/api/$baseline_release-public-api-$host_platform.json" \
-  "$fixture/api/$baseline_release-public-api-$host_platform-swift-6.4.json"
-PUBLIC_API_SWIFT_VERSION=6.4 run_baseline > "$tmp_dir/scoped.log"
-scoped_output="$(<"$tmp_dir/scoped.log")"
-if [[ "$scoped_output" != *"-swift-6.4.json"* ]]; then
-  printf 'FAIL: expected the toolchain-scoped baseline to take precedence\n' >&2
-  printf '%s\n' "$scoped_output" >&2
-  exit 1
-fi
-printf 'ok: prefers the reviewed toolchain-scoped baseline\n'
-
 DUMP_STATUS=1 run_baseline > "$tmp_dir/nonzero.log" 2> "$tmp_dir/nonzero-error.log"
 nonzero_output="$(<"$tmp_dir/nonzero.log")"
 nonzero_error="$(<"$tmp_dir/nonzero-error.log")"

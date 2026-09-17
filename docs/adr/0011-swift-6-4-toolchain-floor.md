@@ -4,8 +4,8 @@ status: accepted
 
 # Swift 6.4 toolchain floor
 
-Epic #192 adopts Swift 6.4. The package declares `swift-tools-version: 6.2`, while CI and the
-Linux image pin 6.3.3. This ADR decides when PositronicKit may use 6.4 language and stdlib
+Epic #192 adopts Swift 6.4. The package declares `swift-tools-version: 6.4`, and CI and the
+Linux image pin 6.4.0. This ADR decides when PositronicKit may use 6.4 language and stdlib
 features, and what happens to consumers still on a 6.3 toolchain. Issues #198 and #200 are blocked
 on it, and ADR 0010 already assumes its answers.
 
@@ -61,12 +61,11 @@ an optional capability that reports unsupported when the platform is older, whic
 `PKFoundationModelsProvider` already does. It may not carry a second implementation of a behavior
 the runtime otherwise provides.
 
-**CI keeps one toolchain lane per platform.** #193 runs 6.3.3 and 6.4 side by side while it
-qualifies. The 6.3.3 lane and the 6.3.3 Linux image variant are deleted in the pull request that
-bumps the tools version: the floor is the only supported toolchain, and a lane below it verifies a
-configuration the package no longer declares. A newer toolchain gets a lane when a ticket adopts
-it, not speculatively. `Scripts/doctor.sh` derives the required version from `Package.swift`, so
-it follows the bump without an edit.
+**CI keeps one toolchain lane per platform.** #193 qualified 6.4 and the former 6.3.3 lane and
+image variant are deleted here: the floor is the only supported toolchain, and a lane below it
+would verify a configuration the package no longer declares. A newer toolchain gets a lane when a
+ticket adopts it, not speculatively. `Scripts/doctor.sh` derives the required version from
+`Package.swift`, so it follows future floor changes without an edit.
 
 ## Consequences
 
@@ -80,8 +79,8 @@ An app pinned to a 6.3 toolchain cannot take the next release. That is the cost 
 and it is recorded in the README requirements and under `CHANGELOG.md` > `Unreleased` when the
 bump lands.
 
-With one lane, a 6.3 regression goes unnoticed. That is intended: 6.3 is unsupported after the
-bump, so there is nothing to regress against.
+With one lane, regressions in unsupported older toolchains go unnoticed. That is intended: 6.3 is
+unsupported after the bump, so there is nothing to regress against.
 
 The `Package.swift` concurrency-gate comment stands as written. `NonisolatedNonsendingByDefault`
 and `InferIsolatedConformances` stay enabled as upcoming features under the 6.4 tools version;

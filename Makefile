@@ -5,14 +5,9 @@
 	verify-public-api update-public-api-baseline verify-release \
 	agent-verify agent-test linux-image linux-build linux-coverage require-container-runtime
 
-# Swift toolchain baked into the Linux development image and used to namespace
-# per-lane scratch directories. Override per command, for example
-# `make agent-verify LINUX_SWIFT_VERSION=6.4.0`.
-LINUX_SWIFT_VERSION ?= 6.3.3
+# Swift toolchain baked into the supported Linux development image.
+LINUX_SWIFT_VERSION ?= 6.4.0
 LINUX_IMAGE ?= positronickit-linux-dev-$(LINUX_SWIFT_VERSION)
-# `agent-test` and `linux-coverage` isolate their SwiftPM scratch per toolchain.
-# `agent-verify` and `linux-build` use the bind-mounted checkout `.build`, so
-# remove that directory before switching LINUX_SWIFT_VERSION.
 LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/agent-scratch/swift-$(LINUX_SWIFT_VERSION)
 LINUX_COVERAGE_SCRATCH_DIR ?= $(CURDIR)/.build/linux-coverage-scratch/swift-$(LINUX_SWIFT_VERSION)
 LINUX_TEST_TRAITS ?=
@@ -23,10 +18,9 @@ AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock
 CONTAINER_RUNTIME ?= $(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null)
 FILTER ?=
 TRAITS ?=
-# Inner-loop selection for `make test-fast`. Swift 6.3.3 does not support
-# Swift Testing's ST-0025 `tag:` command-line selector, so this regex is
-# generated from the source tags and stable test names instead. It includes
-# the untagged module test targets and excludes runtime integration/slow suites.
+# Inner-loop selection for `make test-fast`. This regex is generated from the
+# source tags and stable test names. It includes the untagged module test
+# targets and excludes runtime integration/slow suites.
 FAST_FILTER ?= $(shell python3 Scripts/generate-test-fast-filter.py)
 # Keep the repository's build and test gates strict without embedding unsafe
 # compiler flags in Package.swift, which would affect downstream consumers.
