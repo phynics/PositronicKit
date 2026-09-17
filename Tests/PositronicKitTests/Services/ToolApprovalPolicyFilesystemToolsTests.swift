@@ -58,7 +58,7 @@ final class ToolApprovalPolicyFilesystemToolsTests {
     /// `DenyAllToolApprovalPolicy`), to pin the default-deny posture explicitly.
     private func setupRouter(
         with tool: any PKContracts.PKTool,
-        approvalPolicy: (any ToolApprovalPolicy)? = nil
+        approvalPolicy: any ToolApprovalPolicy? = nil
     ) async throws -> (ToolRouter, UUID) {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
         let toolRouter = if let approvalPolicy {

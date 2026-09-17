@@ -14728,7 +14728,7 @@
         "LLMClientSet",
         "fast"
       ],
-      "declaration": "var fast: (any LLMClientProtocol)?"
+      "declaration": "var fast: any LLMClientProtocol?"
     },
     {
       "precise": "s:13PositronicKit12LLMClientSetV5emptyACvpZ",
@@ -14748,7 +14748,7 @@
         "LLMClientSet",
         "client(for:)"
       ],
-      "declaration": "func client(for tier: ModelTier) -> (any LLMClientProtocol)?"
+      "declaration": "func client(for tier: ModelTier) -> any LLMClientProtocol?"
     },
     {
       "precise": "s:13PositronicKit12LLMClientSetV7primary11PKContracts0C8Protocol_pSgvp",
@@ -14758,7 +14758,7 @@
         "LLMClientSet",
         "primary"
       ],
-      "declaration": "var primary: (any LLMClientProtocol)?"
+      "declaration": "var primary: any LLMClientProtocol?"
     },
     {
       "precise": "s:13PositronicKit12LLMClientSetV7primary7utility4fastAC11PKContracts0C8Protocol_pSg_A2Itcfc",
@@ -14768,7 +14768,7 @@
         "LLMClientSet",
         "init(primary:utility:fast:)"
       ],
-      "declaration": "init(primary: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)? = nil, fast: (any LLMClientProtocol)? = nil)"
+      "declaration": "init(primary: any LLMClientProtocol?, utility: any LLMClientProtocol? = nil, fast: any LLMClientProtocol? = nil)"
     },
     {
       "precise": "s:13PositronicKit12LLMClientSetV7utility11PKContracts0C8Protocol_pSgvp",
@@ -14778,7 +14778,7 @@
         "LLMClientSet",
         "utility"
       ],
-      "declaration": "var utility: (any LLMClientProtocol)?"
+      "declaration": "var utility: any LLMClientProtocol?"
     },
     {
       "precise": "s:13PositronicKit12SidecarErrorO",
@@ -18345,7 +18345,7 @@
         "WorkspaceResolver",
         "workspace(id:)"
       ],
-      "declaration": "func workspace(id: UUID) async throws -> (any WorkspaceProvider)?"
+      "declaration": "func workspace(id: UUID) async throws -> any WorkspaceProvider?"
     },
     {
       "precise": "s:13PositronicKit17WorkspaceSeedNoteV",
@@ -19897,7 +19897,7 @@
         "RuntimeCustomization",
         "turnOutcomeSink"
       ],
-      "declaration": "let turnOutcomeSink: (any TurnOutcomeSink)?"
+      "declaration": "let turnOutcomeSink: any TurnOutcomeSink?"
     },
     {
       "precise": "s:13PositronicKit20RuntimeCustomizationV17agentActivitySinkAA05AgentfG0_pSgvp",
@@ -19907,7 +19907,7 @@
         "RuntimeCustomization",
         "agentActivitySink"
       ],
-      "declaration": "let agentActivitySink: (any AgentActivitySink)?"
+      "declaration": "let agentActivitySink: any AgentActivitySink?"
     },
     {
       "precise": "s:13PositronicKit20RuntimeCustomizationV17turnContextSourceAA04TurnfG0_pSgvp",
@@ -19917,7 +19917,7 @@
         "RuntimeCustomization",
         "turnContextSource"
       ],
-      "declaration": "let turnContextSource: (any TurnContextSource)?"
+      "declaration": "let turnContextSource: any TurnContextSource?"
     },
     {
       "precise": "s:13PositronicKit20RuntimeCustomizationV18agentContextSource04turnfG00E12ActivitySink0h7OutcomeJ0AcA05AgentfG0_pSg_AA04TurnfG0_pSgAA0liJ0_pSgAA0mkJ0_pSgtcfc",
@@ -19927,7 +19927,7 @@
         "RuntimeCustomization",
         "init(agentContextSource:turnContextSource:agentActivitySink:turnOutcomeSink:)"
       ],
-      "declaration": "init(agentContextSource: (any AgentContextSource)? = nil, turnContextSource: (any TurnContextSource)? = nil, agentActivitySink: (any AgentActivitySink)? = nil, turnOutcomeSink: (any TurnOutcomeSink)? = nil)"
+      "declaration": "init(agentContextSource: any AgentContextSource? = nil, turnContextSource: any TurnContextSource? = nil, agentActivitySink: any AgentActivitySink? = nil, turnOutcomeSink: any TurnOutcomeSink? = nil)"
     },
     {
       "precise": "s:13PositronicKit20RuntimeCustomizationV18agentContextSourceAA05AgentfG0_pSgvp",
@@ -19937,7 +19937,7 @@
         "RuntimeCustomization",
         "agentContextSource"
       ],
-      "declaration": "let agentContextSource: (any AgentContextSource)?"
+      "declaration": "let agentContextSource: any AgentContextSource?"
     },
     {
       "precise": "s:13PositronicKit20RuntimeCustomizationV7defaultACvpZ",
@@ -20803,7 +20803,7 @@
         "DefaultWorkspaceResolver",
         "workspace(id:)"
       ],
-      "declaration": "func workspace(id: UUID) async throws -> (any WorkspaceProvider)?"
+      "declaration": "func workspace(id: UUID) async throws -> any WorkspaceProvider?"
     },
     {
       "precise": "s:13PositronicKit24ModelInferenceCapabilityV",
@@ -20989,7 +20989,7 @@
         "WorkspaceResolverFactory",
         "makeDefault(workspaceRoot:workspaceStore:bindingRepository:workspaceCreator:)"
       ],
-      "declaration": "static func makeDefault(workspaceRoot: URL, workspaceStore: any WorkspaceStore, bindingRepository: (any WorkspaceBindingRepository)? = nil, workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator()) -> any WorkspaceResolver"
+      "declaration": "static func makeDefault(workspaceRoot: URL, workspaceStore: any WorkspaceStore, bindingRepository: any WorkspaceBindingRepository? = nil, workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator()) -> any WorkspaceResolver"
     },
     {
       "precise": "s:13PositronicKit25DefaultAgentContextSourceC",
@@ -23656,7 +23656,7 @@
         "PersistenceConfiguration",
         "fullyPersistent(runtimeRepository:workspacePersistence:toolPersistence:agentStore:requestOriginStore:workspaceBindingRepository:)"
       ],
-      "declaration": "static func fullyPersistent(runtimeRepository: any TimelineRuntimeRepository, workspacePersistence: any WorkspaceStore, toolPersistence: any ToolPersistenceProtocol, agentStore: any AgentStoreProtocol, requestOriginStore: any RequestOriginStoreProtocol, workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil) -> PersistenceConfiguration"
+      "declaration": "static func fullyPersistent(runtimeRepository: any TimelineRuntimeRepository, workspacePersistence: any WorkspaceStore, toolPersistence: any ToolPersistenceProtocol, agentStore: any AgentStoreProtocol, requestOriginStore: any RequestOriginStoreProtocol, workspaceBindingRepository: any WorkspaceBindingRepository? = nil) -> PersistenceConfiguration"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV17runtimeRepository09workspaceD004toolD010agentStore013requestOriginK00h7BindingG0AeA015TimelineRuntimeG0_p_AA09WorkspaceK0_pSgAA04ToolD8Protocol_pSgAA05AgentkS0_pSgAA07RequestmkS0_pSgAA0qnG0_pSgtcfc",
@@ -23667,7 +23667,7 @@
         "PersistenceConfiguration",
         "init(runtimeRepository:workspacePersistence:toolPersistence:agentStore:requestOriginStore:workspaceBindingRepository:)"
       ],
-      "declaration": "init(runtimeRepository: any TimelineRuntimeRepository, workspacePersistence: (any WorkspaceStore)? = nil, toolPersistence: (any ToolPersistenceProtocol)? = nil, agentStore: (any AgentStoreProtocol)? = nil, requestOriginStore: (any RequestOriginStoreProtocol)? = nil, workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil)"
+      "declaration": "init(runtimeRepository: any TimelineRuntimeRepository, workspacePersistence: any WorkspaceStore? = nil, toolPersistence: any ToolPersistenceProtocol? = nil, agentStore: any AgentStoreProtocol? = nil, requestOriginStore: any RequestOriginStoreProtocol? = nil, workspaceBindingRepository: any WorkspaceBindingRepository? = nil)"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV17runtimeRepositoryAA015TimelineRuntimeG0_pvp",

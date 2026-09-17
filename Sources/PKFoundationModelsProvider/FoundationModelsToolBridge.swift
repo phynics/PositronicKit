@@ -15,7 +15,7 @@ import PKUtilities
     /// `GeneratedContent.value(_:forProperty:)`, rather than requiring a `@Generable` type per
     /// tool (PKRuntime tools are schema-described at runtime via `parametersSchema`, not
     /// known Swift types at compile time).
-    @available(macOS 26.0, *)
+    @available(anyAppleOS 26.0, *)
     struct PKBridgedFMTool: FoundationModels.Tool {
         let wrapped: AnyTool
 
@@ -53,7 +53,7 @@ import PKUtilities
     /// Isolated in its own type so the conversion logic (a finite, testable JSON-Schema subset —
     /// object-of-primitives, matching what PKRuntime tools currently declare) is easy to
     /// extend without touching the `PKTool` conformance itself.
-    @available(macOS 26.0, *)
+    @available(anyAppleOS 26.0, *)
     enum FoundationModelsSchemaBridge {
         static func generationSchema(for tool: AnyTool) -> GenerationSchema {
             // parametersSchema is the typed Schema; introspect its wire form for properties.

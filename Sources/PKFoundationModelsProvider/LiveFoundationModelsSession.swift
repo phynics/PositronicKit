@@ -17,7 +17,7 @@ import PKUtilities
     /// not as an intermediate "please execute this" signal like the HTTP-family adapters. This
     /// wrapper accounts for both: it diffs snapshots into deltas, and emits `toolCall`/
     /// `toolOutput` events by diffing the transcript before/after the turn.
-    @available(macOS 26.0, *)
+    @available(anyAppleOS 26.0, *)
     struct LiveFoundationModelsSession: FoundationModelsSessionProtocol {
         private let session: LanguageModelSession
 
@@ -127,7 +127,7 @@ import PKUtilities
         /// diagnostics.
         public let debugDescription: String
 
-        @available(macOS 26.0, *)
+        @available(anyAppleOS 26.0, *)
         init(_ error: LanguageModelSession.GenerationError) {
             switch error {
             case let .exceededContextWindowSize(context):

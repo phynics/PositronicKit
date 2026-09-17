@@ -74,6 +74,12 @@ in `docs/Concurrency/exception-manifest.md`. Add
 `// swiftlint:disable:this <rule> -- <reason>` at the site. `make verify-concurrency-scan` enforces
 the policy.
 
+`@diagnose` (SE-0522) is allowed only in the reviewed form
+`@diagnose(<Group>, as: warning, reason: "<why>")`. It lowers one diagnostic group below the gate's
+`-warnings-as-errors` for the annotated declaration; `as: error` is redundant there, and
+`as: ignored` deletes the diagnostic. The `reason:` names the migration or deprecation the site
+serves. `make verify-diagnose-scan` enforces the shape.
+
 ## Deliver one bounded change
 
 1. Find or create the owning GitHub issue before architectural or breaking work.

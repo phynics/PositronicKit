@@ -310,7 +310,7 @@ extension TimelineManager {
             // The primary Agent workspace is not an ordinary Timeline binding, so hydrate its
             // wrappers directly. This also fills any custom definitions unavailable in the
             // Timeline registry while preserving known system tools where applicable.
-            var fileProvider: (any WorkspaceFileProvider)?
+            var fileProvider: any WorkspaceFileProvider?
             let liveWorkspace = try? await workspaceResolver.workspace(id: reference.id)
             fileProvider = liveWorkspace as? any WorkspaceFileProvider
             if isPrimary, fileProvider == nil, reference.rootPath != nil {

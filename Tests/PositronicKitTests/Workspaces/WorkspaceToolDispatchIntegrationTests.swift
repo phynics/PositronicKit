@@ -73,7 +73,7 @@ struct WorkspaceToolDispatchIntegrationTests {
         let result: String
         let executionProbe: ExecutionProbe?
         let intentProbe: IntentProbe?
-        let repository: (any TimelineRuntimeRepository)?
+        let repository: any TimelineRuntimeRepository?
         let turnID: UUID?
 
         var name: String { callName }
