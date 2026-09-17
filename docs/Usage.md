@@ -87,7 +87,9 @@ let kit = PKRuntime(provider: provider)
 
 OpenRouter and Anthropic use the same configured-provider pattern. Foundation Models is the
 documented exception: it has no API key, endpoint, or network model selection, so pass a
-`FoundationModelsClient` through `PKRuntime(languageModel:)` instead.
+`FoundationModelsClient` through `PKRuntime(languageModel:)` instead. Its public types are OS 26
+on Apple platforms, so gate the call with `#available(anyAppleOS 26.0, *)` when deploying below
+that; Linux and other non-Apple hosts remain available.
 
 ### Configure production persistence
 

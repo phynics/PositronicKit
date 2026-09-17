@@ -18,11 +18,15 @@ import PKUtilities
 /// typed, non-transient error (availability, guardrail, context-window) that retrying would not
 /// fix, so `RetryPolicy` is intentionally not used here.
 ///
-/// Available unconditionally (not `#if canImport(FoundationModels)`-guarded itself) so the type
-/// exists for tests on any host; the default live-session factory is only wired up on hosts that
-/// have the framework (`canImport(FoundationModels)`), matching PKPOST-003's "package remains
-/// green on hosts without FoundationModels" requirement. Callers on unsupported hosts must
-/// supply their own `makeSession` (e.g. a fake) or the client throws `unsupportedPlatform` on use.
+/// Annotated `anyAppleOS 26`: the on-device framework is OS 26 on Apple platforms, so callers
+/// below that version gate their use with `#available` (they can no longer construct the client
+/// and discover the gap at runtime). The type is not `#if canImport(FoundationModels)`-guarded
+/// itself, so it stays available on Linux and other non-Apple hosts through the `*` clause; the
+/// default live-session factory is only wired up on hosts that have the framework
+/// (`canImport(FoundationModels)`), matching PKPOST-003's "package remains green on hosts without
+/// FoundationModels" requirement. On a host without the framework, callers must supply their own
+/// `makeSession` (e.g. a fake) or the client throws `unsupportedPlatform` on use.
+@available(anyAppleOS 26.0, *)
 public actor FoundationModelsClient: LLMClientProtocol {
     /// Factory for the per-turn session: given the tool definitions PKRuntime resolved for
     /// this turn and the hoisted system-instructions string, produce a session to drive.
@@ -66,14 +70,13 @@ public actor FoundationModelsClient: LLMClientProtocol {
         if let makeSession {
             self.makeSession = makeSession
         } else {
+            // The client itself is `anyAppleOS 26` on Apple platforms, so the live-session
+            // default is unconditional inside that availability; only the compile-time
+            // `canImport(FoundationModels)` gate remains for Linux and pre-framework hosts.
             #if canImport(FoundationModels)
-                if #available(anyAppleOS 26.0, *) {
-                    self.makeSession = { turnTools, instructions in
-                        let executableTools = turnTools == nil || turnTools?.isEmpty == false ? tools : []
-                        return LiveFoundationModelsSession(bridging: executableTools, instructions: instructions)
-                    }
-                } else {
-                    self.makeSession = nil
+                self.makeSession = { turnTools, instructions in
+                    let executableTools = turnTools == nil || turnTools?.isEmpty == false ? tools : []
+                    return LiveFoundationModelsSession(bridging: executableTools, instructions: instructions)
                 }
             #else
                 self.makeSession = nil
@@ -221,6 +224,10 @@ public actor FoundationModelsClient: LLMClientProtocol {
 /// silent empty stream (PKPOST-003 requirement); this is distinct from
 /// `FoundationModelsAvailabilityError`, which covers the framework being present at compile time
 /// but unavailable at runtime (Apple Intelligence disabled, device ineligible, etc.).
+///
+/// Annotated `anyAppleOS 26` to match the client it serves; Linux and other non-Apple hosts
+/// remain available through the `*` clause.
+@available(anyAppleOS 26.0, *)
 public enum FoundationModelsPlatformError: PKError, Equatable {
     case unsupportedPlatform
 

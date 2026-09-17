@@ -6,6 +6,10 @@ import PKUtilities
 /// (PKPOST-003; PKINT-001 conformance for the synthesized event sequence). Pure and
 /// framework-independent — exercised directly in tests against scripted event sequences, with
 /// no dependency on `FoundationModels` or a live session.
+///
+/// Annotated `anyAppleOS 26` to match the `FoundationModelsSessionEvent` it consumes; Linux and
+/// other non-Apple hosts remain available through the `*` clause.
+@available(anyAppleOS 26.0, *)
 enum FoundationModelsStreamMapper {
     /// Assigns each distinct tool-call id an ordinal, matching how the OpenAI-family and
     /// Anthropic adapters assign `LLMToolCallDelta.index` (accumulation in `LLMStreamingStage`

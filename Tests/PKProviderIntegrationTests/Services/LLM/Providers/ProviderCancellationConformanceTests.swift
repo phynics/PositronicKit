@@ -46,6 +46,7 @@ private actor CancellationLatch {
     }
 }
 
+@available(anyAppleOS 26.0, *)
 private struct CancellationFoundationModelsSession: FoundationModelsSessionProtocol {
     let started: CancellationLatch
     let terminated: CancellationLatch
@@ -167,6 +168,7 @@ struct ProviderCancellationConformanceTests {
         _ = await consumer.value
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Foundation Models cancellation reaches the scripted session without a delay")
     func foundationModelsCancellationReachesSession() async {
         let started = CancellationLatch()

@@ -104,6 +104,7 @@ data: [DONE]
 
 private typealias TestProviderTransport = ScriptedProviderHTTPTransport
 
+@available(anyAppleOS 26.0, *)
 private actor ConformanceFoundationModelsSession: FoundationModelsSessionProtocol {
     private let events: [FoundationModelsSessionEvent]
 
@@ -342,6 +343,7 @@ struct StreamDecodingConformanceTests {
         #expect(chunks.last?.choices.first?.finishReason == "stop")
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Foundation Models session events normalize through the shared stream contract")
     func foundationModelsPlainTextStreamPreservesContent() async throws {
         let client = FoundationModelsClient(

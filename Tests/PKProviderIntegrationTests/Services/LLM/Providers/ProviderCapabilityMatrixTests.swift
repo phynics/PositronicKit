@@ -42,14 +42,36 @@ private let registeredCaseIDs: Set<String> = [
 // attribution ordered (issue #155).
 @Suite("Provider capability matrix", .serialized, .tags(.integration))
 struct ProviderCapabilityMatrixTests {
+    /// Manifest rows owned by the OS 26 Foundation Models provider. They run in
+    /// `foundationModelsManifestRowsRun` so the rows for every other provider keep running on
+    /// hosts below Apple OS 26 instead of being gated with them.
+    private static let foundationModelsCaseIDs: Set<String> = [
+        "foundation-models.image-input.disabled",
+        "foundation-models.audio-input.disabled",
+    ]
+
     @Test("every manifest row has an executable assertion")
     func everyManifestRowRuns() async throws {
         let manifest = try ProviderCapabilityMatrixManifest.load()
         let manifestIDs = Set(manifest.cases.map(\.id))
         #expect(manifestIDs == registeredCaseIDs)
 
-        for matrixCase in manifest.cases {
+        for matrixCase in manifest.cases where !Self.foundationModelsCaseIDs.contains(matrixCase.id) {
             try await run(matrixCase)
+        }
+    }
+
+    @available(anyAppleOS 26.0, *)
+    @Test("every Foundation Models manifest row has an executable assertion")
+    func foundationModelsManifestRowsRun() async throws {
+        let manifest = try ProviderCapabilityMatrixManifest.load()
+        #expect(Set(manifest.cases.map(\.id)) == registeredCaseIDs)
+
+        let foundationModelsCases = manifest.cases.filter { Self.foundationModelsCaseIDs.contains($0.id) }
+        #expect(foundationModelsCases.count == Self.foundationModelsCaseIDs.count)
+
+        for matrixCase in foundationModelsCases {
+            try await runFoundationModelsCase(matrixCase)
         }
     }
 
@@ -87,6 +109,22 @@ struct ProviderCapabilityMatrixTests {
             assertOllamaAudioRejected(matrixCase.id)
         case "ollama.audio-output.rejected":
             try await assertRuntimeAudioOutputOrdering(matrixCase.id, provider: .ollama, capabilities: [.audioOutput], expected: .missingCapability(.audioOutput))
+        case "runtime.openai.invalid-audio-order":
+            try await assertRuntimeOrdering(matrixCase.id, provider: .openAI, capabilities: [.audioInput], content: .init(parts: [.audio(.init(data: Data([1]), format: .flac))]), expected: .unsupportedAudioFormat(.flac, provider: .openAI))
+        case "runtime.openrouter.invalid-audio-order":
+            try await assertRuntimeOrdering(matrixCase.id, provider: .openRouter, capabilities: [.audioInput], content: .init(parts: [.audio(.init(data: Data([1]), format: .flac))]), expected: .unsupportedAudioFormat(.flac, provider: .openRouter))
+        case "runtime.anthropic.audio-rejected":
+            try await assertRuntimeOrdering(matrixCase.id, provider: .anthropic, capabilities: [.audioInput], content: .init(parts: [.audio(.init(data: Data([1]), format: .wav))]), expected: .missingCapability(.audioInput))
+        case "runtime.ollama.mixed-layout":
+            try await assertRuntimeOrdering(matrixCase.id, provider: .ollama, capabilities: [.imageInput], content: .init(parts: [.text("before"), .image(.init(data: Data([1]), mediaType: "image/png"))]), expected: .unsupportedContentLayout(provider: .ollama))
+        default:
+            Issue.record("unregistered provider capability scenario: \(matrixCase.id)")
+        }
+    }
+
+    @available(anyAppleOS 26.0, *)
+    private func runFoundationModelsCase(_ matrixCase: ProviderCapabilityMatrixManifest.Case) async throws {
+        switch matrixCase.id {
         case "foundation-models.image-input.disabled":
             try await assertFoundationModelsDisabled(
                 matrixCase.id,
@@ -99,16 +137,8 @@ struct ProviderCapabilityMatrixTests {
                 part: .audio(.init(data: Data([1]), format: .wav)),
                 expected: .missingCapability(.audioInput)
             )
-        case "runtime.openai.invalid-audio-order":
-            try await assertRuntimeOrdering(matrixCase.id, provider: .openAI, capabilities: [.audioInput], content: .init(parts: [.audio(.init(data: Data([1]), format: .flac))]), expected: .unsupportedAudioFormat(.flac, provider: .openAI))
-        case "runtime.openrouter.invalid-audio-order":
-            try await assertRuntimeOrdering(matrixCase.id, provider: .openRouter, capabilities: [.audioInput], content: .init(parts: [.audio(.init(data: Data([1]), format: .flac))]), expected: .unsupportedAudioFormat(.flac, provider: .openRouter))
-        case "runtime.anthropic.audio-rejected":
-            try await assertRuntimeOrdering(matrixCase.id, provider: .anthropic, capabilities: [.audioInput], content: .init(parts: [.audio(.init(data: Data([1]), format: .wav))]), expected: .missingCapability(.audioInput))
-        case "runtime.ollama.mixed-layout":
-            try await assertRuntimeOrdering(matrixCase.id, provider: .ollama, capabilities: [.imageInput], content: .init(parts: [.text("before"), .image(.init(data: Data([1]), mediaType: "image/png"))]), expected: .unsupportedContentLayout(provider: .ollama))
         default:
-            Issue.record("unregistered provider capability scenario: \(matrixCase.id)")
+            Issue.record("unregistered Foundation Models capability scenario: \(matrixCase.id)")
         }
     }
 
@@ -249,6 +279,7 @@ struct ProviderCapabilityMatrixTests {
         }
     }
 
+    @available(anyAppleOS 26.0, *)
     private func assertFoundationModelsDisabled(
         _ id: String,
         part: MessageContentPart,
@@ -372,6 +403,7 @@ struct ProviderCapabilityMatrixTests {
     }
 }
 
+@available(anyAppleOS 26.0, *)
 private struct MatrixFoundationModelsSession: FoundationModelsSessionProtocol {
     nonisolated func streamTurn(prompt _: String) -> AsyncThrowingStream<FoundationModelsSessionEvent, Error> {
         AsyncThrowingStream { continuation in continuation.finish() }

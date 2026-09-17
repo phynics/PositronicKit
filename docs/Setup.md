@@ -222,6 +222,10 @@ has no API key, endpoint, or selectable network model, so construct `FoundationM
 the `PKFoundationModelsProvider` module and pass its `FoundationModelsClient` through `PKRuntime(languageModel:)`. The client
 reports unsupported platforms and unavailable model sessions through its typed errors.
 
+The module's public types are annotated `@available(anyAppleOS 26, *)`, so an app that deploys
+below Apple OS 26 gates the call with `#available(anyAppleOS 26.0, *)`. Linux and other non-Apple
+hosts stay available through the `*` clause and keep the `unsupportedPlatform` error path.
+
 ## 3. Logging And Errors
 
 PositronicKit uses `swift-log` as its only logging API. Library code never calls `LoggingSystem.bootstrap(...)` — the downstream app, CLI, or test owns bootstrap and log-level selection:

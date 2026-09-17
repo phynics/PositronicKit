@@ -13,6 +13,10 @@ import PKUtilities
 /// live session in production, a scripted fixture in tests — so the mapping/bridge/availability
 /// layers are fully unit-testable without live Apple Intelligence (PKPOST-003 acceptance: "no
 /// live Apple Intelligence needed for tests").
+///
+/// Annotated `anyAppleOS 26` to match `FoundationModelsClient`; Linux and other non-Apple hosts
+/// remain available through the `*` clause.
+@available(anyAppleOS 26.0, *)
 public enum FoundationModelsSessionEvent: Sendable, Equatable {
     /// An incremental slice of the assistant's text response. Snapshots from
     /// `LanguageModelSession.ResponseStream` are cumulative, so the live adapter converts them
@@ -42,6 +46,10 @@ public enum FoundationModelsSessionEvent: Sendable, Equatable {
 ///   `ResponseStream` snapshots + transcript into `FoundationModelsSessionEvent`s.
 /// - Tests implement it with a scripted fake that yields a fixed event sequence (text-only,
 ///   multi-tool, guardrail refusal, context-exceeded), with no framework dependency at all.
+///
+/// Annotated `anyAppleOS 26` to match `FoundationModelsClient`; Linux and other non-Apple hosts
+/// remain available through the `*` clause.
+@available(anyAppleOS 26.0, *)
 public protocol FoundationModelsSessionProtocol: Sendable {
     /// Streams one turn's events for the given user prompt. Throws for terminal/non-recoverable
     /// failures (guardrail refusal, context-window overflow, decoding failure, etc.) — these are

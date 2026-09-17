@@ -109,6 +109,10 @@ public enum PositronicKitUsageExamples {
     /// Apple's on-device Foundation Models provider remains separate because its session has no
     /// API key, endpoint, or network provider configuration. It bypasses `LLMConfiguration`
     /// directly; see `FoundationModelsClient.swift` for the platform-specific behavior.
+    ///
+    /// OS 26 on Apple platforms: callers below it must gate the call with `#available`. Linux and
+    /// other non-Apple hosts remain available through the `*` clause.
+    @available(anyAppleOS 26.0, *)
     public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PKRuntime {
         let client = FoundationModelsClient(tools: tools.map { AnyTool($0) })
         let languageModel = LLMService(

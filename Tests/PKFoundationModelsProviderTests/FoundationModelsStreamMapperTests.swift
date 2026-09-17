@@ -10,6 +10,7 @@ import Testing
 /// requirement that the mapping layer be unit-testable without live Apple Intelligence.
 @Suite("FoundationModels stream mapping")
 struct FoundationModelsStreamMapperTests {
+    @available(anyAppleOS 26.0, *)
     @Test("Text deltas map to content chunks in order")
     func textDeltasMapToContentChunks() {
         var state = FoundationModelsStreamMapper.State()
@@ -25,6 +26,7 @@ struct FoundationModelsStreamMapperTests {
         #expect(chunks.allSatisfy { $0.id == "msg-1" && $0.model == "apple-on-device" })
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Empty text deltas produce no chunk")
     func emptyTextDeltaProducesNoChunk() {
         var state = FoundationModelsStreamMapper.State()
@@ -34,6 +36,7 @@ struct FoundationModelsStreamMapperTests {
         #expect(chunk == nil)
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("PKTool calls carry id, name, arguments, and an assigned ordinal index")
     func toolCallsCarryOrdinal() throws {
         var state = FoundationModelsStreamMapper.State()
@@ -50,6 +53,7 @@ struct FoundationModelsStreamMapperTests {
         #expect(toolCall.function?.arguments == "{\"city\":\"Berlin\"}")
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Multiple distinct tool calls get increasing ordinals; repeated ids reuse theirs")
     func multipleToolCallsGetDistinctOrdinals() {
         var state = FoundationModelsStreamMapper.State()
@@ -73,6 +77,7 @@ struct FoundationModelsStreamMapperTests {
         #expect(firstAgain?.choices.first?.delta.toolCalls?.first?.index == 0)
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("PKTool output events produce no chunk (framework already executed the tool)")
     func toolOutputProducesNoChunk() {
         var state = FoundationModelsStreamMapper.State()
@@ -83,6 +88,7 @@ struct FoundationModelsStreamMapperTests {
         #expect(chunk == nil)
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Finished(.stop) maps to a terminal chunk with finishReason \"stop\"")
     func finishedStopMapsToTerminalChunk() {
         var state = FoundationModelsStreamMapper.State()
@@ -92,6 +98,7 @@ struct FoundationModelsStreamMapperTests {
         #expect(chunk?.choices.first?.finishReason == "stop")
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Finished(.contentFilter) maps to finishReason \"content_filter\" (guardrail refusal)")
     func finishedContentFilterMapsCorrectly() {
         var state = FoundationModelsStreamMapper.State()
@@ -101,6 +108,7 @@ struct FoundationModelsStreamMapperTests {
         #expect(chunk?.choices.first?.finishReason == "content_filter")
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Finished(.length) maps to finishReason \"length\" (context-exceeded)")
     func finishedLengthMapsCorrectly() {
         var state = FoundationModelsStreamMapper.State()
@@ -110,6 +118,7 @@ struct FoundationModelsStreamMapperTests {
         #expect(chunk?.choices.first?.finishReason == "length")
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("A full multi-tool session maps text, both tool calls, and a stop reason in order")
     func fullMultiToolSessionDecodesToChunks() {
         var state = FoundationModelsStreamMapper.State()
