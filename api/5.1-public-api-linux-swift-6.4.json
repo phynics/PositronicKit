@@ -20835,16 +20835,6 @@
       "declaration": "var isConfigured: Bool { get async }"
     },
     {
-      "precise": "s:13PositronicKit24ModelInferenceCapabilityV18generateStructured_16structuredOutput20generationParameters11idleTimeoutS2S_11PKContracts0gI7RequestOAH010GenerationK0VSgSdtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ModelInferenceCapability",
-        "generateStructured(_:structuredOutput:generationParameters:idleTimeout:)"
-      ],
-      "declaration": "func generateStructured(_ prompt: String, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60) async throws -> String"
-    },
-    {
       "precise": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeoutScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AG010GenerationH0VSgSdtF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -20853,6 +20843,16 @@
         "stream(_:generationParameters:idleTimeout:)"
       ],
       "declaration": "func stream(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60) -> AsyncThrowingStream<LLMStreamChunk, Error>"
+    },
+    {
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_16structuredOutput20generationParameters11idleTimeoutS2S_11PKContracts010StructuredH7RequestOAH010GenerationJ0VSgSdtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ModelInferenceCapability",
+        "generate(_:structuredOutput:generationParameters:idleTimeout:)"
+      ],
+      "declaration": "func generate(_ prompt: String, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60) async throws -> String"
     },
     {
       "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_20generationParameters11idleTimeoutAA13OneShotResultVSS_11PKContracts010GenerationH0VSgSdtYaKF",
@@ -54329,13 +54329,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24ModelInferenceCapabilityV18generateStructured_16structuredOutput20generationParameters11idleTimeoutS2S_11PKContracts0gI7RequestOAH010GenerationK0VSgSdtYaKF",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeoutScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AG010GenerationH0VSgSdtF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeoutScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AG010GenerationH0VSgSdtF",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_16structuredOutput20generationParameters11idleTimeoutS2S_11PKContracts010StructuredH7RequestOAH010GenerationJ0VSgSdtYaKF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
