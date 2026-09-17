@@ -12531,6 +12531,16 @@
       "declaration": "var fetchTimelineFails: Bool { get set }"
     },
     {
+      "precise": "s:13PKTestSupport22MockPersistenceServiceC19completeTurnBlockeryyYaYbYCcSgvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockPersistenceService",
+        "completeTurnBlocker"
+      ],
+      "declaration": "var completeTurnBlocker: (nonisolated(nonsending) @Sendable () async -> Void)? { get set }"
+    },
+    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC21recordProviderRequest6turnID15modelRoundIndex11correlation3nowy20FoundationEssentials4UUIDV_Si13PositronicKit15TurnCorrelationVSgAI4DateVtYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -49418,6 +49428,12 @@
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC18fetchTimelineFailsSbvp",
+      "target": "s:13PKTestSupport22MockPersistenceServiceC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC19completeTurnBlockeryyYaYbYCcSgvp",
       "target": "s:13PKTestSupport22MockPersistenceServiceC"
     },
     {

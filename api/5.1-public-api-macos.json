@@ -11961,16 +11961,6 @@
       "declaration": "func admitRetry(timelineID: UUID, previousTurnID: UUID, requestID: UUID, callerIntentFingerprint: String, inputMessage: TimelineMessage?, executionKind: TurnExecutionKind, capturedAgentID: UUID?, turnID: UUID, attempt: Int, now: Date) async throws -> TurnAdmission"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC10cancelTurn6turnID6reason3now13PositronicKit0G6RecordV10Foundation4UUIDV_SSSgAK4DateVtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "cancelTurn(turnID:reason:now:)"
-      ],
-      "declaration": "func cancelTurn(turnID: UUID, reason: String?, now: Date) async throws -> TurnRecord"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC10fetchAgent2id11PKContracts0G0VSg10Foundation4UUIDV_tYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -11989,16 +11979,6 @@
         "fetchTools(forWorkspaces:)"
       ],
       "declaration": "func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference]"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC10forceClear10timelineID12confirmation3now13PositronicKit10TurnRecordVSg10Foundation4UUIDV_AH05ForceG12ConfirmationVAL4DateVtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "forceClear(timelineID:confirmation:now:)"
-      ],
-      "declaration": "func forceClear(timelineID: UUID, confirmation: ForceClearConfirmation, now: Date) async throws -> TurnRecord?"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC10saveOriginyy11PKContracts07RequestG8IdentityVYaKF",
@@ -12161,14 +12141,14 @@
       "declaration": "var healthDetails: [String : String]? { get async }"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC13interruptTurn6turnID6reason5force3now13PositronicKit0G6RecordV10Foundation4UUIDV_SSSbAL4DateVtYaKF",
+      "precise": "s:13PKTestSupport22MockPersistenceServiceC13interruptTurn6turnID6reason11disposition3now13PositronicKit0G15InterruptResultO10Foundation4UUIDV_SSAI0gO11DispositionOAL4DateVtYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
       "path": [
         "MockPersistenceService",
-        "interruptTurn(turnID:reason:force:now:)"
+        "interruptTurn(turnID:reason:disposition:now:)"
       ],
-      "declaration": "func interruptTurn(turnID: UUID, reason: String, force: Bool, now: Date) async throws -> TurnRecord"
+      "declaration": "func interruptTurn(turnID: UUID, reason: String, disposition: TurnInterruptDisposition, now: Date) async throws -> TurnInterruptResult"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC13mockIsDurableSbvp",
@@ -12481,6 +12461,16 @@
       "declaration": "var mockHealthDetails: [String : String]? { get set }"
     },
     {
+      "precise": "s:13PKTestSupport22MockPersistenceServiceC17releaseQuarantine10timelineID04turnI012confirmation3now13PositronicKit10TurnRecordV10Foundation4UUIDV_AnI0G19ReleaseConfirmationVAL4DateVtYaKF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "MockPersistenceService",
+        "releaseQuarantine(timelineID:turnID:confirmation:now:)"
+      ],
+      "declaration": "func releaseQuarantine(timelineID: UUID, turnID: UUID, confirmation: QuarantineReleaseConfirmation, now: Date) async throws -> TurnRecord"
+    },
+    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC17saveAgentTemplateyy11PKContracts0gH0VYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12541,6 +12531,16 @@
       "declaration": "var fetchTimelineFails: Bool { get set }"
     },
     {
+      "precise": "s:13PKTestSupport22MockPersistenceServiceC19completeTurnBlockeryyYaYbYCcSgvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockPersistenceService",
+        "completeTurnBlocker"
+      ],
+      "declaration": "var completeTurnBlocker: (nonisolated(nonsending) @Sendable () async -> Void)? { get set }"
+    },
+    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC21recordProviderRequest6turnID15modelRoundIndex11correlation3nowy10Foundation4UUIDV_Si13PositronicKit15TurnCorrelationVSgAI4DateVtYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12589,26 +12589,6 @@
         "agents"
       ],
       "declaration": "var agents: [Agent] { get set }"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC7recover10timelineID3now13PositronicKit18TurnRecoveryResultO10Foundation4UUIDV_AJ4DateVtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "recover(timelineID:now:)"
-      ],
-      "declaration": "func recover(timelineID: UUID, now: Date) async throws -> TurnRecoveryResult"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC8failTurn6turnID7message3now13PositronicKit0G6RecordV10Foundation4UUIDV_SSAK4DateVtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "failTurn(turnID:message:now:)"
-      ],
-      "declaration": "func failTurn(turnID: UUID, message: String, now: Date) async throws -> TurnRecord"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC8messagesSay13PositronicKit15TimelineMessageVGvp",
@@ -13573,14 +13553,14 @@
       "declaration": "enum TimelineRuntimeRepositoryConformanceSuite"
     },
     {
-      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run10staleAfter04makeE0ySd_13PositronicKit0cdE0_pyYaKYCXEtYaKFZ",
+      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run04makeE0y13PositronicKit0cdE0_pyYaKYCXE_tYaKFZ",
       "module": "PKTestSupport",
       "kind": "swift.type.method",
       "path": [
         "TimelineRuntimeRepositoryConformanceSuite",
-        "run(staleAfter:makeRepository:)"
+        "run(makeRepository:)"
       ],
-      "declaration": "static func run(staleAfter: TimeInterval, makeRepository: nonisolated(nonsending) () async throws -> any TimelineRuntimeRepository) async throws"
+      "declaration": "static func run(makeRepository: nonisolated(nonsending) () async throws -> any TimelineRuntimeRepository) async throws"
     },
     {
       "precise": "s:13PKTestSupport9SeededRNGV",
@@ -14137,6 +14117,16 @@
       "declaration": "var isTerminal: Bool { get }"
     },
     {
+      "precise": "s:13PositronicKit10TurnRecordV10quarantineAA0C10QuarantineVSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnRecord",
+        "quarantine"
+      ],
+      "declaration": "var quarantine: TurnQuarantine?"
+    },
+    {
       "precise": "s:13PositronicKit10TurnRecordV10timelineID10Foundation4UUIDVvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -14177,6 +14167,16 @@
       "declaration": "let executionKind: TurnExecutionKind"
     },
     {
+      "precise": "s:13PositronicKit10TurnRecordV13isQuarantinedSbvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnRecord",
+        "isQuarantined"
+      ],
+      "declaration": "var isQuarantined: Bool { get }"
+    },
+    {
       "precise": "s:13PositronicKit10TurnRecordV13retryRelationAA0c5RetryF0VSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -14205,26 +14205,6 @@
         "capturedAgentID"
       ],
       "declaration": "let capturedAgentID: UUID?"
-    },
-    {
-      "precise": "s:13PositronicKit10TurnRecordV15recoveryMessageSSSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRecord",
-        "recoveryMessage"
-      ],
-      "declaration": "var recoveryMessage: String?"
-    },
-    {
-      "precise": "s:13PositronicKit10TurnRecordV16requiresRecoverySbvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRecord",
-        "requiresRecovery"
-      ],
-      "declaration": "var requiresRecovery: Bool"
     },
     {
       "precise": "s:13PositronicKit10TurnRecordV17terminalMessageID10Foundation4UUIDVSgvp",
@@ -14277,14 +14257,14 @@
       "declaration": "var outcome: TurnOutcome?"
     },
     {
-      "precise": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation16requiresRecovery15recoveryMessage14terminalHandle015terminalMessageG09createdAt9updatedAtAC11PKContracts0C8IdentityV_10Foundation4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAZSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgSbSSSgAA0C14TerminalHandleVSgA3_AX4DateVA24_tcfc",
+      "precise": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation10quarantine14terminalHandle0y7MessageG09createdAt9updatedAtAC11PKContracts0C8IdentityV_10Foundation4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAYSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgAA0C10QuarantineVSgAA0c8TerminalZ0VSgA2_AW4DateVA25_tcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "TurnRecord",
-        "init(identity:timelineID:callerIntent:executionKind:capturedAgentID:lifecycle:currentModelRoundIndex:outcome:notices:correlations:retryRelation:requiresRecovery:recoveryMessage:terminalHandle:terminalMessageID:createdAt:updatedAt:)"
+        "init(identity:timelineID:callerIntent:executionKind:capturedAgentID:lifecycle:currentModelRoundIndex:outcome:notices:correlations:retryRelation:quarantine:terminalHandle:terminalMessageID:createdAt:updatedAt:)"
       ],
-      "declaration": "init(identity: TurnIdentity, timelineID: UUID, callerIntent: TurnCallerIntent, executionKind: TurnExecutionKind = .agentManaged, capturedAgentID: UUID? = nil, lifecycle: TurnLifecycle = .admitted, currentModelRoundIndex: Int? = nil, outcome: TurnOutcome? = nil, notices: [TurnNotice] = [], correlations: [TurnCorrelation] = [], retryRelation: TurnRetryRelation? = nil, requiresRecovery: Bool = false, recoveryMessage: String? = nil, terminalHandle: TurnTerminalHandle? = nil, terminalMessageID: UUID? = nil, createdAt: Date = Date(), updatedAt: Date = Date())"
+      "declaration": "init(identity: TurnIdentity, timelineID: UUID, callerIntent: TurnCallerIntent, executionKind: TurnExecutionKind = .agentManaged, capturedAgentID: UUID? = nil, lifecycle: TurnLifecycle = .admitted, currentModelRoundIndex: Int? = nil, outcome: TurnOutcome? = nil, notices: [TurnNotice] = [], correlations: [TurnCorrelation] = [], retryRelation: TurnRetryRelation? = nil, quarantine: TurnQuarantine? = nil, terminalHandle: TurnTerminalHandle? = nil, terminalMessageID: UUID? = nil, createdAt: Date = Date(), updatedAt: Date = Date())"
     },
     {
       "precise": "s:13PositronicKit10TurnRecordV8identity11PKContracts0C8IdentityVvp",
@@ -15634,6 +15614,55 @@
         "init(rawValue:)"
       ],
       "declaration": "init?(rawValue: String)"
+    },
+    {
+      "precise": "s:13PositronicKit14TurnQuarantineV",
+      "module": "PositronicKit",
+      "kind": "swift.struct",
+      "path": [
+        "TurnQuarantine"
+      ],
+      "declaration": "struct TurnQuarantine"
+    },
+    {
+      "precise": "s:13PositronicKit14TurnQuarantineV4fromACs7Decoder_p_tKcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "TurnQuarantine",
+        "init(from:)"
+      ],
+      "declaration": "init(from decoder: any Decoder) throws"
+    },
+    {
+      "precise": "s:13PositronicKit14TurnQuarantineV6reason9createdAtACSS_10Foundation4DateVtcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "TurnQuarantine",
+        "init(reason:createdAt:)"
+      ],
+      "declaration": "init(reason: String, createdAt: Date = Date())"
+    },
+    {
+      "precise": "s:13PositronicKit14TurnQuarantineV6reasonSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnQuarantine",
+        "reason"
+      ],
+      "declaration": "let reason: String"
+    },
+    {
+      "precise": "s:13PositronicKit14TurnQuarantineV9createdAt10Foundation4DateVvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnQuarantine",
+        "createdAt"
+      ],
+      "declaration": "let createdAt: Date"
     },
     {
       "precise": "s:13PositronicKit14WorkspaceErrorO",
@@ -18977,65 +19006,6 @@
       "declaration": "let requestID: UUID"
     },
     {
-      "precise": "s:13PositronicKit18TurnRecoveryResultO",
-      "module": "PositronicKit",
-      "kind": "swift.enum",
-      "path": [
-        "TurnRecoveryResult"
-      ],
-      "declaration": "enum TurnRecoveryResult"
-    },
-    {
-      "precise": "s:13PositronicKit18TurnRecoveryResultO08noActiveC0yA2CmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "TurnRecoveryResult",
-        "noActiveTurn"
-      ],
-      "declaration": "case noActiveTurn"
-    },
-    {
-      "precise": "s:13PositronicKit18TurnRecoveryResultO16recoveryRequiredyAcA0C6RecordVcACmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "TurnRecoveryResult",
-        "recoveryRequired(_:)"
-      ],
-      "declaration": "case recoveryRequired(TurnRecord)"
-    },
-    {
-      "precise": "s:13PositronicKit18TurnRecoveryResultO4fromACs7Decoder_p_tKcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "TurnRecoveryResult",
-        "init(from:)"
-      ],
-      "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
-      "precise": "s:13PositronicKit18TurnRecoveryResultO6activeyAcA0C6RecordVcACmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "TurnRecoveryResult",
-        "active(_:)"
-      ],
-      "declaration": "case active(TurnRecord)"
-    },
-    {
-      "precise": "s:13PositronicKit18TurnRecoveryResultO6encode2toys7Encoder_p_tKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TurnRecoveryResult",
-        "encode(to:)"
-      ],
-      "declaration": "func encode(to encoder: any Encoder) throws"
-    },
-    {
       "precise": "s:13PositronicKit18TurnTerminalHandleV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -19239,6 +19209,65 @@
         "init(from:)"
       ],
       "declaration": "init(from decoder: any Decoder) throws"
+    },
+    {
+      "precise": "s:13PositronicKit19TurnInterruptResultO",
+      "module": "PositronicKit",
+      "kind": "swift.enum",
+      "path": [
+        "TurnInterruptResult"
+      ],
+      "declaration": "enum TurnInterruptResult"
+    },
+    {
+      "precise": "s:13PositronicKit19TurnInterruptResultO11interruptedyAcA0C6RecordVcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TurnInterruptResult",
+        "interrupted(_:)"
+      ],
+      "declaration": "case interrupted(TurnRecord)"
+    },
+    {
+      "precise": "s:13PositronicKit19TurnInterruptResultO15alreadyTerminalyAcA0C6RecordVcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TurnInterruptResult",
+        "alreadyTerminal(_:)"
+      ],
+      "declaration": "case alreadyTerminal(TurnRecord)"
+    },
+    {
+      "precise": "s:13PositronicKit19TurnInterruptResultO4fromACs7Decoder_p_tKcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "TurnInterruptResult",
+        "init(from:)"
+      ],
+      "declaration": "init(from decoder: any Decoder) throws"
+    },
+    {
+      "precise": "s:13PositronicKit19TurnInterruptResultO6encode2toys7Encoder_p_tKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TurnInterruptResult",
+        "encode(to:)"
+      ],
+      "declaration": "func encode(to encoder: any Encoder) throws"
+    },
+    {
+      "precise": "s:13PositronicKit19TurnInterruptResultO6recordAA0C6RecordVvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnInterruptResult",
+        "record"
+      ],
+      "declaration": "var record: TurnRecord { get }"
     },
     {
       "precise": "s:13PositronicKit19TurnOutcomeTimedOutV",
@@ -20254,45 +20283,6 @@
       "declaration": "func listTools() async throws -> [ToolReference]"
     },
     {
-      "precise": "s:13PositronicKit22ForceClearConfirmationV",
-      "module": "PositronicKit",
-      "kind": "swift.struct",
-      "path": [
-        "ForceClearConfirmation"
-      ],
-      "declaration": "struct ForceClearConfirmation"
-    },
-    {
-      "precise": "s:13PositronicKit22ForceClearConfirmationV14requiredPhraseSSvpZ",
-      "module": "PositronicKit",
-      "kind": "swift.type.property",
-      "path": [
-        "ForceClearConfirmation",
-        "requiredPhrase"
-      ],
-      "declaration": "static let requiredPhrase: String"
-    },
-    {
-      "precise": "s:13PositronicKit22ForceClearConfirmationV6phraseACSS_tcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "ForceClearConfirmation",
-        "init(phrase:)"
-      ],
-      "declaration": "init(phrase: String)"
-    },
-    {
-      "precise": "s:13PositronicKit22ForceClearConfirmationV6phraseSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ForceClearConfirmation",
-        "phrase"
-      ],
-      "declaration": "let phrase: String"
-    },
-    {
       "precise": "s:13PositronicKit22TimelineDeletionResultV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -20973,6 +20963,35 @@
       "declaration": "init(_ contributions: [TurnContextContribution])"
     },
     {
+      "precise": "s:13PositronicKit24TurnInterruptDispositionO",
+      "module": "PositronicKit",
+      "kind": "swift.enum",
+      "path": [
+        "TurnInterruptDisposition"
+      ],
+      "declaration": "enum TurnInterruptDisposition"
+    },
+    {
+      "precise": "s:13PositronicKit24TurnInterruptDispositionO11quarantinedyACSScACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TurnInterruptDisposition",
+        "quarantined(_:)"
+      ],
+      "declaration": "case quarantined(String)"
+    },
+    {
+      "precise": "s:13PositronicKit24TurnInterruptDispositionO9retryableyA2CmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TurnInterruptDisposition",
+        "retryable"
+      ],
+      "declaration": "case retryable"
+    },
+    {
       "precise": "s:13PositronicKit24WorkspaceResolverFactoryO",
       "module": "PositronicKit",
       "kind": "swift.enum",
@@ -21040,26 +21059,6 @@
       "declaration": "func admitRetry(timelineID: UUID, previousTurnID: UUID, requestID: UUID, callerIntentFingerprint: String, inputMessage: TimelineMessage?, executionKind: TurnExecutionKind, capturedAgentID: UUID?, turnID: UUID, attempt: Int, now: Date) async throws -> TurnAdmission"
     },
     {
-      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP10cancelTurn6turnID6reason3nowAA0G6RecordV10Foundation4UUIDV_SSSgAJ4DateVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineRuntimeRepository",
-        "cancelTurn(turnID:reason:now:)"
-      ],
-      "declaration": "func cancelTurn(turnID: UUID, reason: String?, now: Date) async throws -> TurnRecord"
-    },
-    {
-      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP10forceClear10timelineID12confirmation3nowAA10TurnRecordVSg10Foundation4UUIDV_AA05ForceG12ConfirmationVAK4DateVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineRuntimeRepository",
-        "forceClear(timelineID:confirmation:now:)"
-      ],
-      "declaration": "func forceClear(timelineID: UUID, confirmation: ForceClearConfirmation, now: Date) async throws -> TurnRecord?"
-    },
-    {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP11saveSummaryyyAA0cG0VYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -21100,14 +21099,14 @@
       "declaration": "func fetchNotices(turnID: UUID) async throws -> [TurnNotice]"
     },
     {
-      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP13interruptTurn6turnID6reason5force3nowAA0G6RecordV10Foundation4UUIDV_SSSbAK4DateVtYaKF",
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP13interruptTurn6turnID6reason11disposition3nowAA0G15InterruptResultO10Foundation4UUIDV_SSAA0gM11DispositionOAK4DateVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "TimelineRuntimeRepository",
-        "interruptTurn(turnID:reason:force:now:)"
+        "interruptTurn(turnID:reason:disposition:now:)"
       ],
-      "declaration": "func interruptTurn(turnID: UUID, reason: String, force: Bool, now: Date) async throws -> TurnRecord"
+      "declaration": "func interruptTurn(turnID: UUID, reason: String, disposition: TurnInterruptDisposition, now: Date) async throws -> TurnInterruptResult"
     },
     {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP14fetchSummaries3forSayAA0C7SummaryVG10Foundation4UUIDV_tYaKF",
@@ -21210,6 +21209,16 @@
       "declaration": "func fetchCorrelations(turnID: UUID) async throws -> [TurnCorrelation]"
     },
     {
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP17releaseQuarantine10timelineID04turnI012confirmation3nowAA10TurnRecordV10Foundation4UUIDV_AmA0G19ReleaseConfirmationVAK4DateVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineRuntimeRepository",
+        "releaseQuarantine(timelineID:turnID:confirmation:now:)"
+      ],
+      "declaration": "func releaseQuarantine(timelineID: UUID, turnID: UUID, confirmation: QuarantineReleaseConfirmation, now: Date) async throws -> TurnRecord"
+    },
+    {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP21recordProviderRequest6turnID15modelRoundIndex11correlation3nowy10Foundation4UUIDV_SiAA15TurnCorrelationVSgAI4DateVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -21218,26 +21227,6 @@
         "recordProviderRequest(turnID:modelRoundIndex:correlation:now:)"
       ],
       "declaration": "func recordProviderRequest(turnID: UUID, modelRoundIndex: Int, correlation: TurnCorrelation?, now: Date) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP7recover10timelineID3nowAA18TurnRecoveryResultO10Foundation4UUIDV_AI4DateVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineRuntimeRepository",
-        "recover(timelineID:now:)"
-      ],
-      "declaration": "func recover(timelineID: UUID, now: Date) async throws -> TurnRecoveryResult"
-    },
-    {
-      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP8failTurn6turnID7message3nowAA0G6RecordV10Foundation4UUIDV_SSAJ4DateVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineRuntimeRepository",
-        "failTurn(turnID:message:now:)"
-      ],
-      "declaration": "func failTurn(turnID: UUID, message: String, now: Date) async throws -> TurnRecord"
     },
     {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP9admitTurn10timelineID07requestI023callerIntentFingerprint12inputMessage13executionKind013capturedAgentI004turnI03nowAA0G9AdmissionV10Foundation4UUIDV_AQSSAA0cO0VSgAA0g9ExecutionQ0OAQSgAqO4DateVtYaKF",
@@ -21258,6 +21247,16 @@
         "fetchTurn(id:)"
       ],
       "declaration": "func fetchTurn(id: UUID) async throws -> TurnRecord?"
+    },
+    {
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE10cancelTurn6turnID6reason3nowAA0G6RecordV10Foundation4UUIDV_SSSgAJ4DateVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineRuntimeRepository",
+        "cancelTurn(turnID:reason:now:)"
+      ],
+      "declaration": "func cancelTurn(turnID: UUID, reason: String?, now: Date = Date()) async throws -> TurnRecord"
     },
     {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE12completeTurn6turnID7outcome12finalMessage14terminalHandleAA0G6RecordV10Foundation4UUIDV_AA0G7OutcomeOAA0cL0VSgAA0g8TerminalN0VSgtYaKF",
@@ -21288,6 +21287,16 @@
         "recordProviderRequest(turnID:modelRoundIndex:correlation:)"
       ],
       "declaration": "func recordProviderRequest(turnID: UUID, modelRoundIndex: Int, correlation: TurnCorrelation? = nil) async throws"
+    },
+    {
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE8failTurn6turnID7message3nowAA0G6RecordV10Foundation4UUIDV_SSAJ4DateVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineRuntimeRepository",
+        "failTurn(turnID:message:now:)"
+      ],
+      "declaration": "func failTurn(turnID: UUID, message: String, now: Date = Date()) async throws -> TurnRecord"
     },
     {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE9admitTurn10timelineID07requestI023callerIntentFingerprint12inputMessage3nowAA0G9AdmissionV10Foundation4UUIDV_ANSSAA0cO0VSgAL4DateVtYaKF",
@@ -22265,6 +22274,45 @@
       "declaration": "case text(String)"
     },
     {
+      "precise": "s:13PositronicKit29QuarantineReleaseConfirmationV",
+      "module": "PositronicKit",
+      "kind": "swift.struct",
+      "path": [
+        "QuarantineReleaseConfirmation"
+      ],
+      "declaration": "struct QuarantineReleaseConfirmation"
+    },
+    {
+      "precise": "s:13PositronicKit29QuarantineReleaseConfirmationV14requiredPhraseSSvpZ",
+      "module": "PositronicKit",
+      "kind": "swift.type.property",
+      "path": [
+        "QuarantineReleaseConfirmation",
+        "requiredPhrase"
+      ],
+      "declaration": "static let requiredPhrase: String"
+    },
+    {
+      "precise": "s:13PositronicKit29QuarantineReleaseConfirmationV6phraseACSS_tcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "QuarantineReleaseConfirmation",
+        "init(phrase:)"
+      ],
+      "declaration": "init(phrase: String)"
+    },
+    {
+      "precise": "s:13PositronicKit29QuarantineReleaseConfirmationV6phraseSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "QuarantineReleaseConfirmation",
+        "phrase"
+      ],
+      "declaration": "let phrase: String"
+    },
+    {
       "precise": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO",
       "module": "PositronicKit",
       "kind": "swift.enum",
@@ -22344,16 +22392,6 @@
       "declaration": "case turnNotFound(UUID)"
     },
     {
-      "precise": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO16recoveryRequiredyAC10Foundation4UUIDV_AGtcACmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "TimelineRuntimeRepositoryError",
-        "recoveryRequired(timelineID:turnID:)"
-      ],
-      "declaration": "case recoveryRequired(timelineID: UUID, turnID: UUID)"
-    },
-    {
       "precise": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO16timelineNotFoundyAC10Foundation4UUIDVcACmF",
       "module": "PositronicKit",
       "kind": "swift.enum.case",
@@ -22422,6 +22460,16 @@
         "idempotencyConflict(requestID:)"
       ],
       "declaration": "case idempotencyConflict(requestID: UUID)"
+    },
+    {
+      "precise": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO19timelineQuarantinedyAC10Foundation4UUIDV_AGtcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TimelineRuntimeRepositoryError",
+        "timelineQuarantined(timelineID:turnID:)"
+      ],
+      "declaration": "case timelineQuarantined(timelineID: UUID, turnID: UUID)"
     },
     {
       "precise": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO19userFriendlyMessageSSvp",
@@ -22612,36 +22660,6 @@
       "declaration": "func admitRetry(timelineID: UUID, previousTurnID: UUID, requestID: UUID, callerIntentFingerprint: String, inputMessage: TimelineMessage?, executionKind: TurnExecutionKind, capturedAgentID: UUID?, turnID: UUID, attempt: Int, now: Date) async throws -> TurnAdmission"
     },
     {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC10cancelTurn6turnID6reason3nowAA0I6RecordV10Foundation4UUIDV_SSSgAJ4DateVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryTimelineRuntimeRepository",
-        "cancelTurn(turnID:reason:now:)"
-      ],
-      "declaration": "func cancelTurn(turnID: UUID, reason: String?, now: Date) async throws -> TurnRecord"
-    },
-    {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC10forceClear10timelineID12confirmation3nowAA10TurnRecordVSg10Foundation4UUIDV_AA05ForceI12ConfirmationVAK4DateVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryTimelineRuntimeRepository",
-        "forceClear(timelineID:confirmation:now:)"
-      ],
-      "declaration": "func forceClear(timelineID: UUID, confirmation: ForceClearConfirmation, now: Date) async throws -> TurnRecord?"
-    },
-    {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC10staleAfter9isDurableACSd_Sbtcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "InMemoryTimelineRuntimeRepository",
-        "init(staleAfter:isDurable:)"
-      ],
-      "declaration": "init(staleAfter: TimeInterval = 300, isDurable: Bool = false)"
-    },
-    {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC10timelineID3for10Foundation4UUIDVSgAH_tYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -22712,14 +22730,14 @@
       "declaration": "func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage]"
     },
     {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC13interruptTurn6turnID6reason5force3nowAA0I6RecordV10Foundation4UUIDV_SSSbAK4DateVtYaKF",
+      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC13interruptTurn6turnID6reason11disposition3nowAA0I15InterruptResultO10Foundation4UUIDV_SSAA0iO11DispositionOAK4DateVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "InMemoryTimelineRuntimeRepository",
-        "interruptTurn(turnID:reason:force:now:)"
+        "interruptTurn(turnID:reason:disposition:now:)"
       ],
-      "declaration": "func interruptTurn(turnID: UUID, reason: String, force: Bool, now: Date) async throws -> TurnRecord"
+      "declaration": "func interruptTurn(turnID: UUID, reason: String, disposition: TurnInterruptDisposition, now: Date) async throws -> TurnInterruptResult"
     },
     {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
@@ -22872,6 +22890,16 @@
       "declaration": "func fetchCorrelations(turnID: UUID) async throws -> [TurnCorrelation]"
     },
     {
+      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC17releaseQuarantine10timelineID04turnK012confirmation3nowAA10TurnRecordV10Foundation4UUIDV_AmA0I19ReleaseConfirmationVAK4DateVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "InMemoryTimelineRuntimeRepository",
+        "releaseQuarantine(timelineID:turnID:confirmation:now:)"
+      ],
+      "declaration": "func releaseQuarantine(timelineID: UUID, turnID: UUID, confirmation: QuarantineReleaseConfirmation, now: Date) async throws -> TurnRecord"
+    },
+    {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC21recordProviderRequest6turnID15modelRoundIndex11correlation3nowy10Foundation4UUIDV_SiAA15TurnCorrelationVSgAI4DateVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -22892,16 +22920,6 @@
       "declaration": "func claim(workspaceID: UUID, for timelineID: UUID, now: Date = Date()) async throws -> WorkspaceBinding"
     },
     {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC7recover10timelineID3nowAA18TurnRecoveryResultO10Foundation4UUIDV_AI4DateVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryTimelineRuntimeRepository",
-        "recover(timelineID:now:)"
-      ],
-      "declaration": "func recover(timelineID: UUID, now: Date) async throws -> TurnRecoveryResult"
-    },
-    {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC7release11workspaceID4from3nowy10Foundation4UUIDV_AjH4DateVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -22920,16 +22938,6 @@
         "bindings(for:)"
       ],
       "declaration": "func bindings(for timelineID: UUID) async throws -> [WorkspaceBinding]"
-    },
-    {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC8failTurn6turnID7message3nowAA0I6RecordV10Foundation4UUIDV_SSAJ4DateVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryTimelineRuntimeRepository",
-        "failTurn(turnID:message:now:)"
-      ],
-      "declaration": "func failTurn(turnID: UUID, message: String, now: Date) async throws -> TurnRecord"
     },
     {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC8transfer11workspaceID4from2to3nowAA16WorkspaceBindingV10Foundation4UUIDV_A2mK4DateVtYaKF",
@@ -22960,6 +22968,16 @@
         "fetchTurn(id:)"
       ],
       "declaration": "func fetchTurn(id: UUID) async throws -> TurnRecord?"
+    },
+    {
+      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC9isDurableACSb_tcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "InMemoryTimelineRuntimeRepository",
+        "init(isDurable:)"
+      ],
+      "declaration": "init(isDurable: Bool = false)"
     },
     {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC9isDurableSbvp",
@@ -23539,15 +23557,15 @@
       "declaration": "let workspaceCreator: any WorkspaceFactory"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV16workspaceProfile0F7Creator13customization17runtimeToolPolicy012toolApprovalL0018diagnosticSnapshotE0011degradationL013streamTimeoutAeA09WorkspaceG0O_AA0T7Factory_pAA0D13CustomizationVAA0dkL0V11PKContracts0knL0_pAU010DiagnosticpE0VAU015TurnDegradationL0OSdtcfc",
+      "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV16workspaceProfile0F7Creator13customization17runtimeToolPolicy012toolApprovalL0018diagnosticSnapshotE0011degradationL013streamTimeout24terminalCommitStallLimitAeA09WorkspaceG0O_AA0X7Factory_pAA0D13CustomizationVAA0dkL0V11PKContracts0knL0_pAV010DiagnosticpE0VAV015TurnDegradationL0OS2dtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "PKRuntime",
         "RuntimeConfiguration",
-        "init(workspaceProfile:workspaceCreator:customization:runtimeToolPolicy:toolApprovalPolicy:diagnosticSnapshotConfiguration:degradationPolicy:streamTimeout:)"
+        "init(workspaceProfile:workspaceCreator:customization:runtimeToolPolicy:toolApprovalPolicy:diagnosticSnapshotConfiguration:degradationPolicy:streamTimeout:terminalCommitStallLimit:)"
       ],
-      "declaration": "init(workspaceProfile: WorkspaceProfile = .noWorkspace, workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(), customization: RuntimeCustomization = .default, runtimeToolPolicy: RuntimeToolPolicy = .default, toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(), diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default, degradationPolicy: TurnDegradationPolicy = .failRequired, streamTimeout: TimeInterval = 60)"
+      "declaration": "init(workspaceProfile: WorkspaceProfile = .noWorkspace, workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(), customization: RuntimeCustomization = .default, runtimeToolPolicy: RuntimeToolPolicy = .default, toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(), diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default, degradationPolicy: TurnDegradationPolicy = .failRequired, streamTimeout: TimeInterval = 60, terminalCommitStallLimit: TimeInterval = 300)"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV16workspaceProfileAA09WorkspaceG0Ovp",
@@ -23592,6 +23610,17 @@
         "toolApprovalPolicy"
       ],
       "declaration": "let toolApprovalPolicy: any ToolApprovalPolicy"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV24terminalCommitStallLimitSdvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "PKRuntime",
+        "RuntimeConfiguration",
+        "terminalCommitStallLimit"
+      ],
+      "declaration": "let terminalCommitStallLimit: TimeInterval"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV7defaultAEvpZ",
@@ -35483,22 +35512,22 @@
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKTestSupport",
+      "kind": "conformsTo",
       "source": "s:13PKTestSupport9SeededRNGV",
       "target": "s:SG",
       "targetFallback": "Swift.RandomNumberGenerator"
     },
     {
-      "kind": "conformsTo",
       "module": "PKTestSupport",
+      "kind": "conformsTo",
       "source": "s:13PKTestSupport9SeededRNGV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKTestSupport",
+      "kind": "conformsTo",
       "source": "s:13PKTestSupport9SeededRNGV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
@@ -36253,6 +36282,48 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit14TurnNoticeCodeO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit14TurnQuarantineV",
+      "target": "s:SE",
+      "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit14TurnQuarantineV",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit14TurnQuarantineV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit14TurnQuarantineV",
+      "target": "s:Se",
+      "targetFallback": "Swift.Decodable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit14TurnQuarantineV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit14TurnQuarantineV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -37599,41 +37670,6 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
-      "source": "s:13PositronicKit18TurnRecoveryResultO",
-      "target": "s:SE",
-      "targetFallback": "Swift.Encodable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit18TurnRecoveryResultO",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit18TurnRecoveryResultO",
-      "target": "s:Se",
-      "targetFallback": "Swift.Decodable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit18TurnRecoveryResultO",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit18TurnRecoveryResultO",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
       "source": "s:13PositronicKit18TurnTerminalHandleV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
@@ -37733,6 +37769,41 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit19SidecarCommitPolicyO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit19TurnInterruptResultO",
+      "target": "s:SE",
+      "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit19TurnInterruptResultO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit19TurnInterruptResultO",
+      "target": "s:Se",
+      "targetFallback": "Swift.Decodable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit19TurnInterruptResultO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit19TurnInterruptResultO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -38118,27 +38189,6 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
-      "source": "s:13PositronicKit22ForceClearConfirmationV",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit22ForceClearConfirmationV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit22ForceClearConfirmationV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
       "source": "s:13PositronicKit22TimelineDeletionResultV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
@@ -38407,6 +38457,34 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit24TurnContextContributionsV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit24TurnInterruptDispositionO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit24TurnInterruptDispositionO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit24TurnInterruptDispositionO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit24TurnInterruptDispositionO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -38851,6 +38929,27 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnContextContributionValueO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit29QuarantineReleaseConfirmationV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit29QuarantineReleaseConfirmationV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit29QuarantineReleaseConfirmationV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -48549,26 +48648,26 @@
       "target": "s:13PKTestSupport14TestHTTPServerC8ResponseV"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport16GenerativeConfigO11defaultSeeds6UInt64VvpZ",
       "target": "s:13PKTestSupport16GenerativeConfigO"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport16GenerativeConfigO12maxCaseCountSivpZ",
       "target": "s:13PKTestSupport16GenerativeConfigO"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport16GenerativeConfigO13effectiveSeed11environments6UInt64VSDyS2SG_tFZ",
       "target": "s:13PKTestSupport16GenerativeConfigO"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport16GenerativeConfigO16defaultCaseCountSivpZ",
       "target": "s:13PKTestSupport16GenerativeConfigO"
     },
@@ -48981,20 +49080,20 @@
       }
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport22ChunkBoundaryGeneratorO10splittings2of5count4seedSaySaySSGGSS_Sis6UInt64VtFZ",
       "target": "s:13PKTestSupport22ChunkBoundaryGeneratorO"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport22ChunkBoundaryGeneratorO11truncations2of11sampleCount4seedSaySSGSS_Sis6UInt64VtFZ",
       "target": "s:13PKTestSupport22ChunkBoundaryGeneratorO"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport22ChunkBoundaryGeneratorO5split_10chunkCount3rngSaySSGSS_SiAA9SeededRNGVztFZ",
       "target": "s:13PKTestSupport22ChunkBoundaryGeneratorO"
     },
@@ -49169,16 +49268,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC10cancelTurn6turnID6reason3now13PositronicKit0G6RecordV10Foundation4UUIDV_SSSgAK4DateVtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP10cancelTurn6turnID6reason3nowAA0G6RecordV10Foundation4UUIDV_SSSgAJ4DateVtYaKF",
-        "displayName": "TimelineRuntimeRepository.cancelTurn(turnID:reason:now:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC10fetchAgent2id11PKContracts0G0VSg10Foundation4UUIDV_tYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -49194,16 +49283,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP10fetchTools13forWorkspacesSay11PKContracts0C9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
         "displayName": "ToolPersistenceProtocol.fetchTools(forWorkspaces:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC10forceClear10timelineID12confirmation3now13PositronicKit10TurnRecordVSg10Foundation4UUIDV_AH05ForceG12ConfirmationVAL4DateVtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP10forceClear10timelineID12confirmation3nowAA10TurnRecordVSg10Foundation4UUIDV_AA05ForceG12ConfirmationVAK4DateVtYaKF",
-        "displayName": "TimelineRuntimeRepository.forceClear(timelineID:confirmation:now:)"
       }
     },
     {
@@ -49365,11 +49444,11 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC13interruptTurn6turnID6reason5force3now13PositronicKit0G6RecordV10Foundation4UUIDV_SSSbAL4DateVtYaKF",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC13interruptTurn6turnID6reason11disposition3now13PositronicKit0G15InterruptResultO10Foundation4UUIDV_SSAI0gO11DispositionOAL4DateVtYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP13interruptTurn6turnID6reason5force3nowAA0G6RecordV10Foundation4UUIDV_SSSbAK4DateVtYaKF",
-        "displayName": "TimelineRuntimeRepository.interruptTurn(turnID:reason:force:now:)"
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP13interruptTurn6turnID6reason11disposition3nowAA0G15InterruptResultO10Foundation4UUIDV_SSAA0gM11DispositionOAK4DateVtYaKF",
+        "displayName": "TimelineRuntimeRepository.interruptTurn(turnID:reason:disposition:now:)"
       }
     },
     {
@@ -49661,6 +49740,16 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC17releaseQuarantine10timelineID04turnI012confirmation3now13PositronicKit10TurnRecordV10Foundation4UUIDV_AnI0G19ReleaseConfirmationVAL4DateVtYaKF",
+      "target": "s:13PKTestSupport22MockPersistenceServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP17releaseQuarantine10timelineID04turnI012confirmation3nowAA10TurnRecordV10Foundation4UUIDV_AmA0G19ReleaseConfirmationVAK4DateVtYaKF",
+        "displayName": "TimelineRuntimeRepository.releaseQuarantine(timelineID:turnID:confirmation:now:)"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC17saveAgentTemplateyy11PKContracts0gH0VYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -49717,6 +49806,12 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC19completeTurnBlockeryyYaYbYCcSgvp",
+      "target": "s:13PKTestSupport22MockPersistenceServiceC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC21recordProviderRequest6turnID15modelRoundIndex11correlation3nowy10Foundation4UUIDV_Si13PositronicKit15TurnCorrelationVSgAI4DateVtYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -49751,26 +49846,6 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC6agentsSay11PKContracts5AgentVGvp",
       "target": "s:13PKTestSupport22MockPersistenceServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC7recover10timelineID3now13PositronicKit18TurnRecoveryResultO10Foundation4UUIDV_AJ4DateVtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP7recover10timelineID3nowAA18TurnRecoveryResultO10Foundation4UUIDV_AI4DateVtYaKF",
-        "displayName": "TimelineRuntimeRepository.recover(timelineID:now:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC8failTurn6turnID7message3now13PositronicKit0G6RecordV10Foundation4UUIDV_SSAK4DateVtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP8failTurn6turnID7message3nowAA0G6RecordV10Foundation4UUIDV_SSAJ4DateVtYaKF",
-        "displayName": "TimelineRuntimeRepository.failTurn(turnID:message:now:)"
-      }
     },
     {
       "module": "PKTestSupport",
@@ -49897,8 +49972,8 @@
       "target": "s:13PKTestSupport23MockTimelinePersistenceC"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport24AdversarialPathGeneratorO5paths5count4seedSaySSGSi_s6UInt64VtFZ",
       "target": "s:13PKTestSupport24AdversarialPathGeneratorO"
     },
@@ -50269,20 +50344,20 @@
       "target": "s:13PKTestSupport26FailingTimelinePersistenceC"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport26GenerativeRegressionCorpusO13jsonDocumentsSaySSGvpZ",
       "target": "s:13PKTestSupport26GenerativeRegressionCorpusO"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport26GenerativeRegressionCorpusO16adversarialPathsSaySSGvpZ",
       "target": "s:13PKTestSupport26GenerativeRegressionCorpusO"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport26GenerativeRegressionCorpusO18streamingDocumentsSaySSGvpZ",
       "target": "s:13PKTestSupport26GenerativeRegressionCorpusO"
     },
@@ -50399,34 +50474,34 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run10staleAfter04makeE0ySd_13PositronicKit0cdE0_pyYaKYCXEtYaKFZ",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run04makeE0y13PositronicKit0cdE0_pyYaKYCXE_tYaKFZ",
       "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport9SeededRNGV11nextElementyxSayxGlF",
       "target": "s:13PKTestSupport9SeededRNGV"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport9SeededRNGV4nexts6UInt64VyF",
+      "target": "s:13PKTestSupport9SeededRNGV",
       "sourceOrigin": {
-        "displayName": "RandomNumberGenerator.next()",
-        "identifier": "s:SG4nexts6UInt64VyF"
-      },
-      "target": "s:13PKTestSupport9SeededRNGV"
+        "identifier": "s:SG4nexts6UInt64VyF",
+        "displayName": "RandomNumberGenerator.next()"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport9SeededRNGV4seedACs6UInt64V_tcfc",
       "target": "s:13PKTestSupport9SeededRNGV"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport9SeededRNGV7nextInt10upperBoundS2i_tF",
       "target": "s:13PKTestSupport9SeededRNGV"
     },
@@ -50820,6 +50895,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnRecordV10quarantineAA0C10QuarantineVSgvp",
+      "target": "s:13PositronicKit10TurnRecordV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit10TurnRecordV10timelineID10Foundation4UUIDVvp",
       "target": "s:13PositronicKit10TurnRecordV"
     },
@@ -50844,6 +50925,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnRecordV13isQuarantinedSbvp",
+      "target": "s:13PositronicKit10TurnRecordV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit10TurnRecordV13retryRelationAA0c5RetryF0VSgvp",
       "target": "s:13PositronicKit10TurnRecordV"
     },
@@ -50857,18 +50944,6 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10TurnRecordV15capturedAgentID10Foundation4UUIDVSgvp",
-      "target": "s:13PositronicKit10TurnRecordV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10TurnRecordV15recoveryMessageSSSgvp",
-      "target": "s:13PositronicKit10TurnRecordV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10TurnRecordV16requiresRecoverySbvp",
       "target": "s:13PositronicKit10TurnRecordV"
     },
     {
@@ -50908,7 +50983,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation16requiresRecovery15recoveryMessage14terminalHandle015terminalMessageG09createdAt9updatedAtAC11PKContracts0C8IdentityV_10Foundation4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAZSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgSbSSSgAA0C14TerminalHandleVSgA3_AX4DateVA24_tcfc",
+      "source": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation10quarantine14terminalHandle0y7MessageG09createdAt9updatedAtAC11PKContracts0C8IdentityV_10Foundation4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAYSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgAA0C10QuarantineVSgAA0c8TerminalZ0VSgA2_AW4DateVA25_tcfc",
       "target": "s:13PositronicKit10TurnRecordV"
     },
     {
@@ -51674,6 +51749,34 @@
         "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc",
         "displayName": "RawRepresentable.init(rawValue:)"
       }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit14TurnQuarantineV4fromACs7Decoder_p_tKcfc",
+      "target": "s:13PositronicKit14TurnQuarantineV",
+      "sourceOrigin": {
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit14TurnQuarantineV6reason9createdAtACSS_10Foundation4DateVtcfc",
+      "target": "s:13PositronicKit14TurnQuarantineV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit14TurnQuarantineV6reasonSSvp",
+      "target": "s:13PositronicKit14TurnQuarantineV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit14TurnQuarantineV9createdAt10Foundation4DateVvp",
+      "target": "s:13PositronicKit14TurnQuarantineV"
     },
     {
       "module": "PositronicKit",
@@ -53378,44 +53481,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit18TurnRecoveryResultO08noActiveC0yA2CmF",
-      "target": "s:13PositronicKit18TurnRecoveryResultO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit18TurnRecoveryResultO16recoveryRequiredyAcA0C6RecordVcACmF",
-      "target": "s:13PositronicKit18TurnRecoveryResultO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit18TurnRecoveryResultO4fromACs7Decoder_p_tKcfc",
-      "target": "s:13PositronicKit18TurnRecoveryResultO",
-      "sourceOrigin": {
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
-        "displayName": "Decodable.init(from:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit18TurnRecoveryResultO6activeyAcA0C6RecordVcACmF",
-      "target": "s:13PositronicKit18TurnRecoveryResultO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit18TurnRecoveryResultO6encode2toys7Encoder_p_tKF",
-      "target": "s:13PositronicKit18TurnRecoveryResultO",
-      "sourceOrigin": {
-        "identifier": "s:SE6encode2toys7Encoder_p_tKF",
-        "displayName": "Encodable.encode(to:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit18TurnTerminalHandleV2id10Foundation4UUIDVvp",
       "target": "s:13PositronicKit18TurnTerminalHandleV"
     },
@@ -53516,6 +53581,44 @@
         "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
         "displayName": "Decodable.init(from:)"
       }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit19TurnInterruptResultO11interruptedyAcA0C6RecordVcACmF",
+      "target": "s:13PositronicKit19TurnInterruptResultO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit19TurnInterruptResultO15alreadyTerminalyAcA0C6RecordVcACmF",
+      "target": "s:13PositronicKit19TurnInterruptResultO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit19TurnInterruptResultO4fromACs7Decoder_p_tKcfc",
+      "target": "s:13PositronicKit19TurnInterruptResultO",
+      "sourceOrigin": {
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit19TurnInterruptResultO6encode2toys7Encoder_p_tKF",
+      "target": "s:13PositronicKit19TurnInterruptResultO",
+      "sourceOrigin": {
+        "identifier": "s:SE6encode2toys7Encoder_p_tKF",
+        "displayName": "Encodable.encode(to:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit19TurnInterruptResultO6recordAA0C6RecordVvp",
+      "target": "s:13PositronicKit19TurnInterruptResultO"
     },
     {
       "module": "PositronicKit",
@@ -54080,24 +54183,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit22ForceClearConfirmationV14requiredPhraseSSvpZ",
-      "target": "s:13PositronicKit22ForceClearConfirmationV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit22ForceClearConfirmationV6phraseACSS_tcfc",
-      "target": "s:13PositronicKit22ForceClearConfirmationV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit22ForceClearConfirmationV6phraseSSvp",
-      "target": "s:13PositronicKit22ForceClearConfirmationV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit22TimelineDeletionResultV10isCompleteSbvp",
       "target": "s:13PositronicKit22TimelineDeletionResultV"
     },
@@ -54500,6 +54585,18 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit24TurnInterruptDispositionO11quarantinedyACSScACmF",
+      "target": "s:13PositronicKit24TurnInterruptDispositionO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit24TurnInterruptDispositionO9retryableyA2CmF",
+      "target": "s:13PositronicKit24TurnInterruptDispositionO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit24WorkspaceResolverFactoryO11makeDefault13workspaceRoot0H5Store17bindingRepository0H7CreatorAA0cD0_p10Foundation3URLV_AA0cJ0_pAA0c7BindingL0_pSgAA0cE0_ptFZ",
       "target": "s:13PositronicKit24WorkspaceResolverFactoryO"
     },
@@ -54522,6 +54619,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE10cancelTurn6turnID6reason3nowAA0G6RecordV10Foundation4UUIDV_SSSgAJ4DateVtYaKF",
+      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE12completeTurn6turnID7outcome12finalMessage14terminalHandleAA0G6RecordV10Foundation4UUIDV_AA0G7OutcomeOAA0cL0VSgAA0g8TerminalN0VSgtYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
@@ -54535,6 +54638,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE21recordProviderRequest6turnID15modelRoundIndex11correlationy10Foundation4UUIDV_SiAA15TurnCorrelationVSgtYaKF",
+      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE8failTurn6turnID7message3nowAA0G6RecordV10Foundation4UUIDV_SSAJ4DateVtYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
     {
@@ -54994,6 +55103,24 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit29QuarantineReleaseConfirmationV14requiredPhraseSSvpZ",
+      "target": "s:13PositronicKit29QuarantineReleaseConfirmationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit29QuarantineReleaseConfirmationV6phraseACSS_tcfc",
+      "target": "s:13PositronicKit29QuarantineReleaseConfirmationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit29QuarantineReleaseConfirmationV6phraseSSvp",
+      "target": "s:13PositronicKit29QuarantineReleaseConfirmationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO012finalMessageC8MismatchyAC10Foundation4UUIDV_A2GtcACmF",
       "target": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO"
     },
@@ -55044,12 +55171,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO16recoveryRequiredyAC10Foundation4UUIDV_AGtcACmF",
-      "target": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO16timelineNotFoundyAC10Foundation4UUIDVcACmF",
       "target": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO"
     },
@@ -55087,6 +55208,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO19idempotencyConflictyAC10Foundation4UUIDV_tcACmF",
+      "target": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO19timelineQuarantinedyAC10Foundation4UUIDV_AGtcACmF",
       "target": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO"
     },
     {
@@ -55234,32 +55361,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC10cancelTurn6turnID6reason3nowAA0I6RecordV10Foundation4UUIDV_SSSgAJ4DateVtYaKF",
-      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP10cancelTurn6turnID6reason3nowAA0G6RecordV10Foundation4UUIDV_SSSgAJ4DateVtYaKF",
-        "displayName": "TimelineRuntimeRepository.cancelTurn(turnID:reason:now:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC10forceClear10timelineID12confirmation3nowAA10TurnRecordVSg10Foundation4UUIDV_AA05ForceI12ConfirmationVAK4DateVtYaKF",
-      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP10forceClear10timelineID12confirmation3nowAA10TurnRecordVSg10Foundation4UUIDV_AA05ForceG12ConfirmationVAK4DateVtYaKF",
-        "displayName": "TimelineRuntimeRepository.forceClear(timelineID:confirmation:now:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC10staleAfter9isDurableACSd_Sbtcfc",
-      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC10timelineID3for10Foundation4UUIDVSgAH_tYaKF",
       "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
       "sourceOrigin": {
@@ -55330,11 +55431,11 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC13interruptTurn6turnID6reason5force3nowAA0I6RecordV10Foundation4UUIDV_SSSbAK4DateVtYaKF",
+      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC13interruptTurn6turnID6reason11disposition3nowAA0I15InterruptResultO10Foundation4UUIDV_SSAA0iO11DispositionOAK4DateVtYaKF",
       "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP13interruptTurn6turnID6reason5force3nowAA0G6RecordV10Foundation4UUIDV_SSSbAK4DateVtYaKF",
-        "displayName": "TimelineRuntimeRepository.interruptTurn(turnID:reason:force:now:)"
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP13interruptTurn6turnID6reason11disposition3nowAA0G15InterruptResultO10Foundation4UUIDV_SSAA0gM11DispositionOAK4DateVtYaKF",
+        "displayName": "TimelineRuntimeRepository.interruptTurn(turnID:reason:disposition:now:)"
       }
     },
     {
@@ -55490,6 +55591,16 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC17releaseQuarantine10timelineID04turnK012confirmation3nowAA10TurnRecordV10Foundation4UUIDV_AmA0I19ReleaseConfirmationVAK4DateVtYaKF",
+      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP17releaseQuarantine10timelineID04turnI012confirmation3nowAA10TurnRecordV10Foundation4UUIDV_AmA0G19ReleaseConfirmationVAK4DateVtYaKF",
+        "displayName": "TimelineRuntimeRepository.releaseQuarantine(timelineID:turnID:confirmation:now:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC21recordProviderRequest6turnID15modelRoundIndex11correlation3nowy10Foundation4UUIDV_SiAA15TurnCorrelationVSgAI4DateVtYaKF",
       "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
       "sourceOrigin": {
@@ -55510,16 +55621,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC7recover10timelineID3nowAA18TurnRecoveryResultO10Foundation4UUIDV_AI4DateVtYaKF",
-      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP7recover10timelineID3nowAA18TurnRecoveryResultO10Foundation4UUIDV_AI4DateVtYaKF",
-        "displayName": "TimelineRuntimeRepository.recover(timelineID:now:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC7release11workspaceID4from3nowy10Foundation4UUIDV_AjH4DateVtYaKF",
       "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
       "sourceOrigin": {
@@ -55535,16 +55636,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit26WorkspaceBindingRepositoryP8bindings3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
         "displayName": "WorkspaceBindingRepository.bindings(for:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC8failTurn6turnID7message3nowAA0I6RecordV10Foundation4UUIDV_SSAJ4DateVtYaKF",
-      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP8failTurn6turnID7message3nowAA0G6RecordV10Foundation4UUIDV_SSAJ4DateVtYaKF",
-        "displayName": "TimelineRuntimeRepository.failTurn(turnID:message:now:)"
       }
     },
     {
@@ -55576,6 +55667,12 @@
         "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP9fetchTurn2idAA0G6RecordVSg10Foundation4UUIDV_tYaKF",
         "displayName": "TimelineRuntimeRepository.fetchTurn(id:)"
       }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC9isDurableACSb_tcfc",
+      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC"
     },
     {
       "module": "PositronicKit",
@@ -55916,7 +56013,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV16workspaceProfile0F7Creator13customization17runtimeToolPolicy012toolApprovalL0018diagnosticSnapshotE0011degradationL013streamTimeoutAeA09WorkspaceG0O_AA0T7Factory_pAA0D13CustomizationVAA0dkL0V11PKContracts0knL0_pAU010DiagnosticpE0VAU015TurnDegradationL0OSdtcfc",
+      "source": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV16workspaceProfile0F7Creator13customization17runtimeToolPolicy012toolApprovalL0018diagnosticSnapshotE0011degradationL013streamTimeout24terminalCommitStallLimitAeA09WorkspaceG0O_AA0X7Factory_pAA0D13CustomizationVAA0dkL0V11PKContracts0knL0_pAV010DiagnosticpE0VAV015TurnDegradationL0OS2dtcfc",
       "target": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV"
     },
     {
@@ -55941,6 +56038,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV18toolApprovalPolicy11PKContracts04ToolgH0_pvp",
+      "target": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV24terminalCommitStallLimitSdvp",
       "target": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV"
     },
     {
@@ -56726,18 +56829,6 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP10cancelTurn6turnID6reason3nowAA0G6RecordV10Foundation4UUIDV_SSSgAJ4DateVtYaKF",
-      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP10forceClear10timelineID12confirmation3nowAA10TurnRecordVSg10Foundation4UUIDV_AA05ForceG12ConfirmationVAK4DateVtYaKF",
-      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
       "source": "s:13PositronicKit25TimelineRuntimeRepositoryP11saveSummaryyyAA0cG0VYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
@@ -56762,7 +56853,7 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP13interruptTurn6turnID6reason5force3nowAA0G6RecordV10Foundation4UUIDV_SSSbAK4DateVtYaKF",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP13interruptTurn6turnID6reason11disposition3nowAA0G15InterruptResultO10Foundation4UUIDV_SSAA0gM11DispositionOAK4DateVtYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
     {
@@ -56828,19 +56919,13 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP17releaseQuarantine10timelineID04turnI012confirmation3nowAA10TurnRecordV10Foundation4UUIDV_AmA0G19ReleaseConfirmationVAK4DateVtYaKF",
+      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "requirementOf",
       "source": "s:13PositronicKit25TimelineRuntimeRepositoryP21recordProviderRequest6turnID15modelRoundIndex11correlation3nowy10Foundation4UUIDV_SiAA15TurnCorrelationVSgAI4DateVtYaKF",
-      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP7recover10timelineID3nowAA18TurnRecoveryResultO10Foundation4UUIDV_AI4DateVtYaKF",
-      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP8failTurn6turnID7message3nowAA0G6RecordV10Foundation4UUIDV_SSAJ4DateVtYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
     {
