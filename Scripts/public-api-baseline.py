@@ -5,9 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import platform
-import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -61,39 +60,24 @@ def run(*arguments: str) -> str:
     return output
 
 
-def toolchain_version() -> str | None:
-    """Return the compiler's major.minor version, or None when it is unknown.
+def symbolgraph_extract_command() -> list[str]:
+    """Return the extractor that matches the toolchain on PATH.
 
-    ``swift package dump-symbol-graph`` output changes between compiler releases
-    (for example 6.4 emits extension-member relationships 6.3 does not), so a
-    reviewed baseline is scoped per toolchain. ``PUBLIC_API_SWIFT_VERSION``
-    overrides detection for tests.
+    The active Xcode's ``swift-symbolgraph-extract`` cannot read a
+    ``.swiftmodule`` produced by a newer toolchain installed on PATH (for
+    example the pinned Swift 6.4 release), so prefer the sibling of the
+    ``swift`` binary the gate builds with and fall back to xcrun.
     """
-    override = os.environ.get("PUBLIC_API_SWIFT_VERSION")
-    if override:
-        return override
-    try:
-        status, output = run_result("swift", "--version")
-    except FileNotFoundError:
-        return None
-    if status:
-        return None
-    match = re.search(r"Swift version ([0-9]+\.[0-9]+)", output)
-    return match.group(1) if match else None
+    swift_binary = shutil.which("swift")
+    if swift_binary:
+        candidate = Path(swift_binary).with_name("swift-symbolgraph-extract")
+        if candidate.exists():
+            return [str(candidate)]
+    return ["xcrun", "swift-symbolgraph-extract"]
 
 
-TOOLCHAIN = toolchain_version()
 PRIMARY_BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{PLATFORM}.json"
-SCOPED_BASELINE = (
-    ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{PLATFORM}-swift-{TOOLCHAIN}.json"
-    if TOOLCHAIN
-    else None
-)
-# Verify against the toolchain-scoped baseline when one is reviewed, and fall
-# back to the primary baseline for toolchains that do not have one yet.
-BASELINE = SCOPED_BASELINE if SCOPED_BASELINE and SCOPED_BASELINE.exists() else PRIMARY_BASELINE
-# Recording a change writes the scoped file for the running toolchain.
-WRITE_BASELINE = SCOPED_BASELINE or PRIMARY_BASELINE
+BASELINE = PRIMARY_BASELINE
 
 
 def public_modules() -> list[str]:
@@ -161,7 +145,7 @@ def inventory() -> dict:
             if not candidates:
                 continue
             run(
-                "xcrun", "swift-symbolgraph-extract",
+                *symbolgraph_extract_command(),
                 "-module-name", module,
                 "-I", str(candidates[0].parent),
                 "-I", str(generated_module_maps),
@@ -289,10 +273,9 @@ def main() -> int:
     args = parser.parse_args()
     actual = inventory()
     if args.write:
-        WRITE_BASELINE.parent.mkdir(parents=True, exist_ok=True)
-        WRITE_BASELINE.write_text(json.dumps(actual, indent=2, sort_keys=False) + "\n")
-        scope = f" for Swift {TOOLCHAIN}" if TOOLCHAIN else ""
-        print(f"Wrote {WRITE_BASELINE.relative_to(ROOT)} ({len(actual['symbols'])} symbols){scope}.")
+        BASELINE.parent.mkdir(parents=True, exist_ok=True)
+        BASELINE.write_text(json.dumps(actual, indent=2, sort_keys=False) + "\n")
+        print(f"Wrote {BASELINE.relative_to(ROOT)} ({len(actual['symbols'])} symbols).")
         return 0
     return check(actual)
 

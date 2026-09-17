@@ -104,6 +104,31 @@ def main() -> None:
         assert_equal(len(runtime["files"]), 1, "duplicate file merge")
         assert_equal(runtime["summary"]["lines"]["covered"], 9, "duplicate coverage merge")
 
+        partial_report = root / "partial.json"
+        partial_report.write_text(
+            json.dumps(
+                {
+                    "data": [
+                        {
+                            "files": [
+                                file_entry(str(root / "Sources/PositronicKit/Runtime.swift"), 8, 10),
+                                file_entry(str(root / "Sources/PKContracts/Contracts.swift"), 3, 5),
+                                file_entry(str(root / "Sources/PKPrompt/Prompt.swift"), 2, 4),
+                                file_entry(str(root / "Sources/PKUtilities/Utilities.swift"), 6, 8),
+                            ]
+                        }
+                    ]
+                }
+            )
+        )
+        partial = coverage.normalize(coverage.load_export(partial_report), root)
+        assert_equal(partial["omittedModules"], ["PKObservable"], "omitted module record")
+        assert_equal(
+            [module["name"] for module in partial["modules"]],
+            ["PositronicKit", "PKContracts", "PKPrompt", "PKUtilities"],
+            "present module order",
+        )
+
         alias = root / "checkout-alias"
         alias.symlink_to(root, target_is_directory=True)
         symlink_report = root / "symlink.json"
@@ -185,6 +210,42 @@ def main() -> None:
         assert_equal(result.returncode, 1, "non-matching export exit status")
         if "no source files for configured modules" not in result.stderr:
             raise AssertionError("missing module diagnostic was not reported")
+
+        unexpected_missing = root / "unexpected-missing.json"
+        unexpected_missing.write_text(
+            json.dumps(
+                {
+                    "data": [
+                        {
+                            "files": [
+                                file_entry(str(root / "Sources/PKContracts/Contracts.swift"), 3, 5),
+                                file_entry(str(root / "Sources/PKPrompt/Prompt.swift"), 2, 4),
+                                file_entry(str(root / "Sources/PKUtilities/Utilities.swift"), 6, 8),
+                                file_entry(str(root / "Sources/PKObservable/Observable.swift"), 4, 6),
+                            ]
+                        }
+                    ]
+                }
+            )
+        )
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "--raw-report",
+                str(unexpected_missing),
+                "--output-dir",
+                str(root / "unexpected-missing-reports"),
+                "--package-root",
+                str(root),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert_equal(result.returncode, 1, "unexpected missing module exit status")
+        if "PositronicKit" not in result.stderr:
+            raise AssertionError("unexpected missing module was not named")
 
     print("ok: Linux coverage report target selection, normalization, missing data, and malformed output")
 

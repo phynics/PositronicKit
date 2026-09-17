@@ -142,30 +142,27 @@ run_linux_case() {
 run_missing_swift_case
 run_case 'rejects Swift 5.10.1' \
   'Swift version 5.10.1 (swift-5.10.1-RELEASE)' \
-  1 'Swift 6.2+'
-run_case 'rejects Swift 6.1' \
-  'Swift version 6.1 (swift-6.1-RELEASE)' \
-  1 'Swift 6.2+'
-run_case 'accepts Swift 6.2' \
-  'Swift version 6.2 (swift-6.2-RELEASE)' \
-  0 'Swift: Swift version 6.2'
+  1 'Swift 6.4+'
+run_case 'rejects Swift 6.3' \
+  'Swift version 6.3 (swift-6.3-RELEASE)' \
+  1 'Swift 6.4+'
 run_case 'accepts newer Swift' \
-  'Swift version 6.3.3 (swift-6.3.3-RELEASE)' \
+  'Swift version 6.5 (swift-6.5-RELEASE)' \
   0 'SwiftPM and Foundation available'
-run_case 'accepts the qualified Swift 6.4' \
+run_case 'accepts Swift 6.4' \
   'Swift version 6.4 (swift-6.4-RELEASE)' \
   0 'Swift: Swift version 6.4'
-run_case 'accepts the qualified Swift 6.4.0' \
+run_case 'accepts Swift 6.4.0' \
   'Swift version 6.4.0 (swift-6.4-RELEASE)' \
   0 'Swift: Swift version 6.4.0'
 run_case 'rejects Swift without SwiftPM' \
-  'Swift version 6.3.3 (swift-6.3.3-RELEASE)' \
+  'Swift version 6.4.0 (swift-6.4.0-RELEASE)' \
   1 'SwiftPM is unavailable' 0 1
 run_case 'rejects Swift without Foundation' \
-  'Swift version 6.3.3 (swift-6.3.3-RELEASE)' \
+  'Swift version 6.4.0 (swift-6.4.0-RELEASE)' \
   1 'cannot import Foundation' 1 0
-run_case 'rejects empty output' '' 1 'Swift 6.2+'
-run_case 'rejects malformed output' 'not a Swift version' 1 'Swift 6.2+'
+run_case 'rejects empty output' '' 1 'Swift 6.4+'
+run_case 'rejects malformed output' 'not a Swift version' 1 'Swift 6.4+'
 run_linux_case 'Linux ignores host Swift and accepts usable Podman' \
   "$fake_podman" 1 0 'host Swift is ignored'
 run_linux_case 'Linux names the qualified Swift ceiling' \
@@ -185,7 +182,7 @@ run_linux_case 'Linux reports a sandbox-blocked Docker' \
 
 # The doctor's qualified ceiling and the CI next lane each hardcode the version,
 # so fail if they drift apart.
-ci_next="$(sed -nE 's/^[[:space:]]*SWIFT_NEXT_VERSION:[[:space:]]*"([0-9.]+)".*/\1/p' \
+ci_next="$(sed -nE 's/^[[:space:]]*SWIFT_TOOLCHAIN_VERSION:[[:space:]]*"([0-9.]+)".*/\1/p' \
   "$repo_root/.github/workflows/ci.yml" | head -n1)"
 doctor_ceiling="$(sed -nE 's/^qualified_swift_version="([0-9.]+)".*/\1/p' \
   "$repo_root/Scripts/doctor.sh" | head -n1)"

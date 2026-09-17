@@ -174,11 +174,11 @@ printf 'ok: derives the image tag and build argument from the selected Swift ver
 env -u CONTAINER_RUNTIME -u LINUX_IMAGE -u LINUX_SWIFT_VERSION \
   PATH="$build_probe" RUNTIME_BUILD_ARGS_OUT="$build_args" \
   "$bash_path" "$runner" --build-only
-if ! grep -Fx -- 'SWIFT_VERSION=6.3.3' "$build_args" >/dev/null; then
+if ! grep -Fx -- 'SWIFT_VERSION=6.4.0' "$build_args" >/dev/null; then
   printf 'FAIL: default Swift version was not applied\n' >&2
   exit 1
 fi
-if ! grep -Fx -- 'positronickit-linux-dev-6.3.3' "$build_args" >/dev/null; then
+if ! grep -Fx -- 'positronickit-linux-dev-6.4.0' "$build_args" >/dev/null; then
   printf 'FAIL: default image tag was not derived from the default version\n' >&2
   exit 1
 fi

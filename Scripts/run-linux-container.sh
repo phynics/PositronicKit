@@ -12,7 +12,7 @@ Options:
   --scratch PATH     Mount PATH at /scratch for isolated SwiftPM builds.
 
 Environment:
-  LINUX_SWIFT_VERSION  Swift toolchain baked into the image (default 6.3.3).
+  LINUX_SWIFT_VERSION  Swift toolchain baked into the image (default 6.4.0).
                        It selects the swift:<version>-noble base image via the
                        SWIFT_VERSION build argument and, unless LINUX_IMAGE is
                        set, the positronickit-linux-dev-<version> image tag.
@@ -26,8 +26,8 @@ container_runtime="${CONTAINER_RUNTIME:-}"
 # The toolchain selects both the default image tag and the swift:<version> base
 # image. Default to the current lane so a direct script run matches `make`.
 # Do not read the generic SWIFT_VERSION: the swift:<version> base images export
-# it (for example `swift-6.3.3-RELEASE`), which is not a valid version or tag.
-linux_swift_version="${LINUX_SWIFT_VERSION:-6.3.3}"
+# it (for example `swift-6.4.0-RELEASE`), which is not a valid version or tag.
+linux_swift_version="${LINUX_SWIFT_VERSION:-6.4.0}"
 linux_image="${LINUX_IMAGE:-positronickit-linux-dev-$linux_swift_version}"
 git_common_dir=""
 build_only=0
