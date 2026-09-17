@@ -152,6 +152,9 @@ run_case 'accepts newer Swift' \
 run_case 'accepts Swift 6.4' \
   'Swift version 6.4 (swift-6.4-RELEASE)' \
   0 'Swift: Swift version 6.4'
+run_case 'accepts Swift 6.4.0' \
+  'Swift version 6.4.0 (swift-6.4-RELEASE)' \
+  0 'Swift: Swift version 6.4.0'
 run_case 'rejects Swift without SwiftPM' \
   'Swift version 6.4.0 (swift-6.4.0-RELEASE)' \
   1 'SwiftPM is unavailable' 0 1
@@ -162,6 +165,8 @@ run_case 'rejects empty output' '' 1 'Swift 6.4+'
 run_case 'rejects malformed output' 'not a Swift version' 1 'Swift 6.4+'
 run_linux_case 'Linux ignores host Swift and accepts usable Podman' \
   "$fake_podman" 1 0 'host Swift is ignored'
+run_linux_case 'Linux names the qualified Swift ceiling' \
+  "$fake_podman" 1 0 '6.4.0 (next)'
 run_linux_case 'Linux names the resolved Podman runtime' \
   "$fake_podman" 1 0 'podman version 5.0.0'
 run_linux_case 'Linux accepts Docker as the container runtime' \
@@ -175,16 +180,16 @@ run_linux_case 'Linux reports a sandbox-blocked runtime' \
 run_linux_case 'Linux reports a sandbox-blocked Docker' \
   "$fake_docker" 0 1 'escalated container-runtime permissions'
 
-# The package floor and the CI lane must agree, so fail if they drift apart.
+# The doctor's qualified ceiling and the CI next lane each hardcode the version,
+# so fail if they drift apart.
 ci_next="$(sed -nE 's/^[[:space:]]*SWIFT_NEXT_VERSION:[[:space:]]*"([0-9.]+)".*/\1/p' \
   "$repo_root/.github/workflows/ci.yml" | head -n1)"
-package_floor="$(sed -nE 's|^// swift-tools-version:[[:space:]]*([0-9]+\.[0-9]+).*|\1|p' \
-  "$repo_root/Package.swift" | head -n1)"
-ci_floor="${ci_next%.*}"
-if [ -n "$ci_next" ] && [ "$package_floor" = "$ci_floor" ]; then
+doctor_ceiling="$(sed -nE 's/^qualified_swift_version="([0-9.]+)".*/\1/p' \
+  "$repo_root/Scripts/doctor.sh" | head -n1)"
+if [ -n "$ci_next" ] && [ "$ci_next" = "$doctor_ceiling" ]; then
   printf 'ok qualified-ceiling-matches-ci\n'
 else
-  printf 'FAIL toolchain-floor-matches-ci: ci=%s package=%s\n' \
-    "${ci_next:-<missing>}" "${package_floor:-<missing>}" >&2
+  printf 'FAIL qualified-ceiling-matches-ci: ci=%s doctor=%s\n' \
+    "${ci_next:-<missing>}" "${doctor_ceiling:-<missing>}" >&2
   exit 1
 fi

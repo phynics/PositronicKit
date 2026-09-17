@@ -8,6 +8,9 @@
 # Swift toolchain baked into the supported Linux development image.
 LINUX_SWIFT_VERSION ?= 6.4.0
 LINUX_IMAGE ?= positronickit-linux-dev-$(LINUX_SWIFT_VERSION)
+# `agent-test` and `linux-coverage` isolate their SwiftPM scratch per toolchain.
+# `agent-verify` and `linux-build` use the bind-mounted checkout `.build`, so
+# remove that directory before switching LINUX_SWIFT_VERSION.
 LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/agent-scratch/swift-$(LINUX_SWIFT_VERSION)
 LINUX_COVERAGE_SCRATCH_DIR ?= $(CURDIR)/.build/linux-coverage-scratch/swift-$(LINUX_SWIFT_VERSION)
 LINUX_TEST_TRAITS ?=

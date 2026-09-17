@@ -47,14 +47,16 @@ make agent-verify  # Run the full gate in the Swift 6.4.0 image
 The image uses the `swift:6.4.0-noble` base and the `positronickit-linux-dev-6.4.0` tag. Build or
 refresh it with `make linux-image`. Compile in it with `make linux-build`.
 
-The supported lane uses one SwiftPM scratch directory. `agent-test`, `agent-verify`, and
-`linux-coverage` all use the Swift 6.4.0 build state; remove `.build` after changing build options
+The supported lane uses one Swift 6.4.0 build state; remove `.build` after changing build options
 or dependencies so stale modules cannot survive a rebuild.
 
-The `api/` public-symbol baselines are keyed by release and platform. The 5.1 Linux baseline is
-reviewed under Swift 6.4; Swift 6.4 emits extension-member relationships and reports graph output
-under `.build/out`. `make update-public-api-baseline` records an intentional change to the primary
-platform baseline.
+The `api/` public-symbol baselines are keyed by release, platform, and compiler major.minor.
+`make verify-public-api` prefers the reviewed toolchain-scoped file
+(`<release>-public-api-<platform>-swift-<X.Y>.json`) and falls back to the primary
+`<release>-public-api-<platform>.json` when no scoped file exists. Swift 6.4 emits
+extension-member relationships that 6.3 does not (and reports its graph output under `.build/out`),
+so the 5.1 Linux surface carries both a primary and a scoped 6.4 baseline.
+`make update-public-api-baseline` records an intentional change for the running toolchain.
 
 The supported toolchain is the version declared by `swift-tools-version` in `Package.swift`, which
 `make doctor` reads. CI keeps one lane per platform at that version, and
