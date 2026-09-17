@@ -39,6 +39,10 @@ private struct StreamOnlyLLMClient: LLMStreamClient {
 // This target is intentionally small: its job is to prove that every public library
 // product remains consumable through ordinary imports, without @testable access.
 _ = String(describing: PKRuntime.self)
+// SE-0491 module selectors (ADR 0012): the docs-snippet gate type-checks the shadowed
+// spelling, and this proves the same selector resolves to the shipped facade from a
+// downstream consumer that imports PositronicKit normally.
+_ = String(describing: PositronicKit::PKRuntime.self)
 _ = String(describing: (any Prompt).self)
 _ = String(describing: Message.self)
 _ = String(describing: TimelineRecord.self)
