@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -37,7 +39,6 @@ def target_release() -> str:
 
 
 BASELINE_RELEASE = target_release()
-BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{PLATFORM}.json"
 
 
 def run_result(*arguments: str) -> tuple[int, str]:
@@ -58,6 +59,41 @@ def run(*arguments: str) -> str:
         print(output, end="", file=sys.stderr)
         raise SystemExit(status)
     return output
+
+
+def toolchain_version() -> str | None:
+    """Return the compiler's major.minor version, or None when it is unknown.
+
+    ``swift package dump-symbol-graph`` output changes between compiler releases
+    (for example 6.4 emits extension-member relationships 6.3 does not), so a
+    reviewed baseline is scoped per toolchain. ``PUBLIC_API_SWIFT_VERSION``
+    overrides detection for tests.
+    """
+    override = os.environ.get("PUBLIC_API_SWIFT_VERSION")
+    if override:
+        return override
+    try:
+        status, output = run_result("swift", "--version")
+    except FileNotFoundError:
+        return None
+    if status:
+        return None
+    match = re.search(r"Swift version ([0-9]+\.[0-9]+)", output)
+    return match.group(1) if match else None
+
+
+TOOLCHAIN = toolchain_version()
+PRIMARY_BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{PLATFORM}.json"
+SCOPED_BASELINE = (
+    ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{PLATFORM}-swift-{TOOLCHAIN}.json"
+    if TOOLCHAIN
+    else None
+)
+# Verify against the toolchain-scoped baseline when one is reviewed, and fall
+# back to the primary baseline for toolchains that do not have one yet.
+BASELINE = SCOPED_BASELINE if SCOPED_BASELINE and SCOPED_BASELINE.exists() else PRIMARY_BASELINE
+# Recording a change writes the scoped file for the running toolchain.
+WRITE_BASELINE = SCOPED_BASELINE or PRIMARY_BASELINE
 
 
 def public_modules() -> list[str]:
@@ -220,7 +256,10 @@ def check(actual: dict) -> int:
         json.dumps(relationship, sort_keys=True)
         for relationship in actual["relationships"]
     }
-    print(f"Public API differs from the reviewed {BASELINE_RELEASE} baseline.", file=sys.stderr)
+    print(
+        f"Public API differs from the reviewed baseline {BASELINE.relative_to(ROOT)}.",
+        file=sys.stderr,
+    )
     for heading, identifiers, source in (
         ("removed", removed, expected_symbols),
         ("added", added, actual_symbols),
@@ -250,9 +289,10 @@ def main() -> int:
     args = parser.parse_args()
     actual = inventory()
     if args.write:
-        BASELINE.parent.mkdir(parents=True, exist_ok=True)
-        BASELINE.write_text(json.dumps(actual, indent=2, sort_keys=False) + "\n")
-        print(f"Wrote {BASELINE.relative_to(ROOT)} ({len(actual['symbols'])} symbols).")
+        WRITE_BASELINE.parent.mkdir(parents=True, exist_ok=True)
+        WRITE_BASELINE.write_text(json.dumps(actual, indent=2, sort_keys=False) + "\n")
+        scope = f" for Swift {TOOLCHAIN}" if TOOLCHAIN else ""
+        print(f"Wrote {WRITE_BASELINE.relative_to(ROOT)} ({len(actual['symbols'])} symbols){scope}.")
         return 0
     return check(actual)
 

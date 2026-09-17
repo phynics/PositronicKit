@@ -1,4 +1,8 @@
-FROM swift:6.3.3-noble
+# The base toolchain is selectable so the pinned image can track the current
+# Swift lane and the next qualified lane without a second Dockerfile.
+#   docker build --build-arg SWIFT_VERSION=6.4 -f .devcontainer/Dockerfile .
+ARG SWIFT_VERSION=6.3.3
+FROM swift:${SWIFT_VERSION}-noble
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \

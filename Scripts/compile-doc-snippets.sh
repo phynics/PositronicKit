@@ -10,14 +10,22 @@
 #
 # Snippets that intentionally use undefined identifiers for brevity get a
 # bindable stub from a generated prelude (`kit`, `myLanguageModel`,
-# `myRuntimeRepository`, ...). A block that is deliberately illustrative instead
-# of compilable opts out with the greppable fence marker:
+# `myRuntimeRepository`, `provider`, ...). A block that is deliberately
+# illustrative instead of compilable opts out with the greppable fence marker:
 #
 #     ```swift skip
 #
 # Skipped blocks still go through the cheap `swiftc -parse` syntax pass, so the
 # escape hatch narrows the gate rather than disabling it. Like this script, it
 # is a syntax-only check and does not resolve imports.
+#
+# A guide that documents main-actor UI helpers (`TimelineController`, ...) opts
+# into a main-actor wrapper with the greppable fence marker:
+#
+#     ```swift main-actor
+#
+# Every other block keeps the nonisolated wrapper, so the gate stays as strict
+# as the code most readers paste into a nonisolated `async` function or actor.
 #
 # The canonical construction / run / event-handling shapes in docs/Usage.md are
 # also mirrored into `PositronicKitExamples` (`make verify-examples`); this gate
