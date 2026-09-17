@@ -414,3 +414,44 @@ Runtime and request-scoped tools remain separate from `call_tool`; callers canno
 with that reserved name. PKTool intent/result records and successful tool events retain the resolved
 Workspace ID and whether routing was explicit or implicit, including failed and persistence-failed
 events. Ambiguous matches also append a durable `ambiguousWorkspaceTool` TurnNotice for hosts.
+
+## Name collisions
+
+PositronicKit's public names resolve under an ordinary import, with no disambiguation required for
+the library's own surface. The facade is `PKRuntime`, durable history uses the `Timeline*` family,
+and the executable contract is `PKTool`, so the old clash where the `PositronicKit` module also
+exported a `PositronicKit` type is gone (ADR 0008). No first-party spelling forces a selector today.
+
+When one of your own declarations or another dependency already owns a name, Swift 6.4 module
+selectors (SE-0491) name the module a declaration comes from. A selector is written `Module::Name`;
+it reads through an enclosing shadow, starts lookup at the module's top level, and provides the
+disambiguation that a selective `import` would otherwise carry — for example the platform name
+`Foundation::Thread` when a domain type uses the same name. Every consumer of this release has a
+Swift 6.4 toolchain (ADR 0011), so the syntax is always available.
+
+```swift
+import Foundation
+import PositronicKit
+
+// Your own declaration can shadow an imported name. This local `Date` shadows
+// the Foundation `Date`, so the selector reaches the imported declaration.
+struct Date {
+    let label: String
+}
+
+let referenceDate = Foundation::Date(timeIntervalSince1970: 0)
+
+// The same spelling reaches a PositronicKit declaration behind a local shadow.
+// Without `PositronicKit::`, this initializer binds to the local type instead.
+struct PKRuntime {
+    let label: String
+}
+
+let facade = PositronicKit::PKRuntime(languageModel: myLLM)
+_ = facade.model
+```
+
+Module selectors are an escape hatch, not a naming substitute. Prefer a distinct local name, and
+reach for a selector only when you do not control the colliding declaration; an API that forces
+clients to use one should be renamed instead. PositronicKit keeps its collision-free names for that
+reason, so module selectors do not lower the bar for future renames (ADR 0012).

@@ -282,6 +282,10 @@ for tagged releases beginning with `1.0.0`.
   (`Scripts/detect-flaky-tests.py`, `make detect-flakes`). Four `.serialized` markers that
   only compensated for shared fixed `/tmp` workspace roots were removed with the roots;
   every remaining marker carries a comment stating its real ordering requirement.
+- **Module selector guidance (SE-0491, #198):** `docs/Usage.md` gains a "Name collisions" section
+  that documents `Module::Name` for a consumer name that shadows an imported declaration, with a
+  type-checked `PositronicKit::` / `Foundation::` snippet. ADR 0012 records that selectors are an
+  escape hatch for names the package does not control and do not lower the bar for renames.
 
 ## [5.1.0] - 2026-09-08
 
