@@ -122,17 +122,6 @@ jobs:
       - name: Install SwiftLint
         run: brew install swiftlint
 
-      # TEMPORARY: regenerate the macOS 6.4 public API baseline for review.
-      - name: Regenerate macOS public API baseline
-        run: make update-public-api-baseline
-
-      - name: Upload regenerated macOS baseline
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: macos-api-baseline
-          path: api/
-
       - name: Verify macOS gate (make verify)
         run: |
           mkdir -p .build
