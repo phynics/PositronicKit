@@ -67,17 +67,17 @@ import Testing
     /// `GenerationSchema`/`GeneratedContent`, and back again for argument decoding.
     @Suite("FoundationModels tool bridge")
     struct FoundationModelsToolBridgeTests {
+        @available(anyAppleOS 26.0, *)
         @Test("Bridged tool exposes the wrapped tool's id and description")
         func bridgedToolExposesIdentity() {
-            guard #available(anyAppleOS 26.0, *) else { return }
             let bridged = PKBridgedFMTool(wrapped: AnyTool(FixtureWeatherTool()))
             #expect(bridged.name == "lookup_weather")
             #expect(bridged.description == "Look up the current weather for a city")
         }
 
+        @available(anyAppleOS 26.0, *)
         @Test("Bridged tool's parameters schema builds without throwing")
         func bridgedToolBuildsSchema() {
-            guard #available(anyAppleOS 26.0, *) else { return }
             let bridged = PKBridgedFMTool(wrapped: AnyTool(FixtureWeatherTool()))
             // Accessing `.parameters` exercises `GenerationSchema(root:dependencies:)`; a bad
             // bridge would either throw (caught, falls back to empty-object) or crash. Reaching
@@ -85,9 +85,9 @@ import Testing
             _ = bridged.parameters
         }
 
+        @available(anyAppleOS 26.0, *)
         @Test("call(arguments:) decodes typed properties and executes the wrapped tool")
         func callDecodesArgumentsAndExecutes() async throws {
-            guard #available(anyAppleOS 26.0, *) else { return }
             let bridged = PKBridgedFMTool(wrapped: AnyTool(FixtureWeatherTool()))
             let arguments = GeneratedContent(
                 properties: ["city": "Berlin", "days": 3]
@@ -97,9 +97,9 @@ import Testing
             #expect(output == "weather for Berlin days=3")
         }
 
+        @available(anyAppleOS 26.0, *)
         @Test("call(arguments:) with only the required property omits the optional one")
         func callDecodesOnlyProvidedProperties() async throws {
-            guard #available(anyAppleOS 26.0, *) else { return }
             let bridged = PKBridgedFMTool(wrapped: AnyTool(FixtureWeatherTool()))
             let arguments = GeneratedContent(properties: ["city": "Paris"])
 
@@ -107,9 +107,9 @@ import Testing
             #expect(output == "weather for Paris days=nil")
         }
 
+        @available(anyAppleOS 26.0, *)
         @Test("A failing tool's error is returned as text, not thrown (model can see and adjust)")
         func failingToolReturnsErrorAsText() async throws {
-            guard #available(anyAppleOS 26.0, *) else { return }
             let bridged = PKBridgedFMTool(wrapped: AnyTool(FixtureFailingTool()))
             let arguments = GeneratedContent(properties: [:] as KeyValuePairs<String, any ConvertibleToGeneratedContent>)
 
