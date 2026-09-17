@@ -10,6 +10,6 @@ _ = Message.fixture(content: "consumer")
 _ = MockToolCall(id: "call-1", name: "echo")
 _ = GenerationStreamResultFactory.textChunk("ok")
 
-try await TimelineRuntimeRepositoryConformanceSuite.run(staleAfter: 1) {
-    InMemoryTimelineRuntimeRepository(staleAfter: 1)
+try await TimelineRuntimeRepositoryConformanceSuite.run {
+    InMemoryTimelineRuntimeRepository()
 }

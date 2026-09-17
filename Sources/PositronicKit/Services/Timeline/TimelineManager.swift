@@ -223,6 +223,12 @@ actor TimelineManager {
         await taskRegistry.hasActiveTurn(for: timelineID)
     }
 
+    /// The Turn this process is currently driving for the timeline, or `nil` when no task is
+    /// registered. Liveness classification uses this to tell an in-process Turn from an orphan.
+    func activeTurnID(for timelineID: UUID) async -> UUID? {
+        await taskRegistry.activeTurnID(for: timelineID)
+    }
+
     /// Rejects authority-changing operations while a Turn still owns this Timeline's execution
     /// context. Reads remain available. The durable repository is authoritative.
     func requireExecutionContextMutable(for timelineID: UUID) async throws {
@@ -383,6 +389,13 @@ extension TimelineManager {
     func invalidateTimelineLiveness(for timelineID: UUID) {
         timelineLivenessVersions[timelineID] = (timelineLivenessVersions[timelineID] ?? 0) &+ 1
         timelinesBeingPermanentlyDeleted.insert(timelineID)
+    }
+
+    /// Advances the timeline's liveness version without marking it permanently deleted. Eviction
+    /// uses this to reject in-flight mutations against a Timeline whose cache is being torn down
+    /// while still allowing the Timeline to be hydrated again later.
+    func bumpTimelineLiveness(for timelineID: UUID) {
+        timelineLivenessVersions[timelineID] = (timelineLivenessVersions[timelineID] ?? 0) &+ 1
     }
 
     /// Closes a deletion epoch. Advancing again prevents operations that captured the in-progress

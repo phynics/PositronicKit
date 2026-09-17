@@ -10,6 +10,25 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Runtime-owned Turn liveness and terminal finalization (ADR 0010, #207):** terminal commits run
+  in a runtime-owned `TurnFinalizer` instead of the cancelled Turn task, so cancelling a Turn no
+  longer risks an ambiguous durable outcome and a host store that hangs mid-commit cannot stall
+  Timeline eviction. `TimelineRuntimeRepository` narrows to
+  `completeTurn(turnID:outcome:finalMessage:terminalHandle:now:)`,
+  `interruptTurn(turnID:reason:disposition:now:)`, and
+  `releaseQuarantine(timelineID:turnID:confirmation:now:)`; `recover`, `forceClear`, the
+  `interruptTurn(force:)` flag, and the required `failTurn`/`cancelTurn` members are removed.
+  `failTurn` and `cancelTurn` remain as conveniences over `completeTurn`.
+  `TurnRecord.requiresRecovery`/`recoveryMessage` become `TurnRecord.quarantine`,
+  `TurnRecoveryResult` and `ForceClearConfirmation` are replaced by `TurnInterruptResult`,
+  `TurnInterruptDisposition`, and `QuarantineReleaseConfirmation`, and
+  `TimelineRuntimeRepositoryError.recoveryRequired` becomes `.timelineQuarantined`. The in-memory
+  repository's `staleAfter` initializer argument is removed, admission now classifies an
+  unowned-or-stalled active Turn against `RuntimeConfiguration.terminalCommitStallLimit`
+  (default 300 seconds) and interrupts it, and
+  `TimelineRuntimeRepositoryConformanceSuite.run` drops its `staleAfter` parameter in favor of
+  interrupt-disposition, first-writer-wins, and quarantine-release scenarios.
+
 - **Public naming hard cut (#156):** the runtime facade is now `PKRuntime`; the provider factory
   namespaces are `PKOpenAI`, `PKOpenRouter`, `PKOllama`, and `PKAnthropic`; the durable history
   family is `TimelineRecord`/`TimelineHandle`/`TimelineCapability`; and the executable contract is

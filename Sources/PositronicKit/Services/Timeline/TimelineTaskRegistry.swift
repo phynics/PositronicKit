@@ -48,9 +48,10 @@ actor TimelineTaskRegistry {
         active.removeValue(forKey: timelineID)
     }
 
-    /// Cancels any active task for the timeline and awaits its termination (bounded cleanup
-    /// for eviction/deletion). The task's own cancellation handling (stream timeout,
-    /// `Task.checkCancellation` checkpoints) bounds how long this awaits.
+    /// Cancels any active task for the timeline and awaits its termination for
+    /// eviction/deletion. The wait is bounded by the Turn task's own cancellation handling
+    /// (stream timeout, `Task.checkCancellation` checkpoints); the terminal commit runs in the
+    /// runtime-owned ``TurnFinalizer``, so a hung store commit never extends this wait (ADR 0010).
     func cancelAndAwait(for timelineID: UUID) async {
         guard let current = active[timelineID] else { return }
         current.task.cancel()
@@ -66,5 +67,11 @@ actor TimelineTaskRegistry {
     /// Whether a send is currently active for the timeline.
     func hasActiveTurn(for timelineID: UUID) -> Bool {
         active[timelineID] != nil
+    }
+
+    /// The Turn this process is currently driving for the timeline, or `nil` when no task is
+    /// registered. Liveness classification uses this to tell an in-process Turn from an orphan.
+    func activeTurnID(for timelineID: UUID) -> UUID? {
+        active[timelineID]?.turnID
     }
 }

@@ -104,6 +104,16 @@ assistant message with its outcome. History is append-only; state changes are re
 durable facts, not edits to earlier entries. Pending tool-call and partial assistant rows are
 intermediate recovery records and remain separate from the normal terminal message boundary.
 
+Terminal finalization is runtime-owned (ADR 0010). The Turn loop hands its terminal decision and a
+snapshot of partial output to a `TurnFinalizer`, which commits the outcome, runs the sinks, and
+emits the terminal event, serialized per Timeline. Because the finalizer is not the cancelled Turn
+task, cancelling a Turn cannot cancel its commit, and a host store that hangs during the commit
+bounds how long the Timeline stays busy, not how long eviction takes. Liveness is in-process: the
+runtime assumes one process owns a repository at a time, classifies an active Turn it does not own
+as an orphan, interrupts a commit that has stayed pending past
+`RuntimeConfiguration.terminalCommitStallLimit`, and quarantines a Timeline only when an unresolved
+side-effecting tool intent makes a blind retry unsafe.
+
 `PKRuntime.PersistenceConfiguration` requires the cohesive repository and accepts the remaining
 stores. The in-memory configuration implements the same contracts for tests and prototypes. The
 runtime has no independent Timeline/message-store Turn path, so admission, history, replay, and

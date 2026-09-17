@@ -29,6 +29,7 @@ public final class MockPersistenceService: TimelineRuntimeRepository, WorkspaceS
         var mockIsDurable = false
         var fetchTimelineFails = false
         var completeTurnFails = false
+        var completeTurnBlocker: (@Sendable () async -> Void)?
         var unorderedMessagesForTimelineID: UUID?
         var deletedMessageTimelineIDs: Set<UUID> = []
         var saveMessageFailureAfter: Int?
@@ -82,6 +83,14 @@ public final class MockPersistenceService: TimelineRuntimeRepository, WorkspaceS
     public var completeTurnFails: Bool {
         get { state.withLock { $0.completeTurnFails } }
         set { state.withLock { $0.completeTurnFails = newValue } }
+    }
+
+    /// Parks a terminal commit until the test releases it. `completeTurn` awaits the closure before
+    /// committing, so a test can hold a commit open and prove Timeline eviction is not blocked by a
+    /// hung host store (ADR 0010).
+    public var completeTurnBlocker: (@Sendable () async -> Void)? {
+        get { state.withLock { $0.completeTurnBlocker } }
+        set { state.withLock { $0.completeTurnBlocker = newValue } }
     }
 
     /// Package-only test control that reverses fetched messages for one fixture Timeline to prove
@@ -485,8 +494,14 @@ extension MockPersistenceService {
     public func fetchToolResults(turnID: UUID) async throws -> [RuntimeToolResult] { recordPersistenceAccess(); return try await turnRuntime.fetchToolResults(turnID: turnID) }
     public func completeTurn(turnID: UUID, outcome: TurnOutcome, finalMessage: TimelineMessage?, terminalHandle: TurnTerminalHandle?, now: Date) async throws -> TurnRecord {
         defer { recordPersistenceAccess() }
-        if state.withLock({ $0.completeTurnFails }) {
+        // The injection targets the terminal completion path only. A failed/cancelled/interrupted
+        // outcome still commits, so `failTurn`/`cancelTurn` convenience paths and the retry
+        // linkage scenario keep working while the completion scenario observes the failure.
+        if case .completed = outcome, state.withLock({ $0.completeTurnFails }) {
             throw FailingStoreError.saveFailed
+        }
+        if let blocker = state.withLock({ $0.completeTurnBlocker }) {
+            await blocker()
         }
         let record = try await turnRuntime.completeTurn(
             turnID: turnID,
@@ -503,11 +518,8 @@ extension MockPersistenceService {
         }
         return record
     }
-    public func failTurn(turnID: UUID, message: String, now: Date) async throws -> TurnRecord { recordPersistenceAccess(); return try await turnRuntime.failTurn(turnID: turnID, message: message, now: now) }
-    public func cancelTurn(turnID: UUID, reason: String?, now: Date) async throws -> TurnRecord { recordPersistenceAccess(); return try await turnRuntime.cancelTurn(turnID: turnID, reason: reason, now: now) }
-    public func interruptTurn(turnID: UUID, reason: String, force: Bool, now: Date) async throws -> TurnRecord { recordPersistenceAccess(); return try await turnRuntime.interruptTurn(turnID: turnID, reason: reason, force: force, now: now) }
-    public func recover(timelineID: UUID, now: Date) async throws -> TurnRecoveryResult { recordPersistenceAccess(); return try await turnRuntime.recover(timelineID: timelineID, now: now) }
-    public func forceClear(timelineID: UUID, confirmation: ForceClearConfirmation, now: Date) async throws -> TurnRecord? { recordPersistenceAccess(); return try await turnRuntime.forceClear(timelineID: timelineID, confirmation: confirmation, now: now) }
+    public func interruptTurn(turnID: UUID, reason: String, disposition: TurnInterruptDisposition, now: Date) async throws -> TurnInterruptResult { recordPersistenceAccess(); return try await turnRuntime.interruptTurn(turnID: turnID, reason: reason, disposition: disposition, now: now) }
+    public func releaseQuarantine(timelineID: UUID, turnID: UUID, confirmation: QuarantineReleaseConfirmation, now: Date) async throws -> TurnRecord { recordPersistenceAccess(); return try await turnRuntime.releaseQuarantine(timelineID: timelineID, turnID: turnID, confirmation: confirmation, now: now) }
     public func saveSummary(_ summary: TimelineSummary) async throws { recordPersistenceAccess(); try await turnRuntime.saveSummary(summary) }
     public func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary] { recordPersistenceAccess(); return try await turnRuntime.fetchSummaries(for: timelineID) }
 }

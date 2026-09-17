@@ -119,6 +119,21 @@ public struct TurnRetryRelation: Codable, Equatable, Hashable, Sendable {
     }
 }
 
+/// The operator action required before a quarantined Timeline accepts new work.
+///
+/// A Turn is quarantined only when interrupting it could leave an unrepeatable side effect: it
+/// has an unresolved tool intent for a `.mutating` or `.externalProcess` tool. A quarantined
+/// Timeline rejects admission until an operator confirms that the side effect was reconciled.
+public struct TurnQuarantine: Codable, Equatable, Hashable, Sendable {
+    public let reason: String
+    public let createdAt: Date
+
+    public init(reason: String, createdAt: Date = Date()) {
+        self.reason = reason
+        self.createdAt = createdAt
+    }
+}
+
 /// A durable record for one admitted Turn.
 public struct TurnRecord: Codable, Equatable, Sendable {
     public let identity: TurnIdentity
@@ -134,8 +149,8 @@ public struct TurnRecord: Codable, Equatable, Sendable {
     public var notices: [TurnNotice]
     public var correlations: [TurnCorrelation]
     public var retryRelation: TurnRetryRelation?
-    public var requiresRecovery: Bool
-    public var recoveryMessage: String?
+    /// Non-nil only for an interrupted Turn whose side effects still require operator review.
+    public var quarantine: TurnQuarantine?
     public var terminalHandle: TurnTerminalHandle?
     /// The assistant message that represents a completed Turn, when one exists.
     public var terminalMessageID: UUID?
@@ -146,7 +161,7 @@ public struct TurnRecord: Codable, Equatable, Sendable {
         case identity
         case timelineID = "threadID"
         case callerIntent, executionKind, capturedAgentID, lifecycle, currentModelRoundIndex
-        case outcome, notices, correlations, retryRelation, requiresRecovery, recoveryMessage
+        case outcome, notices, correlations, retryRelation, quarantine
         case terminalHandle, terminalMessageID, createdAt, updatedAt
     }
 
@@ -162,8 +177,7 @@ public struct TurnRecord: Codable, Equatable, Sendable {
         notices: [TurnNotice] = [],
         correlations: [TurnCorrelation] = [],
         retryRelation: TurnRetryRelation? = nil,
-        requiresRecovery: Bool = false,
-        recoveryMessage: String? = nil,
+        quarantine: TurnQuarantine? = nil,
         terminalHandle: TurnTerminalHandle? = nil,
         terminalMessageID: UUID? = nil,
         createdAt: Date = Date(),
@@ -180,8 +194,7 @@ public struct TurnRecord: Codable, Equatable, Sendable {
         self.notices = notices
         self.correlations = correlations
         self.retryRelation = retryRelation
-        self.requiresRecovery = requiresRecovery
-        self.recoveryMessage = recoveryMessage
+        self.quarantine = quarantine
         self.terminalHandle = terminalHandle
         self.terminalMessageID = terminalMessageID
         self.createdAt = createdAt
@@ -190,6 +203,11 @@ public struct TurnRecord: Codable, Equatable, Sendable {
 
     public var isTerminal: Bool {
         outcome != nil
+    }
+
+    /// Whether this Turn blocks new admission until an operator releases it.
+    public var isQuarantined: Bool {
+        quarantine != nil
     }
 }
 
@@ -344,24 +362,35 @@ public struct TurnAdmission: Codable, Equatable, Sendable {
     }
 }
 
-public enum TurnRecoveryResult: Codable, Equatable, Sendable {
-    case noActiveTurn
-    case active(TurnRecord)
-    case recoveryRequired(TurnRecord)
+/// Why the runtime is recording an abandoned Turn.
+///
+/// A `.retryable` interruption releases the Timeline so the same request ID may be retried as a
+/// linked attempt. A `.quarantined` interruption blocks admission until an operator releases it,
+/// because retrying could repeat a side effect the runtime cannot prove was not started.
+public enum TurnInterruptDisposition: Equatable, Hashable, Sendable {
+    case retryable
+    case quarantined(String)
+}
+
+/// The durable result of an interruption attempt.
+///
+/// Both cases are first-writer-wins: `.alreadyTerminal` reports the record the Turn's own owner
+/// committed before the interruption arrived, and never overwrites it.
+public enum TurnInterruptResult: Codable, Equatable, Sendable {
+    case interrupted(TurnRecord)
+    case alreadyTerminal(TurnRecord)
 
     private enum CodingKeys: String, CodingKey { case kind, turn }
-    private enum Kind: String, Codable { case noActiveTurn, active, recoveryRequired }
+    private enum Kind: String, Codable { case interrupted, alreadyTerminal }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
-        case .noActiveTurn:
-            try container.encode(Kind.noActiveTurn, forKey: .kind)
-        case let .active(turn):
-            try container.encode(Kind.active, forKey: .kind)
+        case let .interrupted(turn):
+            try container.encode(Kind.interrupted, forKey: .kind)
             try container.encode(turn, forKey: .turn)
-        case let .recoveryRequired(turn):
-            try container.encode(Kind.recoveryRequired, forKey: .kind)
+        case let .alreadyTerminal(turn):
+            try container.encode(Kind.alreadyTerminal, forKey: .kind)
             try container.encode(turn, forKey: .turn)
         }
     }
@@ -369,20 +398,26 @@ public enum TurnRecoveryResult: Codable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
-        case .noActiveTurn:
-            self = .noActiveTurn
-        case .active:
-            self = .active(try container.decode(TurnRecord.self, forKey: .turn))
-        case .recoveryRequired:
-            self = .recoveryRequired(try container.decode(TurnRecord.self, forKey: .turn))
+        case .interrupted:
+            self = .interrupted(try container.decode(TurnRecord.self, forKey: .turn))
+        case .alreadyTerminal:
+            self = .alreadyTerminal(try container.decode(TurnRecord.self, forKey: .turn))
+        }
+    }
+
+    public var record: TurnRecord {
+        switch self {
+        case let .interrupted(turn), let .alreadyTerminal(turn):
+            return turn
         }
     }
 }
 
-/// Explicit confirmation required for the destructive administrative escape hatch. It clears
-/// only the active pointer; durable Turns, messages, tool intents, and results remain intact.
-public struct ForceClearConfirmation: Sendable, Equatable {
-    public static let requiredPhrase = "FORCE_CLEAR"
+/// Explicit operator confirmation required before a quarantined Timeline accepts new work. It
+/// clears only the quarantine marker; the interrupted Turn, its messages, tool intents, and
+/// results remain intact as the audit trail for the side effect.
+public struct QuarantineReleaseConfirmation: Sendable, Equatable {
+    public static let requiredPhrase = "RELEASE_QUARANTINE"
     public let phrase: String
 
     public init(phrase: String) {
@@ -395,7 +430,7 @@ public enum TimelineRuntimeRepositoryError: Error, Equatable, Sendable, CustomSt
     case turnNotFound(UUID)
     case timelineBusy(timelineID: UUID, activeTurnID: UUID)
     case idempotencyConflict(requestID: UUID)
-    case recoveryRequired(timelineID: UUID, turnID: UUID)
+    case timelineQuarantined(timelineID: UUID, turnID: UUID)
     case invalidTransition(turnID: UUID, lifecycle: TurnLifecycle)
     case toolIntentRequired(turnID: UUID, toolCallID: String)
     case duplicateToolIntent(turnID: UUID, toolCallID: String)
@@ -424,8 +459,8 @@ public enum TimelineRuntimeRepositoryError: Error, Equatable, Sendable, CustomSt
             return ErrorMetadata(code: 6103, message: "Timeline \(timelineID) is busy with Turn \(activeTurnID).")
         case let .idempotencyConflict(requestID):
             return ErrorMetadata(code: 6104, message: "Request \(requestID) was reused with a different caller intent.")
-        case let .recoveryRequired(timelineID, turnID):
-            return ErrorMetadata(code: 6105, message: "Timeline \(timelineID) requires recovery for Turn \(turnID).")
+        case let .timelineQuarantined(timelineID, turnID):
+            return ErrorMetadata(code: 6105, message: "Timeline \(timelineID) is quarantined for Turn \(turnID).")
         case let .invalidTransition(turnID, lifecycle):
             return ErrorMetadata(code: 6106, message: "Turn \(turnID) cannot transition from \(lifecycle.rawValue).")
         case let .toolIntentRequired(turnID, toolCallID):
@@ -507,7 +542,7 @@ extension TimelineRuntimeRepositoryError: PKError {
 /// corresponding per-timeline entries explicitly inside `deleteTimeline(id:)`.
 ///
 /// `PKTestSupport` ships `TimelineRuntimeRepositoryConformanceSuite` for downstream adapters. The
-/// suite exercises these durable admission, history, ordering, recovery, and terminal-transition
+/// suite exercises these durable admission, history, ordering, interruption, and terminal-transition
 /// invariants without making the support library a test-discovery target.
 public protocol TimelineRuntimeRepository: TimelinePersistenceProtocol, TimelineMessageStoreProtocol {
     func admitTurn(
@@ -555,6 +590,10 @@ public protocol TimelineRuntimeRepository: TimelinePersistenceProtocol, Timeline
     /// Normal terminal assistant messages must use this boundary rather than a separate message
     /// store write, and the message must belong to the Turn's Timeline. Repeating the operation for
     /// an already-terminal Turn returns its durable record without appending a second message.
+    ///
+    /// This is the only operation that records a terminal outcome for a Turn. It is
+    /// first-writer-wins: a late caller for an already-terminal Turn observes the durable record
+    /// unchanged, so a slow store can never overwrite an interruption that landed first.
     func completeTurn(
         turnID: UUID,
         outcome: TurnOutcome,
@@ -562,11 +601,26 @@ public protocol TimelineRuntimeRepository: TimelinePersistenceProtocol, Timeline
         terminalHandle: TurnTerminalHandle?,
         now: Date
     ) async throws -> TurnRecord
-    func failTurn(turnID: UUID, message: String, now: Date) async throws -> TurnRecord
-    func cancelTurn(turnID: UUID, reason: String?, now: Date) async throws -> TurnRecord
-    func interruptTurn(turnID: UUID, reason: String, force: Bool, now: Date) async throws -> TurnRecord
-    func recover(timelineID: UUID, now: Date) async throws -> TurnRecoveryResult
-    func forceClear(timelineID: UUID, confirmation: ForceClearConfirmation, now: Date) async throws -> TurnRecord?
+    /// Records an abandoned Turn. This is the only operation that interrupts an active Turn.
+    ///
+    /// It is first-writer-wins: when the Turn's own owner already committed a terminal outcome,
+    /// the implementation returns `.alreadyTerminal` with that record and changes nothing. A
+    /// `.quarantined` disposition also persists a ``TurnQuarantine`` that blocks admission until
+    /// ``releaseQuarantine(timelineID:turnID:confirmation:now:)`` is called.
+    func interruptTurn(
+        turnID: UUID,
+        reason: String,
+        disposition: TurnInterruptDisposition,
+        now: Date
+    ) async throws -> TurnInterruptResult
+    /// Releases a quarantined Timeline after an operator reconciled the interrupted Turn's
+    /// side effects. Throws `confirmationRequired` when `confirmation` is not the required phrase.
+    func releaseQuarantine(
+        timelineID: UUID,
+        turnID: UUID,
+        confirmation: QuarantineReleaseConfirmation,
+        now: Date
+    ) async throws -> TurnRecord
 
     func saveSummary(_ summary: TimelineSummary) async throws
     func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary]
@@ -607,5 +661,29 @@ public extension TimelineRuntimeRepository {
         terminalHandle: TurnTerminalHandle? = nil
     ) async throws -> TurnRecord {
         try await completeTurn(turnID: turnID, outcome: outcome, finalMessage: finalMessage, terminalHandle: terminalHandle, now: Date())
+    }
+
+    /// Convenience over ``completeTurn(turnID:outcome:finalMessage:terminalHandle:now:)`` for a
+    /// failed Turn. Not a repository requirement: a conformer implements only `completeTurn`.
+    func failTurn(turnID: UUID, message: String, now: Date = Date()) async throws -> TurnRecord {
+        try await completeTurn(
+            turnID: turnID,
+            outcome: .failed(message: message),
+            finalMessage: nil,
+            terminalHandle: nil,
+            now: now
+        )
+    }
+
+    /// Convenience over ``completeTurn(turnID:outcome:finalMessage:terminalHandle:now:)`` for a
+    /// cancelled Turn. Not a repository requirement: a conformer implements only `completeTurn`.
+    func cancelTurn(turnID: UUID, reason: String?, now: Date = Date()) async throws -> TurnRecord {
+        try await completeTurn(
+            turnID: turnID,
+            outcome: .cancelled(reason: reason),
+            finalMessage: nil,
+            terminalHandle: nil,
+            now: now
+        )
     }
 }

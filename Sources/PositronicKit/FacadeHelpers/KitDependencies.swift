@@ -34,5 +34,6 @@ internal struct KitDependencies: Sendable {
     var sharedRegistry: TimelinePromptJournals
     var additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
     var streamTimeout: TimeInterval
+    var terminalCommitStallLimit: TimeInterval
     var clock: any RuntimeClock
 }

@@ -17,28 +17,23 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
     private var messages: [UUID: [TimelineMessage]] = [:]
     private var turns: [UUID: TurnRecord] = [:]
     private var activeTurns: [UUID: UUID] = [:]
-    private var recoveryRequiredTurns: [UUID: UUID] = [:]
+    private var quarantinedTurns: [UUID: UUID] = [:]
     private var intents: [ToolKey: RuntimeToolIntent] = [:]
     private var results: [ToolKey: RuntimeToolResult] = [:]
     private var summaries: [UUID: [TimelineSummary]] = [:]
     private var workspaceBindingsByWorkspace: [UUID: WorkspaceBinding] = [:]
     private var workspaceIDsByTimeline: [UUID: Set<UUID>] = [:]
-    private let staleAfter: TimeInterval
     private let durable: Bool
 
     public nonisolated var isDurable: Bool {
         durable
     }
 
-    /// - Parameters:
-    ///   - staleAfter: Age after which an active Turn is lazily interrupted during
-    ///     recovery. A non-positive value makes every active Turn eligible for recovery.
-    ///   - isDurable: What this store reports through ``DurabilityAware/isDurable``. Defaults to
-    ///     `false`, since an in-memory repository does not survive process restart; pass `true`
-    ///     only in tests that need a store which classifies as durable in a
-    ///     ``PKRuntime/DurabilityReport``.
-    public init(staleAfter: TimeInterval = 300, isDurable: Bool = false) {
-        self.staleAfter = staleAfter
+    /// - Parameter isDurable: What this store reports through ``DurabilityAware/isDurable``.
+    ///   Defaults to `false`, since an in-memory repository does not survive process restart; pass
+    ///   `true` only in tests that need a store which classifies as durable in a
+    ///   ``PKRuntime/DurabilityReport``.
+    public init(isDurable: Bool = false) {
         durable = isDurable
     }
 
@@ -71,9 +66,10 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
             workspaceBindingsByWorkspace.removeValue(forKey: workspaceID)
         }
         if let activeTurnID = activeTurns.removeValue(forKey: id) {
-            turns[activeTurnID]?.requiresRecovery = true
-            turns[activeTurnID]?.recoveryMessage = "Timeline deleted while Turn was active."
-            recoveryRequiredTurns[id] = activeTurnID
+            turns[activeTurnID]?.quarantine = TurnQuarantine(
+                reason: "Timeline deleted while Turn was active."
+            )
+            quarantinedTurns[id] = activeTurnID
         }
     }
 
@@ -191,20 +187,19 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
             {
                 return TurnAdmission(disposition: .replayed, turn: matching)
             }
-            if matching.callerIntent.fingerprint == callerIntentFingerprint,
-               matching.requiresRecovery
-            {
-                // A force-interrupted attempt remains visible as a replay of the original
-                // request while recovery is pending. Distinct requests are rejected below until
-                // the host explicitly clears the recovery marker.
-                return TurnAdmission(disposition: .replayed, turn: matching)
+            if matching.isQuarantined {
+                // A quarantined Timeline rejects admission until an operator releases it; the
+                // original request ID may not be replayed while the side effect is unreconciled.
+                throw TimelineRuntimeRepositoryError.timelineQuarantined(
+                    timelineID: timelineID,
+                    turnID: matching.identity.turnID
+                )
             }
             // A failed/cancelled/interrupted attempt may be retried with the same request ID,
             // whether the retry repeats the exact input or supplies changed tool outputs. The
             // retry is a new durable Turn linked to the failed attempt; completed Turns and
             // active attempts remain strict idempotency conflicts.
             guard matching.isTerminal,
-                  matching.requiresRecovery == false,
                   !isCompleted(matching.outcome)
             else {
                 throw TimelineRuntimeRepositoryError.idempotencyConflict(requestID: requestID)
@@ -215,13 +210,10 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
             )
         }
 
-        if let recoveryTurnID = recoveryRequiredTurns[timelineID] {
-            throw TimelineRuntimeRepositoryError.recoveryRequired(timelineID: timelineID, turnID: recoveryTurnID)
+        if let quarantineTurnID = quarantinedTurns[timelineID] {
+            throw TimelineRuntimeRepositoryError.timelineQuarantined(timelineID: timelineID, turnID: quarantineTurnID)
         }
-        if let activeTurnID = activeTurns[timelineID], let active = turns[activeTurnID] {
-            if active.requiresRecovery {
-                throw TimelineRuntimeRepositoryError.recoveryRequired(timelineID: timelineID, turnID: activeTurnID)
-            }
+        if let activeTurnID = activeTurns[timelineID] {
             throw TimelineRuntimeRepositoryError.timelineBusy(timelineID: timelineID, activeTurnID: activeTurnID)
         }
 
@@ -463,68 +455,56 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         return turn
     }
 
-    public func failTurn(turnID: UUID, message: String, now: Date) async throws -> TurnRecord {
-        try await completeTurn(turnID: turnID, outcome: .failed(message: message), finalMessage: nil, terminalHandle: nil, now: now)
-    }
-
-    public func cancelTurn(turnID: UUID, reason: String?, now: Date) async throws -> TurnRecord {
-        try await completeTurn(turnID: turnID, outcome: .cancelled(reason: reason), finalMessage: nil, terminalHandle: nil, now: now)
-    }
-
-    public func interruptTurn(turnID: UUID, reason: String, force: Bool, now: Date) async throws -> TurnRecord {
+    public func interruptTurn(
+        turnID: UUID,
+        reason: String,
+        disposition: TurnInterruptDisposition,
+        now: Date
+    ) async throws -> TurnInterruptResult {
         var turn = try mutableTurn(turnID)
-        guard !turn.isTerminal || force else { return turn }
+        guard !turn.isTerminal else {
+            // First-writer-wins: the Turn's owner already committed a terminal outcome, so the
+            // interruption changes nothing and reports the durable record.
+            return .alreadyTerminal(turn)
+        }
         turn.outcome = .interrupted(reason: reason)
         turn.lifecycle = .interrupted
-        turn.requiresRecovery = force
-        turn.recoveryMessage = force ? reason : nil
         turn.updatedAt = now
-        turn.notices.append(TurnNotice(kind: force ? "turn-force-interrupted" : "turn-interrupted", message: reason, createdAt: now))
+        switch disposition {
+        case .retryable:
+            turn.quarantine = nil
+            quarantinedTurns.removeValue(forKey: turn.timelineID)
+            turn.notices.append(TurnNotice(kind: "turn-interrupted", message: reason, createdAt: now))
+        case let .quarantined(message):
+            turn.quarantine = TurnQuarantine(reason: message, createdAt: now)
+            quarantinedTurns[turn.timelineID] = turnID
+            turn.notices.append(TurnNotice(kind: "turn-quarantined", message: message, createdAt: now))
+        }
         activeTurns.removeValue(forKey: turn.timelineID)
-        if force {
-            recoveryRequiredTurns[turn.timelineID] = turnID
-        }
         turns[turnID] = turn
-        return turn
+        return .interrupted(turn)
     }
 
-    public func recover(timelineID: UUID, now: Date) async throws -> TurnRecoveryResult {
-        if let recoveryID = recoveryRequiredTurns[timelineID], let recovery = turns[recoveryID] {
-            return .recoveryRequired(recovery)
-        }
-        guard let activeID = activeTurns[timelineID], let active = turns[activeID] else {
-            return .noActiveTurn
-        }
-        guard now.timeIntervalSince(active.updatedAt) >= staleAfter else {
-            return .active(active)
-        }
-        let interrupted = try await interruptTurn(
-            turnID: activeID,
-            reason: "Turn exceeded the stale recovery threshold.",
-            force: true,
-            now: now
-        )
-        return .recoveryRequired(interrupted)
-    }
-
-    public func forceClear(
+    public func releaseQuarantine(
         timelineID: UUID,
-        confirmation: ForceClearConfirmation,
+        turnID: UUID,
+        confirmation: QuarantineReleaseConfirmation,
         now: Date
-    ) async throws -> TurnRecord? {
-        guard confirmation.phrase == ForceClearConfirmation.requiredPhrase else {
+    ) async throws -> TurnRecord {
+        guard confirmation.phrase == QuarantineReleaseConfirmation.requiredPhrase else {
             throw TimelineRuntimeRepositoryError.confirmationRequired
         }
-        let activeID = activeTurns.removeValue(forKey: timelineID) ?? recoveryRequiredTurns[timelineID]
-        guard let activeID, var turn = turns[activeID] else {
-            return nil
+        var turn = try mutableTurn(turnID)
+        guard turn.timelineID == timelineID, turn.isQuarantined else {
+            throw TimelineRuntimeRepositoryError.timelineQuarantined(timelineID: timelineID, turnID: turnID)
         }
-        turn.requiresRecovery = true
-        turn.recoveryMessage = "Active pointer force-cleared by an administrator."
+        turn.quarantine = nil
         turn.updatedAt = now
-        turn.notices.append(TurnNotice(kind: "turn-force-cleared", createdAt: now))
-        recoveryRequiredTurns[timelineID] = activeID
-        turns[activeID] = turn
+        turn.notices.append(TurnNotice(kind: "turn-quarantine-released", createdAt: now))
+        turns[turnID] = turn
+        if quarantinedTurns[timelineID] == turnID {
+            quarantinedTurns.removeValue(forKey: timelineID)
+        }
         return turn
     }
 

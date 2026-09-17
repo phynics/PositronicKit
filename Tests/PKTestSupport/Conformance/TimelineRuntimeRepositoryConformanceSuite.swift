@@ -6,20 +6,14 @@ internal import Testing
 public enum TimelineRuntimeRepositoryConformanceSuite {
     /// Runs the repository checks against a fresh repository for every scenario.
     ///
-    /// - Parameters:
-    ///   - staleAfter: The stale interval configured by the repository. The recovery scenario
-    ///     advances a fixed timestamp beyond this interval.
-    ///   - makeRepository: A factory that returns an isolated repository for one scenario.
+    /// - Parameter makeRepository: A factory that returns an isolated repository for one scenario.
     ///
     /// The suite records failures through Swift Testing expectations. It does not declare test
     /// functions, so the caller controls test discovery and can invoke it from its own test
     /// target.
     public static func run(
-        staleAfter: TimeInterval,
         makeRepository: () async throws -> any TimelineRuntimeRepository
     ) async throws {
-        try #require(staleAfter.isFinite && staleAfter >= 0, "timeline.configuration.stale-after")
-
         try await runScenario("timeline.admission.input") {
             try await admissionPersistsInput(makeRepository: makeRepository)
         }
@@ -50,17 +44,20 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
         try await runScenario("timeline.history.ordering") {
             try await ordersHistoryByTimestampAndAppendOrder(makeRepository: makeRepository)
         }
-        try await runScenario("timeline.recovery.stale") {
-            try await recoversStaleTurn(makeRepository: makeRepository, staleAfter: staleAfter)
-        }
-        try await runScenario("timeline.force-clear.confirmation") {
-            try await requiresForceClearConfirmation(makeRepository: makeRepository)
-        }
         try await runScenario("timeline.completion.outcome") {
             try await completesTurnAtomically(makeRepository: makeRepository)
         }
         try await runScenario("timeline.completion.wrong-timeline") {
             try await rejectsWrongTimelineFinalMessage(makeRepository: makeRepository)
+        }
+        try await runScenario("timeline.interrupt.retryable") {
+            try await interruptsRetryableTurn(makeRepository: makeRepository)
+        }
+        try await runScenario("timeline.interrupt.first-writer-wins") {
+            try await interruptDefersToCommittedOutcome(makeRepository: makeRepository)
+        }
+        try await runScenario("timeline.quarantine.release") {
+            try await quarantinesAndReleasesTimeline(makeRepository: makeRepository)
         }
     }
 
@@ -497,62 +494,126 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
         try #require(try await repository.fetchSummaries(for: timelineID).isEmpty, "timeline.history.delete-cascade.summaries")
     }
 
-    private static func recoversStaleTurn(
-        makeRepository: () async throws -> any TimelineRuntimeRepository,
-        staleAfter: TimeInterval
+    private static func interruptsRetryableTurn(
+        makeRepository: () async throws -> any TimelineRuntimeRepository
     ) async throws {
         let repository = try await makeRepository()
         let timelineID = UUID()
         let requestID = UUID()
-        let admissionDate = fixedDate(10)
-        let recoveryDate = admissionDate.addingTimeInterval(staleAfter + 1)
         try await repository.saveTimeline(TimelineRecord(id: timelineID))
-        let input = TimelineMessage(id: requestID, timelineID: timelineID, role: .user, content: "recover", timestamp: admissionDate)
+        let input = TimelineMessage(id: requestID, timelineID: timelineID, role: .user, content: "recover", timestamp: fixedDate(10))
         let admission = try await repository.admitTurn(
             timelineID: timelineID,
             requestID: requestID,
             callerIntentFingerprint: "recover",
             inputMessage: input,
-            now: admissionDate
+            now: fixedDate(10)
         )
-        let intent = RuntimeToolIntent(
-            turnID: admission.turn.identity.turnID,
-            timelineID: timelineID,
-            toolCallID: "call-1",
-            name: "lookup",
-            arguments: "{}",
-            modelRoundIndex: 0,
-            createdAt: admissionDate
-        )
-        try await repository.recordToolIntent(intent)
+        let turnID = admission.turn.identity.turnID
 
-        guard case let .recoveryRequired(record) = try await repository.recover(timelineID: timelineID, now: recoveryDate) else {
-            Issue.record("timeline.recovery.stale.required")
+        guard case let .interrupted(record) = try await repository.interruptTurn(
+            turnID: turnID,
+            reason: "Turn owner stopped making progress.",
+            disposition: .retryable,
+            now: fixedDate(20)
+        ) else {
+            Issue.record("timeline.interrupt.retryable.interrupted")
             return
         }
-        try #require(record.requiresRecovery, "timeline.recovery.stale.marker")
-        try #require(try await repository.fetchToolIntents(turnID: record.identity.turnID) == [intent], "timeline.recovery.stale.intent")
-        try #require(try await repository.fetchActiveTurn(for: timelineID) == nil, "timeline.recovery.stale.no-active-turn")
-        try #require(try await repository.fetchMessages(for: timelineID).map(\.id) == [input.id], "timeline.recovery.stale.input")
+        try #require(record.outcome == .interrupted(reason: "Turn owner stopped making progress."), "timeline.interrupt.retryable.outcome")
+        try #require(record.isQuarantined == false, "timeline.interrupt.retryable.no-quarantine")
+        try #require(try await repository.fetchActiveTurn(for: timelineID) == nil, "timeline.interrupt.retryable.no-active-turn")
+        try #require(try await repository.fetchMessages(for: timelineID).map(\.id) == [input.id], "timeline.interrupt.retryable.input")
 
-        let replay = try await repository.admitTurn(
+        // A retryable interruption releases the Timeline: the same request ID may be retried as a
+        // linked attempt, and admission of a distinct request is permitted.
+        let retry = try await repository.admitRetry(
             timelineID: timelineID,
+            previousTurnID: turnID,
             requestID: requestID,
             callerIntentFingerprint: "recover",
             inputMessage: input,
-            now: recoveryDate.addingTimeInterval(1)
+            executionKind: .direct,
+            capturedAgentID: nil,
+            turnID: UUID(),
+            attempt: 2,
+            now: fixedDate(21)
         )
-        try #require(replay.disposition == .replayed, "timeline.recovery.replay")
-        try #require(replay.turn.identity.turnID == record.identity.turnID, "timeline.recovery.replay.same-turn")
+        try #require(retry.disposition == .admitted, "timeline.interrupt.retryable.retry-admitted")
+        try #require(retry.turn.retryRelation?.retriedTurnID == turnID, "timeline.interrupt.retryable.retry-link")
+    }
 
-        guard case let .recoveryRequired(repeatedRecord) = try await repository.recover(
+    private static func interruptDefersToCommittedOutcome(
+        makeRepository: () async throws -> any TimelineRuntimeRepository
+    ) async throws {
+        let repository = try await makeRepository()
+        let timelineID = UUID()
+        try await repository.saveTimeline(TimelineRecord(id: timelineID))
+        let admission = try await repository.admitTurn(
             timelineID: timelineID,
-            now: recoveryDate.addingTimeInterval(2)
+            requestID: UUID(),
+            callerIntentFingerprint: "first-writer-wins",
+            now: fixedDate(10)
+        )
+        let turnID = admission.turn.identity.turnID
+        let completed = try await repository.completeTurn(
+            turnID: turnID,
+            outcome: .completed,
+            finalMessage: nil,
+            terminalHandle: TurnTerminalHandle(turnID: turnID),
+            now: fixedDate(11)
+        )
+
+        guard case let .alreadyTerminal(record) = try await repository.interruptTurn(
+            turnID: turnID,
+            reason: "Late interruption after completion.",
+            disposition: .retryable,
+            now: fixedDate(12)
         ) else {
-            Issue.record("timeline.recovery.stale.remains-required")
+            Issue.record("timeline.interrupt.first-writer-wins.already-terminal")
             return
         }
-        try #require(repeatedRecord.identity.turnID == record.identity.turnID, "timeline.recovery.stale.same-turn")
+        try #require(record == completed, "timeline.interrupt.first-writer-wins.record-unchanged")
+        try #require(try await repository.fetchTurn(id: turnID) == completed, "timeline.interrupt.first-writer-wins.durable-unchanged")
+    }
+
+    private static func quarantinesAndReleasesTimeline(
+        makeRepository: () async throws -> any TimelineRuntimeRepository
+    ) async throws {
+        let repository = try await makeRepository()
+        let timelineID = UUID()
+        let requestID = UUID()
+        try await repository.saveTimeline(TimelineRecord(id: timelineID))
+        let admission = try await repository.admitTurn(
+            timelineID: timelineID,
+            requestID: requestID,
+            callerIntentFingerprint: "side-effect",
+            now: fixedDate(10)
+        )
+        let turnID = admission.turn.identity.turnID
+        let intent = RuntimeToolIntent(
+            turnID: turnID,
+            timelineID: timelineID,
+            toolCallID: "call-1",
+            name: "write-file",
+            arguments: "{}",
+            modelRoundIndex: 0,
+            createdAt: fixedDate(10)
+        )
+        try await repository.recordToolIntent(intent)
+
+        guard case let .interrupted(record) = try await repository.interruptTurn(
+            turnID: turnID,
+            reason: "Turn owner abandoned an in-flight mutating tool.",
+            disposition: .quarantined("Unresolved mutating tool intent call-1."),
+            now: fixedDate(11)
+        ) else {
+            Issue.record("timeline.quarantine.release.interrupted")
+            return
+        }
+        try #require(record.isQuarantined, "timeline.quarantine.release.marker")
+        try #require(record.quarantine?.reason == "Unresolved mutating tool intent call-1.", "timeline.quarantine.release.reason")
+        try #require(try await repository.fetchToolIntents(turnID: turnID) == [intent], "timeline.quarantine.release.intent")
 
         do {
             _ = try await repository.admitTurn(
@@ -560,13 +621,44 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
                 requestID: UUID(),
                 callerIntentFingerprint: "new-request",
                 inputMessage: TimelineMessage(timelineID: timelineID, role: .user, content: "new"),
-                now: recoveryDate.addingTimeInterval(1)
+                now: fixedDate(12)
             )
-            Issue.record("timeline.recovery.distinct-request.must-fail")
+            Issue.record("timeline.quarantine.release.admission-must-fail")
             return
         } catch let error as TimelineRuntimeRepositoryError {
-            try #require(error == .recoveryRequired(timelineID: timelineID, turnID: record.identity.turnID), "timeline.recovery.distinct-request.error")
+            try #require(error == .timelineQuarantined(timelineID: timelineID, turnID: turnID), "timeline.quarantine.release.admission-error")
         }
+
+        do {
+            _ = try await repository.releaseQuarantine(
+                timelineID: timelineID,
+                turnID: turnID,
+                confirmation: QuarantineReleaseConfirmation(phrase: "yes"),
+                now: fixedDate(13)
+            )
+            Issue.record("timeline.quarantine.release.confirmation-must-fail")
+            return
+        } catch let error as TimelineRuntimeRepositoryError {
+            try #require(error == .confirmationRequired, "timeline.quarantine.release.confirmation-error")
+        }
+
+        let released = try await repository.releaseQuarantine(
+            timelineID: timelineID,
+            turnID: turnID,
+            confirmation: QuarantineReleaseConfirmation(phrase: QuarantineReleaseConfirmation.requiredPhrase),
+            now: fixedDate(14)
+        )
+        try #require(released.isQuarantined == false, "timeline.quarantine.release.cleared")
+        try #require(try await repository.fetchTurn(id: turnID)?.isQuarantined == false, "timeline.quarantine.release.durable-cleared")
+
+        let admitted = try await repository.admitTurn(
+            timelineID: timelineID,
+            requestID: UUID(),
+            callerIntentFingerprint: "new-request",
+            inputMessage: TimelineMessage(timelineID: timelineID, role: .user, content: "new"),
+            now: fixedDate(15)
+        )
+        try #require(admitted.disposition == .admitted, "timeline.quarantine.release.admission-after-release")
     }
 
     private static func ordersHistoryByTimestampAndAppendOrder(
@@ -618,40 +710,6 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
             try await repository.fetchMessages(for: UUID(uuidString: "00000000-0000-0000-0000-000000000199")!).isEmpty,
             "timeline.history.ordering.unknown-timeline"
         )
-    }
-
-    private static func requiresForceClearConfirmation(
-        makeRepository: () async throws -> any TimelineRuntimeRepository
-    ) async throws {
-        let repository = try await makeRepository()
-        let timelineID = UUID()
-        try await repository.saveTimeline(TimelineRecord(id: timelineID))
-        _ = try await repository.admitTurn(timelineID: timelineID, requestID: UUID(), callerIntentFingerprint: "admin", now: fixedDate(10))
-
-        do {
-            _ = try await repository.forceClear(
-                timelineID: timelineID,
-                confirmation: ForceClearConfirmation(phrase: "yes"),
-                now: fixedDate(11)
-            )
-            Issue.record("timeline.force-clear.confirmation.must-fail")
-            return
-        } catch let error as TimelineRuntimeRepositoryError {
-            try #require(error == .confirmationRequired, "timeline.force-clear.confirmation.error")
-        }
-
-        let cleared = try await repository.forceClear(
-            timelineID: timelineID,
-            confirmation: ForceClearConfirmation(phrase: ForceClearConfirmation.requiredPhrase),
-            now: fixedDate(12)
-        )
-        let clearedTurnID = try #require(cleared?.identity.turnID, "timeline.force-clear.record")
-        try #require(try await repository.fetchActiveTurn(for: timelineID) == nil, "timeline.force-clear.no-active-turn")
-        try #require(try await repository.fetchTurn(id: clearedTurnID) != nil, "timeline.force-clear.preserved-turn")
-        guard case .recoveryRequired = try await repository.recover(timelineID: timelineID, now: fixedDate(13)) else {
-            Issue.record("timeline.force-clear.recovery-marker")
-            return
-        }
     }
 
     private static func completesTurnAtomically(

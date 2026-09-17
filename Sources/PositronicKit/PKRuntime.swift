@@ -179,6 +179,7 @@ public final class PKRuntime: Sendable {
         sharedRegistry: TimelinePromptJournals,
         additionalStages: [any PipelineStage<TurnContext, TurnEvent>],
         streamTimeout: TimeInterval = TurnEngine.Dependencies.defaultStreamTimeout,
+        terminalCommitStallLimit: TimeInterval = 300,
         clock: any RuntimeClock = ContinuousRuntimeClock()
     ) {
         // The binding repository is resolved exactly once, by `PersistenceConfiguration`
@@ -207,6 +208,7 @@ public final class PKRuntime: Sendable {
                 sharedRegistry: sharedRegistry,
                 additionalStages: additionalStages,
                 streamTimeout: streamTimeout,
+                terminalCommitStallLimit: terminalCommitStallLimit,
                 clock: clock
             )
         )
@@ -357,7 +359,8 @@ public final class PKRuntime: Sendable {
                 eventHub: resolvedEventHub,
                 submissionGate: resolvedSubmissionGate,
                 streamTimeout: dependencies.streamTimeout,
-                clock: dependencies.clock
+                clock: dependencies.clock,
+                terminalCommitStallLimit: dependencies.terminalCommitStallLimit
             )
         )
         engine.additionalStages = dependencies.additionalStages
@@ -389,6 +392,7 @@ public final class PKRuntime: Sendable {
             sharedRegistry: promptHistoryRegistry,
             additionalStages: turnEngine.additionalStages,
             streamTimeout: turnEngine.dependencies.streamTimeout,
+            terminalCommitStallLimit: turnEngine.dependencies.terminalCommitStallLimit,
             clock: turnEngine.dependencies.clock
         )
     }

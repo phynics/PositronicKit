@@ -206,9 +206,12 @@ extension TimelineManager {
     /// prompt-history registry was injected) the journal-diff history entry. Does not touch
     /// persistence.
     ///
-    /// Active generation work is cancelled and awaited (bounded cleanup) before cache eviction
-    /// so streaming/tools/persistence/plugins cannot continue against a timeline whose
-    /// in-memory state has already been torn down.
+    /// Eviction has two phases (ADR 0010). Phase one bumps the Timeline liveness version,
+    /// cancels the active Turn, and rejects new work against the torn-down Timeline. Phase two
+    /// removes the ephemeral workspace directory and drops the cached registries once the Turn
+    /// task exits. The Turn task no longer waits on the store — its terminal commit runs in the
+    /// runtime-owned finalizer — so a hung store commit cannot stall either phase. Streaming and
+    /// tools still stop before their workspace directory is removed.
     ///
     /// When the timeline's configured workspace profile is `.ephemeralWorkspace`, the per-timeline
     /// scratch directory is also removed (best-effort) — eviction ends the ephemeral workspace's
@@ -219,10 +222,14 @@ extension TimelineManager {
     /// persisted timeline, messages, and workspace attachments should call
     /// ``deleteTimelinePermanently(id:)`` instead.
     func evictTimelineFromMemory(id: UUID) async {
+        // Phase one: reject in-flight mutations, then cancel the Turn. Joining the Turn task is
+        // bounded because the terminal commit is no longer part of that task.
+        bumpTimelineLiveness(for: id)
         await cancelActiveTaskAndAwait(for: id)
 
-        // Ephemeral workspace cleanup: remove the scratch directory before dropping the cache
-        // (the cache holds the path we need). Best-effort — eviction is non-throwing.
+        // Phase two: remove the scratch directory before dropping the cache (the cache holds the
+        // path we need), then release the remaining registries. Best-effort — eviction is
+        // non-throwing.
         if workspaceProfile.ownsDirectoryLifecycle,
            let workingDirectory = timelines[id]?.workingDirectory
         {

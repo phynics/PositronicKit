@@ -44,7 +44,7 @@ extension TurnEngine {
 
         var description: String {
             "Unable to durably compensate preparation failure for Turn \(turnID): "
-                + "failTurn failed (\(failure)); force interrupt failed (\(recoveryFailure))."
+                + "completeTurn failed (\(failure)); interrupt failed (\(recoveryFailure))."
         }
     }
 
@@ -589,16 +589,7 @@ extension TurnEngine {
                 primaryWorkspaceID: authority.agent?.primaryWorkspaceID
             )
 
-            let admission = try await dependencies.runtimeRepository.admitTurn(
-                timelineID: request.timelineID,
-                requestID: request.requestID,
-                callerIntentFingerprint: request.callerIntentFingerprint,
-                inputMessage: request.inputMessage,
-                executionKind: request.executionKind,
-                capturedAgentID: authority.agent?.id,
-                turnID: request.turnID,
-                now: Date()
-            )
+            let admission = try await admitToRepository(request, capturedAgentID: authority.agent?.id)
             switch admission.disposition {
             case .admitted:
                 return TurnAdmissionResult(
@@ -616,6 +607,101 @@ extension TurnEngine {
                 )
             }
         }
+    }
+
+    /// Crosses the repository admission barrier, classifying a `timelineBusy` rejection against
+    /// in-process liveness and retrying once after interrupting an abandoned Turn (ADR 0010).
+    func admitToRepository(
+        _ request: TurnAdmissionRequest,
+        capturedAgentID: UUID?
+    ) async throws -> TurnAdmission {
+        do {
+            return try await admitToRepositoryOnce(request, capturedAgentID: capturedAgentID)
+        } catch let error as TimelineRuntimeRepositoryError {
+            guard case let .timelineBusy(timelineID, activeTurnID) = error,
+                  await interruptIfAbandoned(timelineID: timelineID, activeTurnID: activeTurnID)
+            else {
+                throw error
+            }
+            return try await admitToRepositoryOnce(request, capturedAgentID: capturedAgentID)
+        }
+    }
+
+    private func admitToRepositoryOnce(
+        _ request: TurnAdmissionRequest,
+        capturedAgentID: UUID?
+    ) async throws -> TurnAdmission {
+        try await dependencies.runtimeRepository.admitTurn(
+            timelineID: request.timelineID,
+            requestID: request.requestID,
+            callerIntentFingerprint: request.callerIntentFingerprint,
+            inputMessage: request.inputMessage,
+            executionKind: request.executionKind,
+            capturedAgentID: capturedAgentID,
+            turnID: request.turnID,
+            now: Date()
+        )
+    }
+
+    /// Classifies an active Turn this process is not driving and interrupts it when it is
+    /// abandoned. Returns whether the interruption happened, so admission can retry once.
+    ///
+    /// Under the single-owner store assumption (ADR 0010):
+    /// - a Turn this process is actively driving is making progress and stays busy;
+    /// - a Turn whose terminal commit has been pending no longer than
+    ///   `terminalCommitStallLimit` stays busy;
+    /// - everything else — an orphan from an earlier process, or a commit stalled past the limit
+    ///   — is interrupted.
+    func interruptIfAbandoned(timelineID: UUID, activeTurnID: UUID) async -> Bool {
+        if await dependencies.timelineManager.activeTurnID(for: timelineID) == activeTurnID {
+            return false
+        }
+        if let pendingSince = await dependencies.finalizer.pendingCommitStartedAt(turnID: activeTurnID) {
+            let pending = pendingSince.duration(to: dependencies.clock.now())
+            if pending < .seconds(dependencies.terminalCommitStallLimit) {
+                return false
+            }
+        }
+        let disposition = await interruptDisposition(for: activeTurnID, timelineID: timelineID)
+        do {
+            _ = try await dependencies.runtimeRepository.interruptTurn(
+                turnID: activeTurnID,
+                reason: "Runtime recovered a Turn that was not owned by this process.",
+                disposition: disposition,
+                now: Date()
+            )
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Chooses between a retryable interruption and a quarantine.
+    ///
+    /// A quarantine is required only when retrying could repeat a side effect: an unresolved tool
+    /// intent for a tool that declares `.mutating` or `.externalProcess` side effects. Anything
+    /// else is safe to retry.
+    func interruptDisposition(for turnID: UUID, timelineID: UUID) async -> TurnInterruptDisposition {
+        guard let intents = try? await dependencies.runtimeRepository.fetchToolIntents(turnID: turnID),
+              !intents.isEmpty
+        else {
+            return .retryable
+        }
+        let results = (try? await dependencies.runtimeRepository.fetchToolResults(turnID: turnID)) ?? []
+        let resolved = Set(results.map(\.toolCallID))
+        let unresolved = intents.filter { !resolved.contains($0.toolCallID) }
+        guard !unresolved.isEmpty else { return .retryable }
+
+        let tools = await dependencies.timelineManager.enabledTools(for: timelineID)
+        let riskyNames = Set(
+            tools
+                .filter { $0.sideEffects == .mutating || $0.sideEffects == .externalProcess }
+                .map(\.callName)
+        )
+        if let pending = unresolved.first(where: { riskyNames.contains($0.name) }) {
+            return .quarantined("Unresolved tool intent \(pending.toolCallID) for a side-effecting tool.")
+        }
+        return .retryable
     }
 
     private func validateExecutionAuthority(
@@ -752,10 +838,10 @@ private extension TurnEngine {
                 _ = try await repository.interruptTurn(
                     turnID: turnID,
                     reason: "Turn preparation compensation failed: \(failure)",
-                    force: true,
+                    disposition: .retryable,
                     now: Date()
                 )
-                logger.error("Force-interrupted Turn \(turnID) after failed preparation compensation", metadata: [
+                logger.error("Interrupted Turn \(turnID) after failed preparation compensation", metadata: [
                     LogKeys.turnID: .string(turnID.uuidString),
                     "failure": .string(String(describing: failure)),
                 ])
