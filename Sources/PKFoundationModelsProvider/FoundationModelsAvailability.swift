@@ -70,7 +70,7 @@ public enum FoundationModelsAvailabilityError: PKError, Equatable {
 }
 
 #if canImport(FoundationModels)
-    @available(macOS 26.0, *)
+    @available(anyAppleOS 26.0, *)
     extension FoundationModelsAvailabilityError {
         /// Maps `SystemLanguageModel.Availability` onto the typed error vocabulary above.
         /// Returns `nil` when the model is available (no error to surface).

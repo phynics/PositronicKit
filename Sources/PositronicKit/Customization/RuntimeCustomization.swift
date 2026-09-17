@@ -295,16 +295,16 @@ public protocol TurnOutcomeSink: Sendable {
 
 /// The four bounded runtime customization roles accepted by the facade.
 public struct RuntimeCustomization: Sendable {
-    public let agentContextSource: (any AgentContextSource)?
-    public let turnContextSource: (any TurnContextSource)?
-    public let agentActivitySink: (any AgentActivitySink)?
-    public let turnOutcomeSink: (any TurnOutcomeSink)?
+    public let agentContextSource: any AgentContextSource?
+    public let turnContextSource: any TurnContextSource?
+    public let agentActivitySink: any AgentActivitySink?
+    public let turnOutcomeSink: any TurnOutcomeSink?
 
     public init(
-        agentContextSource: (any AgentContextSource)? = nil,
-        turnContextSource: (any TurnContextSource)? = nil,
-        agentActivitySink: (any AgentActivitySink)? = nil,
-        turnOutcomeSink: (any TurnOutcomeSink)? = nil
+        agentContextSource: any AgentContextSource? = nil,
+        turnContextSource: any TurnContextSource? = nil,
+        agentActivitySink: any AgentActivitySink? = nil,
+        turnOutcomeSink: any TurnOutcomeSink? = nil
     ) {
         self.agentContextSource = agentContextSource
         self.turnContextSource = turnContextSource

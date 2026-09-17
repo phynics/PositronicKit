@@ -396,12 +396,12 @@ struct RuntimeAssemblyTests {
 
     private func makeKit(
         model: MockLLMService,
-        workspacePersistence: (any WorkspaceStore)? = nil,
-        toolPersistence: (any ToolPersistenceProtocol)? = nil,
-        agentStore: (any AgentStoreProtocol)? = nil,
-        requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
-        runtimeRepository: (any TimelineRuntimeRepository)? = nil,
-        workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
+        workspacePersistence: any WorkspaceStore? = nil,
+        toolPersistence: any ToolPersistenceProtocol? = nil,
+        agentStore: any AgentStoreProtocol? = nil,
+        requestOriginStore: any RequestOriginStoreProtocol? = nil,
+        runtimeRepository: any TimelineRuntimeRepository? = nil,
+        workspaceBindingRepository: any WorkspaceBindingRepository? = nil,
         customization: RuntimeCustomization = .default
     ) -> PKRuntime {
         PKRuntime(configuration: .init(
@@ -425,7 +425,7 @@ struct RuntimeAssemblyTests {
         agentStore: any AgentStoreProtocol,
         requestOriginStore: any RequestOriginStoreProtocol,
         runtimeRepository: any TimelineRuntimeRepository,
-        workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
+        workspaceBindingRepository: any WorkspaceBindingRepository? = nil,
         customization: RuntimeCustomization = .default
     ) -> PKRuntime {
         PKRuntime(configuration: .init(
@@ -453,8 +453,8 @@ struct RuntimeAssemblyTests {
     private func expectCohesiveGraph(
         _ kit: PKRuntime,
         repository: any TimelineRuntimeRepository,
-        bindingRepository: (any WorkspaceBindingRepository)? = nil,
-        workspaceStore: (any WorkspaceStore)? = nil
+        bindingRepository: any WorkspaceBindingRepository? = nil,
+        workspaceStore: any WorkspaceStore? = nil
     ) async {
         #expect(kit.runtimeRepository as AnyObject === repository as AnyObject)
         #expect(kit.messageStore as AnyObject === repository as AnyObject)

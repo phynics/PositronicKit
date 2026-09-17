@@ -105,6 +105,15 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **Small Swift 6.4 source conveniences (#200):** `PKFoundationModelsProvider` states its OS 26
+  availability with the cross-platform `anyAppleOS 26.0` spelling instead of `macOS 26.0`, so the
+  same internal declarations are available on iOS 26, tvOS 26, watchOS 26, and visionOS 26 and no
+  longer claim (incorrectly) to exist at the iOS 18 deployment floor; this is the change that keeps
+  the module buildable for iOS. Optional existential parameters and returns across the public
+  surface drop the redundant parentheses (`(any P)?` to `any P?`, SE-0521) with no ABI or
+  symbol-graph change. `@diagnose` (SE-0522) is admitted only as
+  `@diagnose(<Group>, as: warning, reason: "<why>")`, enforced by `make verify-diagnose-scan`; the
+  `~Sendable` (SE-0518) audit found no public type that must be non-`Sendable`.
 - **Swift 6.4 toolchain qualification (#193):** CI now runs the sole supported Swift 6.4.0 Linux
   lane with the `make verify-linux-agent` contract; it installs `swift-6.4.0-RELEASE` from swift.org
   and asserts the compiler version before the gate.

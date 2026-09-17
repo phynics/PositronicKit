@@ -396,7 +396,7 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?
     ) async throws -> String {
-        let outcome: (response: String?, error: (any Error)?) = state.withLock { state in
+        let outcome: (response: String?, error: any Error?) = state.withLock { state in
             let capture = MockLLMSendMessageCapture(
                 content: content,
                 responseFormat: responseFormat,

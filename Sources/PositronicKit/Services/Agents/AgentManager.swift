@@ -18,7 +18,7 @@ actor AgentManager: AgentManagerProtocol {
         public let timelineStore: any TimelinePersistenceProtocol
         public let messageStore: any TimelineMessageStoreProtocol
         public let workspaceStore: any WorkspaceStore
-        public let runtimeRepository: (any TimelineRuntimeRepository)?
+        public let runtimeRepository: any TimelineRuntimeRepository?
         public let timelineAuthorityCoordinator: TimelineAuthorityCoordinator?
         public let agentAuthorityCoordinator: AgentAuthorityCoordinator?
         /// The process-local Turn terminal signal. When supplied, `waitForIdle` wakes as soon as
@@ -31,7 +31,7 @@ actor AgentManager: AgentManagerProtocol {
             timelineStore: any TimelinePersistenceProtocol,
             messageStore: any TimelineMessageStoreProtocol,
             workspaceStore: any WorkspaceStore,
-            runtimeRepository: (any TimelineRuntimeRepository)? = nil,
+            runtimeRepository: any TimelineRuntimeRepository? = nil,
             timelineAuthorityCoordinator: TimelineAuthorityCoordinator? = nil,
             agentAuthorityCoordinator: AgentAuthorityCoordinator? = nil,
             eventHub: TurnEventHub? = nil
@@ -53,7 +53,7 @@ actor AgentManager: AgentManagerProtocol {
     let timelineStore: any TimelinePersistenceProtocol
     let messageStore: any TimelineMessageStoreProtocol
     let workspaceStore: any WorkspaceStore
-    let runtimeRepository: (any TimelineRuntimeRepository)?
+    let runtimeRepository: any TimelineRuntimeRepository?
     let timelineAuthorityCoordinator: TimelineAuthorityCoordinator
     let agentAuthorityCoordinator: AgentAuthorityCoordinator
     let eventHub: TurnEventHub?

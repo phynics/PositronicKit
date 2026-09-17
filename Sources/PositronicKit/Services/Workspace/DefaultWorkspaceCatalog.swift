@@ -12,8 +12,8 @@ import PKUtilities
 /// universal workspace model that hosts are required to adopt.
 actor DefaultWorkspaceCatalog: WorkspaceCatalog {
     private let persistenceService: any WorkspaceStore
-    private let bindingRepository: (any WorkspaceBindingRepository)?
-    private let runtimeRepository: (any TimelineRuntimeRepository)?
+    private let bindingRepository: any WorkspaceBindingRepository?
+    private let runtimeRepository: any TimelineRuntimeRepository?
     private let timelineAuthorityCoordinator: TimelineAuthorityCoordinator?
     private let workspaceRoot: URL
     private let logger = Logger.module(named: "workspace-catalog")
@@ -21,8 +21,8 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
     public init(
         workspaceRoot: URL,
         workspacePersistence: any WorkspaceStore,
-        bindingRepository: (any WorkspaceBindingRepository)? = nil,
-        runtimeRepository: (any TimelineRuntimeRepository)? = nil,
+        bindingRepository: any WorkspaceBindingRepository? = nil,
+        runtimeRepository: any TimelineRuntimeRepository? = nil,
         timelineAuthorityCoordinator: TimelineAuthorityCoordinator? = nil
     ) {
         persistenceService = workspacePersistence

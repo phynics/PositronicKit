@@ -31,7 +31,7 @@ struct TurnEngineFailurePersistenceTests {
     private func withTurnEngineDependencies<T>(
         streamTimeout: TimeInterval = 60,
         promptHistoryRegistry: TimelinePromptJournals? = nil,
-        turnOutcomeSink: (any TurnOutcomeSink)? = nil,
+        turnOutcomeSink: any TurnOutcomeSink? = nil,
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
@@ -90,7 +90,7 @@ struct TurnEngineFailurePersistenceTests {
     /// Uses the cohesive runtime repository and fails the first atomic tool-result transition.
     /// The same repository can be reopened for the retry assertion below.
     private func withToolResultPersistenceFailureDependencies<T>(
-        turnOutcomeSink: (any TurnOutcomeSink)? = nil,
+        turnOutcomeSink: any TurnOutcomeSink? = nil,
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
