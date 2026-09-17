@@ -57,8 +57,8 @@ struct TerminalCommit: Sendable {
 /// first-writer-wins, so a commit that hangs can never poison later commits on the same Timeline.
 actor TurnFinalizer {
     private let repository: any TimelineRuntimeRepository
-    private let agentActivitySink: (any AgentActivitySink)?
-    private let turnOutcomeSink: (any TurnOutcomeSink)?
+    private let agentActivitySink: any AgentActivitySink?
+    private let turnOutcomeSink: any TurnOutcomeSink?
     private let clock: any RuntimeClock
     private let logger = Logger.module(named: "turn-finalizer")
 
@@ -68,8 +68,8 @@ actor TurnFinalizer {
 
     init(
         repository: any TimelineRuntimeRepository,
-        agentActivitySink: (any AgentActivitySink)?,
-        turnOutcomeSink: (any TurnOutcomeSink)?,
+        agentActivitySink: any AgentActivitySink?,
+        turnOutcomeSink: any TurnOutcomeSink?,
         clock: any RuntimeClock
     ) {
         self.repository = repository
