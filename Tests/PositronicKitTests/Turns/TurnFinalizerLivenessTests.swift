@@ -290,7 +290,7 @@ struct TurnFinalizerLivenessTests {
         _ = await turn.events().collect()
 
         let orphanRecord = try #require(try await persistence.fetchTurn(id: orphan.turn.identity.turnID))
-        #expect(orphanRecord.outcome == .interrupted(reason: "Runtime recovered a Turn that was not owned by this process."))
+        #expect(orphanRecord.outcome == .interrupted(reason: "Turn was active but not owned by this runtime (orphaned)."))
         #expect(orphanRecord.isQuarantined == false)
         #expect(try await persistence.fetchTurn(id: turn.id)?.outcome == .completed)
     }

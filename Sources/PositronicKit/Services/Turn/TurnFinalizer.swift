@@ -89,7 +89,7 @@ actor TurnFinalizer {
         let turnID = commit.turnID
         Task {
             await self.perform(commit)
-            await self.clearPending(turnID: turnID)
+            self.clearPending(turnID: turnID)
         }
     }
 
