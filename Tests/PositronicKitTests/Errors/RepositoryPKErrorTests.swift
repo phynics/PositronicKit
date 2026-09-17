@@ -30,7 +30,7 @@ struct RepositoryPKErrorTests {
             TimelineErrorCase(error: .turnNotFound(turnID), code: 6102),
             TimelineErrorCase(error: .timelineBusy(timelineID: timelineID, activeTurnID: turnID), code: 6103),
             TimelineErrorCase(error: .idempotencyConflict(requestID: requestID), code: 6104),
-            TimelineErrorCase(error: .recoveryRequired(timelineID: timelineID, turnID: turnID), code: 6105),
+            TimelineErrorCase(error: .timelineQuarantined(timelineID: timelineID, turnID: turnID), code: 6105),
             TimelineErrorCase(error: .invalidTransition(turnID: turnID, lifecycle: .running), code: 6106),
             TimelineErrorCase(error: .toolIntentRequired(turnID: turnID, toolCallID: toolCallID), code: 6107),
             TimelineErrorCase(error: .duplicateToolIntent(turnID: turnID, toolCallID: toolCallID), code: 6108),
@@ -57,10 +57,11 @@ struct RepositoryPKErrorTests {
                 ),
                 code: 6117
             ),
+            TimelineErrorCase(error: .quarantineNotFound(timelineID: timelineID, turnID: turnID), code: 6118),
         ]
 
-        #expect(cases.count == 17)
-        #expect(cases.map(\.code) == Array(6101...6117))
+        #expect(cases.count == 18)
+        #expect(cases.map(\.code) == Array(6101...6118))
         #expect(Set(cases.map(\.code)).count == cases.count)
         #expect(Set(cases.map(\.code)).isDisjoint(with: Set(6001...6005)))
 

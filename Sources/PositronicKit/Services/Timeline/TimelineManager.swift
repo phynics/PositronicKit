@@ -137,6 +137,11 @@ actor TimelineManager {
     /// in-memory caches, so deleted/stale timelines don't leak journal-diff state.
     let promptHistoryRegistry: TimelinePromptJournals?
 
+    /// The runtime-owned terminal-commit executor. When present, hydration classifies an active
+    /// Turn this process does not own so an orphan is interrupted on load rather than only at the
+    /// next admission (ADR 0010). `nil` disables that load-time pass (direct-engine tests).
+    let finalizer: TurnFinalizer?
+
     let logger = Logger.module(named: "timeline-manager")
 
     // MARK: - Initialization
@@ -158,6 +163,7 @@ actor TimelineManager {
         resolver: any WorkspaceResolver,
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         promptHistoryRegistry: TimelinePromptJournals? = nil,
+        finalizer: TurnFinalizer? = nil,
         taskRegistry: TimelineTaskRegistry? = nil,
         workspaceExecutionCoordinator: WorkspaceExecutionCoordinator? = nil,
         timelineAuthorityCoordinator: TimelineAuthorityCoordinator? = nil
@@ -171,6 +177,7 @@ actor TimelineManager {
         self.workspaceProfile = workspaceProfile
         self.runtimeToolPolicy = runtimeToolPolicy
         self.promptHistoryRegistry = promptHistoryRegistry
+        self.finalizer = finalizer
         self.taskRegistry = taskRegistry ?? TimelineTaskRegistry()
         self.workspaceExecutionCoordinator = workspaceExecutionCoordinator ?? WorkspaceExecutionCoordinator()
         self.timelineAuthorityCoordinator = timelineAuthorityCoordinator ?? TimelineAuthorityCoordinator()
@@ -221,6 +228,23 @@ actor TimelineManager {
     /// Whether a generation task is currently registered for the timeline.
     func hasActiveTask(for timelineID: UUID) async -> Bool {
         await taskRegistry.hasActiveTurn(for: timelineID)
+    }
+
+    /// The Turn this process is currently driving or preparing for the timeline, or `nil` when it
+    /// owns none. Liveness classification uses this to tell an in-process Turn from an orphan.
+    func activeTurnID(for timelineID: UUID) async -> UUID? {
+        await taskRegistry.activeTurnID(for: timelineID)
+    }
+
+    /// Records that this process admitted a Turn whose stream-driving task has not been registered
+    /// yet, closing the admission-to-registration ownership window (ADR 0010).
+    func markAdmitted(turnID: UUID, for timelineID: UUID) async {
+        await taskRegistry.markAdmitted(turnID: turnID, for: timelineID)
+    }
+
+    /// Drops the admission marker when preparation fails before a task could register.
+    func removeAdmitted(turnID: UUID, for timelineID: UUID) async {
+        await taskRegistry.removeAdmitted(turnID: turnID, for: timelineID)
     }
 
     /// Rejects authority-changing operations while a Turn still owns this Timeline's execution
@@ -383,6 +407,13 @@ extension TimelineManager {
     func invalidateTimelineLiveness(for timelineID: UUID) {
         timelineLivenessVersions[timelineID] = (timelineLivenessVersions[timelineID] ?? 0) &+ 1
         timelinesBeingPermanentlyDeleted.insert(timelineID)
+    }
+
+    /// Advances the timeline's liveness version without marking it permanently deleted. Eviction
+    /// uses this to reject in-flight mutations against a Timeline whose cache is being torn down
+    /// while still allowing the Timeline to be hydrated again later.
+    func bumpTimelineLiveness(for timelineID: UUID) {
+        timelineLivenessVersions[timelineID] = (timelineLivenessVersions[timelineID] ?? 0) &+ 1
     }
 
     /// Closes a deletion epoch. Advancing again prevents operations that captured the in-progress

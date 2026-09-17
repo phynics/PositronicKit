@@ -6,14 +6,14 @@ import Testing
 struct TimelineRuntimeRepositoryTests {
     @Test("InMemoryTimelineRuntimeRepository")
     func inMemoryRepository() async throws {
-        try await TimelineRuntimeRepositoryConformanceSuite.run(staleAfter: 1) {
-            InMemoryTimelineRuntimeRepository(staleAfter: 1)
+        try await TimelineRuntimeRepositoryConformanceSuite.run {
+            InMemoryTimelineRuntimeRepository()
         }
     }
 
     @Test("MockPersistenceService")
     func compositeMockRepository() async throws {
-        try await TimelineRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
+        try await TimelineRuntimeRepositoryConformanceSuite.run {
             MockPersistenceService()
         }
     }

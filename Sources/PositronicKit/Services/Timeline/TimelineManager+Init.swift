@@ -36,6 +36,7 @@ extension TimelineManager {
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         promptHistoryRegistry: TimelinePromptJournals? = nil,
+        finalizer: TurnFinalizer? = nil,
         taskRegistry: TimelineTaskRegistry? = nil
     ) {
         let catalogRoot = workspaceProfile.catalogRoot
@@ -52,6 +53,7 @@ extension TimelineManager {
             ),
             runtimeToolPolicy: runtimeToolPolicy,
             promptHistoryRegistry: promptHistoryRegistry,
+            finalizer: finalizer,
             taskRegistry: taskRegistry
         )
     }

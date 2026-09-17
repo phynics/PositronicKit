@@ -222,6 +222,7 @@ actor ToolRouter {
                             name: call.name,
                             arguments: call.argumentsJSON,
                             modelRoundIndex: modelRoundIndex,
+                            sideEffects: .mutating,
                             workspaceID: dispatch.route.workspaceID,
                             workspaceRouting: dispatch.route.routing
                         ))
@@ -247,7 +248,8 @@ actor ToolRouter {
                             toolCallID: call.callId,
                             name: call.name,
                             arguments: call.argumentsJSON,
-                            modelRoundIndex: modelRoundIndex
+                            modelRoundIndex: modelRoundIndex,
+                            sideEffects: availableTools.first(where: { $0.callName == call.name })?.sideEffects ?? .mutating
                         ))
                         intentRecorded = true
                     }
@@ -291,7 +293,8 @@ actor ToolRouter {
                             toolCallID: call.callId,
                             name: call.name,
                             arguments: call.argumentsJSON,
-                            modelRoundIndex: modelRoundIndex
+                            modelRoundIndex: modelRoundIndex,
+                            sideEffects: availableTools.first(where: { $0.callName == call.name })?.sideEffects ?? .mutating
                         ))
                         intentRecorded = true
                     } catch {

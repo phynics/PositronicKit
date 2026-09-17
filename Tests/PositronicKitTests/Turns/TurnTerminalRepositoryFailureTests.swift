@@ -192,24 +192,27 @@ actor FailingTerminalRepository: TimelineRuntimeRepository {
         throw TerminalRepositoryTestError.unavailable
     }
 
-    func failTurn(turnID: UUID, message: String, now: Date) async throws -> TurnRecord {
-        try await base.failTurn(turnID: turnID, message: message, now: now)
+    func interruptTurn(
+        turnID: UUID,
+        reason: String,
+        disposition: TurnInterruptDisposition,
+        now: Date
+    ) async throws -> TurnInterruptResult {
+        try await base.interruptTurn(turnID: turnID, reason: reason, disposition: disposition, now: now)
     }
 
-    func cancelTurn(turnID: UUID, reason: String?, now: Date) async throws -> TurnRecord {
-        try await base.cancelTurn(turnID: turnID, reason: reason, now: now)
-    }
-
-    func interruptTurn(turnID: UUID, reason: String, force: Bool, now: Date) async throws -> TurnRecord {
-        try await base.interruptTurn(turnID: turnID, reason: reason, force: force, now: now)
-    }
-
-    func recover(timelineID: UUID, now: Date) async throws -> TurnRecoveryResult {
-        try await base.recover(timelineID: timelineID, now: now)
-    }
-
-    func forceClear(timelineID: UUID, confirmation: ForceClearConfirmation, now: Date) async throws -> TurnRecord? {
-        try await base.forceClear(timelineID: timelineID, confirmation: confirmation, now: now)
+    func releaseQuarantine(
+        timelineID: UUID,
+        turnID: UUID,
+        confirmation: QuarantineReleaseConfirmation,
+        now: Date
+    ) async throws -> TurnRecord {
+        try await base.releaseQuarantine(
+            timelineID: timelineID,
+            turnID: turnID,
+            confirmation: confirmation,
+            now: now
+        )
     }
 
     func saveSummary(_ summary: TimelineSummary) async throws {

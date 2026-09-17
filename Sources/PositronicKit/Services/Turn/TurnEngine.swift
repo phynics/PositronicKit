@@ -155,6 +155,11 @@ struct TurnEngine {
         let submissionGate: ExternalToolOutputSubmissionGate
         let streamTimeout: TimeInterval
         let clock: any RuntimeClock
+        /// Runtime-owned executor for terminal Turn commits (ADR 0010).
+        let finalizer: TurnFinalizer
+        /// How long a terminal commit may stay pending before admission treats the Turn as
+        /// abandoned and interrupts it (ADR 0010).
+        let terminalCommitStallLimit: TimeInterval
 
         init(
             timelineManager: TimelineManager,
@@ -176,7 +181,9 @@ struct TurnEngine {
             eventHub: TurnEventHub? = nil,
             submissionGate: ExternalToolOutputSubmissionGate? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout,
-            clock: any RuntimeClock = ContinuousRuntimeClock()
+            clock: any RuntimeClock = ContinuousRuntimeClock(),
+            finalizer: TurnFinalizer? = nil,
+            terminalCommitStallLimit: TimeInterval = 300
         ) {
             self.timelineManager = timelineManager
             self.agentStore = agentStore
@@ -198,6 +205,13 @@ struct TurnEngine {
             self.submissionGate = submissionGate ?? ExternalToolOutputSubmissionGate()
             self.streamTimeout = Self.resolvedStreamTimeout(streamTimeout)
             self.clock = clock
+            self.finalizer = finalizer ?? TurnFinalizer(
+                repository: runtimeRepository,
+                agentActivitySink: agentActivitySink,
+                turnOutcomeSink: turnOutcomeSink,
+                clock: clock
+            )
+            self.terminalCommitStallLimit = terminalCommitStallLimit
         }
     }
 
@@ -380,15 +394,23 @@ struct TurnEngine {
         try SidecarSchemaComposer.validate(request.sidecars)
 
         let turnID = UUID()
-        let prepared = try await prepareTurn(
-            executionRequest,
-            turnID: turnID,
-            agent: agentPreflight.instance,
-            agentDiagnostics: agentPreflight.diagnostics,
-            onAdmission: { [eventHub = dependencies.eventHub] in
-                await eventHub.begin(turnID: turnID)
-            }
-        )
+        let prepared: PreparedTurn
+        do {
+            prepared = try await prepareTurn(
+                executionRequest,
+                turnID: turnID,
+                agent: agentPreflight.instance,
+                agentDiagnostics: agentPreflight.diagnostics,
+                onAdmission: { [eventHub = dependencies.eventHub] in
+                    await eventHub.begin(turnID: turnID)
+                }
+            )
+        } catch {
+            // Preparation failed before a task could register. Drop the admission marker so a
+            // Turn this process can no longer drive is never mistaken for an in-process owner.
+            await dependencies.timelineManager.removeAdmitted(turnID: turnID, for: timelineID)
+            throw error
+        }
 
         if case let .existing(admission) = prepared {
             let stream: AsyncThrowingStream<TurnEvent, Error>
@@ -420,7 +442,7 @@ struct TurnEngine {
         // Durable admission starts the live event lane before preparation continues.
         let stream = await dependencies.eventHub.subscribe(turnID: turnID)
 
-        let bridge = Task {
+        _ = Task {
             do {
                 for try await event in sourceStream {
                     await dependencies.eventHub.publish(event, turnID: turnID)
@@ -436,8 +458,11 @@ struct TurnEngine {
             var startIterator = startSignal.makeAsyncIterator()
             guard await startIterator.next() == true else { return }
             await runTurnLoop(continuation: continuation, context: context)
+            // The terminal commit runs in the runtime-owned finalizer, not here. This task must
+            // not wait on the store: eviction phase two joins it, and a hung store commit must not
+            // stall eviction (ADR 0010). The finalizer owns finishing `continuation`, which ends
+            // `bridge` and the event lane.
             await dependencies.timelineManager.removeTask(turnID: turnID, for: timelineID)
-            _ = await bridge.value
         }
         // Installed before any possible `continuation.finish(...)` below so a termination that
         // races the not-registered branch can never observe the handler unset.

@@ -41,7 +41,7 @@ private struct TerminalDecision {
 
     let outcome: TurnOutcome
     let delivery: Delivery
-    let streamError: Error?
+    let streamError: TerminalStreamFailure?
 
     init(
         outcome: TurnOutcome,
@@ -50,20 +50,7 @@ private struct TerminalDecision {
     ) {
         self.outcome = outcome
         self.delivery = delivery
-        self.streamError = streamError
-    }
-
-    static func delivery(for outcome: TurnOutcome) -> Delivery {
-        switch outcome {
-        case .completed:
-            return .completion
-        case .cancelled:
-            return .event(.generationCancelled())
-        case let .failed(message):
-            return .event(.error(message))
-        case let .interrupted(reason):
-            return .event(.error(reason))
-        }
+        self.streamError = streamError.map(TerminalStreamFailure.init(error:))
     }
 
     /// Creates a failed decision with user-facing durable text and the original stream error.
@@ -74,10 +61,6 @@ private struct TerminalDecision {
             streamError: streamError
         )
     }
-}
-
-private enum TerminalRepositoryError: Error, Sendable {
-    case missingOutcome(UUID)
 }
 
 // MARK: - Turn Loop
@@ -428,202 +411,92 @@ private extension TurnEngine {
 // MARK: - Terminal Delivery
 
 private extension TurnEngine {
-    /// Applies terminal mechanics in one order: durable truth, best-effort observations,
-    /// reservation release, and finally the consumer-facing terminal signal.
+    /// Builds the terminal snapshot and hands it to the runtime-owned finalizer.
+    ///
+    /// The finalizer is not this Turn task, so cancelling the Turn cannot cancel its commit, and
+    /// this task does not wait on the store. The durable commit, sinks, and consumer-facing
+    /// terminal signal all happen in the finalizer, in the order `commitTerminal` used to apply
+    /// them (ADR 0010).
     func commitTerminal(
         decision: TerminalDecision,
         context: TurnContext,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async {
-        let durableOutcome: TurnOutcome
-        do {
-            durableOutcome = try await completeTerminalOutcome(
-                context: context,
-                outcome: decision.outcome
-            )
-        } catch {
-            logger.error("Unable to durably record terminal Turn outcome: \(error)")
-            continuation.yield(.durabilityFailure(error))
-            continuation.finish()
-            return
-        }
-
-        await emitTerminalSinks(context: context, outcome: durableOutcome)
-
-        let usesRequestedOutcome = durableOutcome == decision.outcome
-        let delivery = usesRequestedOutcome
-            ? decision.delivery
-            : TerminalDecision.delivery(for: durableOutcome)
-        switch delivery {
-        case .none:
-            break
-        case let .event(event):
-            continuation.yield(event)
-        case .completion:
-            await emitTerminalSidecarCompletionIfNeeded(
-                context: context,
-                continuation: continuation
-            )
-            let message = await context.outputs.terminalAssistantMessage
-            let metadata = await context.outputs.terminalCompletionMetadata
-            if let message {
-                continuation.yield(.generationCompleted(
-                    message: message.toMessage(),
-                    metadata: metadata ?? APIResponseMetadata()
-                ))
-            } else {
-                // A completed Turn normally has the assistant row captured by the persistence
-                // stage. Keep the existing empty fallback only for a missing terminal row.
-                continuation.yield(.completedEmpty(finishReason: metadata?.finishReason))
-            }
-        }
-
-        if usesRequestedOutcome, let streamError = decision.streamError {
-            continuation.finish(throwing: streamError)
-        } else {
-            continuation.finish()
-        }
+        let commit = await makeTerminalCommit(
+            decision: decision,
+            context: context,
+            continuation: continuation
+        )
+        await dependencies.finalizer.submit(commit)
     }
 
-    func completeTerminalOutcome(
+    func makeTerminalCommit(
+        decision: TerminalDecision,
         context: TurnContext,
-        outcome: TurnOutcome
-    ) async throws -> TurnOutcome {
-        let finalMessage: TimelineMessage?
-        switch outcome {
-        case .completed:
-            if let terminalMessage = await context.outputs.terminalAssistantMessage {
-                finalMessage = terminalMessage
-            } else {
-                let messages = try await dependencies.runtimeRepository.fetchMessages(for: context.timelineID)
-                let userIndex = messages.firstIndex(where: { $0.id == context.requestId })
-                finalMessage = userIndex.flatMap { index in
-                    messages.dropFirst(index + 1).last(where: {
-                        $0.role == Message.MessageRole.assistant.rawValue
-                    })
-                }
-            }
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
+    ) async -> TerminalCommit {
+        let partialMessage: TimelineMessage?
+        switch decision.outcome {
         case .cancelled, .failed:
             // STAB-1: attach whatever partial assistant text/thinking/tool calls the user
-            // already watched stream in to this same terminal transaction (ADR 0003, ADR 0007),
-            // instead of persisting it with a separate `saveMessage` call before this — a crash
-            // between the two used to leave that row on a Timeline whose Turn was still active.
+            // already watched stream in to the same terminal transaction (ADR 0003, ADR 0007),
+            // instead of persisting it with a separate `saveMessage` call before terminal
+            // completion — a crash between the two used to leave that row on a Timeline whose
+            // Turn was still active.
             let status: Message.MessageStatus = {
-                if case .cancelled = outcome { return .cancelled }
+                if case .cancelled = decision.outcome { return .cancelled }
                 return .partial
             }()
-            finalMessage = await PartialAssistantPersistence().partialAssistantMessage(
+            partialMessage = await PartialAssistantPersistence().partialAssistantMessage(
                 context: context,
                 status: status
             )
-        case .interrupted:
-            finalMessage = nil
+        case .completed, .interrupted:
+            partialMessage = nil
         }
 
-        let record = try await dependencies.runtimeRepository.completeTurn(
+        let sidecarCompletion: SidecarCompletion?
+        if context.sidecarCommitPolicy == .terminalModelRound {
+            let results = await context.outputs.sidecarResults
+            sidecarCompletion = results.isEmpty ? nil : SidecarCompletion(
+                identity: TurnIdentity(
+                    turnID: context.turnID,
+                    requestID: context.requestId,
+                    modelRoundIndex: max(context.modelRoundIndex - 1, 0)
+                ),
+                results: results
+            )
+        } else {
+            sidecarCompletion = nil
+        }
+
+        return TerminalCommit(
             turnID: context.turnID,
-            outcome: outcome,
-            finalMessage: finalMessage,
+            timelineID: context.timelineID,
+            requestID: context.requestId,
+            outcome: decision.outcome,
             terminalHandle: TurnTerminalHandle(turnID: context.turnID),
-            now: Date()
-        )
-        guard let persistedOutcome = record.outcome else {
-            throw TerminalRepositoryError.missingOutcome(context.turnID)
-        }
-        return persistedOutcome
-    }
-
-    func emitTerminalSidecarCompletionIfNeeded(
-        context: TurnContext,
-        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
-    ) async {
-        guard context.sidecarCommitPolicy == .terminalModelRound else { return }
-        let results = await context.outputs.sidecarResults
-        guard !results.isEmpty else { return }
-        continuation.yield(.sidecarsCompleted(SidecarCompletion(
-            identity: TurnIdentity(
-                turnID: context.turnID,
-                requestID: context.requestId,
-                modelRoundIndex: max(context.modelRoundIndex - 1, 0)
-            ),
-            results: results
-        )))
-    }
-
-    func emitTerminalSinks(context: TurnContext, outcome: TurnOutcome) async {
-        await emitAgentActivity(
-            AgentActivity(
-                kind: activityKind(for: outcome),
-                timelineID: context.timelineID,
-                turnID: context.turnID,
-                requestID: context.requestId,
-                agentID: context.agentId,
-                modelRoundIndex: context.modelRoundIndex,
-                detail: outcomeDescription(outcome)
-            ),
-            context: context
-        )
-        await emitTurnOutcome(
-            TurnOutcomeRecord(
-                timelineID: context.timelineID,
-                turnID: context.turnID,
-                requestID: context.requestId,
-                agentID: context.agentId,
-                executionKind: context.executionKind,
-                modelRoundIndex: context.modelRoundIndex,
-                outcome: outcome
-            ),
-            context: context
+            terminalAssistantMessage: await context.outputs.terminalAssistantMessage,
+            partialMessage: partialMessage,
+            metadata: await context.outputs.terminalCompletionMetadata,
+            sidecarCompletion: sidecarCompletion,
+            agentID: context.agentId,
+            executionKind: context.executionKind,
+            modelRoundIndex: context.modelRoundIndex,
+            requestedDelivery: mapDelivery(decision.delivery),
+            streamFailure: decision.streamError,
+            continuation: continuation
         )
     }
 
-    func emitAgentActivity(_ activity: AgentActivity, context: TurnContext) async {
-        guard let sink = dependencies.agentActivitySink else { return }
-        do {
-            try await sink.record(activity)
-        } catch {
-            await appendCustomizationNotice(
-                code: .agentActivitySinkFailed,
-                turnID: context.turnID,
-                message: ErrorKit.userFriendlyMessage(for: error)
-            )
-        }
-    }
-
-    func emitTurnOutcome(_ outcome: TurnOutcomeRecord, context: TurnContext) async {
-        guard let sink = dependencies.turnOutcomeSink else { return }
-        do {
-            try await sink.record(outcome)
-        } catch {
-            await appendCustomizationNotice(
-                code: .turnOutcomeSinkFailed,
-                turnID: context.turnID,
-                message: ErrorKit.userFriendlyMessage(for: error)
-            )
-        }
-    }
-
-    func activityKind(for outcome: TurnOutcome) -> AgentActivity.Kind {
-        switch outcome {
-        case .completed:
-            return .turnFinished
-        case .cancelled:
-            return .turnCancelled
-        case .failed, .interrupted:
-            return .turnFailed
-        }
-    }
-
-    func outcomeDescription(_ outcome: TurnOutcome) -> String {
-        switch outcome {
-        case .completed:
-            return "completed"
-        case let .failed(message):
-            return message
-        case let .cancelled(reason):
-            return reason ?? "cancelled"
-        case let .interrupted(reason):
-            return reason
+    func mapDelivery(_ delivery: TerminalDecision.Delivery) -> TerminalCommit.Delivery {
+        switch delivery {
+        case .none:
+            return .none
+        case .completion:
+            return .completion
+        case let .event(event):
+            return .event(event)
         }
     }
 }

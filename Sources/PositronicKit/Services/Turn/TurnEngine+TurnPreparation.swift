@@ -44,7 +44,7 @@ extension TurnEngine {
 
         var description: String {
             "Unable to durably compensate preparation failure for Turn \(turnID): "
-                + "failTurn failed (\(failure)); force interrupt failed (\(recoveryFailure))."
+                + "completeTurn failed (\(failure)); interrupt failed (\(recoveryFailure))."
         }
     }
 
@@ -589,16 +589,7 @@ extension TurnEngine {
                 primaryWorkspaceID: authority.agent?.primaryWorkspaceID
             )
 
-            let admission = try await dependencies.runtimeRepository.admitTurn(
-                timelineID: request.timelineID,
-                requestID: request.requestID,
-                callerIntentFingerprint: request.callerIntentFingerprint,
-                inputMessage: request.inputMessage,
-                executionKind: request.executionKind,
-                capturedAgentID: authority.agent?.id,
-                turnID: request.turnID,
-                now: Date()
-            )
+            let admission = try await admitToRepository(request, capturedAgentID: authority.agent?.id)
             switch admission.disposition {
             case .admitted:
                 return TurnAdmissionResult(
@@ -615,6 +606,93 @@ extension TurnEngine {
                     workspaceToolCatalog: workspaceCatalog
                 )
             }
+        }
+    }
+
+    /// Crosses the repository admission barrier, classifying a `timelineBusy` rejection against
+    /// in-process liveness and retrying once after interrupting an abandoned Turn (ADR 0010).
+    func admitToRepository(
+        _ request: TurnAdmissionRequest,
+        capturedAgentID: UUID?
+    ) async throws -> TurnAdmission {
+        let admission: TurnAdmission
+        do {
+            admission = try await admitToRepositoryOnce(request, capturedAgentID: capturedAgentID)
+        } catch let error as TimelineRuntimeRepositoryError {
+            guard case let .timelineBusy(timelineID, activeTurnID) = error,
+                  await interruptIfAbandoned(timelineID: timelineID, activeTurnID: activeTurnID)
+            else {
+                throw error
+            }
+            admission = try await admitToRepositoryOnce(request, capturedAgentID: capturedAgentID)
+        }
+        if admission.disposition == .admitted {
+            // The Turn's task is not registered until preparation completes, so close the
+            // ownership window now; liveness must not treat this preparing Turn as an orphan.
+            await dependencies.timelineManager.markAdmitted(
+                turnID: request.turnID,
+                for: request.timelineID
+            )
+        }
+        return admission
+    }
+
+    private func admitToRepositoryOnce(
+        _ request: TurnAdmissionRequest,
+        capturedAgentID: UUID?
+    ) async throws -> TurnAdmission {
+        try await dependencies.runtimeRepository.admitTurn(
+            timelineID: request.timelineID,
+            requestID: request.requestID,
+            callerIntentFingerprint: request.callerIntentFingerprint,
+            inputMessage: request.inputMessage,
+            executionKind: request.executionKind,
+            capturedAgentID: capturedAgentID,
+            turnID: request.turnID,
+            now: Date()
+        )
+    }
+
+    /// Classifies an active Turn this process is not driving and interrupts it when it is
+    /// abandoned. Returns whether the interruption happened, so admission can retry once.
+    ///
+    /// Under the single-owner store assumption (ADR 0010):
+    /// - a Turn this process is actively driving or preparing is making progress and stays busy;
+    /// - a Turn whose terminal commit has been pending no longer than
+    ///   `terminalCommitStallLimit` stays busy;
+    /// - everything else — an orphan from an earlier process, or a commit stalled past the limit
+    ///   — is interrupted, with a reason that distinguishes the two.
+    ///
+    /// When the store cannot answer whether a side effect is pending, this does not interrupt
+    /// (leaving `timelineBusy`), so it never retries without evidence.
+    func interruptIfAbandoned(timelineID: UUID, activeTurnID: UUID) async -> Bool {
+        if await dependencies.timelineManager.activeTurnID(for: timelineID) == activeTurnID {
+            return false
+        }
+        let pendingSince = await dependencies.finalizer.pendingCommitStartedAt(turnID: activeTurnID)
+        if let pendingSince {
+            let pending = pendingSince.duration(to: dependencies.clock.now())
+            if pending < .seconds(dependencies.terminalCommitStallLimit) {
+                return false
+            }
+        }
+        let reason = pendingSince == nil
+            ? "Turn was active but not owned by this runtime (orphaned)."
+            : "Terminal commit exceeded terminalCommitStallLimit (\(dependencies.terminalCommitStallLimit)s)."
+        do {
+            let disposition = try await TurnAbandonment.disposition(
+                for: activeTurnID,
+                repository: dependencies.runtimeRepository
+            )
+            _ = try await dependencies.runtimeRepository.interruptTurn(
+                turnID: activeTurnID,
+                reason: reason,
+                disposition: disposition,
+                now: Date()
+            )
+            return true
+        } catch {
+            return false
         }
     }
 
@@ -752,10 +830,10 @@ private extension TurnEngine {
                 _ = try await repository.interruptTurn(
                     turnID: turnID,
                     reason: "Turn preparation compensation failed: \(failure)",
-                    force: true,
+                    disposition: .retryable,
                     now: Date()
                 )
-                logger.error("Force-interrupted Turn \(turnID) after failed preparation compensation", metadata: [
+                logger.error("Interrupted Turn \(turnID) after failed preparation compensation", metadata: [
                     LogKeys.turnID: .string(turnID.uuidString),
                     "failure": .string(String(describing: failure)),
                 ])

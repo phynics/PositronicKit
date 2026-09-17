@@ -247,6 +247,15 @@ public extension PKRuntime {
         /// Controls whether required turn degradations fail the turn.
         public let degradationPolicy: TurnDegradationPolicy
 
+        /// How long, in seconds, a Turn's terminal commit may stay pending before admission
+        /// treats the Turn as abandoned and interrupts it (ADR 0010).
+        ///
+        /// A non-finite or non-positive value falls back to the 300-second default. The limit is
+        /// measured with the injected runtime clock, and it bounds how long a Timeline stays busy
+        /// for a stalled commit — it never bounds the commit itself, so the durable outcome is
+        /// never ambiguous.
+        public let terminalCommitStallLimit: TimeInterval
+
         /// Maximum idle time, in seconds, between streamed model chunks before a Turn fails
         /// with `streamTimedOut`.
         ///
@@ -271,6 +280,9 @@ public extension PKRuntime {
         ///   - degradationPolicy: Controls whether required turn degradations fail the turn.
         ///   - streamTimeout: Maximum idle time between streamed model chunks, in seconds.
         ///     Clamped to one millisecond ... one day; a non-finite value falls back to 60.
+        ///   - terminalCommitStallLimit: How long a pending terminal commit may stay pending
+        ///     before admission interrupts the Turn, in seconds. A non-finite or non-positive
+        ///     value falls back to 300.
         public init(
             workspaceProfile: WorkspaceProfile = .noWorkspace,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
@@ -279,7 +291,8 @@ public extension PKRuntime {
             toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired,
-            streamTimeout: TimeInterval = 60
+            streamTimeout: TimeInterval = 60,
+            terminalCommitStallLimit: TimeInterval = 300
         ) {
             self.workspaceProfile = workspaceProfile
             self.workspaceCreator = workspaceCreator
@@ -289,6 +302,13 @@ public extension PKRuntime {
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.degradationPolicy = degradationPolicy
             self.streamTimeout = TurnEngine.Dependencies.resolvedStreamTimeout(streamTimeout)
+            self.terminalCommitStallLimit = Self.resolvedTerminalCommitStallLimit(terminalCommitStallLimit)
+        }
+
+        /// A finite, positive stall limit, falling back to the 300-second default.
+        static func resolvedTerminalCommitStallLimit(_ requested: TimeInterval) -> TimeInterval {
+            guard requested.isFinite, requested > 0 else { return 300 }
+            return requested
         }
 
         /// The default runtime configuration: no workspaces or customization, deny-all tool approval.
@@ -324,7 +344,8 @@ public extension PKRuntime {
             loggingConfiguration: configuration.logging,
             sharedRegistry: TimelinePromptJournals(),
             additionalStages: [],
-            streamTimeout: configuration.runtime.streamTimeout
+            streamTimeout: configuration.runtime.streamTimeout,
+            terminalCommitStallLimit: configuration.runtime.terminalCommitStallLimit
         )
         if let warning = configuration.persistence.validateDurability().mixedDurabilityWarning {
             configuration.logging.logger(named: "positronickit-facade").warning(

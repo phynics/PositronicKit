@@ -76,7 +76,7 @@ struct ConformanceSuiteTests {
         try await withKnownIssue(
             "broken fixture must be observed",
             {
-                try await TimelineRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
+                try await TimelineRuntimeRepositoryConformanceSuite.run {
                     let store = MockPersistenceService()
                     store.completeTurnFails = true
                     return store
@@ -91,7 +91,7 @@ struct ConformanceSuiteTests {
         try await withKnownIssue(
             "broken fixture must be observed",
             {
-                try await TimelineRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
+                try await TimelineRuntimeRepositoryConformanceSuite.run {
                     let store = MockPersistenceService()
                     store.unorderedMessagesForTimelineID = UUID(
                         uuidString: "00000000-0000-0000-0000-000000000166"
