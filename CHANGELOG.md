@@ -110,8 +110,9 @@ for tagged releases beginning with `1.0.0`.
   same internal declarations are available on iOS 26, tvOS 26, watchOS 26, and visionOS 26 and no
   longer claim (incorrectly) to exist at the iOS 18 deployment floor; this is the change that keeps
   the module buildable for iOS. Optional existential parameters and returns across the public
-  surface drop the redundant parentheses (`(any P)?` to `any P?`, SE-0521) with no ABI or
-  symbol-graph change. `@diagnose` (SE-0522) is admitted only as
+  surface drop the redundant parentheses (`(any P)?` to `any P?`, SE-0521); the symbol-graph
+  declaration text is refreshed in the 5.1 Linux and macOS baselines, with no ABI change.
+  `@diagnose` (SE-0522) is admitted only as
   `@diagnose(<Group>, as: warning, reason: "<why>")`, enforced by `make verify-diagnose-scan`; the
   `~Sendable` (SE-0518) audit found no public type that must be non-`Sendable`.
 - **Swift 6.4 toolchain qualification (#193):** CI now runs the sole supported Swift 6.4.0 Linux
