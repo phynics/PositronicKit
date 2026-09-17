@@ -33,6 +33,11 @@ The development image supplies Swift 6.3.3 and Python 3 for the documentation ca
 Ubuntu 24.04. Build or
 refresh it with `make linux-image`. Compile in it with `make linux-build`.
 
+The supported toolchain is the version declared by `swift-tools-version` in `Package.swift`, which
+`make doctor` reads. CI keeps one lane per platform at that version, and
+[ADR 0011](adr/0011-swift-6-4-toolchain-floor.md) governs when the floor moves and why guarded
+`#if compiler` fallbacks are not used.
+
 ## Focused checks
 
 Use `make agent-test FILTER='…'` for a focused Linux test. The test layers,
