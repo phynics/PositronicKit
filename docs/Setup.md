@@ -13,7 +13,7 @@ Pick the smallest surface that matches your need:
 | Prompt composition, rendering, journaling — no runtime | `PKPrompt` |
 | Single-process app or CLI agent runtime | The `PKRuntime` facade |
 | Runtime + OpenAI/OpenRouter/Ollama/Anthropic convenience setup | Add the matching provider package |
-| On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` and pass `FoundationModelsClient` as the language model; requires macOS 26+/Apple Silicon with Apple Intelligence enabled, surfaces unavailability as a typed error |
+| On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` and pass `FoundationModelsClient` as the language model; requires an Apple OS 26+ device with Apple Intelligence enabled, surfaces unavailability as a typed error |
 | Host-owned workspace execution/attachment behavior | `PKRuntime` + your own `WorkspaceFactory` / `WorkspaceProvider` (optionally `WorkspaceToolProvider` and `WorkspaceFileProvider`) |
 | Typed JSON / schema-first integrations | `PKContracts` structured output types, optionally with the runtime later |
 

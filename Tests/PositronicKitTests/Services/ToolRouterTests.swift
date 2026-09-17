@@ -171,7 +171,7 @@ final class ToolRouterTests {
         with tool: any PKContracts.PKTool,
         approvalPolicy: any ToolApprovalPolicy,
         disabledToolIDs: Set<String> = [],
-        runtimeRepository: (any TimelineRuntimeRepository)? = nil
+        runtimeRepository: any TimelineRuntimeRepository? = nil
     ) async throws -> (ToolRouter, UUID, MockPersistenceService) {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
         let toolRouter = ToolRouter(

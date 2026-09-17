@@ -7,14 +7,14 @@ import PKContracts
 /// selection and fallback rules live here so every path (send, stream, structured-output
 /// adapters, health) resolves clients identically.
 public struct LLMClientSet: Sendable {
-    public var primary: (any LLMClientProtocol)?
-    public var utility: (any LLMClientProtocol)?
-    public var fast: (any LLMClientProtocol)?
+    public var primary: any LLMClientProtocol?
+    public var utility: any LLMClientProtocol?
+    public var fast: any LLMClientProtocol?
 
     public init(
-        primary: (any LLMClientProtocol)?,
-        utility: (any LLMClientProtocol)? = nil,
-        fast: (any LLMClientProtocol)? = nil
+        primary: any LLMClientProtocol?,
+        utility: any LLMClientProtocol? = nil,
+        fast: any LLMClientProtocol? = nil
     ) {
         self.primary = primary
         self.utility = utility
@@ -25,7 +25,7 @@ public struct LLMClientSet: Sendable {
     ///
     /// `.utility` and `.fast` fall back to `primary` when their dedicated client is not
     /// configured; `.primary` never substitutes another tier.
-    public func client(for tier: ModelTier) -> (any LLMClientProtocol)? {
+    public func client(for tier: ModelTier) -> any LLMClientProtocol? {
         switch tier {
         case .primary:
             return primary
