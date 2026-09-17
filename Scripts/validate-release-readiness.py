@@ -71,6 +71,18 @@ def main() -> int:
         if result.returncode:
             return result.returncode
 
+    # Publishing an SBOM is blocking: a release without a valid CycloneDX
+    # document for its package graph does not ship. The generator also checks
+    # per-product dependency attribution, so a silently changed graph fails
+    # here instead of at a downstream scanner.
+    sbom = subprocess.run(
+        ("python3", "Scripts/generate-sbom.py", "--format", "cyclonedx", "--version", version),
+        cwd=ROOT,
+        check=False,
+    )
+    if sbom.returncode:
+        fail(f"could not generate the CycloneDX release SBOM for {version}")
+
     print(f"Local release artifacts, stable documentation, and annotated tag {version} agree.")
     print("Confirm the matching GitHub milestone and release text during publication.")
     return 0

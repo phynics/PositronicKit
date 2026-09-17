@@ -59,13 +59,36 @@ do not fall back to host Swift or compose an ad hoc container command.
 2. Cut an annotated tag from that verified commit using the bare semver string, for example
    `git tag -a 5.1.0 -m 'PositronicKit 5.1.0'`.
 3. Run `make verify-release VERSION=5.1.0`. This requires a clean tree, checks that the annotated
-   tag points to `HEAD`, and verifies that the catalog, changelog, and generated stable docs agree.
+   tag points to `HEAD`, and verifies that the catalog, changelog, generated stable docs, and the
+   release SBOM agree.
 4. Push the commit and tag, then publish the GitHub release from the matching changelog entry and
-   close the matching milestone.
+   close the matching milestone. The `Release SBOM` workflow generates the CycloneDX document at
+   the published tag and attaches it to the release; no manual upload is required.
 5. Read back the tag, GitHub release, milestone, stable landing, and changelog links. After those
    artifacts agree, downstream consumers may bump their pins to the new release.
 
 Use an annotated tag. Do not tag unreleased work or skip the changelog entry.
+
+## Software bill of materials
+
+SwiftPM 6.4 generates SBOMs for the package graph (SE-0509). PositronicKit publishes CycloneDX
+because downstream dependency scanners read it:
+
+```bash
+make sbom VERSION=5.1.0
+```
+
+The target runs the accurate build-based path
+(`swift build --build-system swiftbuild --sbom-spec cyclonedx`) and writes
+`.build/sboms/PositronicKit-5.1.0.cyclonedx.json` with the release version. It fails if SwiftPM
+cannot generate the document, if a public library product is missing from the components, or if
+the per-product dependency edges change: `PKOpenAIProvider` must list `MacPaw/OpenAI` while
+`PKContracts` must not.
+
+`make verify-release` runs the same generation for the tag being published, so the SBOM is a
+blocking release artifact rather than an afterthought. The `Release SBOM` workflow repeats the
+generation on the published tag and attaches the result to the GitHub release. Set
+`SBOM_FORMAT=spdx` to emit SPDX instead, but the release artifact stays CycloneDX.
 
 ## Downstream Cadence
 
