@@ -187,11 +187,11 @@ let metadata = try await kit.model.generate(
 
 The type must be `Decodable`, `Sendable`, and `Schemable`. `CodingKeys` and the decoder's key
 strategy must agree with the generated schema; pass a configured `JSONDecoder` when decoding
-needs custom behavior. For callers that need the raw JSON payload or a hand-built schema, the
-advanced operation remains available:
+needs custom behavior. For callers that need the raw JSON payload, a hand-built schema, or plain
+JSON-object mode, call `generate` with a `structuredOutput:` request instead of a `from:` type:
 
 ```swift
-let json = try await kit.model.generateStructured(
+let json = try await kit.model.generate(
     "Extract the project metadata.",
     structuredOutput: request,
     generationParameters: GenerationParameters(temperature: 0),
@@ -204,8 +204,8 @@ Typed structured generation reports schema construction failures as
 arrives, `StructuredOutputDecodingError.invalidJSONPayload` means the payload was not parseable
 even after repair, while `.decodingFailed` means valid JSON could not be decoded as `Output`,
 including failures raised by custom decoding. Provider failures, idle timeouts, and cancellation
-retain their existing error identities. The raw operation's rename for the next breaking release
-is tracked in [#176](https://github.com/phynics/PositronicKit/issues/176).
+retain their existing error identities. The `structuredOutput:` overload returns the provider's
+JSON string without decoding it; decode that payload with `StructuredOutputDecoder`.
 
 Errors arrive at the boundary where the work occurs:
 
@@ -216,9 +216,9 @@ Errors arrive at the boundary where the work occurs:
 - Provider and pipeline failures after a `TurnHandle` is admitted arrive as terminal events on
   its nonthrowing `events()` stream. The durable `outcome()` remains authoritative for every
   joiner.
-- `kit.model.generate`, `generateStructured`, and typed structured generation consume provider streams internally, so preparation
-  and provider failures both throw from the one-shot call. `kit.model.stream` returns immediately
-  and reports provider failures during iteration.
+- All `kit.model.generate` overloads — text, typed structured, and raw structured — consume provider
+  streams internally, so preparation and provider failures both throw from the one-shot call.
+  `kit.model.stream` returns immediately and reports provider failures during iteration.
 
 Cancelling a task that consumes a facade run cancels its provider work and releases the timeline's
 active-task registration. Abandoning a facade `stream` iterator likewise cancels the provider;

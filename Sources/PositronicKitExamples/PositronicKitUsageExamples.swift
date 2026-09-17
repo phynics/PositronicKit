@@ -230,7 +230,7 @@ public enum PositronicKitUsageExamples {
         ExampleWorkspaceToolProvider(workspaceID: workspaceID, workspaceName: workspaceName)
     }
 
-    /// Builds the raw schema used by the advanced `generateStructured` example.
+    /// Builds the raw schema used by the advanced `generate(_:structuredOutput:)` example.
     /// Prefer `completeStructuredOutputExample(prompt:)` for typed one-shot generation.
     public static func makeStructuredOutputSchema() -> StructuredOutputSchema {
         StructuredOutputSchema(
@@ -249,8 +249,8 @@ public enum PositronicKitUsageExamples {
     }
 
     /// Tier 1 structured-output variant: a typed one-shot `kit.model.generate(...)` call, with
-    /// no timeline created or updated. The raw `generateStructured` request and decoder helpers
-    /// above remain available for advanced callers that need direct payload control.
+    /// no timeline created or updated. The raw `generate(_:structuredOutput:)` request and
+    /// decoder helpers above remain available for advanced callers that need direct payload control.
     public static func completeStructuredOutputExample(prompt: String) async throws -> ExampleTagPayload {
         let kit = makeOneShotRuntime()
         return try await kit.model.generate(

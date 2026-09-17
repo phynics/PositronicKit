@@ -20,3 +20,7 @@ input rather than appending a second copy. `completeTurn` is the corresponding b
 normal terminal assistant message and its `TurnOutcome`; a terminal message must belong to the
 same Thread as its Turn. Independent Thread and message stores remain a legacy, non-atomic path
 and are not a v4 crash guarantee.
+
+Stale-Turn recovery is superseded by ADR 0010: the runtime decides when a Turn is abandoned and
+drives its terminal commit, while this repository keeps owning durable admission, idempotency, and
+first-writer-wins terminal transitions.

@@ -68,6 +68,11 @@ extension-member relationships that 6.3 does not (and reports its graph output u
 so the 5.1 Linux surface carries both a primary and a scoped 6.4 baseline.
 `make update-public-api-baseline` records an intentional change for the running toolchain.
 
+The supported toolchain is the version declared by `swift-tools-version` in `Package.swift`, which
+`make doctor` reads. CI keeps one lane per platform at that version, and
+[ADR 0011](adr/0011-swift-6-4-toolchain-floor.md) governs when the floor moves and why guarded
+`#if compiler` fallbacks are not used.
+
 ## Focused checks
 
 Use `make agent-test FILTER='…'` for a focused Linux test. The test layers,

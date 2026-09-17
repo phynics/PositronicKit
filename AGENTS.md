@@ -51,6 +51,11 @@ not run host Swift or compose another container command. See [docs/Development.m
 For an intentional public API change, inspect `make verify-public-api` on every affected platform
 before running `make update-public-api-baseline`. Generate the Linux baseline on Linux.
 
+Use only the language and stdlib features the declared `swift-tools-version` and the `platforms:`
+deployment targets allow. Do not add `#if compiler` or `#if swift` guards to `Sources/` or
+`Tests/`; the toolchain floor in
+[ADR 0011](docs/adr/0011-swift-6-4-toolchain-floor.md) is the single statement of what compiles.
+
 For documentation or product-catalog changes, edit [docs/catalog.json](docs/catalog.json) only when
 the stable ref, product graph, or navigation changes. Then run
 `python3 Scripts/generate-doc-navigation.py` and `make verify-documentation`. Treat generated
