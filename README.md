@@ -508,9 +508,9 @@ Provider targets ship separately so you opt in only to the integrations you want
 
 - `PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`, and `PKAnthropicProvider` expose
   concrete clients and compile-time factories. The `PKFoundationModelsProvider` module exposes its
-  concrete `FoundationModelsClient` entry point, annotated `@available(anyAppleOS 26, *)`. The Anthropic
-  client uses the Messages API and maps structured output through a forced synthetic tool because
-  that API has no `response_format` field.
+  concrete `FoundationModelsClient` entry point, annotated `@available(anyAppleOS 26, *)`. The
+  Anthropic client uses the Messages API and maps structured output through a forced synthetic
+  tool because that API has no `response_format` field.
 
 Supporting targets:
 

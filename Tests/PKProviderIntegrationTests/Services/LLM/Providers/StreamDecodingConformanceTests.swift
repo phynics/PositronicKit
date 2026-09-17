@@ -343,9 +343,9 @@ struct StreamDecodingConformanceTests {
         #expect(chunks.last?.choices.first?.finishReason == "stop")
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Foundation Models session events normalize through the shared stream contract")
     func foundationModelsPlainTextStreamPreservesContent() async throws {
-        guard #available(anyAppleOS 26.0, *) else { return }
         let client = FoundationModelsClient(
             makeSession: { _, _ in
                 ConformanceFoundationModelsSession(events: [

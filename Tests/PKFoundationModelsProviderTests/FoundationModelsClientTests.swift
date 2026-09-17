@@ -37,9 +37,9 @@ private actor FakeFoundationModelsSession: FoundationModelsSessionProtocol {
 
 @Suite("FoundationModelsClient streaming")
 struct FoundationModelsClientTests {
+    @available(anyAppleOS 26.0, *)
     @Test("Text-only turn streams content deltas then a stop finish reason")
     func textOnlyTurnStreams() async throws {
-        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(events: [
             .textDelta("hello "),
             .textDelta("world"),
@@ -60,9 +60,9 @@ struct FoundationModelsClientTests {
         #expect(chunks.last?.choices.first?.finishReason == "stop")
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Explicit LLMToolChoice.none removes per-turn tools before session creation")
     func explicitNoneDisablesPerTurnTools() async throws {
-        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(events: [.finished(.stop)])
         let receivedTools = Mutex<[LLMToolDefinition]?>(nil)
         let client = FoundationModelsClient(makeSession: { turnTools, _ in
@@ -83,9 +83,9 @@ struct FoundationModelsClientTests {
         #expect(toolsWereRemoved)
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("An omitted tool choice retains per-turn tools")
     func omittedChoiceRetainsPerTurnTools() async throws {
-        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(events: [.finished(.stop)])
         let receivedTools = Mutex<[LLMToolDefinition]?>(nil)
         let client = FoundationModelsClient(makeSession: { turnTools, _ in
@@ -106,9 +106,9 @@ struct FoundationModelsClientTests {
         #expect(toolsWereRetained)
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Multi-tool turn surfaces both tool calls with distinct ordinals")
     func multiToolTurnSurfacesBothCalls() async throws {
-        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(events: [
             .toolCall(id: "call_1", name: "lookup_weather", argumentsJSON: "{\"city\":\"Berlin\"}"),
             .toolOutput(id: "call_1", name: "lookup_weather", output: "Sunny"),
@@ -134,9 +134,9 @@ struct FoundationModelsClientTests {
         ])
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Guardrail refusal surfaces as a thrown error, not a silent empty stream")
     func guardrailRefusalThrows() async throws {
-        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(
             events: [],
             failure: FoundationModelsGenerationErrorFixture.guardrailViolation
@@ -156,9 +156,9 @@ struct FoundationModelsClientTests {
         }
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Context-exceeded surfaces as a thrown error, not a silent empty stream")
     func contextExceededThrows() async throws {
-        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(
             events: [.textDelta("partial")],
             failure: FoundationModelsGenerationErrorFixture.contextExceeded
@@ -182,9 +182,9 @@ struct FoundationModelsClientTests {
         #expect(receivedPartialText)
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("sendMessage accumulates content deltas into a single string")
     func sendMessageAccumulatesContent() async throws {
-        guard #available(anyAppleOS 26.0, *) else { return }
         let fake = FakeFoundationModelsSession(events: [
             .textDelta("hello "),
             .textDelta("world"),
@@ -196,9 +196,9 @@ struct FoundationModelsClientTests {
         #expect(result == "hello world")
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("fetchAvailableModels returns the single configured model name")
     func fetchAvailableModelsReturnsConfiguredName() async throws {
-        guard #available(anyAppleOS 26.0, *) else { return }
         let client = FoundationModelsClient(modelName: "apple-on-device-test", makeSession: { _, _ in
             FakeFoundationModelsSession(events: [.finished(.stop)])
         })

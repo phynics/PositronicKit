@@ -42,6 +42,7 @@ private let registeredCaseIDs: Set<String> = [
 // attribution ordered (issue #155).
 @Suite("Provider capability matrix", .serialized, .tags(.integration))
 struct ProviderCapabilityMatrixTests {
+    @available(anyAppleOS 26.0, *)
     @Test("every manifest row has an executable assertion")
     func everyManifestRowRuns() async throws {
         let manifest = try ProviderCapabilityMatrixManifest.load()
@@ -53,6 +54,7 @@ struct ProviderCapabilityMatrixTests {
         }
     }
 
+    @available(anyAppleOS 26.0, *)
     private func run(_ matrixCase: ProviderCapabilityMatrixManifest.Case) async throws {
         switch matrixCase.id {
         case "openai.image-input.ordered-content-parts":
@@ -249,12 +251,12 @@ struct ProviderCapabilityMatrixTests {
         }
     }
 
+    @available(anyAppleOS 26.0, *)
     private func assertFoundationModelsDisabled(
         _ id: String,
         part: MessageContentPart,
         expected: MultimodalContentError
     ) async throws {
-        guard #available(anyAppleOS 26.0, *) else { return }
         let factoryCalls = Mutex(0)
         let client = FoundationModelsClient(makeSession: { _, _ in
             factoryCalls.withLock { $0 += 1 }

@@ -168,9 +168,9 @@ struct ProviderCancellationConformanceTests {
         _ = await consumer.value
     }
 
+    @available(anyAppleOS 26.0, *)
     @Test("Foundation Models cancellation reaches the scripted session without a delay")
     func foundationModelsCancellationReachesSession() async {
-        guard #available(anyAppleOS 26.0, *) else { return }
         let started = CancellationLatch()
         let terminated = CancellationLatch()
         let session = CancellationFoundationModelsSession(started: started, terminated: terminated)
