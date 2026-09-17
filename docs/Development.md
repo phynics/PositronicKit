@@ -29,43 +29,31 @@ runtime resolved.
 
 ## Supported Swift toolchains
 
-`Package.swift` sets the consumer floor at Swift 6.2 (`swift-tools-version: 6.2`). Linux CI
-qualifies Swift 6.3.3 (current) and Swift 6.4.0 (next) by running the same `make verify-linux-agent`
-contract in each lane. The environments differ: `linux-current` uses the runner image's 6.3.3
-toolchain, while `linux-next` installs `swift-6.4.0-RELEASE` from swift.org. The native macOS gate
-runs whatever Xcode `macos-latest` ships, so it is floor-only. `make doctor` reports the resolved
-toolchain and the Linux CI ceiling.
+`Package.swift` sets the consumer floor at Swift 6.4 (`swift-tools-version: 6.4`). Linux CI runs
+the `make verify-linux-agent` contract on Swift 6.4.0 installed from swift.org. The native macOS
+gate installs the swift.org Swift 6.4.0 toolchain on top of the runner's Xcode, because
+`macos-latest` only ships Xcode 26.x (Swift 6.2) and Xcode 27 is not on the standard runner image.
+`make doctor` reports the required toolchain.
 
 ## Linux image and prerequisites
 
-The development image supplies Swift and Python 3 for the documentation catalog gates on Ubuntu
-24.04. The default base image is `swift:6.3.3-noble`; `LINUX_SWIFT_VERSION` selects another
-toolchain:
+The development image supplies Swift 6.4.0 and Python 3 for the documentation catalog gates on
+Ubuntu 24.04. Its base image is `swift:6.4.0-noble`:
 
 ```bash
-make linux-image LINUX_SWIFT_VERSION=6.4.0   # Build the Swift 6.4.0 variant image
-make agent-verify LINUX_SWIFT_VERSION=6.4.0  # Run the full gate in the Swift 6.4.0 image
+make linux-image   # Build the Swift 6.4.0 image
+make agent-verify  # Run the full gate in the Swift 6.4.0 image
 ```
 
-The version selects the `swift:<version>-noble` base image and, unless `LINUX_IMAGE` is set,
-derives the `positronickit-linux-dev-<version>` image tag. The Swift 6.4.0 base image depends on
-`swift:6.4.0-noble`, which is not yet published to Docker Hub, so the local 6.4.0 container variant
-does not build until that tag exists; use the `linux-next` CI lane to exercise Swift 6.4.0 in the
-meantime. Build or refresh the default image with `make linux-image`. Compile in it with
-`make linux-build`.
+The image uses the `swift:6.4.0-noble` base and the `positronickit-linux-dev-6.4.0` tag. Build or
+refresh it with `make linux-image`. Compile in it with `make linux-build`.
 
-`agent-test` and `linux-coverage` give each toolchain its own SwiftPM scratch directory
-(`.build/agent-scratch/swift-<version>` and `.build/linux-coverage-scratch/swift-<version>`), so
-focused runs and coverage never mix compilers. `agent-verify` and `linux-build` use the
-bind-mounted checkout `.build`; remove that directory before switching `LINUX_SWIFT_VERSION`, or
-stale `.swiftmodule` files will fail or force a rebuild.
+The supported lane uses one Swift 6.4.0 build state; remove `.build` after changing build options
+or dependencies so stale modules cannot survive a rebuild.
 
-The `api/` public-symbol baselines are keyed by release, platform, and compiler major.minor.
-`make verify-public-api` prefers the reviewed toolchain-scoped file
-(`<release>-public-api-<platform>-swift-<X.Y>.json`) and falls back to the primary
-`<release>-public-api-<platform>.json` when no scoped file exists. Swift 6.4 emits
-extension-member relationships that 6.3 does not (and reports its graph output under `.build/out`),
-so the 5.1 Linux surface carries both a primary and a scoped 6.4 baseline.
+The `api/` public-symbol baselines are keyed by release and platform and are generated with the
+supported Swift 6.4 toolchain. `make verify-public-api` compares against the primary
+`<release>-public-api-<platform>.json` baseline.
 `make update-public-api-baseline` records an intentional change for the running toolchain.
 
 The supported toolchain is the version declared by `swift-tools-version` in `Package.swift`, which
@@ -109,7 +97,11 @@ Run `make linux-coverage` in the pinned Linux environment to execute the tests w
 
 The target writes the raw `llvm-cov` JSON, a normalized summary for `PositronicKit`,
 `PKContracts`, `PKPrompt`, `PKUtilities`, and `PKObservable`, and a platform-asymmetry report.
-Provider targets, `PKTestSupport`, executables, and test targets are excluded.
+Provider targets, `PKTestSupport`, executables, and test targets are excluded. Swift 6.4's default
+Swift Build coverage export does not include the standalone `PKObservable` product, so the report
+records it under `omittedModules` and in the asymmetry report rather than failing. The omission is
+scoped to `PKObservable`; a regression that drops any other configured module still fails the gate.
+Restoring that coverage is tracked in [#212](https://github.com/phynics/PositronicKit/issues/212).
 
 This milestone reports Linux coverage only. It does not set floors, compare changed lines,
 commit a baseline, or enforce macOS parity. A follow-up issue owns those decisions.

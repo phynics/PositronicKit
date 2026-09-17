@@ -10,6 +10,10 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Swift 6.4 required (#194, ADR 0011):** `swift-tools-version` is now 6.4; apps on a Swift 6.3
+  toolchain / Xcode 26 cannot take this release. Deployment targets are unchanged (macOS 15,
+  iOS 18).
+
 - **Runtime-owned Turn liveness and terminal finalization (ADR 0010, #207):** terminal commits run
   in a runtime-owned `TurnFinalizer` instead of the cancelled Turn task, so cancelling a Turn no
   longer risks an ambiguous durable outcome and a host store that hangs mid-commit cannot stall
@@ -120,20 +124,18 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
-- **Swift 6.4 toolchain qualification (#193):** CI now runs a Swift 6.4.0 Linux lane beside the
-  Swift 6.3.3 lane, both running the same `make verify-linux-agent` contract; the next lane
-  installs `swift-6.4.0-RELEASE` from swift.org and asserts the compiler version before the gate.
+- **Swift 6.4 toolchain qualification (#193):** CI now runs the sole supported Swift 6.4.0 Linux
+  lane with the `make verify-linux-agent` contract; it installs `swift-6.4.0-RELEASE` from swift.org
+  and asserts the compiler version before the gate.
   The Linux development image selects its base toolchain with the `SWIFT_VERSION` build argument,
-  and `LINUX_SWIFT_VERSION` on the `make` command line selects the qualified lane (`6.3.3`
-  current, `6.4.0` next) and derives the image tag. `agent-test` and `linux-coverage` namespace
-  their SwiftPM scratch per toolchain; `agent-verify` and `linux-build` share the bind-mounted
-  `.build` and need a clean before switching toolchains. `make doctor` reports the supported
-  range. `api/` now scopes the reviewed public-symbol baseline per compiler major.minor:
-  `make verify-public-api` prefers `api/<release>-public-api-<platform>-swift-<X.Y>.json` and falls
-  back to the primary file, and the 5.1 Linux surface ships a scoped 6.4 baseline because 6.4 emits
-  extension-member relationships and graph locations that 6.3 does not. The consumer floor stays at
-  `swift-tools-version: 6.2`; 6.4-only syntax is out of scope until the toolchain-floor ADR
-  decides it.
+  and `LINUX_SWIFT_VERSION` derives the `6.4.0` image tag. `make doctor` reports the supported
+  range. The 5.1 Linux public-symbol baseline is regenerated under Swift 6.4 because that compiler
+  emits extension-member relationships and graph locations introduced by Swift 6.4. The consumer
+  floor is `swift-tools-version: 6.4`. The macOS DocC gate uses the toolchain on `PATH` so its
+  symbol-graph extractor matches the modules it reads, and the Linux coverage report records the
+  `PKObservable` module as omitted because Swift 6.4's default Swift Build coverage export does not
+  include that standalone product ([#212](https://github.com/phynics/PositronicKit/issues/212)
+  tracks restoring that coverage).
 - **Docs-snippet gate stays green after #201/#202:** guides that document the `@MainActor`
   `TimelineController` opt into a main-actor wrapper with the ` ```swift main-actor ` fence marker
   (every other block keeps the nonisolated wrapper, so the gate stays as strict as code pasted

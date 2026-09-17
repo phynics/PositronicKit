@@ -173,15 +173,28 @@ def normalize(report: dict[str, Any], package_root: Path) -> dict[str, Any]:
                 file_entry if existing is None else _merge_file_entries(existing, file_entry)
             )
 
+    present_modules = [module for module in MODULES if files_by_module[module]]
     missing_modules = [module for module in MODULES if not files_by_module[module]]
-    if missing_modules:
+    # Swift 6.4's default Swift Build coverage export does not include the
+    # standalone PKObservable product (see #212). Scope the workaround to that
+    # one known case so a regression that drops any other configured module
+    # still fails the reporting-only gate instead of passing silently.
+    known_omitted = {"PKObservable"}
+    unexpected = [module for module in missing_modules if module not in known_omitted]
+    if unexpected:
         raise CoverageReportError(
             "coverage report has no source files for configured modules: "
-            + ", ".join(missing_modules)
+            + ", ".join(unexpected)
+        )
+    if missing_modules:
+        print(
+            "linux-coverage-report: coverage export omits configured modules; reporting the rest: "
+            + ", ".join(missing_modules),
+            file=sys.stderr,
         )
 
     modules: list[dict[str, Any]] = []
-    for module in MODULES:
+    for module in present_modules:
         files = [files_by_module[module][path] for path in sorted(files_by_module[module])]
         modules.append(
             {
@@ -203,6 +216,7 @@ def normalize(report: dict[str, Any], package_root: Path) -> dict[str, Any]:
         "platform": "linux",
         "source": "llvm-cov",
         "modules": modules,
+        "omittedModules": missing_modules,
         "summary": _summary(all_files),
     }
 
@@ -212,6 +226,7 @@ def asymmetry_report(normalized: dict[str, Any]) -> dict[str, Any]:
         "schemaVersion": 1,
         "reportedPlatform": "linux",
         "reportedModules": [module["name"] for module in normalized["modules"]],
+        "omittedModules": normalized.get("omittedModules", []),
         "missingPlatforms": ["macOS"],
         "excludedTargets": list(EXCLUDED_TARGETS),
         "deferredPolicy": [
@@ -253,6 +268,13 @@ def markdown_asymmetry(report: dict[str, Any]) -> str:
         "",
     ]
     lines.extend(f"- `{module}`" for module in report["reportedModules"])
+    omitted = report.get("omittedModules", [])
+    if omitted:
+        lines.extend(["", "## Omitted modules", ""])
+        lines.extend(
+            f"- `{module}` (not present in the Swift 6.4 Swift Build coverage export)"
+            for module in omitted
+        )
     lines.extend(["", "## Excluded targets", ""])
     lines.extend(f"- {target}" for target in report["excludedTargets"])
     lines.extend(["", "## Deferred policy", ""])

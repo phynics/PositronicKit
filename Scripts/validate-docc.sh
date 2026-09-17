@@ -61,8 +61,20 @@ else
   MODULES_DIR="$BUILD_DIR"
 fi
 
-DOCC_BIN="$(xcrun --find docc)"
-SYMBOLGRAPH_BIN="$(xcrun --find swift-symbolgraph-extract)"
+# The symbol graph extractor must match the compiler that produced the built
+# modules. Prefer the toolchain on PATH (the pinned CI toolchain) over the
+# active Xcode, whose extractor cannot read a newer toolchain's .swiftmodule.
+TOOLCHAIN_BIN="$(dirname "$(command -v swift)")"
+if [ -x "$TOOLCHAIN_BIN/docc" ]; then
+  DOCC_BIN="$TOOLCHAIN_BIN/docc"
+else
+  DOCC_BIN="$(xcrun --find docc)"
+fi
+if [ -x "$TOOLCHAIN_BIN/swift-symbolgraph-extract" ]; then
+  SYMBOLGRAPH_BIN="$TOOLCHAIN_BIN/swift-symbolgraph-extract"
+else
+  SYMBOLGRAPH_BIN="$(xcrun --find swift-symbolgraph-extract)"
+fi
 SDK_PATH="$(xcrun --show-sdk-path)"
 TARGET_TRIPLE="${TARGET_TRIPLE:-arm64-apple-macosx15.0}"
 

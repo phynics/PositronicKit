@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Generate a SwiftPM-compatible fast-test filter from Swift Testing tags.
 
-Swift 6.3.3 does not support the Swift Testing ``tag:`` command-line
-specifier. The repository still records taxonomy tags in source, then uses
+The repository records taxonomy tags in source, then uses
 the stable test-name regex interface to select tagged unit/platform suites.
 Module test targets without taxonomy annotations are included wholesale,
 except for bounded generative suites (``.tags(.generative)``), which run
