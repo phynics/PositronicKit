@@ -92,6 +92,23 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Swift ${{ env.SWIFT_NEXT_VERSION }}
+        run: |
+          set -euo pipefail
+          pkg="swift-${SWIFT_NEXT_VERSION}-RELEASE-osx.pkg"
+          curl -fsSL -o "/tmp/${pkg}" \
+            "https://download.swift.org/swift-${SWIFT_NEXT_VERSION}-release/xcode/swift-${SWIFT_NEXT_VERSION}-RELEASE/${pkg}"
+          sudo installer -pkg "/tmp/${pkg}" -target /
+          toolchain="/Library/Developer/Toolchains/swift-${SWIFT_NEXT_VERSION}-RELEASE.xctoolchain"
+          if [ ! -x "$toolchain/usr/bin/swift" ]; then
+            echo "Swift toolchain not found at $toolchain" >&2
+            exit 1
+          fi
+          echo "$toolchain/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
+
       - name: Cache SwiftPM downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -125,6 +142,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      - name: Install Swift ${{ env.SWIFT_NEXT_VERSION }}
+        run: |
+          set -euo pipefail
+          archive="swift-${SWIFT_NEXT_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          curl -fsSL -o "/tmp/${archive}" \
+            "https://download.swift.org/swift-${SWIFT_NEXT_VERSION}-release/ubuntu2404/swift-${SWIFT_NEXT_VERSION}-RELEASE/${archive}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
 
       - name: Cache SwiftPM downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
