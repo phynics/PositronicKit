@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import platform
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -57,6 +58,22 @@ def run(*arguments: str) -> str:
         print(output, end="", file=sys.stderr)
         raise SystemExit(status)
     return output
+
+
+def symbolgraph_extract_command() -> list[str]:
+    """Return the extractor that matches the toolchain on PATH.
+
+    The active Xcode's ``swift-symbolgraph-extract`` cannot read a
+    ``.swiftmodule`` produced by a newer toolchain installed on PATH (for
+    example the pinned Swift 6.4 release), so prefer the sibling of the
+    ``swift`` binary the gate builds with and fall back to xcrun.
+    """
+    swift_binary = shutil.which("swift")
+    if swift_binary:
+        candidate = Path(swift_binary).with_name("swift-symbolgraph-extract")
+        if candidate.exists():
+            return [str(candidate)]
+    return ["xcrun", "swift-symbolgraph-extract"]
 
 
 PRIMARY_BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{PLATFORM}.json"
@@ -128,7 +145,7 @@ def inventory() -> dict:
             if not candidates:
                 continue
             run(
-                "xcrun", "swift-symbolgraph-extract",
+                *symbolgraph_extract_command(),
                 "-module-name", module,
                 "-I", str(candidates[0].parent),
                 "-I", str(generated_module_maps),
