@@ -1,6 +1,6 @@
 import Foundation
 @testable import PositronicKit
-import XCTest
+import Testing
 
 private actor AgentExecutionProbe {
     private(set) var active = 0
@@ -37,8 +37,12 @@ private actor AgentExecutionProbe {
     }
 }
 
-final class AgentAuthorityCoordinatorTests: XCTestCase {
-    func testSameAgentIsFifoAndNonOverlapping() async throws {
+// `.serialized`: these scenarios interleave tasks on short sleep windows to observe
+// lane ordering, so concurrent scenarios would perturb each other's timing.
+@Suite("Agent authority coordination", .serialized, .tags(.slow))
+struct AgentAuthorityCoordinatorTests {
+    @Test("Same agent serializes FIFO without overlap")
+    func sameAgentIsFifoAndNonOverlapping() async throws {
         let coordinator = AgentAuthorityCoordinator()
         let probe = AgentExecutionProbe()
         let agentID = UUID()
@@ -68,13 +72,14 @@ final class AgentAuthorityCoordinatorTests: XCTestCase {
         let secondValue = try await second.value
         let maximumActive = await probe.maximumActive
         let events = await probe.events
-        XCTAssertEqual(firstValue, 1)
-        XCTAssertEqual(secondValue, 2)
-        XCTAssertEqual(maximumActive, 1)
-        XCTAssertEqual(events, [1, 2])
+        #expect(firstValue == 1)
+        #expect(secondValue == 2)
+        #expect(maximumActive == 1)
+        #expect(events == [1, 2])
     }
 
-    func testDifferentAgentsCanExecuteConcurrently() async throws {
+    @Test("Different agents execute concurrently")
+    func differentAgentsCanExecuteConcurrently() async throws {
         let coordinator = AgentAuthorityCoordinator()
         let probe = AgentExecutionProbe()
 
@@ -91,10 +96,11 @@ final class AgentAuthorityCoordinatorTests: XCTestCase {
         _ = try await (first, second)
 
         let maximumActive = await probe.maximumActive
-        XCTAssertEqual(maximumActive, 2)
+        #expect(maximumActive == 2)
     }
 
-    func testCancelledWaiterDoesNotRunAfterTheLaneIsReleased() async throws {
+    @Test("Cancelled waiter does not run after the lane is released")
+    func cancelledWaiterDoesNotRunAfterTheLaneIsReleased() async throws {
         let coordinator = AgentAuthorityCoordinator()
         let probe = AgentExecutionProbe()
         let agentID = UUID()
@@ -125,7 +131,7 @@ final class AgentAuthorityCoordinatorTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(5))
         cancelled.cancel()
         let didCancel = await cancelled.value
-        XCTAssertTrue(didCancel)
+        #expect(didCancel)
 
         await probe.release()
         try await first.value
@@ -137,7 +143,7 @@ final class AgentAuthorityCoordinatorTests: XCTestCase {
 
         let events = await probe.events
         let isBusy = coordinator.isBusy(agentID)
-        XCTAssertEqual(events, [1, 3])
-        XCTAssertFalse(isBusy)
+        #expect(events == [1, 3])
+        #expect(!isBusy)
     }
 }

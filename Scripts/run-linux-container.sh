@@ -210,6 +210,9 @@ run_gate() {
   if [ -n "${LINUX_TEST_TRAITS:-}" ]; then
     run_command+=(-e "LINUX_TEST_TRAITS=$LINUX_TEST_TRAITS")
   fi
+  if [ -n "${LINUX_TEST_REPETITIONS:-}" ]; then
+    run_command+=(-e "LINUX_TEST_REPETITIONS=$LINUX_TEST_REPETITIONS")
+  fi
   if [ -n "$scratch_path" ]; then
     mkdir -p "$scratch_path"
     scratch_path="$(cd "$scratch_path" && pwd -P)"

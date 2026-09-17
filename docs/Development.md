@@ -31,9 +31,9 @@ runtime resolved.
 
 `Package.swift` sets the consumer floor at Swift 6.4 (`swift-tools-version: 6.4`). Linux CI runs
 the `make verify-linux-agent` contract on Swift 6.4.0 installed from swift.org. The native macOS
-gate installs the swift.org Swift 6.4.0 toolchain on top of the runner's Xcode, because
-`macos-latest` only ships Xcode 26.x (Swift 6.2) and Xcode 27 is not on the standard runner image.
-`make doctor` reports the required toolchain.
+gate runs on the `xcode-27` runner image, whose bundled Xcode 27 toolchain is Swift 6.4 and whose
+Testing library declares `CustomTestReflectable`; the Xcode 26 SDK on `macos-latest` ships Testing
+6.3 without it. `make doctor` reports the required toolchain.
 
 ## Linux image and prerequisites
 

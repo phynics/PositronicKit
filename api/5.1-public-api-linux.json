@@ -8762,6 +8762,16 @@
       "declaration": "var summaryType: SummaryType?"
     },
     {
+      "precise": "s:11PKContracts7MessageV13PKTestSupportE16customTestMirrors0G0Vvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "Message",
+        "customTestMirror"
+      ],
+      "declaration": "var customTestMirror: Mirror { get }"
+    },
+    {
       "precise": "s:11PKContracts7MessageV13PKTestSupportE7fixture2id4role7content9timestampAC20FoundationEssentials4UUIDV_AC0B4RoleOSSAJ4DateVtFZ",
       "module": "PKTestSupport",
       "kind": "swift.type.method",
@@ -9767,6 +9777,16 @@
         "isBlocked"
       ],
       "declaration": "let isBlocked: Bool"
+    },
+    {
+      "precise": "s:11PKContracts9TurnEventO13PKTestSupportE16customTestMirrors0H0Vvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "TurnEvent",
+        "customTestMirror"
+      ],
+      "declaration": "var customTestMirror: Mirror { get }"
     },
     {
       "precise": "s:11PKContracts9TurnEventO13toolCallError0dE2ID4name5errorACSS_S2StFZ",
@@ -14601,6 +14621,16 @@
         "interrupted(reason:)"
       ],
       "declaration": "case interrupted(reason: String)"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOutcomeO13PKTestSupportE16customTestMirrors0I0Vvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "TurnOutcome",
+        "customTestMirror"
+      ],
+      "declaration": "var customTestMirror: Mirror { get }"
     },
     {
       "precise": "s:13PositronicKit11TurnOutcomeO4fromACs7Decoder_p_tKcfc",
@@ -28407,6 +28437,15 @@
       "declaration": "extension PKContracts.PKTool"
     },
     {
+      "precise": "s:e:s:11PKContracts7MessageV13PKTestSupportE16customTestMirrors0G0Vvp",
+      "module": "PKTestSupport",
+      "kind": "swift.extension",
+      "path": [
+        "Message"
+      ],
+      "declaration": "extension Message"
+    },
+    {
       "precise": "s:e:s:11PKContracts7MessageV13PKTestSupportE7fixture2id4role7content9timestampAC20FoundationEssentials4UUIDV_AC0B4RoleOSSAJ4DateVtFZ",
       "module": "PKTestSupport",
       "kind": "swift.extension",
@@ -28414,6 +28453,24 @@
         "Message"
       ],
       "declaration": "extension Message"
+    },
+    {
+      "precise": "s:e:s:11PKContracts9TurnEventO13PKTestSupportE16customTestMirrors0H0Vvp",
+      "module": "PKTestSupport",
+      "kind": "swift.extension",
+      "path": [
+        "TurnEvent"
+      ],
+      "declaration": "extension TurnEvent"
+    },
+    {
+      "precise": "s:e:s:13PositronicKit11TurnOutcomeO13PKTestSupportE16customTestMirrors0I0Vvp",
+      "module": "PKTestSupport",
+      "kind": "swift.extension",
+      "path": [
+        "TurnOutcome"
+      ],
+      "declaration": "extension TurnOutcome"
     },
     {
       "precise": "s:e:s:8PKPrompt14RenderedPromptV13PositronicKitE13buildMessagesSay11PKContracts10LLMMessageVGyF",
@@ -35491,6 +35548,69 @@
       "targetFallback": "Swift.Sendable"
     },
     {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:e:s:11PKContracts7MessageV13PKTestSupportE16customTestMirrors0G0Vvp",
+      "target": "s:7Testing21CustomTestReflectableP",
+      "targetFallback": "Testing.CustomTestReflectable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:e:s:11PKContracts7MessageV13PKTestSupportE16customTestMirrors0G0Vvp",
+      "target": "s:s8CopyableP",
+      "targetFallback": "Swift.Copyable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:e:s:11PKContracts7MessageV13PKTestSupportE16customTestMirrors0G0Vvp",
+      "target": "s:s9EscapableP",
+      "targetFallback": "Swift.Escapable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:e:s:11PKContracts9TurnEventO13PKTestSupportE16customTestMirrors0H0Vvp",
+      "target": "s:7Testing21CustomTestReflectableP",
+      "targetFallback": "Testing.CustomTestReflectable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:e:s:11PKContracts9TurnEventO13PKTestSupportE16customTestMirrors0H0Vvp",
+      "target": "s:s8CopyableP",
+      "targetFallback": "Swift.Copyable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:e:s:11PKContracts9TurnEventO13PKTestSupportE16customTestMirrors0H0Vvp",
+      "target": "s:s9EscapableP",
+      "targetFallback": "Swift.Escapable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:e:s:13PositronicKit11TurnOutcomeO13PKTestSupportE16customTestMirrors0I0Vvp",
+      "target": "s:7Testing21CustomTestReflectableP",
+      "targetFallback": "Testing.CustomTestReflectable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:e:s:13PositronicKit11TurnOutcomeO13PKTestSupportE16customTestMirrors0I0Vvp",
+      "target": "s:s8CopyableP",
+      "targetFallback": "Swift.Copyable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:e:s:13PositronicKit11TurnOutcomeO13PKTestSupportE16customTestMirrors0I0Vvp",
+      "target": "s:s9EscapableP",
+      "targetFallback": "Swift.Escapable"
+    },
+    {
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit10AgentErrorO",
@@ -39697,9 +39817,30 @@
     {
       "module": "PKTestSupport",
       "kind": "extensionTo",
+      "source": "s:e:s:11PKContracts7MessageV13PKTestSupportE16customTestMirrors0G0Vvp",
+      "target": "s:11PKContracts7MessageV",
+      "targetFallback": "PKContracts.Message"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "extensionTo",
       "source": "s:e:s:11PKContracts7MessageV13PKTestSupportE7fixture2id4role7content9timestampAC20FoundationEssentials4UUIDV_AC0B4RoleOSSAJ4DateVtFZ",
       "target": "s:11PKContracts7MessageV",
       "targetFallback": "PKContracts.Message"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "extensionTo",
+      "source": "s:e:s:11PKContracts9TurnEventO13PKTestSupportE16customTestMirrors0H0Vvp",
+      "target": "s:11PKContracts9TurnEventO",
+      "targetFallback": "PKContracts.TurnEvent"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "extensionTo",
+      "source": "s:e:s:13PositronicKit11TurnOutcomeO13PKTestSupportE16customTestMirrors0I0Vvp",
+      "target": "s:13PositronicKit11TurnOutcomeO",
+      "targetFallback": "PositronicKit.TurnOutcome"
     },
     {
       "module": "PKTestSupport",
@@ -48009,9 +48150,31 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:11PKContracts7MessageV13PKTestSupportE16customTestMirrors0G0Vvp",
+      "target": "s:e:s:11PKContracts7MessageV13PKTestSupportE16customTestMirrors0G0Vvp",
+      "targetFallback": "PKContracts.Message",
+      "sourceOrigin": {
+        "identifier": "s:7Testing21CustomTestReflectableP06customC6Mirrors0F0Vvp",
+        "displayName": "CustomTestReflectable.customTestMirror"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:11PKContracts7MessageV13PKTestSupportE7fixture2id4role7content9timestampAC20FoundationEssentials4UUIDV_AC0B4RoleOSSAJ4DateVtFZ",
       "target": "s:e:s:11PKContracts7MessageV13PKTestSupportE7fixture2id4role7content9timestampAC20FoundationEssentials4UUIDV_AC0B4RoleOSSAJ4DateVtFZ",
       "targetFallback": "PKContracts.Message"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:11PKContracts9TurnEventO13PKTestSupportE16customTestMirrors0H0Vvp",
+      "target": "s:e:s:11PKContracts9TurnEventO13PKTestSupportE16customTestMirrors0H0Vvp",
+      "targetFallback": "PKContracts.TurnEvent",
+      "sourceOrigin": {
+        "identifier": "s:7Testing21CustomTestReflectableP06customC6Mirrors0F0Vvp",
+        "displayName": "CustomTestReflectable.customTestMirror"
+      }
     },
     {
       "module": "PKTestSupport",
@@ -50490,6 +50653,17 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport9SeededRNGV7nextInt10upperBoundS2i_tF",
       "target": "s:13PKTestSupport9SeededRNGV"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOutcomeO13PKTestSupportE16customTestMirrors0I0Vvp",
+      "target": "s:e:s:13PositronicKit11TurnOutcomeO13PKTestSupportE16customTestMirrors0I0Vvp",
+      "targetFallback": "PositronicKit.TurnOutcome",
+      "sourceOrigin": {
+        "identifier": "s:7Testing21CustomTestReflectableP06customC6Mirrors0F0Vvp",
+        "displayName": "CustomTestReflectable.customTestMirror"
+      }
     },
     {
       "module": "PKTestSupport",
