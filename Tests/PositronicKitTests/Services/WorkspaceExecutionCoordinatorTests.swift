@@ -1,6 +1,6 @@
 import Foundation
 @testable import PositronicKit
-import XCTest
+import Testing
 
 private actor ExecutionProbe {
     private(set) var active = 0
@@ -18,8 +18,12 @@ private actor ExecutionProbe {
     }
 }
 
-final class WorkspaceExecutionCoordinatorTests: XCTestCase {
-    func testSameWorkspaceIsFifoAndNonOverlapping() async throws {
+// `.serialized`: these scenarios interleave tasks on short sleep windows to observe
+// lane ordering, so concurrent scenarios would perturb each other's timing.
+@Suite("Workspace execution coordination", .serialized, .tags(.slow))
+struct WorkspaceExecutionCoordinatorTests {
+    @Test("Same workspace serializes FIFO without overlap")
+    func sameWorkspaceIsFifoAndNonOverlapping() async throws {
         let coordinator = WorkspaceExecutionCoordinator()
         let probe = ExecutionProbe()
         let workspaceID = UUID()
@@ -43,15 +47,16 @@ final class WorkspaceExecutionCoordinatorTests: XCTestCase {
 
         let firstValue = try await first.value
         let secondValue = try await second.value
-        XCTAssertEqual(firstValue, 1)
-        XCTAssertEqual(secondValue, 2)
+        #expect(firstValue == 1)
+        #expect(secondValue == 2)
         let maximumActive = await probe.maximumActive
         let order = await probe.order
-        XCTAssertEqual(maximumActive, 1)
-        XCTAssertEqual(order, [1, 2])
+        #expect(maximumActive == 1)
+        #expect(order == [1, 2])
     }
 
-    func testDifferentWorkspacesCanExecuteConcurrently() async throws {
+    @Test("Different workspaces execute concurrently")
+    func differentWorkspacesCanExecuteConcurrently() async throws {
         let coordinator = WorkspaceExecutionCoordinator()
         let probe = ExecutionProbe()
         let firstWorkspace = UUID()
@@ -70,6 +75,6 @@ final class WorkspaceExecutionCoordinatorTests: XCTestCase {
         _ = try await (first, second)
 
         let maximumActive = await probe.maximumActive
-        XCTAssertEqual(maximumActive, 2)
+        #expect(maximumActive == 2)
     }
 }

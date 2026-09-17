@@ -25,6 +25,13 @@ transports, `ManualClock`) live in `Tests/PKTestSupport`, which every test
 target already depends on. Put a new shared helper there, not in a test
 target, so both runtime targets can use it.
 
+Large public domain values compared in `#expect` (`Message`, `TurnEvent`,
+`TurnOutcome`) adopt Swift Testing's `CustomTestReflectable` in
+`Tests/PKTestSupport/TestReflection.swift`. A failure then prints the fields
+that identify the value instead of recursively expanding every stored
+property. Keep these conformances in test support, never in the runtime
+targets: the runtime must not depend on Swift Testing.
+
 ## Test layers
 
 - **Contract.** Store, model, and protocol contracts, including the
@@ -94,11 +101,10 @@ make agent-test FILTER='tag:unit'
 ```
 
 The full gates (`make verify` on macOS, `make agent-verify` on Linux) exercise
-`make test-fast` before the complete test run and always run every suite,
-including legacy XCTest classes, which cannot carry
-swift-testing tags and are therefore outside the tagged subset by
-construction. Do not migrate a legacy XCTest class to swift-testing just to
-tag it; that is a rewrite, and test splits here are moves, not rewrites.
+`make test-fast` before the complete test run and always run every suite. Every
+runtime suite uses Swift Testing and carries a taxonomy tag; the last XCTest
+classes were migrated in #196, so `swift test` no longer discovers any XCTest
+case in this package.
 
 ## Determinism rules
 
@@ -147,6 +153,18 @@ collected. A `.serialized`
 marker is kept only for a real ordering requirement (loopback-listener churn,
 process-global protocol registration, wall-clock timing sensitivity, or contained
 stress load); each remaining marker carries a comment stating that requirement.
+
+SwiftPM 6.4 repeats individual test cases instead of the whole suite. To stress a
+concurrency-heavy suite directly, use the repeat target:
+
+```bash
+make agent-test-repeat FILTER='AgentAuthorityCoordinatorTests' N=50
+```
+
+`N` maps to `--maximum-repetitions`, so each matching test case runs up to `N`
+times. This complements the nightly whole-suite loop: the nightly job reports
+flakes by name across iterations, while `agent-test-repeat` reproduces one suite
+on demand.
 
 ## File layout rules
 

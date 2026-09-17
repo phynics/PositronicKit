@@ -1,9 +1,9 @@
 .PHONY: help build clean test test-fast doctor validate-docs verify-documentation \
 	verify verify-concurrency-scan verify-runtime-architecture \
-	verify-linux-agent verify-linux-filter verify-linux-coverage \
+	verify-linux-agent verify-linux-filter verify-linux-repeat verify-linux-coverage \
 	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-v4-vocabulary verify-doc-snippets detect-flakes \
 	verify-public-api update-public-api-baseline verify-release \
-	agent-verify agent-test linux-image linux-build linux-coverage require-container-runtime
+	agent-verify agent-test agent-test-repeat linux-image linux-build linux-coverage require-container-runtime
 
 # Swift toolchain baked into the supported Linux development image.
 LINUX_SWIFT_VERSION ?= 6.4.0
@@ -14,6 +14,8 @@ LINUX_IMAGE ?= positronickit-linux-dev-$(LINUX_SWIFT_VERSION)
 LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/agent-scratch/swift-$(LINUX_SWIFT_VERSION)
 LINUX_COVERAGE_SCRATCH_DIR ?= $(CURDIR)/.build/linux-coverage-scratch/swift-$(LINUX_SWIFT_VERSION)
 LINUX_TEST_TRAITS ?=
+# Per-test repetition count for `verify-linux-repeat` / `agent-test-repeat`.
+LINUX_TEST_REPETITIONS ?=
 AGENT_LOG_DIR ?= $(CURDIR)/.build/agent-logs
 AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock
 # Podman is preferred; Docker is an equally supported alternative. Set
@@ -21,6 +23,8 @@ AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock
 CONTAINER_RUNTIME ?= $(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null)
 FILTER ?=
 TRAITS ?=
+# Per-test repetition count for `agent-test-repeat FILTER='…' N=…`.
+N ?=
 # Inner-loop selection for `make test-fast`. This regex is generated from the
 # source tags and stable test names. It includes the untagged module test
 # targets and excludes runtime integration/slow suites.
@@ -46,6 +50,7 @@ help:
 	@echo "Development:"
 	@echo "  make agent-verify          Canonical full gate (container-only on Linux)"
 	@echo "  make agent-test FILTER='…' Run a focused containerized Linux test"
+	@echo "  make agent-test-repeat FILTER='…' N=…  Repeat a focused test N times for flake detection"
 	@echo "  make linux-coverage         Generate Linux llvm-cov reports in .build/linux-coverage"
 	@echo "  make test                  Run tests"
 	@echo "  make test-fast             Run generated fast test filter"
@@ -151,6 +156,24 @@ verify-linux-filter:
 		swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --traits "$(LINUX_TEST_TRAITS)" --filter "$(LINUX_TEST_FILTER)"; \
 	else \
 		swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --filter "$(LINUX_TEST_FILTER)"; \
+	fi
+
+# Repeat the matching test cases `LINUX_TEST_REPETITIONS` times to reproduce flaky
+# behavior. SwiftPM applies `--maximum-repetitions` per test case, unlike the nightly
+# job's whole-suite iterations, so a concurrency-heavy suite can be stressed directly.
+verify-linux-repeat:
+	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \
+		echo "make: LINUX_TEST_FILTER is required." >&2; \
+		exit 2; \
+	fi
+	@if [ -z "$(LINUX_TEST_REPETITIONS)" ]; then \
+		echo "make: LINUX_TEST_REPETITIONS is required." >&2; \
+		exit 2; \
+	fi
+	@if [ -n "$(LINUX_TEST_TRAITS)" ]; then \
+		swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --traits "$(LINUX_TEST_TRAITS)" --maximum-repetitions "$(LINUX_TEST_REPETITIONS)" --filter "$(LINUX_TEST_FILTER)"; \
+	else \
+		swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --maximum-repetitions "$(LINUX_TEST_REPETITIONS)" --filter "$(LINUX_TEST_FILTER)"; \
 	fi
 
 verify-products:
@@ -294,6 +317,28 @@ agent-test: require-container-runtime
 		--lock "$(AGENT_LOCK_FILE)" \
 		--scratch "$(LINUX_SCRATCH_DIR)" \
 		-- make verify-linux-filter
+
+# Repeat the filtered test cases N times to reproduce flaky concurrency behavior,
+# e.g. `make agent-test-repeat FILTER='AgentAuthorityCoordinatorTests' N=20`.
+agent-test-repeat: require-container-runtime
+	@if [ -z "$(FILTER)" ]; then \
+		echo "make: FILTER is required (for example: make agent-test-repeat FILTER='AgentAuthorityCoordinatorTests' N=20)." >&2; \
+		exit 2; \
+	fi
+	@if [ -z "$(N)" ]; then \
+		echo "make: N is required (per-test repetition count)." >&2; \
+		exit 2; \
+	fi
+	@mkdir -p "$(AGENT_LOG_DIR)" "$(LINUX_SCRATCH_DIR)"
+	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		LINUX_SWIFT_VERSION="$(LINUX_SWIFT_VERSION)" \
+		LINUX_TEST_FILTER="$(FILTER)" LINUX_TEST_TRAITS="$(TRAITS)" \
+		LINUX_TEST_REPETITIONS="$(N)" \
+		bash Scripts/run-linux-container.sh \
+		--log "$(AGENT_LOG_DIR)/test-repeat.log" \
+		--lock "$(AGENT_LOCK_FILE)" \
+		--scratch "$(LINUX_SCRATCH_DIR)" \
+		-- make verify-linux-repeat
 
 linux-image: require-container-runtime
 	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \

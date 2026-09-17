@@ -149,6 +149,13 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Swift Testing 6.4 adoption (#196):** the suite now uses the testing features that ship with
+  Swift 6.4. `PKTestSupport` gives the large public domain values compared in `#expect` (`Message`,
+  `TurnEvent`, `TurnOutcome`) a compact `CustomTestReflectable` mirror, so a failure names the
+  fields that identify the value instead of expanding every stored property. The last three XCTest
+  classes — agent-authority coordination, Workspace execution coordination, and Workspace binding —
+  migrated to Swift Testing. `make agent-test-repeat FILTER='…' N=…` repeats the matching test cases
+  with SwiftPM's `--maximum-repetitions` for on-demand flake reproduction.
 - **Direct-path `TimelineController` initializer (#169):** `TimelineController` gains
   `init(_:context:messages:)`, which captures a `DirectTurnContext` and admits direct Turns from a
   detached Timeline into `streamingText` and `messages`. `send(_:)` selects
