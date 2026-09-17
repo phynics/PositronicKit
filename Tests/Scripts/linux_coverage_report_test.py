@@ -121,13 +121,13 @@ def main() -> None:
                 }
             )
         )
-        partial = coverage.normalize(coverage.load_export(partial_report), root)
-        assert_equal(partial["omittedModules"], ["PKObservable"], "omitted module record")
-        assert_equal(
-            [module["name"] for module in partial["modules"]],
-            ["PositronicKit", "PKContracts", "PKPrompt", "PKUtilities"],
-            "present module order",
-        )
+        try:
+            coverage.normalize(coverage.load_export(partial_report), root)
+        except coverage.CoverageReportError as error:
+            if "PKObservable" not in str(error):
+                raise AssertionError("omitted module was not named") from error
+        else:
+            raise AssertionError("a report missing a configured module was accepted")
 
         alias = root / "checkout-alias"
         alias.symlink_to(root, target_is_directory=True)
