@@ -97,11 +97,10 @@ Run `make linux-coverage` in the pinned Linux environment to execute the tests w
 
 The target writes the raw `llvm-cov` JSON, a normalized summary for `PositronicKit`,
 `PKContracts`, `PKPrompt`, `PKUtilities`, and `PKObservable`, and a platform-asymmetry report.
-Provider targets, `PKTestSupport`, executables, and test targets are excluded. Swift 6.4's default
-Swift Build coverage export does not include the standalone `PKObservable` product, so the report
-records it under `omittedModules` and in the asymmetry report rather than failing. The omission is
-scoped to `PKObservable`; a regression that drops any other configured module still fails the gate.
-Restoring that coverage is tracked in [#212](https://github.com/phynics/PositronicKit/issues/212).
+Provider targets, `PKTestSupport`, executables, and test targets are excluded. Swift Build creates
+one test runner per test target and exports each runner's coverage to the same file, so the target
+re-exports the merged profile across every test product bundle in one `llvm-cov` invocation. Without
+that merge, a module linked into a single test product, such as `PKObservable`, would be dropped.
 
 This milestone reports Linux coverage only. It does not set floors, compare changed lines,
 commit a baseline, or enforce macOS parity. A follow-up issue owns those decisions.

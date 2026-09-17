@@ -2,9 +2,10 @@
 # run_linux_coverage_test.sh — fail-closed tests for Scripts/run-linux-coverage.sh.
 #
 # The script drives a real Linux `swift test --enable-code-coverage` run, so
-# the fixture supplies a `swift` shim on PATH and a stub normalizer. The cases
-# pin the failure modes that would otherwise report green coverage: a failing
-# test run, and a coverage report that llvm-cov left missing or empty.
+# the fixture supplies a `swift` shim, an `llvm-cov` shim, and a stub
+# normalizer. The cases pin the failure modes that would otherwise report green
+# coverage: a failing test run, and a coverage report that llvm-cov left missing
+# or empty. They also pin the Swift Build merge across per-target test runners.
 set -euo pipefail
 
 test_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,18 +18,27 @@ fail=0
 
 # make_fixture <dir> <test-exit> <report-kind>
 # report-kind: populated | empty | missing
+#
+# Swift Build lays each test product out beside a `codecov` directory, so the
+# fixture mirrors that: a report under products/codecov, the merged profile, and
+# a test runner/bundle pair per test product.
 make_fixture() {
     local fixture="$1"
     local test_exit="$2"
     local report_kind="$3"
-    mkdir -p "$fixture/Scripts" "$fixture/bin"
+    mkdir -p "$fixture/Scripts" "$fixture/bin" "$fixture/products/codecov"
     cp "$repo_root/Scripts/run-linux-coverage.sh" "$fixture/Scripts/"
-    local report="$fixture/codecov.json"
+    local report="$fixture/products/codecov/PositronicKit.json"
     case "$report_kind" in
         populated) printf '{"data":[]}\n' > "$report" ;;
         empty) : > "$report" ;;
         missing) rm -f "$report" ;;
     esac
+    printf 'profile\n' > "$fixture/products/codecov/default.profdata"
+    for product in PKObservableTests PositronicKitTests; do
+        printf 'bundle\n' > "$fixture/products/$product.so"
+        : > "$fixture/products/$product-test-runner"
+    done
     cat > "$fixture/bin/swift" <<SHIM
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$fixture/swift.log"
@@ -39,6 +49,12 @@ fi
 exit $test_exit
 SHIM
     chmod +x "$fixture/bin/swift"
+    cat > "$fixture/bin/llvm-cov" <<SHIM
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$fixture/llvm-cov.log"
+printf '{"data":[]}\n'
+SHIM
+    chmod +x "$fixture/bin/llvm-cov"
     cat > "$fixture/Scripts/linux-coverage-report.py" <<SHIM
 import sys
 open("$fixture/normalizer.log", "a").write(" ".join(sys.argv[1:]) + "\n")
@@ -89,10 +105,30 @@ else
     pass=$((pass + 1))
 fi
 
-# An empty report must stop before the normalizer.
+# Every test product bundle must reach the single merged llvm-cov export, so a
+# module linked into only one product (PKObservable) cannot be dropped.
+if ! grep -qF -- "-object" "$fixture/llvm-cov.log" 2>/dev/null; then
+    printf 'FAIL merge: llvm-cov export did not receive additional test bundles\n'
+    cat "$fixture/llvm-cov.log" 2>/dev/null || true
+    fail=$((fail + 1))
+elif ! grep -qF "PositronicKitTests.so" "$fixture/llvm-cov.log" \
+    || ! grep -qF "PKObservableTests.so" "$fixture/llvm-cov.log"; then
+    printf 'FAIL merge: llvm-cov export did not receive every test bundle\n'
+    cat "$fixture/llvm-cov.log" 2>/dev/null || true
+    fail=$((fail + 1))
+elif ! grep -qF "default.profdata" "$fixture/llvm-cov.log"; then
+    printf 'FAIL merge: llvm-cov export did not use the merged profile\n'
+    cat "$fixture/llvm-cov.log" 2>/dev/null || true
+    fail=$((fail + 1))
+else
+    printf 'ok merge-reexports-every-test-product-bundle\n'
+    pass=$((pass + 1))
+fi
+
+# An empty report must stop before the normalizer and before any merge.
 fixture="$tmp_dir/empty-report-fails"
-if [ -f "$fixture/normalizer.log" ]; then
-    printf 'FAIL short-circuit: the normalizer ran on an empty coverage report\n'
+if [ -f "$fixture/normalizer.log" ] || [ -f "$fixture/llvm-cov.log" ]; then
+    printf 'FAIL short-circuit: the normalizer or merge ran on an empty coverage report\n'
     fail=$((fail + 1))
 else
     printf 'ok short-circuit-on-empty-report\n'
