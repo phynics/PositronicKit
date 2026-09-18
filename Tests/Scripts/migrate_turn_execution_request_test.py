@@ -24,7 +24,8 @@ TEST_FILES = (
 )
 SOURCE_GUARDS = (
     "Sources/PositronicKit/Services/Turn/TurnEngine.swift",
-    "Sources/PositronicKit/Services/Turn/TurnEngine+TurnPreparation.swift",
+    "Sources/PositronicKit/Services/Turn/TurnPreparation.swift",
+    "Sources/PositronicKit/Services/Turn/TurnEngine+Handles.swift",
     "Sources/PositronicKit/PKRuntime.swift",
 )
 

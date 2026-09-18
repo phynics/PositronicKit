@@ -28,7 +28,7 @@ SOURCE_GUARDS = (
         "TurnEngine exposes a flattened execution interface",
     ),
     (
-        ROOT / "Sources/PositronicKit/Services/Turn/TurnEngine+TurnPreparation.swift",
+        ROOT / "Sources/PositronicKit/Services/Turn/TurnPreparation.swift",
         re.compile(r"func\s+prepareTurn\(\s*timelineID\s*:", re.DOTALL),
         "Turn preparation exposes a flattened request interface",
     ),
@@ -36,6 +36,11 @@ SOURCE_GUARDS = (
         ROOT / "Sources/PositronicKit/PKRuntime.swift",
         re.compile(r"turnEngine\.(?:execute|startExecution)\(\s*timelineID\s*:", re.DOTALL),
         "the facade flattens TurnRequest before execution",
+    ),
+    (
+        ROOT / "Sources/PositronicKit/Services/Turn/TurnEngine+Handles.swift",
+        re.compile(r"(?:try await )?(?:execute|startExecution)\(\s*timelineID\s*:", re.DOTALL),
+        "Turn admission flattens TurnRequest before execution",
     ),
 )
 
