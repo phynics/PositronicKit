@@ -26,7 +26,6 @@ internal struct KitDependencies: Sendable {
     var customization: RuntimeCustomization
     var agentAuthorityCoordinator: AgentAuthorityCoordinator?
     var runtimeToolPolicy: RuntimeToolPolicy
-    var generationParameters: GenerationParameters?
     var toolApprovalPolicy: any ToolApprovalPolicy
     var sharedRegistry: TimelinePromptJournals
     var additionalStages: [any PipelineStage<TurnContext, TurnEvent>]

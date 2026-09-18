@@ -61,7 +61,6 @@ extension PKRuntime {
                 customization: configuration.runtime.customization,
                 agentAuthorityCoordinator: nil,
                 runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
-                generationParameters: configuration.generationParameters,
                 toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
                 sharedRegistry: sharedRegistry,
                 additionalStages: additionalStages,
@@ -71,7 +70,8 @@ extension PKRuntime {
                     degradationPolicy: configuration.runtime.degradationPolicy,
                     diagnosticSnapshotConfiguration: configuration.runtime.diagnosticSnapshotConfiguration,
                     loggingConfiguration: configuration.logging,
-                    clock: clock
+                    clock: clock,
+                    generationParameters: configuration.generationParameters
                 )
             )
         )

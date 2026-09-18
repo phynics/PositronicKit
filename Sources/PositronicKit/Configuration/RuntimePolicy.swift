@@ -37,6 +37,8 @@ internal struct RuntimePolicy: Sendable {
     var loggingConfiguration: LoggingConfiguration
     /// The clock the stream watchdog and stall detection measure against.
     var clock: any RuntimeClock
+    /// The default generation parameters applied when a Turn carries no explicit override.
+    var generationParameters: GenerationParameters?
 
     init(
         streamTimeout: TimeInterval = RuntimePolicy.defaultStreamTimeout,
@@ -44,7 +46,8 @@ internal struct RuntimePolicy: Sendable {
         degradationPolicy: TurnDegradationPolicy = .failRequired,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
         loggingConfiguration: LoggingConfiguration = .default,
-        clock: any RuntimeClock = ContinuousRuntimeClock()
+        clock: any RuntimeClock = ContinuousRuntimeClock(),
+        generationParameters: GenerationParameters? = nil
     ) {
         self.streamTimeout = Self.resolvedStreamTimeout(streamTimeout)
         self.terminalCommitStallLimit = Self.resolvedTerminalCommitStallLimit(terminalCommitStallLimit)
@@ -52,6 +55,7 @@ internal struct RuntimePolicy: Sendable {
         self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
         self.loggingConfiguration = loggingConfiguration
         self.clock = clock
+        self.generationParameters = generationParameters
     }
 
     /// A finite idle timeout inside one millisecond ... one day.

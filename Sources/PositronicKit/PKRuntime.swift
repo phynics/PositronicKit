@@ -87,7 +87,7 @@ public final class PKRuntime: Sendable {
     let toolRouter: ToolRouter
     let turnEngine: TurnEngine
     let agentAuthorityCoordinator: AgentAuthorityCoordinator
-    var defaultGenerationParameters: GenerationParameters? { dependencies.generationParameters }
+    var defaultGenerationParameters: GenerationParameters? { dependencies.policy.generationParameters }
 
     private let logger = Logger.module(named: "positronickit-facade")
 
@@ -262,7 +262,7 @@ public final class PKRuntime: Sendable {
     ) -> PKRuntime {
         var deps = dependencies
         deps.languageModel = languageModel
-        deps.generationParameters = generationParameters ?? defaultGenerationParameters
+        deps.policy.generationParameters = generationParameters ?? defaultGenerationParameters
         return PKRuntime(dependencies: deps, runtimeState: runtimeState)
     }
 
