@@ -185,9 +185,7 @@ struct TypedStructuredGenerationTests {
         llm.stubbedStream = AsyncThrowingStream { _ in }
         let clock = ManualClock()
         let kit = PKRuntime(
-            languageModel: llm,
-            runtimeRepository: InMemoryTimelineRuntimeRepository(),
-            workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+            configuration: .init(languageModel: llm, persistence: .inMemory()),
             sharedRegistry: TimelinePromptJournals(),
             additionalStages: [],
             clock: clock

@@ -34,55 +34,49 @@ extension PKRuntime {
         self.init(configuration: .init(provider: provider, persistence: .inMemory()))
     }
 
+    /// Resolves a ``PKRuntime/Configuration`` plus the runtime-owned seams that configuration
+    /// deliberately does not expose, and forwards the result to the designated initializer.
+    ///
+    /// The three extra parameters are the internal seams: `sharedRegistry` is the prompt-journal
+    /// state shared across `reconfigured` views, `additionalStages` is reserved for runtime-owned
+    /// verification stages, and `clock` exists so tests can drive the stream watchdog
+    /// deterministically. Consumers reach this through ``PKRuntime/init(configuration:)``.
     convenience init(
-        languageModel: any LLMStreamClient,
-        runtimeRepository: any TimelineRuntimeRepository = InMemoryTimelineRuntimeRepository(),
-        workspaceBindingRepository: any WorkspaceBindingRepository = InMemoryWorkspaceBindingRepository(),
-        agentStore: any AgentStoreProtocol = InMemoryAgentStore(),
-        requestOriginStore: any RequestOriginStoreProtocol = InMemoryRequestOriginStore(),
-        workspacePersistence: any WorkspaceStore = InMemoryWorkspacePersistence(),
-        toolPersistence: any ToolPersistenceProtocol = InMemoryToolPersistence(),
-        workspaceProfile: WorkspaceProfile = .noWorkspace,
-        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
-        customization: RuntimeCustomization = .default,
-        runtimeToolPolicy: RuntimeToolPolicy = .default,
-        diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
-        degradationPolicy: TurnDegradationPolicy = .failRequired,
-        generationParameters: GenerationParameters? = nil,
-        toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
-        loggingConfiguration: LoggingConfiguration = .default,
+        configuration: Configuration,
         sharedRegistry: TimelinePromptJournals,
         additionalStages: [any PipelineStage<TurnContext, TurnEvent>],
-        streamTimeout: TimeInterval = TurnEngine.Dependencies.defaultStreamTimeout,
-        terminalCommitStallLimit: TimeInterval = 300,
         clock: any RuntimeClock = ContinuousRuntimeClock()
     ) {
-
         self.init(
             dependencies: KitDependencies(
-                languageModel: languageModel,
-                runtimeRepository: runtimeRepository,
-                workspaceBindingRepository: workspaceBindingRepository,
-                agentStore: agentStore,
-                requestOriginStore: requestOriginStore,
-                workspacePersistence: workspacePersistence,
-                toolPersistence: toolPersistence,
-                workspaceProfile: workspaceProfile,
-                workspaceCreator: workspaceCreator,
-                customization: customization,
+                languageModel: configuration.languageModel,
+                runtimeRepository: configuration.persistence.runtimeRepository,
+                workspaceBindingRepository: configuration.persistence.workspaceBindingRepository,
+                agentStore: configuration.persistence.agentStore,
+                requestOriginStore: configuration.persistence.requestOriginStore,
+                workspacePersistence: configuration.persistence.workspacePersistence,
+                toolPersistence: configuration.persistence.toolPersistence,
+                workspaceProfile: configuration.runtime.workspaceProfile,
+                workspaceCreator: configuration.runtime.workspaceCreator,
+                customization: configuration.runtime.customization,
                 agentAuthorityCoordinator: nil,
-                runtimeToolPolicy: runtimeToolPolicy,
-                diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
-                degradationPolicy: degradationPolicy,
-                generationParameters: generationParameters,
-                toolApprovalPolicy: toolApprovalPolicy,
-                loggingConfiguration: loggingConfiguration,
+                runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
+                diagnosticSnapshotConfiguration: configuration.runtime.diagnosticSnapshotConfiguration,
+                degradationPolicy: configuration.runtime.degradationPolicy,
+                generationParameters: configuration.generationParameters,
+                toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
+                loggingConfiguration: configuration.logging,
                 sharedRegistry: sharedRegistry,
                 additionalStages: additionalStages,
-                streamTimeout: streamTimeout,
-                terminalCommitStallLimit: terminalCommitStallLimit,
+                streamTimeout: configuration.runtime.streamTimeout,
+                terminalCommitStallLimit: configuration.runtime.terminalCommitStallLimit,
                 clock: clock
             )
         )
+        if let warning = configuration.persistence.validateDurability().mixedDurabilityWarning {
+            configuration.logging.logger(named: "positronickit-facade").warning(
+                "\(configuration.logging.redactionPolicy.sanitizeStructured(warning))"
+            )
+        }
     }
 }

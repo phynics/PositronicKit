@@ -326,31 +326,9 @@ public extension PKRuntime {
     /// accidentally losing timelines, workspaces, agents, or tool state on restart.
     convenience init(configuration: Configuration) {
         self.init(
-            languageModel: configuration.languageModel,
-            runtimeRepository: configuration.persistence.runtimeRepository,
-            workspaceBindingRepository: configuration.persistence.workspaceBindingRepository,
-            agentStore: configuration.persistence.agentStore,
-            requestOriginStore: configuration.persistence.requestOriginStore,
-            workspacePersistence: configuration.persistence.workspacePersistence,
-            toolPersistence: configuration.persistence.toolPersistence,
-            workspaceProfile: configuration.runtime.workspaceProfile,
-            workspaceCreator: configuration.runtime.workspaceCreator,
-            customization: configuration.runtime.customization,
-            runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
-            diagnosticSnapshotConfiguration: configuration.runtime.diagnosticSnapshotConfiguration,
-            degradationPolicy: configuration.runtime.degradationPolicy,
-            generationParameters: configuration.generationParameters,
-            toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
-            loggingConfiguration: configuration.logging,
+            configuration: configuration,
             sharedRegistry: TimelinePromptJournals(),
-            additionalStages: [],
-            streamTimeout: configuration.runtime.streamTimeout,
-            terminalCommitStallLimit: configuration.runtime.terminalCommitStallLimit
+            additionalStages: []
         )
-        if let warning = configuration.persistence.validateDurability().mixedDurabilityWarning {
-            configuration.logging.logger(named: "positronickit-facade").warning(
-                "\(configuration.logging.redactionPolicy.sanitizeStructured(warning))"
-            )
-        }
     }
 }
