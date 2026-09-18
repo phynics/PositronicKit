@@ -344,27 +344,20 @@ private extension TurnEngine {
             LogKeys.requestID: .string(context.requestId.uuidString),
             LogKeys.modelRoundIndex: .string("\(context.modelRoundIndex)"),
         ]
-        switch result {
-        case .noToolCalls:
+        if !result.hadToolCalls {
             logger.debug("Turn \(context.modelRoundIndex): no tool calls; assistant content chars=\(contentChars)", metadata: turnMeta)
-        case .deferredExternally:
-            logger.debug("Turn \(context.modelRoundIndex): tool calls deferred for external execution", metadata: turnMeta)
-        case .persistenceFailed:
-            logger.debug("Turn \(context.modelRoundIndex): tool result persistence failed; stopping before follow-up", metadata: turnMeta)
-        case let .continueWith(messages):
-            logger.debug("Turn \(context.modelRoundIndex): \(messages.count) tool-result message(s) to feed back; assistant content chars=\(contentChars)", metadata: turnMeta)
-        }
-
-        switch result {
-        case .noToolCalls:
             return .completed
-        case .deferredExternally:
-            return .deferredExternally
-        case .persistenceFailed:
-            return .persistenceFailed
-        case let .continueWith(messages):
-            return .continueWith(messages)
         }
+        if result.hasPersistenceFailure {
+            logger.debug("Turn \(context.modelRoundIndex): tool result persistence failed; stopping before follow-up", metadata: turnMeta)
+            return .persistenceFailed
+        }
+        if result.hasDeferred {
+            logger.debug("Turn \(context.modelRoundIndex): tool calls deferred for external execution", metadata: turnMeta)
+            return .deferredExternally
+        }
+        logger.debug("Turn \(context.modelRoundIndex): \(result.resolvedToolParams.count) tool-result message(s) to feed back; assistant content chars=\(contentChars)", metadata: turnMeta)
+        return .continueWith(result.resolvedToolParams)
     }
 
     func processTurn(

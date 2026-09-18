@@ -8,6 +8,12 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- **Tool-loop result types collapse:** `ToolExecutionOutcome` is no longer public, and the internal
+  `ToolHandlingResult`/`ToolTurnResult` pair is now a single internal `ToolTurnResult`. No
+  consumer-visible behavior changes.
+
 ## [6.0.0] - 2026-09-18
 
 ### Breaking

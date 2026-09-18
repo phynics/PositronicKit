@@ -7,7 +7,7 @@ import PKUtilities
 // MARK: - Supporting Types
 
 /// The outcome of routing a single tool execution attempt.
-public enum ToolExecutionOutcome: Sendable {
+enum ToolExecutionOutcome: Sendable {
     case completed(String)
     case deferredExternally
 }
@@ -32,32 +32,33 @@ package struct ParsedToolCall {
     }
 }
 
-/// Result of handling all pending tool calls in a turn.
+/// Result of processing tool calls from a completed LLM turn.
 ///
-/// Runtime-internal (`package`-scoped); returned by `handlePendingToolCalls` to the turn loop.
-package struct ToolHandlingResult {
+/// Runtime-internal (`package`-scoped); consumed by the turn loop. One value carries both the
+/// loop-decision inputs and the resolved tool-result messages, so batch handling and loop control
+/// do not need separate result types.
+package struct ToolTurnResult: Sendable {
+    /// Whether the turn produced any tool calls. `false` means the turn is complete.
+    package let hadToolCalls: Bool
     /// Whether any tool calls were deferred for external execution.
     package let hasDeferred: Bool
     /// Whether a runtime tool result could not be persisted.
     package let hasPersistenceFailure: Bool
-    /// Provider-neutral tool result messages for runtime-resolved calls.
+    /// Provider-neutral tool result messages for runtime-resolved calls. When the loop continues,
+    /// the assistant message with tool call definitions is first.
     package let resolvedToolParams: [LLMMessage]
-}
 
-/// Result of processing tool calls from a completed LLM turn.
-/// Includes the assistant message (with tool call definitions) and resolved tool results.
-///
-/// Runtime-internal (`package`-scoped); consumed by the turn loop.
-package enum ToolTurnResult {
-    /// No tool calls were produced — the turn is complete.
-    case noToolCalls
-    /// All tool calls were resolved by this runtime; continue the loop with these messages.
-    case continueWith([LLMMessage])
-    /// A tool result could not be persisted. The pending assistant call remains retryable, so the
-    /// loop must stop before sending an undurable result to the provider.
-    case persistenceFailed
-    /// At least one tool call was deferred for external execution — stop and wait.
-    case deferredExternally
+    package init(
+        hadToolCalls: Bool,
+        hasDeferred: Bool,
+        hasPersistenceFailure: Bool,
+        resolvedToolParams: [LLMMessage]
+    ) {
+        self.hadToolCalls = hadToolCalls
+        self.hasDeferred = hasDeferred
+        self.hasPersistenceFailure = hasPersistenceFailure
+        self.resolvedToolParams = resolvedToolParams
+    }
 }
 
 // MARK: - ToolRouter
@@ -113,7 +114,14 @@ actor ToolRouter {
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolTurnResult {
         let accumulators = await outputs.toolCallAccumulators
-        guard !accumulators.isEmpty else { return .noToolCalls }
+        guard !accumulators.isEmpty else {
+            return ToolTurnResult(
+                hadToolCalls: false,
+                hasDeferred: false,
+                hasPersistenceFailure: false,
+                resolvedToolParams: []
+            )
+        }
 
         let sortedCalls = accumulators.sorted(by: { $0.key < $1.key })
 
@@ -158,9 +166,12 @@ actor ToolRouter {
             continuation: continuation
         )
 
-        if result.hasPersistenceFailure { return .persistenceFailed }
-        if result.hasDeferred { return .deferredExternally }
-        return .continueWith([assistantParam] + result.resolvedToolParams)
+        return ToolTurnResult(
+            hadToolCalls: true,
+            hasDeferred: result.hasDeferred,
+            hasPersistenceFailure: result.hasPersistenceFailure,
+            resolvedToolParams: [assistantParam] + result.resolvedToolParams
+        )
     }
 
     // MARK: - Batch Handling
@@ -178,7 +189,7 @@ actor ToolRouter {
         availableTools: [AnyTool],
         workspaceToolCatalog: WorkspaceToolCatalog? = nil,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
-    ) async throws -> ToolHandlingResult {
+    ) async throws -> ToolTurnResult {
         var hasDeferred = false
         var hasPersistenceFailure = false
         var resolvedToolParams: [LLMMessage] = []
@@ -364,7 +375,8 @@ actor ToolRouter {
         ]
         logger.debug("Tool batch routed", metadata: batchMeta)
 
-        return ToolHandlingResult(
+        return ToolTurnResult(
+            hadToolCalls: !calls.isEmpty,
             hasDeferred: hasDeferred,
             hasPersistenceFailure: hasPersistenceFailure,
             resolvedToolParams: resolvedToolParams
