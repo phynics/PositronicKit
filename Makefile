@@ -1,7 +1,7 @@
 .PHONY: help build clean test test-fast doctor validate-docs verify-documentation \
 	verify verify-concurrency-scan verify-diagnose-scan verify-runtime-architecture \
 	verify-linux-agent verify-linux-filter verify-linux-repeat verify-linux-coverage \
-	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-v4-vocabulary verify-doc-snippets detect-flakes \
+	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-domain-vocabulary verify-doc-snippets detect-flakes \
 	verify-public-api update-public-api-baseline verify-release sbom \
 	agent-verify agent-test agent-test-repeat linux-image linux-build linux-coverage require-container-runtime
 
@@ -67,7 +67,7 @@ help:
 	@echo "  make verify-release VERSION=x.y.z  Check local tag and release artifacts agree"
 	@echo "  make sbom                  Generate the CycloneDX release SBOM (VERSION=x.y.z names it)"
 	@echo "  make verify-dependency-direction  Check the v4 target dependency boundaries"
-	@echo "  make verify-v4-vocabulary  Check the v4 Timeline/Turn/Agent vocabulary"
+	@echo "  make verify-domain-vocabulary  Check the Timeline/Turn/Agent domain vocabulary"
 	@echo "  make verify-documentation  Check docs catalog, navigation, links, pins, products, and vocabulary"
 	@echo "  make verify-doc-snippets  Type-check every Swift fenced block under docs/"
 	@echo "  make verify-agent-harness Run agent test-entrypoint regression tests"
@@ -110,7 +110,7 @@ verify-documentation:
 	@python3 Scripts/validate-documentation.py
 	@python3 Scripts/validate-provider-capability-matrix.py
 	@python3 Scripts/check-documentation-currency.py
-	@bash Scripts/check-v4-vocabulary.sh
+	@bash Scripts/check-domain-vocabulary.sh
 	@$(MAKE) verify-doc-snippets
 
 # Type-check every ```swift block under docs/ against the real modules by
@@ -256,8 +256,8 @@ verify-test-layout:
 verify-story-coverage:
 	@python3 Scripts/check-story-coverage.py
 
-verify-v4-vocabulary:
-	@bash Scripts/check-v4-vocabulary.sh
+verify-domain-vocabulary:
+	@bash Scripts/check-domain-vocabulary.sh
 
 # Nightly flake-detection report entrypoint (see .github/workflows/nightly-flake-detection.yml).
 # Aggregates per-iteration xUnit files produced by repeated full-suite runs and reports
@@ -292,7 +292,7 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/generate_doc_navigation_test.py
 	@python3 -B Tests/Scripts/validate_release_readiness_test.py
 	@python3 -B Tests/Scripts/generate_sbom_test.py
-	@python3 -B Tests/Scripts/check_v4_vocabulary_test.py
+	@python3 -B Tests/Scripts/check_domain_vocabulary_test.py
 	@python3 -B Tests/Scripts/check_pr_docs_impact_test.py
 	@python3 -B Tests/Scripts/check_story_coverage_test.py
 	@python3 -B Tests/Scripts/detect_flaky_tests_test.py

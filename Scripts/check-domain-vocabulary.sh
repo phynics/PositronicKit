@@ -3,9 +3,9 @@ set -euo pipefail
 
 # Timeline is the live Swift vocabulary. This checker protects the #156 hard cut by rejecting
 # retired Thread names in current code and documentation. Legacy spellings are permitted only
-# when the owning file and exact line pattern are recorded in v4-drift-allowlist.txt.
+# when the owning file and exact line pattern are recorded in domain-vocabulary-allowlist.txt.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ALLOWLIST="$ROOT/Scripts/v4-drift-allowlist.txt"
+ALLOWLIST="$ROOT/Scripts/domain-vocabulary-allowlist.txt"
 
 # All path matching below is intentionally repository-relative so the checker behaves the same
 # when invoked directly, from Make, or by a CI wrapper.
@@ -38,7 +38,7 @@ is_allowlisted() {
 
 # Match the retired word in prose and all source-level derived forms. The underscore-delimited
 # model identifiers are listed separately so they can be allowed only at their wire boundaries.
-# Keep the earlier v4 drift guards here too: the Timeline hard cut must not reopen the rejected
+# Keep the earlier drift guards here too: the Timeline hard cut must not reopen the rejected
 # conversation/chat/instance vocabulary or introduce parallel `timeline_*` model entry points.
 forbidden='(^|[^[:alnum:]_])thread([^[:alnum:]_]|$)|privateThread|runtimeThread|forThread|Thread[A-Z]|thread[A-Z]|thread_(list|peek|send|id)|agentinstance|agent[[:space:]]+instance|conversation(message|msg|id)|observableconversation|chatrun(request|error)?|chatevent|chatengine|chat[[:space:]]+engine|chatturn|(^|[^[:alnum:]_])chat[[:space:]]+turn([^[:alnum:]_]|$)|runchatloop|llmchatrequest|chatstreamwithcontext|chatrequesthistory|lastchatrequest|chatcapturehistory|lastchatcapture|chat[-[:space:]]+loop|chat[-[:space:]]+stream|createinstance|deleteinstance|getinstance|listinstances|updateinstances|searchinstances|instancenotfound|sendid|send[[:space:]]+id|send[[:space:]]+identifier|send[[:space:]]+reservation|pkerrordomain\.chat|com\.positronickit\.core\.chat|turncount|maxturns|(^|[^[:alnum:]_])max[-[:space:]]+turns?([^[:alnum:]_]|$)|(^|[^[:alnum:]_])turn[-[:space:]]+count([^[:alnum:]_]|$)|timeline_(list|peek|send)'
 matches=()
@@ -57,8 +57,8 @@ while IFS= read -r match; do
     fi
 done < <(
     grep -RIniE --binary-files=without-match \
-        --exclude=check-v4-vocabulary.sh \
-        --exclude=v4-drift-allowlist.txt \
+        --exclude=check-domain-vocabulary.sh \
+        --exclude=domain-vocabulary-allowlist.txt \
         "$forbidden" \
         Sources Tests docs Scripts .github README.md AGENTS.md CONTEXT-MAP.md CHANGELOG.md Package.swift llms.txt \
         2>/dev/null || true
@@ -112,8 +112,8 @@ fi
 
 if ((${#matches[@]} > 0)); then
     printf '%s\n' "${matches[@]}" >&2
-    printf 'v4 vocabulary check failed: retired vocabulary, duplicate entry point, or compatibility alias found.\n' >&2
+    printf 'domain vocabulary check failed: retired vocabulary, duplicate entry point, or compatibility alias found.\n' >&2
     exit 1
 fi
 
-echo "v4 vocabulary check passed"
+echo "domain vocabulary check passed"

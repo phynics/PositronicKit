@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed tests for Scripts/check-v4-vocabulary.sh.
+"""Fail-closed tests for Scripts/check-domain-vocabulary.sh.
 
 Copies the gate script and its allowlist into a synthetic fixture tree (the
 script resolves the repository from its own location) and asserts retired
@@ -16,8 +16,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "Scripts/check-v4-vocabulary.sh"
-ALLOWLIST = ROOT / "Scripts/v4-drift-allowlist.txt"
+SCRIPT = ROOT / "Scripts/check-domain-vocabulary.sh"
+ALLOWLIST = ROOT / "Scripts/domain-vocabulary-allowlist.txt"
 
 CHANGELOG = """# Changelog
 
@@ -62,7 +62,7 @@ def test_clean_tree_passes() -> None:
         (root / "Sources/Runtime.swift").write_text("public struct Turn {}\n", encoding="utf-8")
         result = run_gate(script)
         assert result.returncode == 0, result.stdout + result.stderr
-        assert "v4 vocabulary check passed" in result.stdout, result.stdout
+        assert "domain vocabulary check passed" in result.stdout, result.stdout
 
 
 def test_retired_content_term_is_rejected() -> None:
@@ -73,7 +73,7 @@ def test_retired_content_term_is_rejected() -> None:
         (root / "Sources/Runtime.swift").write_text(f"let engine = {retired_type}()\n", encoding="utf-8")
         result = run_gate(script)
         assert result.returncode == 1, result.stdout + result.stderr
-        assert "v4 vocabulary check failed" in result.stderr, result.stderr
+        assert "domain vocabulary check failed" in result.stderr, result.stderr
 
 
 def test_retired_filename_term_is_rejected() -> None:
@@ -143,4 +143,4 @@ if __name__ == "__main__":
     ]
     for test in tests:
         test()
-    print(f"v4 vocabulary script tests passed ({len(tests)} tests)")
+    print(f"domain vocabulary script tests passed ({len(tests)} tests)")

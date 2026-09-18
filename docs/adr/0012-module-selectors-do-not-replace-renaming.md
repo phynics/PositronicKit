@@ -14,7 +14,7 @@ module when a local declaration or another import shadows the name. The caller m
 owning module and import it, so the selector only serves code that deliberately wants that module's
 declaration. The default experience stays unqualified: a consumer writes `PKRuntime`,
 `TimelineHandle`, and `PKTool` because #156 renamed away from the colliding spellings, and
-`Scripts/check-v4-vocabulary.sh` still rejects a selective-import workaround for a first-party name.
+`Scripts/check-domain-vocabulary.sh` still rejects a selective-import workaround for a first-party name.
 
 SE-0491's own guidance says the same thing: an API design that forces clients to reach for a module
 selector should usually be renamed instead. A selector cannot fix unqualified lookup, which is where
