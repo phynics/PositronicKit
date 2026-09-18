@@ -82,11 +82,9 @@ public final class PKRuntime: Sendable {
     let turnEngine: TurnEngine
     let agentAuthorityCoordinator: AgentAuthorityCoordinator
     private let customization: RuntimeCustomization
-    private let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     let defaultGenerationParameters: GenerationParameters?
 
     private let logger = Logger.module(named: "positronickit-facade")
-    private let loggingConfiguration: LoggingConfiguration
 
     /// Consumer-facing capability values. These keep orchestration managers behind the facade.
     public var timelines: TimelineCapability { TimelineCapability(kit: self) }
@@ -100,7 +98,6 @@ public final class PKRuntime: Sendable {
     private let workspaceProfile: WorkspaceProfile
     private let workspaceCreator: any WorkspaceFactory
     private let runtimeToolPolicy: RuntimeToolPolicy
-    private let degradationPolicy: TurnDegradationPolicy
     private let toolApprovalPolicy: any ToolApprovalPolicy
 
     // MARK: - Init
@@ -120,13 +117,10 @@ public final class PKRuntime: Sendable {
         timelinePersistence = dependencies.runtimeRepository
         workspacePersistence = dependencies.workspacePersistence
         toolPersistence = dependencies.toolPersistence
-        diagnosticSnapshotConfiguration = dependencies.diagnosticSnapshotConfiguration
-        degradationPolicy = dependencies.degradationPolicy
         workspaceProfile = dependencies.workspaceProfile
         workspaceCreator = dependencies.workspaceCreator
         runtimeToolPolicy = dependencies.runtimeToolPolicy
         toolApprovalPolicy = dependencies.toolApprovalPolicy
-        loggingConfiguration = dependencies.loggingConfiguration
         defaultGenerationParameters = dependencies.generationParameters
 
         let resolvedAgentAuthorityCoordinator = runtimeState?.agentAuthorityCoordinator
@@ -152,7 +146,7 @@ public final class PKRuntime: Sendable {
             repository: self.runtimeRepository,
             agentActivitySink: resolvedActivitySink,
             turnOutcomeSink: self.customization.turnOutcomeSink,
-            clock: dependencies.clock
+            clock: dependencies.policy.clock
         )
 
         // The catalog root anchors agent-private workspace provisioning (a separate, opt-in
@@ -220,7 +214,7 @@ public final class PKRuntime: Sendable {
             timelineManager: resolvedTimelineManager,
             runtimeRepository: self.runtimeRepository,
             approvalPolicy: dependencies.toolApprovalPolicy,
-            loggingConfiguration: dependencies.loggingConfiguration
+            loggingConfiguration: dependencies.policy.loggingConfiguration
         )
 
         let resolvedRuntimeState = runtimeState ?? RuntimeState(
@@ -253,16 +247,11 @@ public final class PKRuntime: Sendable {
                 turnContextSource: self.customization.turnContextSource,
                 agentActivitySink: resolvedActivitySink,
                 turnOutcomeSink: self.customization.turnOutcomeSink,
-                diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
-                loggingConfiguration: dependencies.loggingConfiguration,
-                degradationPolicy: dependencies.degradationPolicy,
                 promptHistoryRegistry: promptHistoryRegistry,
                 eventHub: resolvedEventHub,
                 submissionGate: resolvedSubmissionGate,
-                streamTimeout: dependencies.streamTimeout,
-                clock: dependencies.clock,
                 finalizer: resolvedRuntimeState.finalizer,
-                terminalCommitStallLimit: dependencies.terminalCommitStallLimit
+                policy: dependencies.policy
             )
         )
         engine.additionalStages = dependencies.additionalStages
@@ -286,16 +275,11 @@ public final class PKRuntime: Sendable {
             customization: customization,
             agentAuthorityCoordinator: agentAuthorityCoordinator,
             runtimeToolPolicy: runtimeToolPolicy,
-            diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
-            degradationPolicy: degradationPolicy,
             generationParameters: defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
-            loggingConfiguration: loggingConfiguration,
             sharedRegistry: promptHistoryRegistry,
             additionalStages: turnEngine.additionalStages,
-            streamTimeout: turnEngine.dependencies.streamTimeout,
-            terminalCommitStallLimit: turnEngine.dependencies.terminalCommitStallLimit,
-            clock: turnEngine.dependencies.clock
+            policy: turnEngine.dependencies.policy
         )
     }
 
@@ -405,7 +389,7 @@ public final class PKRuntime: Sendable {
     func waitForTurnOutcome(id turnID: UUID) async throws -> TurnOutcome {
         let waiter = TurnTerminationWaiter(
             hub: runtimeState.eventHub,
-            clock: turnEngine.dependencies.clock
+            clock: turnEngine.dependencies.policy.clock
         )
         let observation = try await waiter.awaitResult(turnID: turnID) {
             try await self.runtimeRepository.fetchTurn(id: turnID)?.outcome
@@ -429,7 +413,7 @@ public final class PKRuntime: Sendable {
     func waitForTurnResult(id turnID: UUID) async throws -> TurnResult {
         let waiter = TurnTerminationWaiter(
             hub: runtimeState.eventHub,
-            clock: turnEngine.dependencies.clock
+            clock: turnEngine.dependencies.policy.clock
         )
         let observation = try await waiter.awaitResult(turnID: turnID) {
             let record = try await self.runtimeRepository.fetchTurn(id: turnID)

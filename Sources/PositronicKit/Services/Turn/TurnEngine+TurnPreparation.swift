@@ -81,7 +81,7 @@ extension TurnEngine {
 
         guard let instance else {
             let error = AgentError.agentNotFound(agentId)
-            if dependencies.degradationPolicy == .failRequired {
+            if dependencies.policy.degradationPolicy == .failRequired {
                 throw error
             }
             return AgentPreflight(
@@ -671,14 +671,14 @@ extension TurnEngine {
         }
         let pendingSince = await dependencies.finalizer.pendingCommitStartedAt(turnID: activeTurnID)
         if let pendingSince {
-            let pending = pendingSince.duration(to: dependencies.clock.now())
-            if pending < .seconds(dependencies.terminalCommitStallLimit) {
+            let pending = pendingSince.duration(to: dependencies.policy.clock.now())
+            if pending < .seconds(dependencies.policy.terminalCommitStallLimit) {
                 return false
             }
         }
         let reason = pendingSince == nil
             ? "Turn was active but not owned by this runtime (orphaned)."
-            : "Terminal commit exceeded terminalCommitStallLimit (\(dependencies.terminalCommitStallLimit)s)."
+            : "Terminal commit exceeded terminalCommitStallLimit (\(dependencies.policy.terminalCommitStallLimit)s)."
         do {
             let disposition = try await TurnAbandonment.disposition(
                 for: activeTurnID,
@@ -885,7 +885,7 @@ private extension TurnEngine {
     }
 
     func enforceRequired(_ diagnostics: [TurnDiagnostic]) throws {
-        guard dependencies.degradationPolicy == .failRequired,
+        guard dependencies.policy.degradationPolicy == .failRequired,
               let diagnostic = diagnostics.first(where: { diagnostic in
                   switch diagnostic.dependency {
                   case .context, .agent:

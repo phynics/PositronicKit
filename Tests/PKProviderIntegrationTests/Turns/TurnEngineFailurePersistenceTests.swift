@@ -63,7 +63,7 @@ struct TurnEngineFailurePersistenceTests {
                 toolRouter: toolRouter,
                 turnOutcomeSink: turnOutcomeSink,
                 promptHistoryRegistry: registry,
-                streamTimeout: streamTimeout
+                policy: RuntimePolicy(streamTimeout: streamTimeout)
             )
         )
 
@@ -121,7 +121,7 @@ struct TurnEngineFailurePersistenceTests {
                 llmService: mockLLM,
                 toolRouter: toolRouter,
                 turnOutcomeSink: turnOutcomeSink,
-                streamTimeout: 60
+                policy: RuntimePolicy(streamTimeout: 60)
             )
         )
 

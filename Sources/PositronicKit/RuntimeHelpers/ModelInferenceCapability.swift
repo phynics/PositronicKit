@@ -206,7 +206,7 @@ extension ModelInferenceCapability {
     /// override it: the same `RuntimeConfiguration.streamTimeout` the Turn pipeline uses, so
     /// one-shot generation and full Turns share a single configured value.
     private var configuredStreamTimeout: TimeInterval {
-        kit.turnEngine.dependencies.streamTimeout
+        kit.turnEngine.dependencies.policy.streamTimeout
     }
 
     /// Generates a response and returns provider terminal metadata without creating or updating a timeline.
@@ -269,7 +269,7 @@ extension ModelInferenceCapability {
             structuredOutput: structuredOutput,
             generationParameters: generationParameters ?? kit.defaultGenerationParameters,
             idleTimeout: idleTimeout ?? configuredStreamTimeout,
-            clock: kit.turnEngine.dependencies.clock,
+            clock: kit.turnEngine.dependencies.policy.clock,
             modelTier: .primary
         )
     }
@@ -282,7 +282,7 @@ extension ModelInferenceCapability {
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let languageModelClient = kit.languageModelClient
         let defaultGenerationParameters = kit.defaultGenerationParameters
-        let clock = kit.turnEngine.dependencies.clock
+        let clock = kit.turnEngine.dependencies.policy.clock
         return AsyncThrowingStream { continuation in
             let task = Task {
                 do {

@@ -57,7 +57,7 @@ struct TurnEngineTerminalEventTests {
                 llmService: mockLLM,
                 toolRouter: toolRouter,
                 turnOutcomeSink: turnOutcomeSink,
-                streamTimeout: 60
+                policy: RuntimePolicy(streamTimeout: 60)
             )
         )
 
@@ -123,7 +123,7 @@ struct TurnEngineTerminalEventTests {
                 runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                streamTimeout: 60
+                policy: RuntimePolicy(streamTimeout: 60)
             )
         )
 

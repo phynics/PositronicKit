@@ -61,16 +61,18 @@ extension PKRuntime {
                 customization: configuration.runtime.customization,
                 agentAuthorityCoordinator: nil,
                 runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
-                diagnosticSnapshotConfiguration: configuration.runtime.diagnosticSnapshotConfiguration,
-                degradationPolicy: configuration.runtime.degradationPolicy,
                 generationParameters: configuration.generationParameters,
                 toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
-                loggingConfiguration: configuration.logging,
                 sharedRegistry: sharedRegistry,
                 additionalStages: additionalStages,
-                streamTimeout: configuration.runtime.streamTimeout,
-                terminalCommitStallLimit: configuration.runtime.terminalCommitStallLimit,
-                clock: clock
+                policy: RuntimePolicy(
+                    streamTimeout: configuration.runtime.streamTimeout,
+                    terminalCommitStallLimit: configuration.runtime.terminalCommitStallLimit,
+                    degradationPolicy: configuration.runtime.degradationPolicy,
+                    diagnosticSnapshotConfiguration: configuration.runtime.diagnosticSnapshotConfiguration,
+                    loggingConfiguration: configuration.logging,
+                    clock: clock
+                )
             )
         )
         if let warning = configuration.persistence.validateDurability().mixedDurabilityWarning {

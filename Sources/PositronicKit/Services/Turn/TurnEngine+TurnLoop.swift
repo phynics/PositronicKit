@@ -367,10 +367,10 @@ private extension TurnEngine {
         let pipeline = TurnPipelineBuilder.makePipeline(
             llmService: dependencies.llmService,
             runtimeRepository: dependencies.runtimeRepository,
-            streamTimeout: dependencies.streamTimeout,
-            clock: dependencies.clock,
-            diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
-            loggingConfiguration: dependencies.loggingConfiguration,
+            streamTimeout: dependencies.policy.streamTimeout,
+            clock: dependencies.policy.clock,
+            diagnosticSnapshotConfiguration: dependencies.policy.diagnosticSnapshotConfiguration,
+            loggingConfiguration: dependencies.policy.loggingConfiguration,
             additionalStages: additionalStages
         )
         let stream = pipeline.execute(context)

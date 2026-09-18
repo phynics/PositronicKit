@@ -26,14 +26,10 @@ internal struct KitDependencies: Sendable {
     var customization: RuntimeCustomization
     var agentAuthorityCoordinator: AgentAuthorityCoordinator?
     var runtimeToolPolicy: RuntimeToolPolicy
-    var diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
-    var degradationPolicy: TurnDegradationPolicy
     var generationParameters: GenerationParameters?
     var toolApprovalPolicy: any ToolApprovalPolicy
-    var loggingConfiguration: LoggingConfiguration
     var sharedRegistry: TimelinePromptJournals
     var additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
-    var streamTimeout: TimeInterval
-    var terminalCommitStallLimit: TimeInterval
-    var clock: any RuntimeClock
+    /// The policy values that flow unchanged into ``TurnEngine/Dependencies``.
+    var policy: RuntimePolicy
 }

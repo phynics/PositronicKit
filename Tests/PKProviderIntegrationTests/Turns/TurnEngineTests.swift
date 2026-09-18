@@ -47,7 +47,7 @@ struct TurnEngineTests {
                 runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                streamTimeout: streamTimeout
+                policy: RuntimePolicy(streamTimeout: streamTimeout)
             )
         )
 
@@ -1110,7 +1110,7 @@ struct TurnEngineTests {
                 runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                streamTimeout: 60
+                policy: RuntimePolicy(streamTimeout: 60)
             )
         )
         try await mockPersistence.saveTimeline(TimelineRecord(id: timelineID, title: "Test Session"))
@@ -1246,7 +1246,7 @@ struct TurnEngineTests {
                 runtimeRepository: persistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                streamTimeout: 60
+                policy: RuntimePolicy(streamTimeout: 60)
             )
         )
 
@@ -1321,7 +1321,7 @@ struct TurnEngineTests {
                 runtimeRepository: persistence,
                 llmService: reloadLLM,
                 toolRouter: toolRouter,
-                streamTimeout: 60
+                policy: RuntimePolicy(streamTimeout: 60)
             )
         )
 
@@ -1453,8 +1453,8 @@ struct TurnEngineTests {
             )
         )
 
-        #expect(dependencies.streamTimeout == TurnEngine.Dependencies.defaultStreamTimeout)
-        #expect(dependencies.streamTimeout > 0)
+        #expect(dependencies.policy.streamTimeout == RuntimePolicy.defaultStreamTimeout)
+        #expect(dependencies.policy.streamTimeout > 0)
     }
 
     // MARK: - Group 9: Multiple PKTool Calls Per Turn

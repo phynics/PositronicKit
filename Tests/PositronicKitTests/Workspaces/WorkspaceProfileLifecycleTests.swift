@@ -89,15 +89,15 @@ struct WorkspaceProfileLifecycleTests {
 
     @Test("RuntimeConfiguration clamps an out-of-range streamTimeout")
     func runtimeConfigurationClampsStreamTimeout() {
-        // The bounds live on the engine chokepoint every entry point funnels through; the
+        // The bounds live on the internal RuntimePolicy every entry point funnels through; the
         // public configuration deliberately does not re-export them.
-        let range = TurnEngine.Dependencies.streamTimeoutRange
+        let range = RuntimePolicy.streamTimeoutRange
 
         // `.infinity` used to reach `Duration.seconds(_:)` in the stream watchdog and trap.
         #expect(PKRuntime.RuntimeConfiguration(streamTimeout: .infinity).streamTimeout
-            == TurnEngine.Dependencies.defaultStreamTimeout)
+            == RuntimePolicy.defaultStreamTimeout)
         #expect(PKRuntime.RuntimeConfiguration(streamTimeout: .nan).streamTimeout
-            == TurnEngine.Dependencies.defaultStreamTimeout)
+            == RuntimePolicy.defaultStreamTimeout)
         // A negative value used to fail every Turn with `streamTimedOut` the instant it started.
         #expect(PKRuntime.RuntimeConfiguration(streamTimeout: -1).streamTimeout
             == range.lowerBound)

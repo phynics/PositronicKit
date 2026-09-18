@@ -301,14 +301,10 @@ public extension PKRuntime {
             self.toolApprovalPolicy = toolApprovalPolicy
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.degradationPolicy = degradationPolicy
-            self.streamTimeout = TurnEngine.Dependencies.resolvedStreamTimeout(streamTimeout)
-            self.terminalCommitStallLimit = Self.resolvedTerminalCommitStallLimit(terminalCommitStallLimit)
-        }
-
-        /// A finite, positive stall limit, falling back to the 300-second default.
-        static func resolvedTerminalCommitStallLimit(_ requested: TimeInterval) -> TimeInterval {
-            guard requested.isFinite, requested > 0 else { return 300 }
-            return requested
+            self.streamTimeout = RuntimePolicy.resolvedStreamTimeout(streamTimeout)
+            self.terminalCommitStallLimit = RuntimePolicy.resolvedTerminalCommitStallLimit(
+                terminalCommitStallLimit
+            )
         }
 
         /// The default runtime configuration: no workspaces or customization, deny-all tool approval.

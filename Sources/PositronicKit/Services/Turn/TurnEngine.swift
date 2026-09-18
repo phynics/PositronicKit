@@ -114,25 +114,6 @@ struct TurnEngine {
     }
 
     struct Dependencies {
-        /// Production default for the per-stream idle watchdog. Callers must pass an explicit
-        /// bounded value through `Dependencies` when they need to override it.
-        static let defaultStreamTimeout: TimeInterval = 60
-
-        /// The accepted range for `streamTimeout`, in seconds: one millisecond to one day.
-        ///
-        /// The bounds exist only to keep unusable values out of the watchdog — a zero or
-        /// negative timeout would fail every Turn the instant it starts, and a huge one would
-        /// overflow `Duration.seconds(_:)` in `StreamIdleDeadline`. They are deliberately wide,
-        /// so ordinary sub-second timeouts pass through untouched.
-        static let streamTimeoutRange: ClosedRange<TimeInterval> = 0.001...86_400
-
-        /// Clamps `requested` into ``streamTimeoutRange``, substituting the default for a
-        /// non-finite value (`.nan` compares false against every bound, so it cannot be clamped).
-        static func resolvedStreamTimeout(_ requested: TimeInterval) -> TimeInterval {
-            guard requested.isFinite else { return defaultStreamTimeout }
-            return min(max(requested, streamTimeoutRange.lowerBound), streamTimeoutRange.upperBound)
-        }
-
         let timelineManager: TimelineManager
         let agentStore: any AgentStoreProtocol
         let agentContextSource: any AgentContextSource
@@ -147,19 +128,15 @@ struct TurnEngine {
         let turnContextSource: any TurnContextSource?
         let agentActivitySink: any AgentActivitySink?
         let turnOutcomeSink: any TurnOutcomeSink?
-        let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
-        let loggingConfiguration: LoggingConfiguration
-        let degradationPolicy: TurnDegradationPolicy
         let promptHistoryRegistry: TimelinePromptJournals
         let eventHub: TurnEventHub
         let submissionGate: ExternalToolOutputSubmissionGate
-        let streamTimeout: TimeInterval
-        let clock: any RuntimeClock
         /// Runtime-owned executor for terminal Turn commits (ADR 0010).
         let finalizer: TurnFinalizer
-        /// How long a terminal commit may stay pending before admission treats the Turn as
-        /// abandoned and interrupts it (ADR 0010).
-        let terminalCommitStallLimit: TimeInterval
+        /// The policy values carried unchanged from ``PKRuntime/Configuration``: the stream
+        /// watchdog, the terminal-commit stall limit, degradation, diagnostics, logging, and
+        /// the clock those bounds are measured against.
+        let policy: RuntimePolicy
 
         init(
             timelineManager: TimelineManager,
@@ -174,16 +151,11 @@ struct TurnEngine {
             turnContextSource: any TurnContextSource? = nil,
             agentActivitySink: any AgentActivitySink? = nil,
             turnOutcomeSink: any TurnOutcomeSink? = nil,
-            diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
-            loggingConfiguration: LoggingConfiguration = .default,
-            degradationPolicy: TurnDegradationPolicy = .failRequired,
             promptHistoryRegistry: TimelinePromptJournals? = nil,
             eventHub: TurnEventHub? = nil,
             submissionGate: ExternalToolOutputSubmissionGate? = nil,
-            streamTimeout: TimeInterval = Self.defaultStreamTimeout,
-            clock: any RuntimeClock = ContinuousRuntimeClock(),
             finalizer: TurnFinalizer? = nil,
-            terminalCommitStallLimit: TimeInterval = 300
+            policy: RuntimePolicy = RuntimePolicy()
         ) {
             self.timelineManager = timelineManager
             self.agentStore = agentStore
@@ -197,21 +169,16 @@ struct TurnEngine {
             self.turnContextSource = turnContextSource
             self.agentActivitySink = agentActivitySink
             self.turnOutcomeSink = turnOutcomeSink
-            self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
-            self.loggingConfiguration = loggingConfiguration
-            self.degradationPolicy = degradationPolicy
             self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptJournals()
             self.eventHub = eventHub ?? TurnEventHub()
             self.submissionGate = submissionGate ?? ExternalToolOutputSubmissionGate()
-            self.streamTimeout = Self.resolvedStreamTimeout(streamTimeout)
-            self.clock = clock
+            self.policy = policy
             self.finalizer = finalizer ?? TurnFinalizer(
                 repository: runtimeRepository,
                 agentActivitySink: agentActivitySink,
                 turnOutcomeSink: turnOutcomeSink,
-                clock: clock
+                clock: policy.clock
             )
-            self.terminalCommitStallLimit = terminalCommitStallLimit
         }
     }
 
@@ -485,7 +452,7 @@ struct TurnEngine {
 
     private func replayExistingTurn(_ admission: TurnAdmission) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         let repository = dependencies.runtimeRepository
-        let waiter = TurnTerminationWaiter(hub: dependencies.eventHub, clock: dependencies.clock)
+        let waiter = TurnTerminationWaiter(hub: dependencies.eventHub, clock: dependencies.policy.clock)
         let turnID = admission.turn.identity.turnID
         let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
         let task = Task {
