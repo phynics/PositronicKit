@@ -207,6 +207,12 @@ struct TurnEngine: Sendable {
     /// engine's current dependencies.
     var preparation: TurnPreparation { TurnPreparation(dependencies: dependencies) }
 
+    /// The ReAct loop for a prepared Turn. Computed so it always carries the engine's current
+    /// `additionalStages`, which callers may append to after construction.
+    var loop: TurnLoop {
+        TurnLoop(dependencies: dependencies, additionalStages: additionalStages)
+    }
+
     static func persistCustomizationNotice(
         repository: any TimelineRuntimeRepository,
         logger: Logger,
@@ -413,7 +419,7 @@ struct TurnEngine: Sendable {
         let task = Task {
             var startIterator = startSignal.makeAsyncIterator()
             guard await startIterator.next() == true else { return }
-            await runTurnLoop(continuation: continuation, context: context)
+            await loop.runTurnLoop(continuation: continuation, context: context)
             // The terminal commit runs in the runtime-owned finalizer, not here. This task must
             // not wait on the store: eviction phase two joins it, and a hung store commit must not
             // stall eviction (ADR 0010). The finalizer owns finishing `continuation`, which ends

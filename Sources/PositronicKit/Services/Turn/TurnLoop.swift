@@ -65,7 +65,16 @@ private struct TerminalDecision {
 
 // MARK: - Turn Loop
 
-extension TurnEngine {
+/// Runs a prepared Turn: the ReAct loop, its Model Rounds, tool continuation, and the handoff
+/// of the terminal decision to the runtime-owned finalizer (ADR 0010).
+///
+/// Extracted from `TurnEngine` so the loop has its own seam. As an extension it published eight
+/// members to the package; as a module it exposes one.
+struct TurnLoop: Sendable {
+    let dependencies: TurnEngine.Dependencies
+    let additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
+    let logger = Logger.module(named: "turn-engine")
+
     /// The heart of the agentic loop. Orchestrates model rounds until the agent finishes
     /// or reaches the maximum model-round limit.
     func runTurnLoop(
@@ -226,8 +235,8 @@ extension TurnEngine {
 
 // MARK: - Turn Execution
 
-private extension TurnEngine {
-    func runOneTurn(
+private extension TurnLoop {
+    private func runOneTurn(
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation,
         context: TurnContext
     ) async -> LoopContinuation {
@@ -320,7 +329,7 @@ private extension TurnEngine {
     }
 
     /// Delegates tool call handling to the ToolRouter and maps the result to a loop decision.
-    func handleToolCallsAfterTurn(
+    private func handleToolCallsAfterTurn(
         context: TurnContext,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> LoopContinuation {
@@ -360,7 +369,7 @@ private extension TurnEngine {
         return .continueWith(result.resolvedToolParams)
     }
 
-    func processTurn(
+    private func processTurn(
         context: TurnContext,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws {
@@ -380,7 +389,7 @@ private extension TurnEngine {
     }
 
     /// Starts best-effort activity delivery without putting provider execution behind a host sink.
-    func scheduleAgentActivity(_ activity: AgentActivity, context: TurnContext) {
+    private func scheduleAgentActivity(_ activity: AgentActivity, context: TurnContext) {
         guard let sink = dependencies.agentActivitySink else { return }
         let turnID = context.turnID
         let logger = self.logger
@@ -403,14 +412,14 @@ private extension TurnEngine {
 
 // MARK: - Terminal Delivery
 
-private extension TurnEngine {
+private extension TurnLoop {
     /// Builds the terminal snapshot and hands it to the runtime-owned finalizer.
     ///
     /// The finalizer is not this Turn task, so cancelling the Turn cannot cancel its commit, and
     /// this task does not wait on the store. The durable commit, sinks, and consumer-facing
     /// terminal signal all happen in the finalizer, in the order `commitTerminal` used to apply
     /// them (ADR 0010).
-    func commitTerminal(
+    private func commitTerminal(
         decision: TerminalDecision,
         context: TurnContext,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
@@ -423,7 +432,7 @@ private extension TurnEngine {
         await dependencies.finalizer.submit(commit)
     }
 
-    func makeTerminalCommit(
+    private func makeTerminalCommit(
         decision: TerminalDecision,
         context: TurnContext,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
@@ -482,7 +491,7 @@ private extension TurnEngine {
         )
     }
 
-    func mapDelivery(_ delivery: TerminalDecision.Delivery) -> TerminalCommit.Delivery {
+    private func mapDelivery(_ delivery: TerminalDecision.Delivery) -> TerminalCommit.Delivery {
         switch delivery {
         case .none:
             return .none
