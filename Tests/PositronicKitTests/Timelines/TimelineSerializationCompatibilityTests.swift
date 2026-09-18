@@ -81,10 +81,7 @@ struct TimelineSerializationCompatibilityTests {
         #expect(snapshot.toolResults == [])
         #expect(snapshot.turnDuration == 0)
         #expect(snapshot.tokensPerSecond == nil)
-        #expect(snapshot.promptTokens == nil)
-        #expect(snapshot.completionTokens == nil)
-        #expect(snapshot.totalTokens == nil)
-        #expect(snapshot.cachedTokens == nil)
+        #expect(snapshot.usage == nil)
         try assertWireKeys(
             of: snapshot,
             contains: ["threadId", "availableToolIds"],

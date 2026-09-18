@@ -204,10 +204,7 @@ struct MessagePersistenceStage: PipelineStage {
             toolResults: durableTools.results,
             turnDuration: turnDuration,
             tokensPerSecond: tokensPerSecond,
-            promptTokens: streamUsage?.promptTokens,
-            completionTokens: streamUsage?.completionTokens,
-            totalTokens: streamUsage?.totalTokens,
-            cachedTokens: streamUsage?.promptTokensDetails?.cachedTokens
+            usage: streamUsage
         )
     }
 
@@ -299,10 +296,7 @@ private enum DiagnosticSnapshotEncoder {
             },
             turnDuration: snapshot.turnDuration,
             tokensPerSecond: snapshot.tokensPerSecond,
-            promptTokens: snapshot.promptTokens,
-            completionTokens: snapshot.completionTokens,
-            totalTokens: snapshot.totalTokens,
-            cachedTokens: snapshot.cachedTokens
+            usage: snapshot.usage
         )
     }
 

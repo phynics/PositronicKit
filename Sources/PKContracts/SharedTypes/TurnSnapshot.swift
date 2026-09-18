@@ -79,10 +79,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
     // Metrics
     public let turnDuration: TimeInterval
     public let tokensPerSecond: Double?
-    public let promptTokens: Int?
-    public let completionTokens: Int?
-    public let totalTokens: Int?
-    public let cachedTokens: Int?
+    public let usage: LLMTokenUsage?
 
     public init(
         timestamp: Date = Date(),
@@ -101,10 +98,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         toolResults: [ToolResultRecord] = [],
         turnDuration: TimeInterval = 0,
         tokensPerSecond: Double? = nil,
-        promptTokens: Int? = nil,
-        completionTokens: Int? = nil,
-        totalTokens: Int? = nil,
-        cachedTokens: Int? = nil
+        usage: LLMTokenUsage? = nil
     ) {
         self.timestamp = timestamp
         self.timelineID = timelineID
@@ -122,10 +116,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         self.toolResults = toolResults
         self.turnDuration = turnDuration
         self.tokensPerSecond = tokensPerSecond
-        self.promptTokens = promptTokens
-        self.completionTokens = completionTokens
-        self.totalTokens = totalTokens
-        self.cachedTokens = cachedTokens
+        self.usage = usage
     }
 
 
@@ -136,6 +127,6 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         case modelName, modelRoundIndex, maxModelRounds, systemInstructions, contextSnapshot
         case availableToolIDs = "availableToolIds"
         case fullResponse, fullThinking, audioOutput, toolCalls, toolResults, turnDuration, tokensPerSecond
-        case promptTokens, completionTokens, totalTokens, cachedTokens
+        case usage
     }
 }

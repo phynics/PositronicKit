@@ -24,6 +24,10 @@ for tagged releases beginning with `1.0.0`.
   `TurnEvent.CompletionEvent.generationCompleted`, `content` is populated from the response text;
   the persisted `Message` remains the durable body. There is no compatibility alias.
 
+- **`TurnSnapshot` uses `LLMTokenUsage`:** diagnostic snapshots encode token accounting as one
+  optional `usage` value instead of four flat counters. Previously persisted snapshots still decode
+  with `usage == nil`.
+
 ## [6.0.0] - 2026-09-18
 
 ### Breaking
