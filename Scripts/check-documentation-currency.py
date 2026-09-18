@@ -36,7 +36,8 @@ RETIRED_TEXT = {
     "`MessageStoreProtocol`": "use `TimelineMessageStoreProtocol`",
     "RuntimeToolPolicyConfiguration": "use RuntimeToolPolicy",
     "api/4.0-public-api-": "use the current public API baselines",
-    "api/5.0-public-api-": "use the 5.1 public API baselines",
+    "api/5.0-public-api-": "use the current public API baselines",
+    "api/5.1-public-api-": "use the current public API baselines",
 }
 
 REQUIRED_TEXT = {

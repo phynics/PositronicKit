@@ -1,8 +1,9 @@
 # PositronicKit agent guide
 
 PositronicKit is an embeddable Swift runtime for agentic applications. `main` contains the
-unreleased Next / v5 line. Favor a coherent domain model, narrow module boundaries, durable Turn
-semantics, and a small public API over new execution paths or compatibility layers.
+unreleased Next line; `docs/catalog.json` records the current stable release. Favor a coherent
+domain model, narrow module boundaries, durable Turn semantics, and a small public API over new
+execution paths or compatibility layers.
 
 ## Decide from the source of truth
 

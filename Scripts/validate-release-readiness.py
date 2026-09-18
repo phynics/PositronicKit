@@ -84,7 +84,7 @@ def main() -> int:
         fail(f"could not generate the CycloneDX release SBOM for {version}")
 
     print(f"Local release artifacts, stable documentation, and annotated tag {version} agree.")
-    print("Confirm the matching GitHub milestone and release text during publication.")
+    print("Confirm the release text and that the tag is reachable from main during publication.")
     return 0
 
 
