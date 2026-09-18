@@ -43,8 +43,15 @@ import Synchronization
 /// `TimelinePromptHistory`, and the concrete Turn pipeline — remain implementation details even
 /// where tests inside this package can see them.
 public final class PKRuntime: Sendable {
+    /// The resolved dependency bundle this runtime was built from.
+    ///
+    /// Stored whole rather than unpacked into individual properties: every field below that a
+    /// caller reads is a one-line view onto it, and the builders (`reconfigured`, `addingStage`)
+    /// copy this value, mutate one field, and forward it to ``init(dependencies:runtimeState:)``.
+    let dependencies: KitDependencies
+
     // MARK: - Language Model Client
-    let languageModelClient: any LLMStreamClient
+    var languageModelClient: any LLMStreamClient { dependencies.languageModel }
 
     /// Whether the injected language model currently has usable provider configuration.
     ///
@@ -55,19 +62,18 @@ public final class PKRuntime: Sendable {
     }
 
     // MARK: - External Stores
-    private let agentStore: any AgentStoreProtocol
     /// Durable storage for messages and timelines
-    let messageStore: any TimelineMessageStoreProtocol
+    var messageStore: any TimelineMessageStoreProtocol { dependencies.runtimeRepository }
     /// Cohesive durable owner for Timeline history and Turn lifecycle.
-    let runtimeRepository: any TimelineRuntimeRepository
+    var runtimeRepository: any TimelineRuntimeRepository { dependencies.runtimeRepository }
     /// Durable authority for ordinary Workspace-to-Timeline bindings.
-    let workspaceBindingRepository: any WorkspaceBindingRepository
+    var workspaceBindingRepository: any WorkspaceBindingRepository {
+        dependencies.workspaceBindingRepository
+    }
     let workspaceCatalog: any WorkspaceCatalog
     // These resolved graph nodes remain package-internal for @testable assembly coverage.
-    let timelinePersistence: any TimelinePersistenceProtocol
-    let workspacePersistence: any WorkspaceStore
-    private let requestOriginStore: any RequestOriginStoreProtocol
-    private let toolPersistence: any ToolPersistenceProtocol
+    var timelinePersistence: any TimelinePersistenceProtocol { dependencies.runtimeRepository }
+    var workspacePersistence: any WorkspaceStore { dependencies.workspacePersistence }
     
     // MARK: - Internal State
     
@@ -81,8 +87,7 @@ public final class PKRuntime: Sendable {
     let toolRouter: ToolRouter
     let turnEngine: TurnEngine
     let agentAuthorityCoordinator: AgentAuthorityCoordinator
-    private let customization: RuntimeCustomization
-    let defaultGenerationParameters: GenerationParameters?
+    var defaultGenerationParameters: GenerationParameters? { dependencies.generationParameters }
 
     private let logger = Logger.module(named: "positronickit-facade")
 
@@ -94,11 +99,7 @@ public final class PKRuntime: Sendable {
     
     /// Owned internally; every timeline driver vended by this instance shares it automatically.
     /// Construct a new `PKRuntime` for a genuinely separate cross-send history.
-    private let promptHistoryRegistry: TimelinePromptJournals
-    private let workspaceProfile: WorkspaceProfile
-    private let workspaceCreator: any WorkspaceFactory
-    private let runtimeToolPolicy: RuntimeToolPolicy
-    private let toolApprovalPolicy: any ToolApprovalPolicy
+    private var promptHistoryRegistry: TimelinePromptJournals { dependencies.sharedRegistry }
 
     // MARK: - Init
     /// The designated initializer. Accepts a fully-resolved ``KitDependencies`` bundle and
@@ -107,22 +108,6 @@ public final class PKRuntime: Sendable {
     /// extract the current dependencies, mutate the single field that changes, and forward
     /// here — eliminating the repeated ~25-line parameter forwarding (PKCR-009).
     internal init(dependencies: KitDependencies, runtimeState: RuntimeState? = nil) {
-        languageModelClient = dependencies.languageModel
-        runtimeRepository = dependencies.runtimeRepository
-        messageStore = dependencies.runtimeRepository
-        workspaceBindingRepository = dependencies.workspaceBindingRepository
-        agentStore = dependencies.agentStore
-        customization = dependencies.customization
-        requestOriginStore = dependencies.requestOriginStore
-        timelinePersistence = dependencies.runtimeRepository
-        workspacePersistence = dependencies.workspacePersistence
-        toolPersistence = dependencies.toolPersistence
-        workspaceProfile = dependencies.workspaceProfile
-        workspaceCreator = dependencies.workspaceCreator
-        runtimeToolPolicy = dependencies.runtimeToolPolicy
-        toolApprovalPolicy = dependencies.toolApprovalPolicy
-        defaultGenerationParameters = dependencies.generationParameters
-
         let resolvedAgentAuthorityCoordinator = runtimeState?.agentAuthorityCoordinator
             ?? dependencies.agentAuthorityCoordinator
             ?? AgentAuthorityCoordinator()
@@ -130,10 +115,17 @@ public final class PKRuntime: Sendable {
 
         let resolvedPromptHistoryRegistry = runtimeState?.promptHistoryRegistry
             ?? dependencies.sharedRegistry
-        promptHistoryRegistry = resolvedPromptHistoryRegistry
+
+        // Store the bundle with the two runtime-resolved identities written back, so a builder
+        // that copies it forwards the identities this instance actually uses rather than the
+        // ones it was asked for.
+        var resolvedDependencies = dependencies
+        resolvedDependencies.agentAuthorityCoordinator = resolvedAgentAuthorityCoordinator
+        resolvedDependencies.sharedRegistry = resolvedPromptHistoryRegistry
+        self.dependencies = resolvedDependencies
 
         var activitySinks: [any AgentActivitySink] = []
-        if let hostActivitySink = self.customization.agentActivitySink {
+        if let hostActivitySink = dependencies.customization.agentActivitySink {
             activitySinks.append(hostActivitySink)
         }
         let resolvedActivitySink: any AgentActivitySink? = activitySinks.isEmpty
@@ -143,9 +135,9 @@ public final class PKRuntime: Sendable {
         // One finalizer per runtime identity: `reconfigured` views share it so they see each
         // other's in-flight terminal commits instead of treating them as orphans (ADR 0010).
         let resolvedFinalizer = runtimeState?.finalizer ?? TurnFinalizer(
-            repository: self.runtimeRepository,
+            repository: dependencies.runtimeRepository,
             agentActivitySink: resolvedActivitySink,
-            turnOutcomeSink: self.customization.turnOutcomeSink,
+            turnOutcomeSink: dependencies.customization.turnOutcomeSink,
             clock: dependencies.policy.clock
         )
 
@@ -168,12 +160,12 @@ public final class PKRuntime: Sendable {
             // no seam where TurnEngine and TimelineManager can end up looking at different stores.
             let newTimelineManager = TimelineManager(
                 stores: .init(
-                    timelineStore: self.timelinePersistence,
-                    messageStore: self.messageStore,
-                    workspaceStore: self.workspacePersistence,
-                    workspaceBindingRepository: self.workspaceBindingRepository,
-                    runtimeRepository: self.runtimeRepository,
-                    toolPersistence: self.toolPersistence
+                    timelineStore: dependencies.runtimeRepository,
+                    messageStore: dependencies.runtimeRepository,
+                    workspaceStore: dependencies.workspacePersistence,
+                    workspaceBindingRepository: dependencies.workspaceBindingRepository,
+                    runtimeRepository: dependencies.runtimeRepository,
+                    toolPersistence: dependencies.toolPersistence
                 ),
                 workspaceProfile: dependencies.workspaceProfile,
                 workspaceCreator: dependencies.workspaceCreator,
@@ -191,19 +183,19 @@ public final class PKRuntime: Sendable {
             .appendingPathComponent("positronickit-workspaces", isDirectory: true)
         let resolvedWorkspaceCatalog = DefaultWorkspaceCatalog(
             workspaceRoot: resolvedCatalogRoot,
-            workspacePersistence: self.workspacePersistence,
-            bindingRepository: self.workspaceBindingRepository,
-            runtimeRepository: self.runtimeRepository,
+            workspacePersistence: dependencies.workspacePersistence,
+            bindingRepository: dependencies.workspaceBindingRepository,
+            runtimeRepository: dependencies.runtimeRepository,
             timelineAuthorityCoordinator: resolvedTimelineManager.timelineAuthorityCoordinator
         )
         let resolvedAgentManager = AgentManager(
             repository: resolvedWorkspaceCatalog,
             stores: .init(
-                agentStore: self.agentStore,
-                timelineStore: self.timelinePersistence,
-                messageStore: self.messageStore,
-                workspaceStore: self.workspacePersistence,
-                runtimeRepository: self.runtimeRepository,
+                agentStore: dependencies.agentStore,
+                timelineStore: dependencies.runtimeRepository,
+                messageStore: dependencies.runtimeRepository,
+                workspaceStore: dependencies.workspacePersistence,
+                runtimeRepository: dependencies.runtimeRepository,
                 timelineAuthorityCoordinator: resolvedTimelineManager.timelineAuthorityCoordinator,
                 agentAuthorityCoordinator: resolvedAgentAuthorityCoordinator,
                 eventHub: resolvedEventHub
@@ -212,7 +204,7 @@ public final class PKRuntime: Sendable {
         )
         let resolvedToolRouter = ToolRouter(
             timelineManager: resolvedTimelineManager,
-            runtimeRepository: self.runtimeRepository,
+            runtimeRepository: dependencies.runtimeRepository,
             approvalPolicy: dependencies.toolApprovalPolicy,
             loggingConfiguration: dependencies.policy.loggingConfiguration
         )
@@ -234,20 +226,20 @@ public final class PKRuntime: Sendable {
         var engine = TurnEngine(
             dependencies: .init(
                 timelineManager: resolvedTimelineManager,
-                agentStore: self.agentStore,
-                agentContextSource: self.customization.agentContextSource ?? DefaultAgentContextSource(
+                agentStore: dependencies.agentStore,
+                agentContextSource: dependencies.customization.agentContextSource ?? DefaultAgentContextSource(
                     workspaceStore: dependencies.workspacePersistence
                 ),
-                requestOriginStore: self.requestOriginStore,
-                runtimeRepository: self.runtimeRepository,
+                requestOriginStore: dependencies.requestOriginStore,
+                runtimeRepository: dependencies.runtimeRepository,
                 timelineAuthorityCoordinator: resolvedTimelineManager.timelineAuthorityCoordinator,
                 agentAuthorityCoordinator: self.agentAuthorityCoordinator,
-                llmService: self.languageModelClient,
+                llmService: dependencies.languageModel,
                 toolRouter: toolRouter,
-                turnContextSource: self.customization.turnContextSource,
+                turnContextSource: dependencies.customization.turnContextSource,
                 agentActivitySink: resolvedActivitySink,
-                turnOutcomeSink: self.customization.turnOutcomeSink,
-                promptHistoryRegistry: promptHistoryRegistry,
+                turnOutcomeSink: dependencies.customization.turnOutcomeSink,
+                promptHistoryRegistry: resolvedPromptHistoryRegistry,
                 eventHub: resolvedEventHub,
                 submissionGate: resolvedSubmissionGate,
                 finalizer: resolvedRuntimeState.finalizer,
@@ -256,31 +248,6 @@ public final class PKRuntime: Sendable {
         )
         engine.additionalStages = dependencies.additionalStages
         turnEngine = engine
-    }
-
-    /// Snapshots the facade's current resolved dependencies into a ``KitDependencies`` value
-    /// so builder methods can copy, mutate a single field, and forward to
-    /// ``init(dependencies:)`` without repeating the full parameter list.
-    var dependencies: KitDependencies {
-        KitDependencies(
-            languageModel: languageModelClient,
-            runtimeRepository: runtimeRepository,
-            workspaceBindingRepository: workspaceBindingRepository,
-            agentStore: agentStore,
-            requestOriginStore: requestOriginStore,
-            workspacePersistence: workspacePersistence,
-            toolPersistence: toolPersistence,
-            workspaceProfile: workspaceProfile,
-            workspaceCreator: workspaceCreator,
-            customization: customization,
-            agentAuthorityCoordinator: agentAuthorityCoordinator,
-            runtimeToolPolicy: runtimeToolPolicy,
-            generationParameters: defaultGenerationParameters,
-            toolApprovalPolicy: toolApprovalPolicy,
-            sharedRegistry: promptHistoryRegistry,
-            additionalStages: turnEngine.additionalStages,
-            policy: turnEngine.dependencies.policy
-        )
     }
 
     /// Returns a new facade with updated provider/generation configuration while preserving the
@@ -392,7 +359,7 @@ public final class PKRuntime: Sendable {
             clock: turnEngine.dependencies.policy.clock
         )
         let observation = try await waiter.awaitResult(turnID: turnID) {
-            try await self.runtimeRepository.fetchTurn(id: turnID)?.outcome
+            try await dependencies.runtimeRepository.fetchTurn(id: turnID)?.outcome
         }
         switch observation {
         case let .value(outcome):
@@ -416,7 +383,7 @@ public final class PKRuntime: Sendable {
             clock: turnEngine.dependencies.policy.clock
         )
         let observation = try await waiter.awaitResult(turnID: turnID) {
-            let record = try await self.runtimeRepository.fetchTurn(id: turnID)
+            let record = try await dependencies.runtimeRepository.fetchTurn(id: turnID)
             return record.flatMap { $0.isTerminal ? $0 : nil }
         }
         switch observation {
@@ -426,7 +393,7 @@ public final class PKRuntime: Sendable {
             }
             let message: Message?
             if let messageID = record.terminalMessageID {
-                let messages = try await self.runtimeRepository.fetchMessages(for: record.timelineID)
+                let messages = try await dependencies.runtimeRepository.fetchMessages(for: record.timelineID)
                 message = messages.first(where: { $0.id == messageID })?.toMessage()
             } else {
                 message = nil
