@@ -15,7 +15,7 @@ struct TurnAdmissionSeamTests {
         let harness = try await makeHarness(attachedAgent: agent)
         let requestID = UUID()
         let turnID = UUID()
-        let result = try await harness.engine.admitTurn(TurnEngine.TurnAdmissionRequest(
+        let result = try await harness.engine.preparation.admitTurn(TurnPreparation.TurnAdmissionRequest(
             timelineID: harness.timelineID,
             turnID: turnID,
             requestID: requestID,
@@ -45,7 +45,7 @@ struct TurnAdmissionSeamTests {
         let harness = try await makeHarness()
         let requestID = UUID()
         let turnID = UUID()
-        let result = try await harness.engine.admitTurn(TurnEngine.TurnAdmissionRequest(
+        let result = try await harness.engine.preparation.admitTurn(TurnPreparation.TurnAdmissionRequest(
             timelineID: harness.timelineID,
             turnID: turnID,
             requestID: requestID,
@@ -70,13 +70,13 @@ struct TurnAdmissionSeamTests {
         let harness = try await makeHarness()
         let requestID = UUID()
         let firstTurnID = UUID()
-        let first = try await harness.engine.admitTurn(makeRequest(
+        let first = try await harness.engine.preparation.admitTurn(makeRequest(
             timelineID: harness.timelineID,
             turnID: firstTurnID,
             requestID: requestID,
             content: "same"
         ))
-        let joined = try await harness.engine.admitTurn(makeRequest(
+        let joined = try await harness.engine.preparation.admitTurn(makeRequest(
             timelineID: harness.timelineID,
             turnID: UUID(),
             requestID: requestID,
@@ -102,7 +102,7 @@ struct TurnAdmissionSeamTests {
         let harness = try await makeHarness()
         let requestID = UUID()
         let turnID = UUID()
-        _ = try await harness.engine.admitTurn(makeRequest(
+        _ = try await harness.engine.preparation.admitTurn(makeRequest(
             timelineID: harness.timelineID,
             turnID: turnID,
             requestID: requestID,
@@ -116,7 +116,7 @@ struct TurnAdmissionSeamTests {
             now: Date()
         )
 
-        let replayed = try await harness.engine.admitTurn(makeRequest(
+        let replayed = try await harness.engine.preparation.admitTurn(makeRequest(
             timelineID: harness.timelineID,
             turnID: UUID(),
             requestID: requestID,
@@ -138,7 +138,7 @@ struct TurnAdmissionSeamTests {
         let harness = try await makeHarness()
 
         await #expect(throws: ToolError.reservedToolName("call_tool")) {
-            _ = try await harness.engine.prepareTurn(
+            _ = try await harness.engine.preparation.prepareTurn(
                 TurnExecutionRequest(
                     TurnRequest(
                         timelineID: harness.timelineID,
@@ -168,7 +168,7 @@ struct TurnAdmissionSeamTests {
         let turnID = UUID()
 
         await #expect(throws: Error.self) {
-            _ = try await harness.engine.prepareTurn(
+            _ = try await harness.engine.preparation.prepareTurn(
                 TurnExecutionRequest(
                     TurnRequest(
                         timelineID: harness.timelineID,
@@ -211,7 +211,7 @@ struct TurnAdmissionSeamTests {
         ))
 
         await #expect(throws: Error.self) {
-            _ = try await harness.engine.prepareTurn(
+            _ = try await harness.engine.preparation.prepareTurn(
                 TurnExecutionRequest(
                     TurnRequest(
                         timelineID: harness.timelineID,
@@ -289,8 +289,8 @@ struct TurnAdmissionSeamTests {
         turnID: UUID,
         requestID: UUID,
         content: String
-    ) -> TurnEngine.TurnAdmissionRequest {
-        TurnEngine.TurnAdmissionRequest(
+    ) -> TurnPreparation.TurnAdmissionRequest {
+        TurnPreparation.TurnAdmissionRequest(
             timelineID: timelineID,
             turnID: turnID,
             requestID: requestID,

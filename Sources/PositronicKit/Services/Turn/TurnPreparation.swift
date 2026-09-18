@@ -7,7 +7,16 @@ import PKUtilities
 
 // MARK: - Turn Preparation
 
-extension TurnEngine {
+/// Prepares and admits a Turn: agent preflight, authority validation, prompt/context assembly,
+/// and durable admission with its compensation path.
+///
+/// Extracted from `TurnEngine` so this work has its own seam. As an extension it published
+/// eleven members to the package because Swift's `private` does not cross file boundaries;
+/// as a module it exposes three and keeps the rest private.
+struct TurnPreparation: Sendable {
+    let dependencies: TurnEngine.Dependencies
+    let logger = Logger.module(named: "turn-engine")
+
     private struct ExecutionAuthority: Sendable {
         let timeline: TimelineRecord
         let agent: Agent?
@@ -611,7 +620,7 @@ extension TurnEngine {
 
     /// Crosses the repository admission barrier, classifying a `timelineBusy` rejection against
     /// in-process liveness and retrying once after interrupting an abandoned Turn (ADR 0010).
-    func admitToRepository(
+    private func admitToRepository(
         _ request: TurnAdmissionRequest,
         capturedAgentID: UUID?
     ) async throws -> TurnAdmission {
@@ -665,7 +674,7 @@ extension TurnEngine {
     ///
     /// When the store cannot answer whether a side effect is pending, this does not interrupt
     /// (leaving `timelineBusy`), so it never retries without evidence.
-    func interruptIfAbandoned(timelineID: UUID, activeTurnID: UUID) async -> Bool {
+    private func interruptIfAbandoned(timelineID: UUID, activeTurnID: UUID) async -> Bool {
         if await dependencies.timelineManager.activeTurnID(for: timelineID) == activeTurnID {
             return false
         }
@@ -738,7 +747,7 @@ extension TurnEngine {
         }
     }
 
-    func validateMultimodalRequest(
+    private func validateMultimodalRequest(
         content: MessageContent,
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?,
@@ -808,7 +817,7 @@ extension TurnEngine {
 
 // MARK: - Preparation Steps
 
-private extension TurnEngine {
+private extension TurnPreparation {
     private func compensatePreparationFailure(
         repository: any TimelineRuntimeRepository,
         turnID: UUID,
@@ -855,7 +864,7 @@ private extension TurnEngine {
 
     /// Serializes managed admission with Agent lifecycle/identity mutations. Direct turns have
     /// no Agent authority and therefore only use their per-Timeline lane.
-    func withAdmissionAuthority<T: Sendable>(
+    private func withAdmissionAuthority<T: Sendable>(
         timelineID: UUID,
         agentID: UUID?,
         operation: @escaping @Sendable () async throws -> T
@@ -874,7 +883,7 @@ private extension TurnEngine {
         )
     }
 
-    func diagnostic(for dependency: TurnDependency, operation: String, entityId: String, error: Error) -> TurnDiagnostic {
+    private func diagnostic(for dependency: TurnDependency, operation: String, entityId: String, error: Error) -> TurnDiagnostic {
         TurnDiagnostic(
             dependency: dependency,
             operation: operation,
@@ -884,7 +893,7 @@ private extension TurnEngine {
         )
     }
 
-    func enforceRequired(_ diagnostics: [TurnDiagnostic]) throws {
+    private func enforceRequired(_ diagnostics: [TurnDiagnostic]) throws {
         guard dependencies.policy.degradationPolicy == .failRequired,
               let diagnostic = diagnostics.first(where: { diagnostic in
                   switch diagnostic.dependency {
@@ -908,7 +917,7 @@ private extension TurnEngine {
         )
     }
 
-    func validateToolHistory(_ history: [Message]) throws {
+    private func validateToolHistory(_ history: [Message]) throws {
         var pendingToolCallIds = Set<String>()
 
         for message in history {
@@ -940,7 +949,7 @@ private extension TurnEngine {
         }
     }
 
-    func validateTurnContextContributions(_ contributions: [TurnContextContribution]) throws {
+    private func validateTurnContextContributions(_ contributions: [TurnContextContribution]) throws {
         var seenIDs = Set<UUID>()
         var seenKeys = Set<String>()
         for contribution in contributions {
@@ -954,4 +963,19 @@ private extension TurnEngine {
         }
     }
 
+
+    /// Persists a nonfatal customization diagnostic without changing Turn state.
+    private func appendCustomizationNotice(
+        code: TurnNoticeCode,
+        turnID: UUID,
+        message: String
+    ) async {
+        await TurnEngine.persistCustomizationNotice(
+            repository: dependencies.runtimeRepository,
+            logger: logger,
+            code: code,
+            turnID: turnID,
+            message: message
+        )
+    }
 }

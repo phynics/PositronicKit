@@ -203,20 +203,9 @@ struct TurnEngine: Sendable {
 
     var additionalStages: [any PipelineStage<TurnContext, TurnEvent>] = []
 
-    /// Persists a nonfatal customization diagnostic without changing Turn state.
-    func appendCustomizationNotice(
-        code: TurnNoticeCode,
-        turnID: UUID,
-        message: String
-    ) async {
-        await Self.persistCustomizationNotice(
-            repository: dependencies.runtimeRepository,
-            logger: logger,
-            code: code,
-            turnID: turnID,
-            message: message
-        )
-    }
+    /// Turn preparation and admission. Computed rather than stored so it always reflects the
+    /// engine's current dependencies.
+    var preparation: TurnPreparation { TurnPreparation(dependencies: dependencies) }
 
     static func persistCustomizationNotice(
         repository: any TimelineRuntimeRepository,
@@ -353,7 +342,7 @@ struct TurnEngine: Sendable {
         let sid = timelineID.uuidString.prefix(8).lowercased()
         logger.info("Starting generation stream for timeline \(sid)")
 
-        let agentPreflight = try await preflightAgent(id: executionRequest.context.agentID, timelineID: timelineID)
+        let agentPreflight = try await preparation.preflightAgent(id: executionRequest.context.agentID, timelineID: timelineID)
         guard await dependencies.llmService.isConfigured else { throw TurnEngineError.llmServiceNotConfigured }
         guard request.structuredOutput == nil || request.sidecars.isEmpty else {
             throw SidecarError.conflictsWithExplicitStructuredOutput
@@ -361,9 +350,9 @@ struct TurnEngine: Sendable {
         try SidecarSchemaComposer.validate(request.sidecars)
 
         let turnID = UUID()
-        let prepared: PreparedTurn
+        let prepared: TurnPreparation.PreparedTurn
         do {
-            prepared = try await prepareTurn(
+            prepared = try await preparation.prepareTurn(
                 executionRequest,
                 turnID: turnID,
                 agent: agentPreflight.instance,
