@@ -31,7 +31,7 @@ import ErrorKit
 
     @Test
     func usageGuideEventPatternMatchesCurrentShape() {
-        let completionMeta = APIResponseMetadata(totalTokens: 42)
+        let completionMeta = LLMResponse(usage: LLMTokenUsage(totalTokens: 42))
         let toolDeltaEvent = TurnEvent.delta(.toolCall(delta: ToolCallDelta(
             index: 0,
             id: "call_1",
@@ -82,7 +82,7 @@ import ErrorKit
             switch event {
             case .generationCompleted(let message, let metadata):
                 #expect(message.content == "done")
-                #expect(metadata.totalTokens == 42)
+                #expect(metadata.usage?.totalTokens == 42)
             default:
                 Issue.record("Expected nested completion.generationCompleted event")
             }

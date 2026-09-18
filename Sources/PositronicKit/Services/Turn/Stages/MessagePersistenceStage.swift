@@ -47,13 +47,12 @@ struct MessagePersistenceStage: PipelineStage {
             let streamUsage = await context.outputs.streamUsage
             let turnDuration = await context.outputs.turnDuration
             let tokensPerSecond = await context.outputs.tokensPerSecond
+            let fullResponse = await context.outputs.fullResponse
             let snapshotData = await buildSnapshotData(from: context)
-            let metadata = APIResponseMetadata(
+            let metadata = LLMResponse(
+                content: fullResponse.isEmpty ? nil : fullResponse,
                 model: context.modelName,
-                promptTokens: streamUsage?.promptTokens,
-                completionTokens: streamUsage?.completionTokens,
-                totalTokens: streamUsage?.totalTokens,
-                cachedTokens: streamUsage?.promptTokensDetails?.cachedTokens,
+                usage: streamUsage,
                 finishReason: streamFinishReason,
                 duration: turnDuration,
                 tokensPerSecond: tokensPerSecond,

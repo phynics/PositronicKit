@@ -18,6 +18,12 @@ for tagged releases beginning with `1.0.0`.
   `PromptAssembler`, so no public entry point could produce it. `PromptAssembler.prepare` now
   returns the messages and raw prompt directly.
 
+- **One response value replaces `APIResponseMetadata` and `OneShotResult`:** `APIResponseMetadata`
+  becomes `LLMResponse`, which adds `content` and `id`, uses `LLMTokenUsage` for token accounting,
+  and is returned by `kit.model.generate`. `OneShotResult` is removed. In
+  `TurnEvent.CompletionEvent.generationCompleted`, `content` is populated from the response text;
+  the persisted `Message` remains the durable body. There is no compatibility alias.
+
 ## [6.0.0] - 2026-09-18
 
 ### Breaking

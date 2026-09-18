@@ -33,7 +33,7 @@ struct TerminalCommit: Sendable {
     let terminalHandle: TurnTerminalHandle
     let terminalAssistantMessage: TimelineMessage?
     let partialMessage: TimelineMessage?
-    let metadata: APIResponseMetadata?
+    let metadata: LLMResponse?
     /// The terminal sidecar completion event to emit for a completed Turn, when the Turn produced
     /// sidecars under `.terminalModelRound`.
     let sidecarCompletion: SidecarCompletion?
@@ -133,7 +133,7 @@ actor TurnFinalizer {
             if let message = commit.terminalAssistantMessage {
                 commit.continuation.yield(.generationCompleted(
                     message: message.toMessage(),
-                    metadata: commit.metadata ?? APIResponseMetadata()
+                    metadata: commit.metadata ?? LLMResponse()
                 ))
             } else {
                 commit.continuation.yield(.completedEmpty(finishReason: commit.metadata?.finishReason))

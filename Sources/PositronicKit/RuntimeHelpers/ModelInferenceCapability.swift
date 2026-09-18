@@ -69,7 +69,7 @@ public struct ModelInferenceCapability: Sendable {
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60
-    ) async throws -> OneShotResult {
+    ) async throws -> LLMResponse {
         try await completeResult(
             prompt,
             generationParameters: generationParameters,
@@ -198,7 +198,8 @@ public struct ModelInferenceCapability: Sendable {
 extension ModelInferenceCapability {
     /// Generates a response for a single prompt without creating or updating a timeline.
     func complete(_ prompt: String) async throws -> String {
-        try await completeResult(prompt).content
+        let response = try await completeResult(prompt)
+        return response.content ?? ""
     }
 
     /// The idle timeout applied to the Timeline-free `kit.model` paths when a caller does not
@@ -213,7 +214,7 @@ extension ModelInferenceCapability {
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval? = nil
-    ) async throws -> OneShotResult {
+    ) async throws -> LLMResponse {
         var chunks: [LLMStreamChunk] = []
         do {
             let stream = streamChunks(
@@ -238,7 +239,7 @@ extension ModelInferenceCapability {
         }
 
         let terminalChunk = chunks.last
-        return OneShotResult(
+        return LLMResponse(
             content: content,
             id: terminalChunk?.id,
             model: terminalChunk?.model,

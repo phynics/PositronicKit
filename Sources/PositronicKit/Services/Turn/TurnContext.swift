@@ -39,7 +39,7 @@ actor TurnOutputs {
     private(set) var terminalAssistantMessage: TimelineMessage?
     /// Completion metadata is assembled before the terminal repository transition but is exposed
     /// only by the terminal coordinator after that transition succeeds.
-    private(set) var terminalCompletionMetadata: APIResponseMetadata?
+    private(set) var terminalCompletionMetadata: LLMResponse?
 
     init() {}
 
@@ -104,7 +104,7 @@ actor TurnOutputs {
         terminalAssistantMessage = message
     }
 
-    func setTerminalCompletionMetadata(_ metadata: APIResponseMetadata) {
+    func setTerminalCompletionMetadata(_ metadata: LLMResponse) {
         terminalCompletionMetadata = metadata
     }
 

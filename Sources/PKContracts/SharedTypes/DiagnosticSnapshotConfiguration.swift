@@ -12,7 +12,7 @@ public enum DiagnosticSnapshotPolicy: String, Codable, Sendable, Equatable {
     case full
 }
 
-/// Runtime policy for diagnostic snapshots attached to ``APIResponseMetadata``.
+/// Runtime policy for diagnostic snapshots attached to ``LLMResponse``.
 public struct DiagnosticSnapshotConfiguration: Codable, Sendable, Equatable {
     public let policy: DiagnosticSnapshotPolicy
     public let maxBytes: Int

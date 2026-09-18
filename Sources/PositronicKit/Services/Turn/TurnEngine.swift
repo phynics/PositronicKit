@@ -514,7 +514,7 @@ struct TurnEngine {
                 {
                     continuation.yield(.generation(assistant.content))
                     if case .completed = record.outcome {
-                        continuation.yield(.generationCompleted(message: assistant.toMessage(), metadata: APIResponseMetadata()))
+                        continuation.yield(.generationCompleted(message: assistant.toMessage(), metadata: LLMResponse()))
                     }
                 } else if case .completed = record.outcome {
                     continuation.yield(.completedEmpty(finishReason: nil))

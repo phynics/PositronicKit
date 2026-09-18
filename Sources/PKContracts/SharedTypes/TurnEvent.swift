@@ -389,7 +389,7 @@ public enum TurnEvent: Sendable, Codable {
 
     public enum CompletionEvent: Sendable, Codable {
         /// Stream completed with final accumulated message and token metadata
-        case generationCompleted(message: Message, metadata: APIResponseMetadata)
+        case generationCompleted(message: Message, metadata: LLMResponse)
         /// The provider finished successfully, but the reconstructed assistant text was empty.
         case completedEmpty(finishReason: String?)
         /// PKTool execution completed with final status
@@ -442,7 +442,7 @@ public enum TurnEvent: Sendable, Codable {
                 )
                 self = .generationCompleted(
                     message: try values.decode(Message.self, forKey: .message),
-                    metadata: try values.decode(APIResponseMetadata.self, forKey: .metadata)
+                    metadata: try values.decode(LLMResponse.self, forKey: .metadata)
                 )
                 return
             }
@@ -633,7 +633,7 @@ public extension TurnEvent {
     // MARK: - Completion Shortcuts
 
     /// Creates a terminal completion event with the final message and response metadata.
-    static func generationCompleted(message: Message, metadata: APIResponseMetadata) -> TurnEvent {
+    static func generationCompleted(message: Message, metadata: LLMResponse) -> TurnEvent {
         .completion(.generationCompleted(message: message, metadata: metadata))
     }
 
@@ -694,7 +694,7 @@ public extension TurnEvent {
     }
 
     /// The completed message and metadata if this is a `.completion(.generationCompleted(...))` event.
-    var completedMessage: (message: Message, metadata: APIResponseMetadata)? {
+    var completedMessage: (message: Message, metadata: LLMResponse)? {
         if case let .completion(event) = self, case let .generationCompleted(msg, meta) = event { return (msg, meta) }
         return nil
     }
