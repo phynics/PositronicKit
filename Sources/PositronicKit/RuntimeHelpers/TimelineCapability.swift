@@ -33,7 +33,7 @@ public struct TimelineCapability: Sendable {
 
     /// Opens a handle without performing persistence I/O.
     public func open(_ timelineID: UUID) -> TimelineHandle {
-        TimelineHandle(timelineID: timelineID, kit: kit)
+        TimelineHandle(timelineID: timelineID, engine: kit.turnEngine)
     }
 
     /// Lists persisted Timelines.

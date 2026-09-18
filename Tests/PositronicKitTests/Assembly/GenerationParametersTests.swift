@@ -25,7 +25,7 @@ struct GenerationParametersTests {
         let timeline = try await chat.timelineManager.createTimeline(title: "Default Params")
 
         // 2. Run a turn without per-run parameters
-        let stream = try await chat.run(TurnRequest(
+        let stream = try await chat.turnEngine.run(TurnRequest(
             timelineID: timeline.id,
             message: "Test message"
         ))
@@ -58,7 +58,7 @@ struct GenerationParametersTests {
 
         // 2. Run a turn WITH per-run parameters that override the defaults
         let overrideParams = GenerationParameters(temperature: 0.2, maxTokens: 500, topP: 0.9)
-        let stream = try await chat.run(TurnRequest(
+        let stream = try await chat.turnEngine.run(TurnRequest(
             timelineID: timeline.id,
             message: "Test message",
             generationParameters: overrideParams
@@ -84,7 +84,7 @@ struct GenerationParametersTests {
         let timeline = try await chat.timelineManager.createTimeline(title: "Nil Params")
 
         // 2. Run a turn without per-run parameters
-        let stream = try await chat.run(TurnRequest(
+        let stream = try await chat.turnEngine.run(TurnRequest(
             timelineID: timeline.id,
             message: "Test message"
         ))

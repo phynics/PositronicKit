@@ -23,7 +23,7 @@ struct CustomPipelineStageInternalStoriesTests {
         let chat = makeChat(llmService: mockLLM, persistence: mockPersistence)
             .addingStage(customStage)
 
-        let stream = try await chat.run(TurnRequest(
+        let stream = try await chat.turnEngine.run(TurnRequest(
             timelineID: timelineID,
             message: message
         ))

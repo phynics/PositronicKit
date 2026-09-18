@@ -22,7 +22,7 @@ struct HydrationFailurePropagationTests {
         let unresolvedTimelineId = UUID()
 
         await #expect(throws: TimelineError.timelineNotFound) {
-            _ = try await kit.run(TurnRequest(
+            _ = try await kit.turnEngine.run(TurnRequest(
                 timelineID: unresolvedTimelineId,
                 message: "should not reach the engine"
             ))
@@ -44,7 +44,7 @@ struct HydrationFailurePropagationTests {
         let unresolvedTimelineId = UUID()
 
         await #expect(throws: TimelineError.unavailable) {
-            _ = try await kit.run(TurnRequest(
+            _ = try await kit.turnEngine.run(TurnRequest(
                 timelineID: unresolvedTimelineId,
                 message: "should not reach the engine"
             ))
@@ -67,7 +67,7 @@ struct HydrationFailurePropagationTests {
         ))
         let timeline = try await kit.timelineManager.createTimeline()
 
-        let stream = try await kit.run(TurnRequest(
+        let stream = try await kit.turnEngine.run(TurnRequest(
             timelineID: timeline.id,
             message: "fail during provider streaming"
         ))

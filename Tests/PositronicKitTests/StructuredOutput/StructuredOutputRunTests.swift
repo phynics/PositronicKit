@@ -46,7 +46,7 @@ struct StructuredOutputRunTests {
             generationParameters: GenerationParameters(temperature: 0.2, maxTokens: 128),
             structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
         )
-        let stream = try await chat.run(request)
+        let stream = try await chat.turnEngine.run(request)
 
         for try await _ in stream {}
 
@@ -77,7 +77,7 @@ struct StructuredOutputRunTests {
             )))
 
         let timeline = try await chat.timelineManager.createTimeline(title: "No Structured Output")
-        let stream = try await chat.run(TurnRequest(
+        let stream = try await chat.turnEngine.run(TurnRequest(
             timelineID: timeline.id,
             message: "Hello"
         ))
@@ -100,7 +100,7 @@ struct StructuredOutputRunTests {
             )))
 
         let timeline = try await chat.timelineManager.createTimeline(title: "Minimal Defaults")
-        let stream = try await chat.run(TurnRequest(
+        let stream = try await chat.turnEngine.run(TurnRequest(
             timelineID: timeline.id,
             message: "Hello"
         ))
@@ -126,7 +126,7 @@ struct StructuredOutputRunTests {
             )))
 
         let timeline = try await chat.timelineManager.createTimeline(title: "No Sidecars")
-        let stream = try await chat.run(TurnRequest(
+        let stream = try await chat.turnEngine.run(TurnRequest(
             timelineID: timeline.id,
             message: "Hello",
             sidecars: []

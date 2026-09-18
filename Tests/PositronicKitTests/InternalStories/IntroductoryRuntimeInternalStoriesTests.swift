@@ -64,7 +64,7 @@ struct IntroductoryRuntimeInternalStoriesTests {
         let toolManager = await timelineManager.getToolManager(for: timeline.id)
         await toolManager?.updateAvailableTools([tool])
 
-        let events = try await runtime.run(TurnRequest(
+        let events = try await runtime.turnEngine.run(TurnRequest(
             timelineID: timeline.id,
             message: "Greet Taylor using the available tool.",
             tools: [tool]

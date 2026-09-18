@@ -17,11 +17,11 @@ public struct TimelineHandle: Identifiable, Sendable {
         timelineID
     }
 
-    private let kit: PKRuntime
+    private let engine: TurnEngine
 
-    init(timelineID: UUID, kit: PKRuntime) {
+    init(timelineID: UUID, engine: TurnEngine) {
         self.timelineID = timelineID
-        self.kit = kit
+        self.engine = engine
     }
 
     /// Starts a managed Turn whose Agent is captured from this TimelineRecord at admission.
@@ -29,13 +29,13 @@ public struct TimelineHandle: Identifiable, Sendable {
         guard request.timelineID == timelineID else {
             throw TimelineError.timelineNotFound
         }
-        guard let timeline = try await kit.timelineManager.timelineStore.fetchTimeline(id: timelineID) else {
+        guard let timeline = try await engine.dependencies.timelineManager.timelineStore.fetchTimeline(id: timelineID) else {
             throw TimelineError.timelineNotFound
         }
         guard let attachedAgentID = timeline.attachedAgentID else {
             throw TurnError.managedExecutionRequiresAttachedAgent(timelineID)
         }
-        return try await kit.startTurnHandle(
+        return try await engine.startTurnHandle(
             request,
             agentID: attachedAgentID,
             executionKind: .agentManaged
@@ -104,13 +104,13 @@ public struct TimelineHandle: Identifiable, Sendable {
         context: DirectTurnContext,
         options: TurnOptions = .init()
     ) async throws -> TurnHandle {
-        guard let timeline = try await kit.timelineManager.timelineStore.fetchTimeline(id: timelineID) else {
+        guard let timeline = try await engine.dependencies.timelineManager.timelineStore.fetchTimeline(id: timelineID) else {
             throw TimelineError.timelineNotFound
         }
         guard timeline.attachedAgentID == nil else {
             throw TurnError.directExecutionRequiresDetachedTimeline(timelineID)
         }
-        return try await kit.startTurnHandle(
+        return try await engine.startTurnHandle(
             options.makeRequest(
                 timelineID: timelineID,
                 content: content,
@@ -124,6 +124,6 @@ public struct TimelineHandle: Identifiable, Sendable {
 
     /// Cancels any in-flight generation for this handle's TimelineRecord.
     public func cancel() async {
-        await kit.timelineManager.cancelGeneration(for: timelineID)
+        await engine.dependencies.timelineManager.cancelGeneration(for: timelineID)
     }
 }

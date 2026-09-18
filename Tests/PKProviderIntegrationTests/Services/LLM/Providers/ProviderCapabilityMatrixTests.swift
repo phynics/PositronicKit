@@ -337,7 +337,7 @@ struct ProviderCapabilityMatrixTests {
         let request = TurnRequest(timelineID: timelineID, content: content)
 
         do {
-            _ = try await kit.startTurnHandle(request, agentID: nil, executionKind: .direct)
+            _ = try await kit.turnEngine.startTurnHandle(request, agentID: nil, executionKind: .direct)
             Issue.record("\(id): expected runtime ordering rejection")
         } catch let error as MultimodalContentError {
             #expect(error == expected, "\(id)")
@@ -386,7 +386,7 @@ struct ProviderCapabilityMatrixTests {
         )
 
         do {
-            _ = try await kit.startTurnHandle(request, agentID: nil, executionKind: .direct)
+            _ = try await kit.turnEngine.startTurnHandle(request, agentID: nil, executionKind: .direct)
             Issue.record("\(id): expected runtime ordering rejection")
         } catch let error as MultimodalContentError {
             #expect(error == expected, "\(id)")

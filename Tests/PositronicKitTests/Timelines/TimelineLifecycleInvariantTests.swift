@@ -28,7 +28,7 @@ struct TimelineLifecycleInvariantTests {
         let missingId = UUID()
 
         await #expect(throws: TimelineError.timelineNotFound) {
-            _ = try await kit.run(TurnRequest(
+            _ = try await kit.turnEngine.run(TurnRequest(
                 timelineID: missingId,
                 message: "should not be persisted"
             ))
@@ -57,7 +57,7 @@ struct TimelineLifecycleInvariantTests {
         let unresolvedId = UUID()
 
         await #expect(throws: TimelineError.unavailable) {
-            _ = try await kit.run(TurnRequest(
+            _ = try await kit.turnEngine.run(TurnRequest(
                 timelineID: unresolvedId,
                 message: "should not be persisted"
             ))

@@ -24,13 +24,13 @@ public struct TurnHandle: Identifiable, Sendable {
     public let timelineID: UUID
 
     private let eventStream: AsyncStream<TurnEvent>
-    private let kit: PKRuntime
+    private let engine: TurnEngine
 
-    init(id: UUID, timelineID: UUID, eventStream: AsyncStream<TurnEvent>, kit: PKRuntime) {
+    init(id: UUID, timelineID: UUID, eventStream: AsyncStream<TurnEvent>, engine: TurnEngine) {
         self.id = id
         self.timelineID = timelineID
         self.eventStream = eventStream
-        self.kit = kit
+        self.engine = engine
     }
 
     /// Returns the nonthrowing future-event stream for this Turn.
@@ -84,7 +84,7 @@ public struct TurnHandle: Identifiable, Sendable {
     ///   terminal state, or ``TurnOutcomeTimedOut`` if the bounded wait elapses first. Neither
     ///   case is a durable outcome -- the Turn may still be running.
     public func outcome() async throws -> TurnOutcome {
-        try await kit.waitForTurnOutcome(id: id)
+        try await engine.waitForTurnOutcome(id: id)
     }
 
     /// Waits for and returns the same durable consolidated result seen by every joiner.
@@ -100,11 +100,11 @@ public struct TurnHandle: Identifiable, Sendable {
     ///   terminal state, or ``TurnOutcomeTimedOut`` if the bounded wait elapses first. Neither
     ///   case is a durable outcome -- the Turn may still be running.
     public func result() async throws -> TurnResult {
-        try await kit.waitForTurnResult(id: id)
+        try await engine.waitForTurnResult(id: id)
     }
 
     /// Requests cancellation of exactly this Turn.
     public func cancel() async {
-        await kit.cancelTurn(id: id, timelineID: timelineID)
+        _ = await engine.dependencies.timelineManager.cancelGeneration(turnID: id, for: timelineID)
     }
 }

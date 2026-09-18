@@ -158,7 +158,7 @@ struct ManagedDirectTurnExecutionTests {
         // its intent, while the submitted output is appended through the same cohesive repository.
         llm.mockClient.nextToolCalls = []
         llm.mockClient.nextResponse = "External result processed"
-        let continuation = try await kit.run(
+        let continuation = try await kit.turnEngine.run(
             TurnRequest(
                 timelineID: timeline.id,
                 message: "",

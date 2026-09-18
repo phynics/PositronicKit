@@ -23,7 +23,7 @@ struct FacadeRunValidationTests {
         let agentID = UUID()
 
         await expectMissingAgent(agentID) {
-            _ = try await harness.kit.run(TurnRequest(
+            _ = try await harness.kit.turnEngine.run(TurnRequest(
                 timelineID: harness.timelineID,
                 message: "must not persist",
             ), agentID: agentID, executionKind: .agentManaged)
@@ -41,7 +41,7 @@ struct FacadeRunValidationTests {
         harness.languageModel.mockIsConfigured = false
 
         await expectMissingAgent(agentID) {
-            _ = try await harness.kit.run(TurnRequest(
+            _ = try await harness.kit.turnEngine.run(TurnRequest(
                 timelineID: harness.timelineID,
                 message: "agent validation wins",
             ), agentID: agentID, executionKind: .agentManaged)
@@ -60,7 +60,7 @@ struct FacadeRunValidationTests {
         timeline.attachedAgentID = agentID
         try await harness.persistence.saveTimeline(timeline)
         await expectMissingAgent(agentID) {
-            _ = try await harness.kit.run(TurnRequest(
+            _ = try await harness.kit.turnEngine.run(TurnRequest(
                 timelineID: harness.timelineID,
                 message: "must not run without authority",
             ), agentID: agentID, executionKind: .agentManaged)
@@ -83,7 +83,7 @@ struct FacadeRunValidationTests {
         try await harness.kit.agentManager.attach(agentID: agent.id, to: harness.timelineID)
         harness.languageModel.mockClient.nextResponse = "resolved"
 
-        let stream = try await harness.kit.run(TurnRequest(
+        let stream = try await harness.kit.turnEngine.run(TurnRequest(
             timelineID: harness.timelineID,
             message: "use the resolved agent",
         ), agentID: agent.id, executionKind: .agentManaged)
@@ -108,7 +108,7 @@ struct FacadeRunValidationTests {
         let requestID = UUID()
 
         await expectMissingAgent(agent.id) {
-            _ = try await harness.kit.run(TurnRequest(
+            _ = try await harness.kit.turnEngine.run(TurnRequest(
                 timelineID: harness.timelineID,
                 requestID: requestID,
                 message: "retryable input",
@@ -118,7 +118,7 @@ struct FacadeRunValidationTests {
         try await harness.agentStore.saveAgent(agent)
         try await harness.kit.agentManager.attach(agentID: agent.id, to: harness.timelineID)
         harness.languageModel.mockClient.nextResponse = "retried"
-        let stream = try await harness.kit.run(TurnRequest(
+        let stream = try await harness.kit.turnEngine.run(TurnRequest(
             timelineID: harness.timelineID,
             requestID: requestID,
             message: "retryable input",
@@ -144,7 +144,7 @@ struct FacadeRunValidationTests {
             persistence: .inMemory(),
         ))
         let timeline = try await kit.timelineManager.createTimeline()
-        let stream = try await kit.run(TurnRequest(
+        let stream = try await kit.turnEngine.run(TurnRequest(
             timelineID: timeline.id,
             message: "cancel this run",
         ))
@@ -188,7 +188,7 @@ struct FacadeRunValidationTests {
         ))
 
         await #expect(throws: TurnError.invalidMaxModelRounds(maxModelRounds)) {
-            _ = try await kit.run(TurnRequest(
+            _ = try await kit.turnEngine.run(TurnRequest(
                 timelineID: UUID(),
                 message: "must not reach I/O",
                 maxModelRounds: maxModelRounds,
