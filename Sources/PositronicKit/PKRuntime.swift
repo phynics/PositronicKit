@@ -5,37 +5,43 @@ import PKContracts
 import PKUtilities
 import Synchronization
 
-/// The public facade for PositronicKit's agent runtime subsystem.
+/// The entry point to PositronicKit: it turns a language model into an agent runtime that owns
+/// durable Timelines, Agents, tool routing, and prompt assembly.
 ///
-/// Accepts all required services as init parameters and wires them internally,
-/// so consumers never need to assemble a shared dependency container.
+/// ```swift
+/// let runtime = PKRuntime(languageModel: myModel)
+/// let answer = try await runtime.model.generate("Summarize this release.")
+/// ```
 ///
-/// Only `languageModel` is required. All other parameters have sensible in-memory defaults
-/// suitable for development and prototyping. For production, provide persistent stores.
+/// Only the language model is required; everything else defaults to in-memory stores that suit
+/// prototyping and tests. For production, pass durable stores through
+/// ``PKRuntime/init(configuration:)``.
 ///
-/// PKRuntime intentionally stays transport-neutral. Concepts like timelines, workspaces,
-/// agents, tool routing, and prompt assembly live here; concrete networking or multi-process hosting models are
-/// expected to be provided downstream via injected stores, workspace creators, and connection hooks.
+/// ## Capabilities
 ///
-/// Intended extension seams for downstream applications are the facade itself plus public runtime
-/// protocols such as persistence stores, `WorkspaceFactory` / `WorkspaceProvider`,
-/// ``RuntimeCustomization`` and the persistence/workspace protocols. Internal coordinators like `TurnEngine`,
-/// `TimelinePromptHistory`, and the concrete turn pipeline remain runtime implementation details
-/// even when they are visible to tests inside this package.
+/// Work goes through four capability values rather than the coordinators behind them:
 ///
-/// Example usage:
-/// - Minimal: `PKRuntime(languageModel: myModel)`
-/// - Production: use `PKRuntime(configuration:)`.
+/// - ``model`` — inference with no Timeline attached.
+/// - ``timelines`` — durable Timeline handles and Turn execution.
+/// - ``agents`` — Agent identity and attachment.
+/// - ``workspaces`` — the Workspace catalog.
 ///
-/// The public operation surface is deliberately capability-oriented: use `model` for
-/// timeline-free inference, `timelines` for durable Timeline handles, `agents` for agent
-/// identity and attachment, and `workspaces` for the workspace catalog. The concrete
-/// coordinators, task registries, and turn pipeline remain implementation details.
+/// ## Lifetime and identity
 ///
-/// Construct once and hold for the app's lifetime. `PKRuntime` is a reference type;
-/// constructing one through a regular initializer starts a new, independent cross-send history.
-/// ``reconfigured(languageModel:generationParameters:)`` creates a new view over the current
-/// runtime state instead.
+/// Construct one runtime and hold it for the app's lifetime. `PKRuntime` is a reference type, and
+/// each instance built through an ordinary initializer starts its own independent cross-send
+/// history. To refresh provider settings between sends without resetting per-Timeline
+/// prompt-history state, use ``reconfigured(languageModel:generationParameters:)``, which returns
+/// a new view over the same runtime state rather than a new runtime.
+///
+/// ## Extension seams
+///
+/// `PKRuntime` stays transport-neutral: concrete networking and multi-process hosting arrive from
+/// downstream applications through injected stores, workspace creators, and connection hooks. The
+/// supported seams are the facade itself, the public persistence protocols, `WorkspaceFactory` /
+/// `WorkspaceProvider`, and ``RuntimeCustomization``. Internal coordinators — `TurnEngine`,
+/// `TimelinePromptHistory`, and the concrete Turn pipeline — remain implementation details even
+/// where tests inside this package can see them.
 public final class PKRuntime: Sendable {
     // MARK: - Language Model Client
     let languageModelClient: any LLMStreamClient
