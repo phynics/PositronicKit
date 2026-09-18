@@ -14,6 +14,10 @@ for tagged releases beginning with `1.0.0`.
   `ToolHandlingResult`/`ToolTurnResult` pair is now a single internal `ToolTurnResult`. No
   consumer-visible behavior changes.
 
+- **Unreachable `LLMPromptResult` removed:** the type was public but only returned by the internal
+  `PromptAssembler`, so no public entry point could produce it. `PromptAssembler.prepare` now
+  returns the messages and raw prompt directly.
+
 ## [6.0.0] - 2026-09-18
 
 ### Breaking

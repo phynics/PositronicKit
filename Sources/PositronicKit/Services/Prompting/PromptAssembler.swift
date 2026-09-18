@@ -76,20 +76,20 @@ enum PromptAssembler {
 
     /// Builds a prompt and prepares it for LLM submission.
     /// - Parameter request: The prompt request data.
-    /// - Returns: A result containing structured messages and the raw prompt string.
+    /// - Returns: Structured messages and the raw prompt string.
     /// - Throws: An error if assembly fails.
-    static func prepare(_ request: LLMPromptRequest) async throws -> LLMPromptResult {
+    static func prepare(_ request: LLMPromptRequest) async throws -> (messages: [LLMMessage], rawPrompt: String) {
         let rendered = try await assemble(request)
-        return LLMPromptResult(messages: rendered.buildMessages(), rawPrompt: rendered.string)
+        return (messages: rendered.buildMessages(), rawPrompt: rendered.string)
     }
 
     /// Builds a prompt for LLM submission using explicit advanced assembly options.
     static func prepare(
         _ request: LLMPromptRequest,
         options: PromptAssemblyOptions
-    ) async throws -> LLMPromptResult {
+    ) async throws -> (messages: [LLMMessage], rawPrompt: String) {
         let rendered = try await assemble(request, options: options)
-        return LLMPromptResult(messages: rendered.buildMessages(), rawPrompt: rendered.string)
+        return (messages: rendered.buildMessages(), rawPrompt: rendered.string)
     }
 
     private static func buildSections(

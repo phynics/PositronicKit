@@ -79,20 +79,6 @@ public struct LLMStreamResult: Sendable {
     }
 }
 
-/// The result of building a prompt (messages + debug info).
-public struct LLMPromptResult: Sendable {
-    public let messages: [LLMMessage]
-    public let rawPrompt: String
-
-    public init(
-        messages: [LLMMessage],
-        rawPrompt: String
-    ) {
-        self.messages = messages
-        self.rawPrompt = rawPrompt
-    }
-}
-
 /// Groups the parameters for building a prompt or context.
 public struct LLMPromptRequest: Sendable {
     public let userContent: MessageContent
