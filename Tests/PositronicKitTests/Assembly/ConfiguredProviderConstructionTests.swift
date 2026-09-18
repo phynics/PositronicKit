@@ -40,7 +40,7 @@ struct ConfiguredProviderConstructionTests {
 
         // The provider overload resolves through the same `LLMService` the facade's
         // `init(provider:)` path uses, so consumers never name `LLMClientSet`.
-        let service = try #require(kit.languageModel as? LLMService)
+        let service = try #require(kit.languageModelClient as? LLMService)
         #expect(await service.configuration == provider.configuration)
 
         // The provider's own client, not a rebuilt one, dispatches the Turn.

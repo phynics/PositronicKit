@@ -26,7 +26,7 @@ struct FacadeOneShotTests {
             persistence: persistence
         ))
 
-        let result = try await kit.complete("hi")
+        let result = try await kit.model.complete("hi")
 
         #expect(result == "hello")
         #expect(try await persistence.runtimeRepository.fetchMessages(for: UUID()).isEmpty)
@@ -50,7 +50,7 @@ struct FacadeOneShotTests {
             )
         ))
 
-        let events = try await kit.stream("hi").collect()
+        let events = try await kit.model.stream("hi").collect()
 
         #expect(events.compactMap { $0.choices.first?.delta.content } == ["one", "two"])
         #expect(try await messageStore.fetchMessages(for: UUID()).isEmpty)
@@ -65,7 +65,7 @@ struct FacadeOneShotTests {
         let kit = Self.makeKit(languageModel: llm)
 
         let consumer = Task {
-            let stream = kit.stream("hi")
+            let stream = kit.model.stream("hi")
             var iterator = stream.makeAsyncIterator()
             return try await iterator.next()?.choices.first?.delta.content
         }
@@ -106,7 +106,7 @@ struct FacadeOneShotTests {
         ))
         let parameters = GenerationParameters(temperature: 0.2, maxTokens: 12)
 
-        let result = try await kit.completeResult("hi", generationParameters: parameters)
+        let result = try await kit.model.completeResult("hi", generationParameters: parameters)
 
         #expect(result.content == "hello")
         #expect(result.finishReason == "stop")
@@ -128,7 +128,7 @@ struct FacadeOneShotTests {
         ))
 
         do {
-            _ = try await kit.completeResult("hi", idleTimeout: 0.01)
+            _ = try await kit.model.completeResult("hi", idleTimeout: 0.01)
             Issue.record("Expected the stalled one-shot stream to time out")
         } catch let error as TurnEngineError {
             guard case let .streamTimedOut(timeout) = error else {
@@ -151,7 +151,7 @@ struct FacadeOneShotTests {
             )
         ))
         let task = Task {
-            try await kit.completeResult("hi", idleTimeout: 60)
+            try await kit.model.completeResult("hi", idleTimeout: 60)
         }
         defer {
             task.cancel()
@@ -183,7 +183,7 @@ struct FacadeOneShotTests {
         let kit = Self.makeKit(languageModel: llm)
 
         do {
-            _ = try await kit.complete("hi")
+            _ = try await kit.model.complete("hi")
             Issue.record("Expected the foreign provider error to throw")
         } catch let error as LLMStreamError {
             #expect(error.errorDomain == PKErrorDomain.llm)
@@ -212,7 +212,7 @@ struct FacadeOneShotTests {
             )
         ))
 
-        _ = try await kit.complete("extract tags", structuredOutput: .jsonObject)
+        _ = try await kit.model.complete("extract tags", structuredOutput: .jsonObject)
 
         #expect(llm.mockClient.lastResponseFormat == .jsonObject)
         #expect(llm.mockClient.lastMessages == [LLMMessage(role: .user, content: "extract tags")])
@@ -225,7 +225,7 @@ struct FacadeOneShotTests {
         let kit = Self.makeKit(languageModel: llm)
         let parameters = GenerationParameters(temperature: 0.2, maxTokens: 24)
 
-        _ = try await kit.complete(
+        _ = try await kit.model.complete(
             "extract tags",
             structuredOutput: .jsonObject,
             generationParameters: parameters
@@ -241,7 +241,7 @@ struct FacadeOneShotTests {
         let defaults = GenerationParameters(temperature: 0.7, maxTokens: 48)
         let kit = Self.makeKit(languageModel: llm, generationParameters: defaults)
 
-        _ = try await kit.complete("extract tags", structuredOutput: .jsonObject)
+        _ = try await kit.model.complete("extract tags", structuredOutput: .jsonObject)
 
         #expect(llm.mockClient.lastParameters == defaults)
     }
@@ -291,7 +291,7 @@ struct FacadeOneShotTests {
         let kit = Self.makeKit(languageModel: llm)
 
         do {
-            _ = try await kit.complete(
+            _ = try await kit.model.complete(
                 "extract tags",
                 structuredOutput: .jsonObject,
                 idleTimeout: 0.01
@@ -313,7 +313,7 @@ struct FacadeOneShotTests {
         llm.stubbedStream = Self.cancellableProviderStream(probe: probe)
         let kit = Self.makeKit(languageModel: llm)
         let task = Task {
-            try await kit.complete(
+            try await kit.model.complete(
                 "extract tags",
                 structuredOutput: .jsonObject,
                 idleTimeout: 60
@@ -381,7 +381,7 @@ struct FacadeOneShotTests {
         let kit = Self.makeKit(languageModel: llm)
 
         do {
-            _ = try await kit.complete("extract tags", structuredOutput: .jsonObject)
+            _ = try await kit.model.complete("extract tags", structuredOutput: .jsonObject)
             Issue.record("Expected the foreign provider error to throw")
         } catch let LLMStreamError.providerStreamFailed(underlying) {
             #expect(underlying is ForeignStructuredProviderError)
@@ -406,7 +406,7 @@ struct FacadeOneShotTests {
             )
         ))
 
-        let result = try await kit.complete("extract tags", structuredOutput: .jsonObject)
+        let result = try await kit.model.complete("extract tags", structuredOutput: .jsonObject)
 
         #expect(result == #"{"tags":["swift"]}"#)
     }
@@ -435,7 +435,7 @@ struct FacadeOneShotTests {
             )
         ))
 
-        let result = try await kit.complete(
+        let result = try await kit.model.complete(
             "extract tags",
             structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
         )
@@ -458,7 +458,7 @@ struct FacadeOneShotTests {
         ))
 
         do {
-            _ = try await kit.complete("extract tags", structuredOutput: .jsonObject)
+            _ = try await kit.model.complete("extract tags", structuredOutput: .jsonObject)
             Issue.record("Expected an empty structured response to throw")
         } catch let error as LLMServiceError {
             #expect(error == .emptyResponse(provider: LLMProvider.openAICompatible.rawValue))

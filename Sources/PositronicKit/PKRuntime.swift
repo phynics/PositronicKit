@@ -37,82 +37,44 @@ import Synchronization
 /// ``reconfigured(languageModel:generationParameters:)`` creates a new view over the current
 /// runtime state instead.
 public final class PKRuntime: Sendable {
-    /// Identity-bearing process-local runtime state shared by facade views created through
-    /// `reconfigured`. Provider-facing configuration remains on each view's `TurnEngine`.
-    private final class RuntimeState: Sendable {
-        let timelineManager: TimelineManager
-        let promptHistoryRegistry: TimelinePromptJournals
-        let agentAuthorityCoordinator: AgentAuthorityCoordinator
-        let eventHub: TurnEventHub
-        /// Scoped to this runtime identity (not process-global) so two `PKRuntime`
-        /// instances — documented to start independent histories — never contend over the
-        /// same `(timelineID, toolCallId)` reservation keys (D-03).
-        let submissionGate: ExternalToolOutputSubmissionGate
-        /// Runtime-owned terminal-commit executor. Shared across `reconfigured` views so a
-        /// view cannot mistake another view's in-flight commit for an orphan (ADR 0010).
-        let finalizer: TurnFinalizer
-
-        init(
-            timelineManager: TimelineManager,
-            promptHistoryRegistry: TimelinePromptJournals,
-            agentAuthorityCoordinator: AgentAuthorityCoordinator,
-            eventHub: TurnEventHub,
-            submissionGate: ExternalToolOutputSubmissionGate,
-            finalizer: TurnFinalizer
-        ) {
-            self.timelineManager = timelineManager
-            self.promptHistoryRegistry = promptHistoryRegistry
-            self.agentAuthorityCoordinator = agentAuthorityCoordinator
-            self.eventHub = eventHub
-            self.submissionGate = submissionGate
-            self.finalizer = finalizer
-        }
-    }
-
-    // MARK: - Direct TurnEngine dependencies
-
-    let languageModel: any LLMStreamClient
+    // MARK: - Language Model Client
+    let languageModelClient: any LLMStreamClient
 
     /// Whether the injected language model currently has usable provider configuration.
     ///
     /// This reads the model's live readiness without exposing provider configuration,
     /// credentials, or mutation APIs through the facade.
     var isLanguageModelConfigured: Bool {
-        get async { await languageModel.isConfigured }
+        get async { await languageModelClient.isConfigured }
     }
 
-    // Internal so package tests can assert the facade's resolved graph without exposing stores
-    // through the public capability surface.
+    // MARK: - External Stores
+    private let agentStore: any AgentStoreProtocol
+    /// Durable storage for messages and timelines
     let messageStore: any TimelineMessageStoreProtocol
     /// Cohesive durable owner for Timeline history and Turn lifecycle.
     let runtimeRepository: any TimelineRuntimeRepository
     /// Durable authority for ordinary Workspace-to-Timeline bindings.
     let workspaceBindingRepository: any WorkspaceBindingRepository
-
-    /// Internal coordinator shared by the capability values and turn engine.
-    let timelineManager: TimelineManager
-
+    let workspaceCatalog: any WorkspaceCatalog
+    // These resolved graph nodes remain package-internal for @testable assembly coverage.
+    let timelinePersistence: any TimelinePersistenceProtocol
+    let workspacePersistence: any WorkspaceStore
+    private let requestOriginStore: any RequestOriginStoreProtocol
+    private let toolPersistence: any ToolPersistenceProtocol
+    
+    // MARK: - Internal State
+    
     /// Runtime-owned identities that must survive provider reconfiguration.
     private let runtimeState: RuntimeState
-
-
+    /// Internal coordinator shared by the capability values and turn engine.
+    let timelineManager: TimelineManager
     /// Internal agent coordinator shared by the capability values and turn engine.
     let agentManager: AgentManager
-
     /// Internal tool router wired to the facade-owned Timeline coordinator.
     let toolRouter: ToolRouter
-
-    /// Consumer-facing capability values. These keep orchestration managers behind the facade.
-    public var timelines: TimelineCapability { TimelineCapability(kit: self) }
-    public var agents: AgentCapability { AgentCapability(kit: self) }
-    public var workspaces: WorkspaceCapability { WorkspaceCapability(kit: self) }
-    public var model: ModelInferenceCapability { ModelInferenceCapability(kit: self) }
-
-    let workspaceCatalog: any WorkspaceCatalog
-    private let agentStore: any AgentStoreProtocol
-    // Package-internal for assembly tests; consumers use the facade capabilities instead.
+    let turnEngine: TurnEngine
     let agentAuthorityCoordinator: AgentAuthorityCoordinator
-    private let requestOriginStore: any RequestOriginStoreProtocol
     private let customization: RuntimeCustomization
     private let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     let defaultGenerationParameters: GenerationParameters?
@@ -120,15 +82,12 @@ public final class PKRuntime: Sendable {
     private let logger = Logger.module(named: "positronickit-facade")
     private let loggingConfiguration: LoggingConfiguration
 
-    // MARK: - Transitive dependencies
-
-    // These resolved graph nodes remain package-internal for @testable assembly coverage.
-    let timelinePersistence: any TimelinePersistenceProtocol
-    let workspacePersistence: any WorkspaceStore
-    private let toolPersistence: any ToolPersistenceProtocol
-
-    let turnEngine: TurnEngine
-
+    /// Consumer-facing capability values. These keep orchestration managers behind the facade.
+    public var timelines: TimelineCapability { TimelineCapability(kit: self) }
+    public var agents: AgentCapability { AgentCapability(kit: self) }
+    public var workspaces: WorkspaceCapability { WorkspaceCapability(kit: self) }
+    public var model: ModelInferenceCapability { ModelInferenceCapability(kit: self) }
+    
     /// Owned internally; every timeline driver vended by this instance shares it automatically.
     /// Construct a new `PKRuntime` for a genuinely separate cross-send history.
     private let promptHistoryRegistry: TimelinePromptJournals
@@ -139,93 +98,13 @@ public final class PKRuntime: Sendable {
     private let toolApprovalPolicy: any ToolApprovalPolicy
 
     // MARK: - Init
-
-    /// Creates a provider-agnostic facade with in-memory persistence and default runtime policy.
-    public convenience init(
-        languageModel: any LLMStreamClient = UnconfiguredLLMService()
-    ) {
-        self.init(
-            configuration: .init(
-                languageModel: languageModel,
-                persistence: .inMemory()
-            )
-        )
-    }
-
-    /// Creates a facade from a configured provider value with in-memory persistence.
-    ///
-    /// Provider packages expose the concrete factory methods that create this
-    /// value. Applications do not need to assemble ``LLMService`` or
-    /// ``LLMClientSet`` for the common setup path. For durable stores, use the
-    /// provider overload on ``PKRuntime/Configuration`` and pass it to
-    /// ``PKRuntime/init(configuration:)``; that path also keeps both types out of the
-    /// consumer's code.
-    public convenience init(provider: ConfiguredLLMProvider) {
-        self.init(configuration: .init(provider: provider, persistence: .inMemory()))
-    }
-
-    convenience init(
-        languageModel: any LLMStreamClient,
-        runtimeRepository: any TimelineRuntimeRepository,
-        workspaceBindingRepository: any WorkspaceBindingRepository,
-        agentStore: any AgentStoreProtocol? = nil,
-        requestOriginStore: any RequestOriginStoreProtocol? = nil,
-        workspacePersistence: any WorkspaceStore? = nil,
-        toolPersistence: any ToolPersistenceProtocol? = nil,
-        workspaceProfile: WorkspaceProfile = .noWorkspace,
-        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
-        customization: RuntimeCustomization = .default,
-        runtimeToolPolicy: RuntimeToolPolicy = .default,
-        diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
-        degradationPolicy: TurnDegradationPolicy = .failRequired,
-        generationParameters: GenerationParameters? = nil,
-        toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
-        loggingConfiguration: LoggingConfiguration = .default,
-        sharedRegistry: TimelinePromptJournals,
-        additionalStages: [any PipelineStage<TurnContext, TurnEvent>],
-        streamTimeout: TimeInterval = TurnEngine.Dependencies.defaultStreamTimeout,
-        terminalCommitStallLimit: TimeInterval = 300,
-        clock: any RuntimeClock = ContinuousRuntimeClock()
-    ) {
-        // The binding repository is resolved exactly once, by `PersistenceConfiguration`
-        // (ADR 0004: binding authority is repository-only). This seam receives it rather than
-        // re-deriving it from an `as?` downcast of another store (C-02).
-        let resolvedWorkspaceStore = workspacePersistence ?? InMemoryWorkspacePersistence()
-        self.init(
-            dependencies: KitDependencies(
-                languageModel: languageModel,
-                runtimeRepository: runtimeRepository,
-                workspaceBindingRepository: workspaceBindingRepository,
-                agentStore: agentStore ?? InMemoryAgentStore(),
-                requestOriginStore: requestOriginStore ?? InMemoryRequestOriginStore(),
-                workspacePersistence: resolvedWorkspaceStore,
-                toolPersistence: toolPersistence ?? InMemoryToolPersistence(),
-                workspaceProfile: workspaceProfile,
-                workspaceCreator: workspaceCreator,
-                customization: customization,
-                agentAuthorityCoordinator: nil,
-                runtimeToolPolicy: runtimeToolPolicy,
-                diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
-                degradationPolicy: degradationPolicy,
-                generationParameters: generationParameters,
-                toolApprovalPolicy: toolApprovalPolicy,
-                loggingConfiguration: loggingConfiguration,
-                sharedRegistry: sharedRegistry,
-                additionalStages: additionalStages,
-                streamTimeout: streamTimeout,
-                terminalCommitStallLimit: terminalCommitStallLimit,
-                clock: clock
-            )
-        )
-    }
-
     /// The designated initializer. Accepts a fully-resolved ``KitDependencies`` bundle and
     /// wires the internal coordinators (`TimelineManager`, `AgentManager`, `ToolRouter`,
     /// `TurnEngine`) from it. The provider reconfiguration builder
     /// extract the current dependencies, mutate the single field that changes, and forward
     /// here — eliminating the repeated ~25-line parameter forwarding (PKCR-009).
-    private init(dependencies: KitDependencies, runtimeState: RuntimeState? = nil) {
-        languageModel = dependencies.languageModel
+    internal init(dependencies: KitDependencies, runtimeState: RuntimeState? = nil) {
+        languageModelClient = dependencies.languageModel
         runtimeRepository = dependencies.runtimeRepository
         messageStore = dependencies.runtimeRepository
         workspaceBindingRepository = dependencies.workspaceBindingRepository
@@ -363,7 +242,7 @@ public final class PKRuntime: Sendable {
                 runtimeRepository: self.runtimeRepository,
                 timelineAuthorityCoordinator: resolvedTimelineManager.timelineAuthorityCoordinator,
                 agentAuthorityCoordinator: self.agentAuthorityCoordinator,
-                llmService: self.languageModel,
+                llmService: self.languageModelClient,
                 toolRouter: toolRouter,
                 turnContextSource: self.customization.turnContextSource,
                 agentActivitySink: resolvedActivitySink,
@@ -389,7 +268,7 @@ public final class PKRuntime: Sendable {
     /// ``init(dependencies:)`` without repeating the full parameter list.
     var dependencies: KitDependencies {
         KitDependencies(
-            languageModel: languageModel,
+            languageModel: languageModelClient,
             runtimeRepository: runtimeRepository,
             workspaceBindingRepository: workspaceBindingRepository,
             agentStore: agentStore,

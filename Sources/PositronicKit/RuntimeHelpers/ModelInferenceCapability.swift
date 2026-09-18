@@ -3,6 +3,7 @@ import ErrorKit
 import JSONSchema
 import JSONSchemaBuilder
 import PKContracts
+import PKUtilities
 
 /// Errors returned by model capability operations that are not available for an injected client.
 public enum ModelHealthError: PKError, Sendable, Equatable {
@@ -36,7 +37,7 @@ public struct ModelInferenceCapability: Sendable {
     /// subsequent operation remains authoritative because model state can change after the
     /// snapshot is read.
     public func readiness() async -> ModelReadiness {
-        await kit.languageModel.readiness
+        await kit.languageModelClient.readiness
     }
 
     /// Performs the injected model's explicit health check.
@@ -46,7 +47,7 @@ public struct ModelInferenceCapability: Sendable {
     /// generation request. Throws ``ModelHealthError/unsupported`` when the injected client
     /// does not conform to ``HealthCheckable``.
     public func checkHealth() async throws -> HealthStatus {
-        guard let healthCheckable = kit.languageModel as? any HealthCheckable else {
+        guard let healthCheckable = kit.languageModelClient as? any HealthCheckable else {
             throw ModelHealthError.unsupported
         }
         return await healthCheckable.checkHealth()
@@ -69,7 +70,7 @@ public struct ModelInferenceCapability: Sendable {
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60
     ) async throws -> OneShotResult {
-        try await kit.completeResult(
+        try await completeResult(
             prompt,
             generationParameters: generationParameters,
             idleTimeout: idleTimeout
@@ -123,7 +124,7 @@ public struct ModelInferenceCapability: Sendable {
             name: Output.defaultAnchor,
             schema: schema
         ))
-        let payload = try await kit.complete(
+        let payload = try await complete(
             prompt,
             structuredOutput: request,
             generationParameters: generationParameters,
@@ -151,7 +152,7 @@ public struct ModelInferenceCapability: Sendable {
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        kit.stream(
+        streamChunks(
             prompt,
             generationParameters: generationParameters,
             idleTimeout: idleTimeout
@@ -183,11 +184,129 @@ public struct ModelInferenceCapability: Sendable {
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60
     ) async throws -> String {
-        try await kit.complete(
+        try await complete(
             prompt,
             structuredOutput: structuredOutput,
             generationParameters: generationParameters,
             idleTimeout: idleTimeout
         )
+    }
+}
+
+// MARK: - Timeline-free generation
+
+extension ModelInferenceCapability {
+    /// Generates a response for a single prompt without creating or updating a timeline.
+    func complete(_ prompt: String) async throws -> String {
+        try await completeResult(prompt).content
+    }
+
+    /// The idle timeout applied to the Timeline-free `kit.model` paths when a caller does not
+    /// override it: the same `RuntimeConfiguration.streamTimeout` the Turn pipeline uses, so
+    /// one-shot generation and full Turns share a single configured value.
+    private var configuredStreamTimeout: TimeInterval {
+        kit.turnEngine.dependencies.streamTimeout
+    }
+
+    /// Generates a response and returns provider terminal metadata without creating or updating a timeline.
+    func completeResult(
+        _ prompt: String,
+        generationParameters: GenerationParameters? = nil,
+        idleTimeout: TimeInterval? = nil
+    ) async throws -> OneShotResult {
+        var chunks: [LLMStreamChunk] = []
+        do {
+            let stream = streamChunks(
+                prompt,
+                generationParameters: generationParameters,
+                idleTimeout: idleTimeout ?? configuredStreamTimeout
+            )
+            for try await chunk in stream {
+                chunks.append(chunk)
+            }
+            if Task.isCancelled { throw CancellationError() }
+        } catch {
+            throw wrapForeignError(error)
+        }
+
+        let content = chunks
+            .flatMap { $0.choices.compactMap { $0.delta.content } }
+            .joined()
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            let provider = await kit.languageModelClient.configuration.activeProvider
+            throw LLMServiceError.emptyResponse(provider: provider.rawValue)
+        }
+
+        let terminalChunk = chunks.last
+        return OneShotResult(
+            content: content,
+            id: terminalChunk?.id,
+            model: terminalChunk?.model,
+            usage: chunks.reversed().compactMap(\.usage).first,
+            finishReason: chunks.reversed().compactMap { $0.choices.first?.finishReason }.first
+        )
+    }
+
+    /// Generates a structured response for a single prompt without creating or
+    /// updating a timeline. The returned string is the raw structured payload
+    /// (JSON), decodable via `StructuredOutputDecoder`.
+    ///
+    /// Structured output is routed through the same provider adapter path as the
+    /// full chat pipeline (`StructuredOutputExecution`): the request is translated into
+    /// either a native `responseFormat` or a synthetic forced tool call, and -- for the
+    /// synthetic-tool path -- the underlying stream's tool-call argument deltas are
+    /// rewritten into content deltas before being assembled here, so callers always see
+    /// a plain JSON string regardless of how the provider actually returned it.
+    func complete(
+        _ prompt: String,
+        structuredOutput: StructuredOutputRequest,
+        generationParameters: GenerationParameters? = nil,
+        idleTimeout: TimeInterval? = nil
+    ) async throws -> String {
+        try await kit.languageModelClient.sendStructuredMessage(
+            prompt,
+            structuredOutput: structuredOutput,
+            generationParameters: generationParameters ?? kit.defaultGenerationParameters,
+            idleTimeout: idleTimeout ?? configuredStreamTimeout,
+            clock: kit.turnEngine.dependencies.clock,
+            modelTier: .primary
+        )
+    }
+
+    /// Streams a response for a single prompt without creating or updating a timeline.
+    private func streamChunks(
+        _ prompt: String,
+        generationParameters: GenerationParameters?,
+        idleTimeout: TimeInterval
+    ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        let languageModelClient = kit.languageModelClient
+        let defaultGenerationParameters = kit.defaultGenerationParameters
+        let clock = kit.turnEngine.dependencies.clock
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let stream = await languageModelClient.generationStream(
+                        messages: [LLMMessage(role: .user, content: prompt)],
+                        tools: nil,
+                        toolChoice: nil,
+                        responseFormat: nil,
+                        generationParameters: generationParameters ?? defaultGenerationParameters,
+                        modelTier: .primary
+                    )
+                    try await StreamIdleTimeout.run(timeout: idleTimeout, clock: clock) { deadline in
+                        for try await chunk in stream {
+                            if Task.isCancelled { throw CancellationError() }
+                            await deadline.reset()
+                            continuation.yield(chunk)
+                        }
+                        if Task.isCancelled { throw CancellationError() }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: wrapForeignError(error))
+                }
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
     }
 }
