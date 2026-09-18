@@ -104,7 +104,7 @@ enum TurnDegradationError: PKError {
 /// It is deliberately *not* the public customization surface for downstream applications;
 /// external callers are expected to integrate through `PKRuntime` and the higher-level
 /// extension protocols rather than depending on this concrete orchestrator directly.
-struct TurnEngine {
+struct TurnEngine: Sendable {
     struct TurnExecution {
         let turnID: UUID
         let stream: AsyncThrowingStream<TurnEvent, Error>
@@ -113,7 +113,7 @@ struct TurnEngine {
         let ownsGeneration: Bool
     }
 
-    struct Dependencies {
+    struct Dependencies: Sendable {
         let timelineManager: TimelineManager
         let agentStore: any AgentStoreProtocol
         let agentContextSource: any AgentContextSource
