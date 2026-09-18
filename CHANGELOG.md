@@ -8,6 +8,8 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-09-18
+
 ### Breaking
 
 - **Swift 6.4 required (#194, ADR 0011):** `swift-tools-version` is now 6.4; apps on a Swift 6.3
