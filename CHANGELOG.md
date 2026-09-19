@@ -35,10 +35,11 @@ for tagged releases beginning with `1.0.0`.
   already accepts pipeline stages. There is no compatibility alias.
 
 - **`DurabilityReport` is one list of per-store classifications:** the type stores
-  `stores: [DurabilityReport.Store]` instead of a separate named property per store, and its
-  six-parameter initializer is replaced by `init(stores:)`. Use `durability(of:)` to read one
-  store's classification; `isMixed`, `ephemeralStoreNames`, and `mixedDurabilityWarning` are
-  unchanged.
+  `stores: [DurabilityReport.Store]`, each carrying a closed `Store.ID` (the six persistence
+  stores) and its `StoreDurability`, instead of a separate named property per store. Reports are
+  produced only by `validateDurability()`, so the list is always complete and in declaration
+  order; use `durability(of:)` to read one store. `isMixed`, `ephemeralStoreNames`, and
+  `mixedDurabilityWarning` are unchanged.
 
 - **`LLMGenerationRequest` composes its prompt:** the high-level generation request now carries
   `prompt: LLMPromptRequest`, `structuredOutput`, and `modelTier` instead of redeclaring the

@@ -1,7 +1,7 @@
 import Foundation
 import PKContracts
 import PKTestSupport
-import PositronicKit
+@testable import PositronicKit
 import Testing
 
 @Suite("Persistence durability validation", .tags(.unit))
@@ -11,7 +11,7 @@ struct DurabilityConfigurationTests {
         let report = PKRuntime.PersistenceConfiguration.inMemory().validateDurability()
         #expect(!report.isMixed)
         #expect(report.ephemeralStoreNames.count == 6)
-        #expect(report.stores.map(\.name) == [
+        #expect(report.stores.map(\.id.rawValue) == [
             "runtimeRepository", "workspacePersistence", "workspaceBindingRepository",
             "toolPersistence", "agentStore", "requestOriginStore",
         ])
@@ -57,16 +57,16 @@ struct DurabilityConfigurationTests {
     @Test("durability report remains equatable")
     func reportEquatable() {
         let stores: [PKRuntime.DurabilityReport.Store] = [
-            .init(name: "runtimeRepository", durability: .durable),
-            .init(name: "workspacePersistence", durability: .durable),
-            .init(name: "workspaceBindingRepository", durability: .durable),
-            .init(name: "toolPersistence", durability: .durable),
-            .init(name: "agentStore", durability: .ephemeral),
-            .init(name: "requestOriginStore", durability: .durable),
+            .init(id: .runtimeRepository, durability: .durable),
+            .init(id: .workspacePersistence, durability: .durable),
+            .init(id: .workspaceBindingRepository, durability: .durable),
+            .init(id: .toolPersistence, durability: .durable),
+            .init(id: .agentStore, durability: .ephemeral),
+            .init(id: .requestOriginStore, durability: .durable),
         ]
         let first = PKRuntime.DurabilityReport(stores: stores)
         #expect(first == PKRuntime.DurabilityReport(stores: stores))
-        #expect(first.durability(of: "agentStore") == .ephemeral)
-        #expect(first.durability(of: "missingStore") == nil)
+        #expect(first.durability(of: .agentStore) == .ephemeral)
+        #expect(first.durability(of: .requestOriginStore) == .durable)
     }
 }

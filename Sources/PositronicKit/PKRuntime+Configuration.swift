@@ -145,12 +145,12 @@ public extension PKRuntime {
         /// identify which specific stores are ephemeral.
         public func validateDurability() -> DurabilityReport {
             DurabilityReport(stores: [
-                .init(name: "runtimeRepository", isDurable: runtimeRepository.isDurable),
-                .init(name: "workspacePersistence", isDurable: workspacePersistence.isDurable),
-                .init(name: "workspaceBindingRepository", isDurable: workspaceBindingRepository.isDurable),
-                .init(name: "toolPersistence", isDurable: toolPersistence.isDurable),
-                .init(name: "agentStore", isDurable: agentStore.isDurable),
-                .init(name: "requestOriginStore", isDurable: requestOriginStore.isDurable),
+                .init(id: .runtimeRepository, isDurable: runtimeRepository.isDurable),
+                .init(id: .workspacePersistence, isDurable: workspacePersistence.isDurable),
+                .init(id: .workspaceBindingRepository, isDurable: workspaceBindingRepository.isDurable),
+                .init(id: .toolPersistence, isDurable: toolPersistence.isDurable),
+                .init(id: .agentStore, isDurable: agentStore.isDurable),
+                .init(id: .requestOriginStore, isDurable: requestOriginStore.isDurable),
             ])
         }
 
@@ -170,36 +170,48 @@ public extension PKRuntime {
     /// `isMixed` is `true` when the configuration has both `.durable` and `.ephemeral`
     /// stores — a data-consistency risk because durable stores may reference entities
     /// (timelines, workspaces, agents) that will be missing after restart.
+    ///
+    /// Reports are only produced by ``PersistenceConfiguration/validateDurability()``: `stores`
+    /// always contains exactly one entry per ``Store/ID``, in ``PersistenceConfiguration``
+    /// declaration order.
     struct DurabilityReport: Sendable, Equatable {
         /// The durability classification of one persistence store.
         public struct Store: Sendable, Equatable {
-            /// The store's name as it appears on ``PersistenceConfiguration``.
-            public let name: String
+            /// The persistence stores a report can classify.
+            public enum ID: String, CaseIterable, Sendable {
+                case runtimeRepository
+                case workspacePersistence
+                case workspaceBindingRepository
+                case toolPersistence
+                case agentStore
+                case requestOriginStore
+            }
+
+            /// Which persistence store this classification describes.
+            public let id: ID
             /// Whether the store survives process restart.
             public let durability: StoreDurability
 
-            /// Creates a classification for one store.
-            public init(name: String, durability: StoreDurability) {
-                self.name = name
+            init(id: ID, durability: StoreDurability) {
+                self.id = id
                 self.durability = durability
             }
 
-            init(name: String, isDurable: Bool) {
-                self.init(name: name, durability: isDurable ? .durable : .ephemeral)
+            init(id: ID, isDurable: Bool) {
+                self.init(id: id, durability: isDurable ? .durable : .ephemeral)
             }
         }
 
         /// Every classified store, in ``PersistenceConfiguration`` declaration order.
         public let stores: [Store]
 
-        /// Creates a report from individual store classifications.
-        public init(stores: [Store]) {
+        init(stores: [Store]) {
             self.stores = stores
         }
 
-        /// The classification of the named store, or `nil` when the report has no such store.
-        public func durability(of name: String) -> StoreDurability? {
-            stores.first { $0.name == name }?.durability
+        /// The classification of the given store, or `nil` when the report has no entry for it.
+        public func durability(of id: Store.ID) -> StoreDurability? {
+            stores.first { $0.id == id }?.durability
         }
 
         /// Whether the configuration mixes durable and ephemeral stores.
@@ -210,7 +222,7 @@ public extension PKRuntime {
 
         /// The label of each store classified as `.ephemeral`, in declaration order.
         public var ephemeralStoreNames: [String] {
-            stores.filter { $0.durability == .ephemeral }.map(\.name)
+            stores.filter { $0.durability == .ephemeral }.map(\.id.rawValue)
         }
 
         /// The warning message logged on mixed durability, or `nil` when the configuration
