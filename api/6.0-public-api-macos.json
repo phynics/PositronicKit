@@ -13553,14 +13553,46 @@
       "declaration": "enum TimelineRuntimeRepositoryConformanceSuite"
     },
     {
-      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run04makeE0y13PositronicKit0cdE0_pyYaKYCXE_tYaKFZ",
+      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "TimelineRuntimeRepositoryConformanceSuite",
+        "SummaryStorage"
+      ],
+      "declaration": "enum SummaryStorage"
+    },
+    {
+      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO12notSupportedyA2EmF",
+      "module": "PKTestSupport",
+      "kind": "swift.enum.case",
+      "path": [
+        "TimelineRuntimeRepositoryConformanceSuite",
+        "SummaryStorage",
+        "notSupported"
+      ],
+      "declaration": "case notSupported"
+    },
+    {
+      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO8requiredyA2EmF",
+      "module": "PKTestSupport",
+      "kind": "swift.enum.case",
+      "path": [
+        "TimelineRuntimeRepositoryConformanceSuite",
+        "SummaryStorage",
+        "required"
+      ],
+      "declaration": "case required"
+    },
+    {
+      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run14summaryStorage04makeE0yAC07SummaryJ0O_13PositronicKit0cdE0_pyYaKYCXEtYaKFZ",
       "module": "PKTestSupport",
       "kind": "swift.type.method",
       "path": [
         "TimelineRuntimeRepositoryConformanceSuite",
-        "run(makeRepository:)"
+        "run(summaryStorage:makeRepository:)"
       ],
-      "declaration": "static func run(makeRepository: () async throws -> any TimelineRuntimeRepository) async throws"
+      "declaration": "static func run(summaryStorage: SummaryStorage = .required, makeRepository: () async throws -> any TimelineRuntimeRepository) async throws"
     },
     {
       "precise": "s:13PKTestSupport9SeededRNGV",
@@ -16732,45 +16764,6 @@
       "declaration": "var userQuery: String { get }"
     },
     {
-      "precise": "s:13PositronicKit16MemorySavePolicyO",
-      "module": "PositronicKit",
-      "kind": "swift.enum",
-      "path": [
-        "MemorySavePolicy"
-      ],
-      "declaration": "enum MemorySavePolicy"
-    },
-    {
-      "precise": "s:13PositronicKit16MemorySavePolicyO13deduplicatingyACSd_tcACmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "MemorySavePolicy",
-        "deduplicating(threshold:)"
-      ],
-      "declaration": "case deduplicating(threshold: Double)"
-    },
-    {
-      "precise": "s:13PositronicKit16MemorySavePolicyO8deferredyA2CmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "MemorySavePolicy",
-        "deferred"
-      ],
-      "declaration": "case deferred"
-    },
-    {
-      "precise": "s:13PositronicKit16MemorySavePolicyO9immediateyA2CmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "MemorySavePolicy",
-        "immediate"
-      ],
-      "declaration": "case immediate"
-    },
-    {
       "precise": "s:13PositronicKit16ModelHealthErrorO",
       "module": "PositronicKit",
       "kind": "swift.enum",
@@ -17885,16 +17878,6 @@
       "declaration": "let workspaceID: UUID?"
     },
     {
-      "precise": "s:13PositronicKit17RuntimeToolResultV12errorMessageSSSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "RuntimeToolResult",
-        "errorMessage"
-      ],
-      "declaration": "let errorMessage: String?"
-    },
-    {
       "precise": "s:13PositronicKit17RuntimeToolResultV12isSuccessfulSbvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -17925,14 +17908,14 @@
       "declaration": "let id: UUID"
     },
     {
-      "precise": "s:13PositronicKit17RuntimeToolResultV2id6turnID08timelineH008toolCallH06output12isSuccessful12errorMessage09workspaceH00Q7Routing9createdAtAC10Foundation4UUIDV_A2PS2SSbSSSgAPSg11PKContracts09WorkspacedR0OSgAN4DateVtcfc",
+      "precise": "s:13PositronicKit17RuntimeToolResultV2id6turnID08timelineH008toolCallH06output12isSuccessful09workspaceH00O7Routing9createdAtAC10Foundation4UUIDV_A2OS2SSbAOSg11PKContracts09WorkspacedP0OSgAM4DateVtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "RuntimeToolResult",
-        "init(id:turnID:timelineID:toolCallID:output:isSuccessful:errorMessage:workspaceID:workspaceRouting:createdAt:)"
+        "init(id:turnID:timelineID:toolCallID:output:isSuccessful:workspaceID:workspaceRouting:createdAt:)"
       ],
-      "declaration": "init(id: UUID = UUID(), turnID: UUID, timelineID: UUID, toolCallID: String, output: String, isSuccessful: Bool = true, errorMessage: String? = nil, workspaceID: UUID? = nil, workspaceRouting: WorkspaceToolRouting? = nil, createdAt: Date = Date())"
+      "declaration": "init(id: UUID = UUID(), turnID: UUID, timelineID: UUID, toolCallID: String, output: String, isSuccessful: Bool = true, workspaceID: UUID? = nil, workspaceRouting: WorkspaceToolRouting? = nil, createdAt: Date = Date())"
     },
     {
       "precise": "s:13PositronicKit17RuntimeToolResultV4fromACs7Decoder_p_tKcfc",
@@ -19437,24 +19420,24 @@
       "declaration": "init(from decoder: any Decoder) throws"
     },
     {
-      "precise": "s:13PositronicKit20AgentContextSnapshotV5agent12instructions8memories9resources11diagnostics22primaryTimelineSummary8revisionAC11PKContracts0C0V_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSayAK14TurnDiagnosticVGSSSgAWtcfc",
+      "precise": "s:13PositronicKit20AgentContextSnapshotV5agent12instructions8memories9resources11diagnostics22primaryTimelineSummaryAC11PKContracts0C0V_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSayAJ14TurnDiagnosticVGSSSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "AgentContextSnapshot",
-        "init(agent:instructions:memories:resources:diagnostics:primaryTimelineSummary:revision:)"
+        "init(agent:instructions:memories:resources:diagnostics:primaryTimelineSummary:)"
       ],
-      "declaration": "init(agent: Agent, instructions: String = \"\", memories: [AgentContextMemory] = [], resources: [AgentContextResource] = [], diagnostics: [TurnDiagnostic] = [], primaryTimelineSummary: String? = nil, revision: String? = nil)"
+      "declaration": "init(agent: Agent, instructions: String = \"\", memories: [AgentContextMemory] = [], resources: [AgentContextResource] = [], diagnostics: [TurnDiagnostic] = [], primaryTimelineSummary: String? = nil)"
     },
     {
-      "precise": "s:13PositronicKit20AgentContextSnapshotV8identity12instructions8memories9resources11diagnostics22primaryTimelineSummary8revisionAcA0cD8IdentityV_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSay11PKContracts14TurnDiagnosticVGSSSgAWtcfc",
+      "precise": "s:13PositronicKit20AgentContextSnapshotV8identity12instructions8memories9resources11diagnostics22primaryTimelineSummaryAcA0cD8IdentityV_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSay11PKContracts14TurnDiagnosticVGSSSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "AgentContextSnapshot",
-        "init(identity:instructions:memories:resources:diagnostics:primaryTimelineSummary:revision:)"
+        "init(identity:instructions:memories:resources:diagnostics:primaryTimelineSummary:)"
       ],
-      "declaration": "init(identity: AgentContextIdentity, instructions: String = \"\", memories: [AgentContextMemory] = [], resources: [AgentContextResource] = [], diagnostics: [TurnDiagnostic] = [], primaryTimelineSummary: String? = nil, revision: String? = nil)"
+      "declaration": "init(identity: AgentContextIdentity, instructions: String = \"\", memories: [AgentContextMemory] = [], resources: [AgentContextResource] = [], diagnostics: [TurnDiagnostic] = [], primaryTimelineSummary: String? = nil)"
     },
     {
       "precise": "s:13PositronicKit20AgentContextSnapshotV8identityAA0cD8IdentityVvp",
@@ -19475,16 +19458,6 @@
         "memories"
       ],
       "declaration": "let memories: [AgentContextMemory]"
-    },
-    {
-      "precise": "s:13PositronicKit20AgentContextSnapshotV8revisionSSSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "AgentContextSnapshot",
-        "revision"
-      ],
-      "declaration": "let revision: String?"
     },
     {
       "precise": "s:13PositronicKit20AgentContextSnapshotV9resourcesSayAA0cD8ResourceVGvp",
@@ -19673,36 +19646,6 @@
       "declaration": "struct LLMGenerationRequest"
     },
     {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV10workspacesSay11PKContracts18WorkspaceReferenceVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "workspaces"
-      ],
-      "declaration": "let workspaces: [WorkspaceReference]"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV11chatHistorySay11PKContracts7MessageVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "chatHistory"
-      ],
-      "declaration": "let chatHistory: [Message]"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV16primaryWorkspace11PKContracts0F9ReferenceVSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "primaryWorkspace"
-      ],
-      "declaration": "let primaryWorkspace: WorkspaceReference?"
-    },
-    {
       "precise": "s:13PositronicKit20LLMGenerationRequestV16structuredOutput11PKContracts010StructuredfD0OSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -19713,54 +19656,24 @@
       "declaration": "let structuredOutput: StructuredOutputRequest?"
     },
     {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV17requestOriginNameSSSgvp",
+      "precise": "s:13PositronicKit20LLMGenerationRequestV6prompt16structuredOutput9modelTierAcA09LLMPromptD0V_11PKContracts010StructuredgD0OSgAA05ModelI0Otcfc",
       "module": "PositronicKit",
-      "kind": "swift.property",
+      "kind": "swift.init",
       "path": [
         "LLMGenerationRequest",
-        "requestOriginName"
+        "init(prompt:structuredOutput:modelTier:)"
       ],
-      "declaration": "let requestOriginName: String?"
+      "declaration": "init(prompt: LLMPromptRequest, structuredOutput: StructuredOutputRequest? = nil, modelTier: ModelTier = .primary)"
     },
     {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV18systemInstructionsSSSgvp",
+      "precise": "s:13PositronicKit20LLMGenerationRequestV6promptAA09LLMPromptD0Vvp",
       "module": "PositronicKit",
       "kind": "swift.property",
       "path": [
         "LLMGenerationRequest",
-        "systemInstructions"
+        "prompt"
       ],
-      "declaration": "let systemInstructions: String?"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV20contextContributionsSayAA23TurnContextContributionVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "contextContributions"
-      ],
-      "declaration": "let contextContributions: [TurnContextContribution]"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV20generationParameters11PKContracts010GenerationF0VSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "generationParameters"
-      ],
-      "declaration": "let generationParameters: GenerationParameters?"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV5toolsSay11PKContracts7AnyToolVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "tools"
-      ],
-      "declaration": "let tools: [AnyTool]"
+      "declaration": "let prompt: LLMPromptRequest"
     },
     {
       "precise": "s:13PositronicKit20LLMGenerationRequestV9modelTierAA05ModelF0Ovp",
@@ -19771,26 +19684,6 @@
         "modelTier"
       ],
       "declaration": "let modelTier: ModelTier"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV9userQuery20contextContributions11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName18systemInstructions16structuredOutput20generationParameters9modelTierACSS_SayAA23TurnContextContributionVGSay11PKContracts7MessageVGSayAR7AnyToolVGSayAR0N9ReferenceVGAZSgSSSgA1_AR010StructureduD0OSgAR010GenerationW0VSgAA05ModelY0Otcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "LLMGenerationRequest",
-        "init(userQuery:contextContributions:chatHistory:tools:workspaces:primaryWorkspace:requestOriginName:systemInstructions:structuredOutput:generationParameters:modelTier:)"
-      ],
-      "declaration": "init(userQuery: String, contextContributions: [TurnContextContribution] = [], chatHistory: [Message], tools: [AnyTool], workspaces: [WorkspaceReference], primaryWorkspace: WorkspaceReference?, requestOriginName: String?, systemInstructions: String? = nil, structuredOutput: StructuredOutputRequest? = nil, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary)"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV9userQuerySSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "userQuery"
-      ],
-      "declaration": "let userQuery: String"
     },
     {
       "precise": "s:13PositronicKit20NullWorkspaceCreatorV",
@@ -19889,6 +19782,35 @@
         "default"
       ],
       "declaration": "static let `default`: RuntimeCustomization"
+    },
+    {
+      "precise": "s:13PositronicKit20TimelineSummaryStoreP",
+      "module": "PositronicKit",
+      "kind": "swift.protocol",
+      "path": [
+        "TimelineSummaryStore"
+      ],
+      "declaration": "protocol TimelineSummaryStore : Sendable"
+    },
+    {
+      "precise": "s:13PositronicKit20TimelineSummaryStoreP04saveD0yyAA0cD0VYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineSummaryStore",
+        "saveSummary(_:)"
+      ],
+      "declaration": "func saveSummary(_ summary: TimelineSummary) async throws"
+    },
+    {
+      "precise": "s:13PositronicKit20TimelineSummaryStoreP14fetchSummaries3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineSummaryStore",
+        "fetchSummaries(for:)"
+      ],
+      "declaration": "func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary]"
     },
     {
       "precise": "s:13PositronicKit20WorkspaceQueryResultV",
@@ -20942,16 +20864,6 @@
       "declaration": "func admitRetry(timelineID: UUID, previousTurnID: UUID, requestID: UUID, callerIntentFingerprint: String, inputMessage: TimelineMessage?, executionKind: TurnExecutionKind, capturedAgentID: UUID?, turnID: UUID, attempt: Int, now: Date) async throws -> TurnAdmission"
     },
     {
-      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP11saveSummaryyyAA0cG0VYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineRuntimeRepository",
-        "saveSummary(_:)"
-      ],
-      "declaration": "func saveSummary(_ summary: TimelineSummary) async throws"
-    },
-    {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP12appendNotice6turnID6noticey10Foundation4UUIDV_AA04TurnG0VtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -20990,16 +20902,6 @@
         "interruptTurn(turnID:reason:disposition:now:)"
       ],
       "declaration": "func interruptTurn(turnID: UUID, reason: String, disposition: TurnInterruptDisposition, now: Date) async throws -> TurnInterruptResult"
-    },
-    {
-      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP14fetchSummaries3forSayAA0C7SummaryVG10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineRuntimeRepository",
-        "fetchSummaries(for:)"
-      ],
-      "declaration": "func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary]"
     },
     {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP15beginModelRound6turnID05modelH5Index3nowy10Foundation4UUIDV_SiAH4DateVtYaKF",
@@ -23287,59 +23189,26 @@
       "declaration": "var mixedDurabilityWarning: String? { get }"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV10agentStoreAC0gD0Ovp",
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV10durability2ofAC05StoreD0OAE0H0V2IDO_tF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "durability(of:)"
+      ],
+      "declaration": "func durability(of id: Store.ID) -> StoreDurability"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV15ephemeralStoresSayAE5StoreV2IDOGvp",
       "module": "PositronicKit",
       "kind": "swift.property",
       "path": [
         "PKRuntime",
         "DurabilityReport",
-        "agentStore"
+        "ephemeralStores"
       ],
-      "declaration": "let agentStore: StoreDurability"
-    },
-    {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV15toolPersistenceAC05StoreD0Ovp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "PKRuntime",
-        "DurabilityReport",
-        "toolPersistence"
-      ],
-      "declaration": "let toolPersistence: StoreDurability"
-    },
-    {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV17runtimeRepository20workspacePersistence0h7BindingG004toolI010agentStore013requestOriginM0AeC0mD0O_A5Mtcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "PKRuntime",
-        "DurabilityReport",
-        "init(runtimeRepository:workspacePersistence:workspaceBindingRepository:toolPersistence:agentStore:requestOriginStore:)"
-      ],
-      "declaration": "init(runtimeRepository: StoreDurability, workspacePersistence: StoreDurability, workspaceBindingRepository: StoreDurability, toolPersistence: StoreDurability, agentStore: StoreDurability, requestOriginStore: StoreDurability)"
-    },
-    {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV17runtimeRepositoryAC05StoreD0Ovp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "PKRuntime",
-        "DurabilityReport",
-        "runtimeRepository"
-      ],
-      "declaration": "let runtimeRepository: StoreDurability"
-    },
-    {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV18requestOriginStoreAC0hD0Ovp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "PKRuntime",
-        "DurabilityReport",
-        "requestOriginStore"
-      ],
-      "declaration": "let requestOriginStore: StoreDurability"
+      "declaration": "var ephemeralStores: [Store.ID] { get }"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV19ephemeralStoreNamesSaySSGvp",
@@ -23353,26 +23222,153 @@
       "declaration": "var ephemeralStoreNames: [String] { get }"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV20workspacePersistenceAC05StoreD0Ovp",
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV",
       "module": "PositronicKit",
-      "kind": "swift.property",
+      "kind": "swift.struct",
       "path": [
         "PKRuntime",
         "DurabilityReport",
-        "workspacePersistence"
+        "Store"
       ],
-      "declaration": "let workspacePersistence: StoreDurability"
+      "declaration": "struct Store"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV26workspaceBindingRepositoryAC05StoreD0Ovp",
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV10durabilityAC0fD0Ovp",
       "module": "PositronicKit",
       "kind": "swift.property",
       "path": [
         "PKRuntime",
         "DurabilityReport",
+        "Store",
+        "durability"
+      ],
+      "declaration": "let durability: StoreDurability"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO",
+      "module": "PositronicKit",
+      "kind": "swift.enum",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "Store",
+        "ID"
+      ],
+      "declaration": "enum ID"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO013requestOriginF0yA2ImF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "Store",
+        "ID",
+        "requestOriginStore"
+      ],
+      "declaration": "case requestOriginStore"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO05agentF0yA2ImF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "Store",
+        "ID",
+        "agentStore"
+      ],
+      "declaration": "case agentStore"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO15toolPersistenceyA2ImF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "Store",
+        "ID",
+        "toolPersistence"
+      ],
+      "declaration": "case toolPersistence"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO17runtimeRepositoryyA2ImF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "Store",
+        "ID",
+        "runtimeRepository"
+      ],
+      "declaration": "case runtimeRepository"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO20workspacePersistenceyA2ImF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "Store",
+        "ID",
+        "workspacePersistence"
+      ],
+      "declaration": "case workspacePersistence"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO26workspaceBindingRepositoryyA2ImF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "Store",
+        "ID",
         "workspaceBindingRepository"
       ],
-      "declaration": "let workspaceBindingRepository: StoreDurability"
+      "declaration": "case workspaceBindingRepository"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO8rawValueAISgSS_tcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "Store",
+        "ID",
+        "init(rawValue:)"
+      ],
+      "declaration": "init?(rawValue: String)"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2idAG2IDOvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "Store",
+        "id"
+      ],
+      "declaration": "let id: ID"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV6storesSayAE5StoreVGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "stores"
+      ],
+      "declaration": "let stores: [Store]"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV7isMixedSbvp",
@@ -35326,6 +35322,13 @@
       "module": "PKTestSupport",
       "kind": "conformsTo",
       "source": "s:13PKTestSupport22MockPersistenceServiceC",
+      "target": "s:13PositronicKit20TimelineSummaryStoreP",
+      "targetFallback": "PositronicKit.TimelineSummaryStore"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC",
       "target": "s:13PositronicKit23ToolPersistenceProtocolP",
       "targetFallback": "PositronicKit.ToolPersistenceProtocol"
     },
@@ -35578,6 +35581,34 @@
       "module": "PKTestSupport",
       "kind": "conformsTo",
       "source": "s:13PKTestSupport28MockTimelinePersistenceStoreC",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -36813,20 +36844,6 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit16LLMPromptRequestV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit16MemorySavePolicyO",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit16MemorySavePolicyO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -38191,6 +38208,20 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
+      "source": "s:13PositronicKit20TimelineSummaryStoreP",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit20TimelineSummaryStoreP",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit20WorkspaceQueryResultV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
@@ -39187,6 +39218,12 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
+      "target": "s:13PositronicKit20TimelineSummaryStoreP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
     {
@@ -39454,6 +39491,69 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO",
+      "target": "s:SY",
+      "targetFallback": "Swift.RawRepresentable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO",
+      "target": "s:s12CaseIterableP",
+      "targetFallback": "Swift.CaseIterable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -49561,8 +49661,8 @@
       "source": "s:13PKTestSupport22MockPersistenceServiceC11saveSummaryyy13PositronicKit08TimelineG0VYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP11saveSummaryyyAA0cG0VYaKF",
-        "displayName": "TimelineRuntimeRepository.saveSummary(_:)"
+        "identifier": "s:13PositronicKit20TimelineSummaryStoreP04saveD0yyAA0cD0VYaKF",
+        "displayName": "TimelineSummaryStore.saveSummary(_:)"
       }
     },
     {
@@ -49749,8 +49849,8 @@
       "source": "s:13PKTestSupport22MockPersistenceServiceC14fetchSummaries3forSay13PositronicKit15TimelineSummaryVG10Foundation4UUIDV_tYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP14fetchSummaries3forSayAA0C7SummaryVG10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineRuntimeRepository.fetchSummaries(for:)"
+        "identifier": "s:13PositronicKit20TimelineSummaryStoreP14fetchSummaries3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
+        "displayName": "TimelineSummaryStore.fetchSummaries(for:)"
       }
     },
     {
@@ -50694,7 +50794,25 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run04makeE0y13PositronicKit0cdE0_pyYaKYCXE_tYaKFZ",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
+      "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO12notSupportedyA2EmF",
+      "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO8requiredyA2EmF",
+      "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run14summaryStorage04makeE0yAC07SummaryJ0O_13PositronicKit0cdE0_pyYaKYCXEtYaKFZ",
       "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO"
     },
     {
@@ -52516,24 +52634,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit16MemorySavePolicyO13deduplicatingyACSd_tcACmF",
-      "target": "s:13PositronicKit16MemorySavePolicyO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit16MemorySavePolicyO8deferredyA2CmF",
-      "target": "s:13PositronicKit16MemorySavePolicyO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit16MemorySavePolicyO9immediateyA2CmF",
-      "target": "s:13PositronicKit16MemorySavePolicyO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit16ModelHealthErrorO11errorDomainSSvp",
       "target": "s:13PositronicKit16ModelHealthErrorO",
       "sourceOrigin": {
@@ -53172,12 +53272,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolResultV12errorMessageSSSgvp",
-      "target": "s:13PositronicKit17RuntimeToolResultV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit17RuntimeToolResultV12isSuccessfulSbvp",
       "target": "s:13PositronicKit17RuntimeToolResultV"
     },
@@ -53196,7 +53290,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolResultV2id6turnID08timelineH008toolCallH06output12isSuccessful12errorMessage09workspaceH00Q7Routing9createdAtAC10Foundation4UUIDV_A2PS2SSbSSSgAPSg11PKContracts09WorkspacedR0OSgAN4DateVtcfc",
+      "source": "s:13PositronicKit17RuntimeToolResultV2id6turnID08timelineH008toolCallH06output12isSuccessful09workspaceH00O7Routing9createdAtAC10Foundation4UUIDV_A2OS2SSbAOSg11PKContracts09WorkspacedP0OSgAM4DateVtcfc",
       "target": "s:13PositronicKit17RuntimeToolResultV"
     },
     {
@@ -53948,13 +54042,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20AgentContextSnapshotV5agent12instructions8memories9resources11diagnostics22primaryTimelineSummary8revisionAC11PKContracts0C0V_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSayAK14TurnDiagnosticVGSSSgAWtcfc",
+      "source": "s:13PositronicKit20AgentContextSnapshotV5agent12instructions8memories9resources11diagnostics22primaryTimelineSummaryAC11PKContracts0C0V_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSayAJ14TurnDiagnosticVGSSSgtcfc",
       "target": "s:13PositronicKit20AgentContextSnapshotV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20AgentContextSnapshotV8identity12instructions8memories9resources11diagnostics22primaryTimelineSummary8revisionAcA0cD8IdentityV_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSay11PKContracts14TurnDiagnosticVGSSSgAWtcfc",
+      "source": "s:13PositronicKit20AgentContextSnapshotV8identity12instructions8memories9resources11diagnostics22primaryTimelineSummaryAcA0cD8IdentityV_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSay11PKContracts14TurnDiagnosticVGSSSgtcfc",
       "target": "s:13PositronicKit20AgentContextSnapshotV"
     },
     {
@@ -53967,12 +54061,6 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit20AgentContextSnapshotV8memoriesSayAA0cD6MemoryVGvp",
-      "target": "s:13PositronicKit20AgentContextSnapshotV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20AgentContextSnapshotV8revisionSSSgvp",
       "target": "s:13PositronicKit20AgentContextSnapshotV"
     },
     {
@@ -54096,73 +54184,25 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV10workspacesSay11PKContracts18WorkspaceReferenceVGvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV11chatHistorySay11PKContracts7MessageVGvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV16primaryWorkspace11PKContracts0F9ReferenceVSgvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit20LLMGenerationRequestV16structuredOutput11PKContracts010StructuredfD0OSgvp",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV17requestOriginNameSSSgvp",
+      "source": "s:13PositronicKit20LLMGenerationRequestV6prompt16structuredOutput9modelTierAcA09LLMPromptD0V_11PKContracts010StructuredgD0OSgAA05ModelI0Otcfc",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV18systemInstructionsSSSgvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV20contextContributionsSayAA23TurnContextContributionVGvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV20generationParameters11PKContracts010GenerationF0VSgvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV5toolsSay11PKContracts7AnyToolVGvp",
+      "source": "s:13PositronicKit20LLMGenerationRequestV6promptAA09LLMPromptD0Vvp",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit20LLMGenerationRequestV9modelTierAA05ModelF0Ovp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV9userQuery20contextContributions11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName18systemInstructions16structuredOutput20generationParameters9modelTierACSS_SayAA23TurnContextContributionVGSay11PKContracts7MessageVGSayAR7AnyToolVGSayAR0N9ReferenceVGAZSgSSSgA1_AR010StructureduD0OSgAR010GenerationW0VSgAA05ModelY0Otcfc",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV9userQuerySSvp",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
     {
@@ -55561,8 +55601,8 @@
       "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC11saveSummaryyyAA0eI0VYaKF",
       "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP11saveSummaryyyAA0cG0VYaKF",
-        "displayName": "TimelineRuntimeRepository.saveSummary(_:)"
+        "identifier": "s:13PositronicKit20TimelineSummaryStoreP04saveD0yyAA0cD0VYaKF",
+        "displayName": "TimelineSummaryStore.saveSummary(_:)"
       }
     },
     {
@@ -55651,8 +55691,8 @@
       "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC14fetchSummaries3forSayAA0E7SummaryVG10Foundation4UUIDV_tYaKF",
       "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP14fetchSummaries3forSayAA0C7SummaryVG10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineRuntimeRepository.fetchSummaries(for:)"
+        "identifier": "s:13PositronicKit20TimelineSummaryStoreP14fetchSummaries3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
+        "displayName": "TimelineSummaryStore.fetchSummaries(for:)"
       }
     },
     {
@@ -56100,31 +56140,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV10agentStoreAC0gD0Ovp",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV10durability2ofAC05StoreD0OAE0H0V2IDO_tF",
       "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV15toolPersistenceAC05StoreD0Ovp",
-      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV17runtimeRepository20workspacePersistence0h7BindingG004toolI010agentStore013requestOriginM0AeC0mD0O_A5Mtcfc",
-      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV17runtimeRepositoryAC05StoreD0Ovp",
-      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV18requestOriginStoreAC0hD0Ovp",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV15ephemeralStoresSayAE5StoreV2IDOGvp",
       "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
     },
     {
@@ -56136,13 +56158,77 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV20workspacePersistenceAC05StoreD0Ovp",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV",
       "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV26workspaceBindingRepositoryAC05StoreD0Ovp",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV10durabilityAC0fD0Ovp",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO013requestOriginF0yA2ImF",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO05agentF0yA2ImF",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO15toolPersistenceyA2ImF",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO17runtimeRepositoryyA2ImF",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO20workspacePersistenceyA2ImF",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO26workspaceBindingRepositoryyA2ImF",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO8rawValueAISgSS_tcfc",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO",
+      "sourceOrigin": {
+        "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc",
+        "displayName": "RawRepresentable.init(rawValue:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2idAG2IDOvp",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV6storesSayAE5StoreVGvp",
       "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
     },
     {
@@ -56928,6 +57014,18 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
+      "source": "s:13PositronicKit20TimelineSummaryStoreP04saveD0yyAA0cD0VYaKF",
+      "target": "s:13PositronicKit20TimelineSummaryStoreP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "requirementOf",
+      "source": "s:13PositronicKit20TimelineSummaryStoreP14fetchSummaries3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
+      "target": "s:13PositronicKit20TimelineSummaryStoreP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "requirementOf",
       "source": "s:13PositronicKit21WorkspaceFileProviderP04readD04pathS2S_tYaKF",
       "target": "s:13PositronicKit21WorkspaceFileProviderP"
     },
@@ -57006,12 +57104,6 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP11saveSummaryyyAA0cG0VYaKF",
-      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
       "source": "s:13PositronicKit25TimelineRuntimeRepositoryP12appendNotice6turnID6noticey10Foundation4UUIDV_AA04TurnG0VtYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
@@ -57031,12 +57123,6 @@
       "module": "PositronicKit",
       "kind": "requirementOf",
       "source": "s:13PositronicKit25TimelineRuntimeRepositoryP13interruptTurn6turnID6reason11disposition3nowAA0G15InterruptResultO10Foundation4UUIDV_SSAA0gM11DispositionOAK4DateVtYaKF",
-      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP14fetchSummaries3forSayAA0C7SummaryVG10Foundation4UUIDV_tYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
     {

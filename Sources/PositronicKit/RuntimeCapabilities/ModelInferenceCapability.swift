@@ -21,14 +21,25 @@ public enum ModelHealthError: PKError, Sendable, Equatable {
 
 /// Raw, Timeline-free model inference entry points exposed by ``PKRuntime``.
 public struct ModelInferenceCapability: Sendable {
-    private let kit: PKRuntime
+    private let languageModelClient: any LLMStreamClient
+    private let streamTimeout: TimeInterval
+    private let generationParameters: GenerationParameters?
+    private let clock: any RuntimeClock
 
-    init(kit: PKRuntime) {
-        self.kit = kit
+    init(
+        languageModelClient: any LLMStreamClient,
+        streamTimeout: TimeInterval,
+        generationParameters: GenerationParameters?,
+        clock: any RuntimeClock
+    ) {
+        self.languageModelClient = languageModelClient
+        self.streamTimeout = streamTimeout
+        self.generationParameters = generationParameters
+        self.clock = clock
     }
 
     public var isConfigured: Bool {
-        get async { await kit.isLanguageModelConfigured }
+        get async { await languageModelClient.isConfigured }
     }
 
     /// Returns the model's current non-network readiness snapshot.
@@ -37,7 +48,7 @@ public struct ModelInferenceCapability: Sendable {
     /// subsequent operation remains authoritative because model state can change after the
     /// snapshot is read.
     public func readiness() async -> ModelReadiness {
-        await kit.languageModelClient.readiness
+        await languageModelClient.readiness
     }
 
     /// Performs the injected model's explicit health check.
@@ -47,7 +58,7 @@ public struct ModelInferenceCapability: Sendable {
     /// generation request. Throws ``ModelHealthError/unsupported`` when the injected client
     /// does not conform to ``HealthCheckable``.
     public func checkHealth() async throws -> HealthStatus {
-        guard let healthCheckable = kit.languageModelClient as? any HealthCheckable else {
+        guard let healthCheckable = languageModelClient as? any HealthCheckable else {
             throw ModelHealthError.unsupported
         }
         return await healthCheckable.checkHealth()
@@ -206,7 +217,7 @@ extension ModelInferenceCapability {
     /// override it: the same `RuntimeConfiguration.streamTimeout` the Turn pipeline uses, so
     /// one-shot generation and full Turns share a single configured value.
     private var configuredStreamTimeout: TimeInterval {
-        kit.turnEngine.dependencies.policy.streamTimeout
+        streamTimeout
     }
 
     /// Generates a response and returns provider terminal metadata without creating or updating a timeline.
@@ -234,7 +245,7 @@ extension ModelInferenceCapability {
             .flatMap { $0.choices.compactMap { $0.delta.content } }
             .joined()
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            let provider = await kit.languageModelClient.configuration.activeProvider
+            let provider = await languageModelClient.configuration.activeProvider
             throw LLMServiceError.emptyResponse(provider: provider.rawValue)
         }
 
@@ -264,12 +275,12 @@ extension ModelInferenceCapability {
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval? = nil
     ) async throws -> String {
-        try await kit.languageModelClient.sendStructuredMessage(
+        try await languageModelClient.sendStructuredMessage(
             prompt,
             structuredOutput: structuredOutput,
-            generationParameters: generationParameters ?? kit.defaultGenerationParameters,
+            generationParameters: generationParameters ?? self.generationParameters,
             idleTimeout: idleTimeout ?? configuredStreamTimeout,
-            clock: kit.turnEngine.dependencies.policy.clock,
+            clock: clock,
             modelTier: .primary
         )
     }
@@ -280,13 +291,13 @@ extension ModelInferenceCapability {
         generationParameters: GenerationParameters?,
         idleTimeout: TimeInterval
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        let languageModelClient = kit.languageModelClient
-        let defaultGenerationParameters = kit.defaultGenerationParameters
-        let clock = kit.turnEngine.dependencies.policy.clock
+        let client = languageModelClient
+        let defaultGenerationParameters = self.generationParameters
+        let clock = self.clock
         return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let stream = await languageModelClient.generationStream(
+                    let stream = await client.generationStream(
                         messages: [LLMMessage(role: .user, content: prompt)],
                         tools: nil,
                         toolChoice: nil,

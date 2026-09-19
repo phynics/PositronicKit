@@ -3,10 +3,21 @@ import PKContracts
 
 /// Stateful Timeline entry points exposed by ``PKRuntime``.
 public struct TimelineCapability: Sendable {
-    private let kit: PKRuntime
+    private let timelineManager: TimelineManager
+    private let agentManager: AgentManager
+    private let messageStore: any TimelineMessageStoreProtocol
+    private let turnEngine: TurnEngine
 
-    init(kit: PKRuntime) {
-        self.kit = kit
+    init(
+        timelineManager: TimelineManager,
+        agentManager: AgentManager,
+        messageStore: any TimelineMessageStoreProtocol,
+        turnEngine: TurnEngine
+    ) {
+        self.timelineManager = timelineManager
+        self.agentManager = agentManager
+        self.messageStore = messageStore
+        self.turnEngine = turnEngine
     }
 
     /// Creates and persists a Timeline, returning its stable handle.
@@ -24,26 +35,26 @@ public struct TimelineCapability: Sendable {
         attaching agentID: UUID? = nil
     ) async throws -> TimelineHandle {
         let timeline = if let agentID {
-            try await kit.agentManager.createTimeline(title: title, attaching: agentID)
+            try await agentManager.createTimeline(title: title, attaching: agentID)
         } else {
-            try await kit.timelineManager.createTimeline(title: title)
+            try await timelineManager.createTimeline(title: title)
         }
         return open(timeline.id)
     }
 
     /// Opens a handle without performing persistence I/O.
     public func open(_ timelineID: UUID) -> TimelineHandle {
-        TimelineHandle(timelineID: timelineID, engine: kit.turnEngine)
+        TimelineHandle(timelineID: timelineID, engine: turnEngine)
     }
 
     /// Lists persisted Timelines.
     public func list(includeArchived: Bool = true) async throws -> [TimelineRecord] {
-        try await kit.timelineManager.timelineStore.fetchAllTimelines(includeArchived: includeArchived)
+        try await timelineManager.timelineStore.fetchAllTimelines(includeArchived: includeArchived)
     }
 
     /// Reads one cached or persisted Timeline.
     public func get(_ timelineID: UUID) async throws -> TimelineRecord? {
-        try await kit.timelineManager.timelineStore.fetchTimeline(id: timelineID)
+        try await timelineManager.timelineStore.fetchTimeline(id: timelineID)
     }
 
     /// Reads durable Timeline messages in oldest-first order.
@@ -51,21 +62,21 @@ public struct TimelineCapability: Sendable {
     /// An unknown Timeline ID returns an empty array. The result is durable Timeline history, not
     /// the assembled prompt state observed by `PKPrompt.PromptJournal`.
     public func messages(for timelineID: UUID) async throws -> [TimelineMessage] {
-        try await kit.messageStore.fetchMessages(for: timelineID)
+        try await messageStore.fetchMessages(for: timelineID)
     }
 
     /// Renames a Timeline while preserving its existing handle.
     public func rename(_ timelineID: UUID, to title: String) async throws {
-        try await kit.timelineManager.updateTimelineTitle(timelineID, title: title)
+        try await timelineManager.updateTimelineTitle(timelineID, title: title)
     }
 
     /// Attaches an ordinary Workspace to a Timeline.
     public func attachWorkspace(_ workspaceID: UUID, to timelineID: UUID) async throws {
-        try await kit.timelineManager.attachWorkspace(workspaceID, to: timelineID)
+        try await timelineManager.attachWorkspace(workspaceID, to: timelineID)
     }
 
     /// Detaches an ordinary Workspace from a Timeline.
     public func detachWorkspace(_ workspaceID: UUID, from timelineID: UUID) async throws {
-        try await kit.timelineManager.detachWorkspace(workspaceID, from: timelineID)
+        try await timelineManager.detachWorkspace(workspaceID, from: timelineID)
     }
 }

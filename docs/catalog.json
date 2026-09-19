@@ -43,7 +43,7 @@
     ]
   },
   "next": {
-    "label": "Next / v5",
+    "label": "Next",
     "version": "6.0.0",
     "ref": "main"
   },
@@ -66,7 +66,7 @@
     {
       "title": "Architecture",
       "path": "docs/Architecture.md",
-      "summary": "v5 domain boundaries, capability values, durability, and execution authority."
+      "summary": "Domain boundaries, capability values, durability, and execution authority."
     },
     {
       "title": "Prompt composition",

@@ -52,14 +52,6 @@ public final class PKRuntime: Sendable {
     // MARK: - Language Model Client
     var languageModelClient: any LLMStreamClient { dependencies.languageModel }
 
-    /// Whether the injected language model currently has usable provider configuration.
-    ///
-    /// This reads the model's live readiness without exposing provider configuration,
-    /// credentials, or mutation APIs through the facade.
-    var isLanguageModelConfigured: Bool {
-        get async { await languageModelClient.isConfigured }
-    }
-
     // MARK: - External Stores
     /// Durable storage for messages and timelines
     var messageStore: any TimelineMessageStoreProtocol { dependencies.runtimeRepository }
@@ -70,8 +62,7 @@ public final class PKRuntime: Sendable {
         dependencies.workspaceBindingRepository
     }
     let workspaceCatalog: any WorkspaceCatalog
-    // These resolved graph nodes remain package-internal for @testable assembly coverage.
-    var timelinePersistence: any TimelinePersistenceProtocol { dependencies.runtimeRepository }
+    /// Remains package-internal for @testable assembly coverage.
     var workspacePersistence: any WorkspaceStore { dependencies.workspacePersistence }
     
     // MARK: - Internal State
@@ -89,10 +80,24 @@ public final class PKRuntime: Sendable {
     var defaultGenerationParameters: GenerationParameters? { dependencies.policy.generationParameters }
 
     /// Consumer-facing capability values. These keep orchestration managers behind the facade.
-    public var timelines: TimelineCapability { TimelineCapability(kit: self) }
-    public var agents: AgentCapability { AgentCapability(kit: self) }
-    public var workspaces: WorkspaceCapability { WorkspaceCapability(kit: self) }
-    public var model: ModelInferenceCapability { ModelInferenceCapability(kit: self) }
+    public var timelines: TimelineCapability {
+        TimelineCapability(
+            timelineManager: timelineManager,
+            agentManager: agentManager,
+            messageStore: messageStore,
+            turnEngine: turnEngine
+        )
+    }
+    public var agents: AgentCapability { AgentCapability(agentManager: agentManager) }
+    public var workspaces: WorkspaceCapability { WorkspaceCapability(workspaceCatalog: workspaceCatalog) }
+    public var model: ModelInferenceCapability {
+        ModelInferenceCapability(
+            languageModelClient: languageModelClient,
+            streamTimeout: dependencies.policy.streamTimeout,
+            generationParameters: dependencies.policy.generationParameters,
+            clock: dependencies.policy.clock
+        )
+    }
     
     // MARK: - Init
     /// The designated initializer. Accepts a fully-resolved ``RuntimeDependencies`` bundle and
@@ -119,17 +124,17 @@ public final class PKRuntime: Sendable {
         timelineManager = state.timelineManager
         agentAuthorityCoordinator = state.agentAuthorityCoordinator
 
-        let catalog = PKRuntime.makeWorkspaceCatalog(dependencies: dependencies, state: state)
+        let catalog = PKRuntime.makeWorkspaceCatalog(dependencies: resolvedDependencies, state: state)
         workspaceCatalog = catalog
-        let router = PKRuntime.makeToolRouter(dependencies: dependencies, state: state)
+        let router = PKRuntime.makeToolRouter(dependencies: resolvedDependencies, state: state)
         toolRouter = router
         agentManager = PKRuntime.makeAgentManager(
-            dependencies: dependencies,
+            dependencies: resolvedDependencies,
             state: state,
             workspaceCatalog: catalog
         )
         turnEngine = PKRuntime.makeTurnEngine(
-            dependencies: dependencies,
+            dependencies: resolvedDependencies,
             state: state,
             toolRouter: router,
             activitySink: activitySink

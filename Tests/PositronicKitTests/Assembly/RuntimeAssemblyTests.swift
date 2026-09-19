@@ -458,7 +458,6 @@ struct RuntimeAssemblyTests {
     ) async {
         #expect(kit.runtimeRepository as AnyObject === repository as AnyObject)
         #expect(kit.messageStore as AnyObject === repository as AnyObject)
-        #expect(kit.timelinePersistence as AnyObject === repository as AnyObject)
         #expect(kit.turnEngine.dependencies.runtimeRepository as AnyObject === repository as AnyObject)
         #expect(kit.turnEngine.dependencies.timelineManager === kit.timelineManager)
         #expect(kit.turnEngine.dependencies.toolRouter === kit.toolRouter)

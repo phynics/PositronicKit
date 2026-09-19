@@ -34,6 +34,40 @@ for tagged releases beginning with `1.0.0`.
   builder is removed; the internal `init(configuration:sharedRegistry:additionalStages:clock:)`
   already accepts pipeline stages. There is no compatibility alias.
 
+- **`DurabilityReport` is one list of per-store classifications:** the type stores
+  `stores: [DurabilityReport.Store]`, each carrying a closed `Store.ID` (the six persistence
+  stores) and its `StoreDurability`, instead of a separate named property per store. Reports are
+  produced only by `validateDurability()`, so the list is always complete and in declaration
+  order; `durability(of:)` returns one store's classification directly, and `ephemeralStores`
+  returns the typed classifications with `ephemeralStoreNames` deriving the labels. `isMixed` and
+  `mixedDurabilityWarning` are unchanged.
+
+- **`MemorySavePolicy` removed:** the runtime never saved memories, and the enum traveled through
+  no production API. Per ADR 0006, semantic and retrieval persistence stays outside the package
+  until a concrete consumer and persistence story exist; a host memory pipeline can own its own
+  save policy.
+
+- **`AgentContextSnapshot.revision` removed:** the runtime computed a revision hash into the
+  captured snapshot and then neither rendered nor persisted it. The snapshot now carries only the
+  values prompt assembly consumes.
+
+- **Timeline summary storage moves to `TimelineSummaryStore`:** `saveSummary` and `fetchSummaries`
+  are no longer requirements of `TimelineRuntimeRepository`. A host summary pipeline conforms its
+  own store to the new ``TimelineSummaryStore`` protocol; repository conformers no longer
+  implement storage the runtime never reads. `TimelineRuntimeRepositoryConformanceSuite.run` takes
+  `summaryStorage:` (default `.required`), so an adapter that omits the capability fails the
+  summary scenarios instead of skipping them; adapters that store no summaries pass
+  `.notSupported`.
+
+- **`LLMGenerationRequest` composes its prompt:** the high-level generation request now carries
+  `prompt: LLMPromptRequest`, `structuredOutput`, and `modelTier` instead of redeclaring the
+  prompt fields. Build the prompt request once and pass it in; there is no compatibility
+  initializer.
+
+- **`RuntimeToolResult.errorMessage` removed:** the durable tool result carries one payload in
+  `output` — the success output, or the model-facing failure text with its `Error:` prefix — and
+  `isSuccessful` is the status. Previously persisted rows still decode; the removed key is ignored.
+
 ## [6.0.0] - 2026-09-18
 
 ### Breaking

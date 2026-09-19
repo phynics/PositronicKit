@@ -267,7 +267,7 @@ extension TimelineManager {
         return WorkspaceQueryResult(primary: primary, attached: attached, degradations: degradations)
     }
 
-    func getWorkspace(_ id: UUID) async throws -> WorkspaceReference? {
+    private func getWorkspace(_ id: UUID) async throws -> WorkspaceReference? {
         try await workspaceStore.fetchWorkspace(id: id, includeTools: true)
     }
 }

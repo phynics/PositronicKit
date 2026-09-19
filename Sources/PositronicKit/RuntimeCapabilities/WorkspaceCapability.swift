@@ -3,10 +3,10 @@ import PKContracts
 
 /// Workspace catalog entry points exposed by ``PKRuntime``.
 public struct WorkspaceCapability: Sendable {
-    private let kit: PKRuntime
+    private let workspaceCatalog: any WorkspaceCatalog
 
-    init(kit: PKRuntime) {
-        self.kit = kit
+    init(workspaceCatalog: any WorkspaceCatalog) {
+        self.workspaceCatalog = workspaceCatalog
     }
 
     public func create(
@@ -15,7 +15,7 @@ public struct WorkspaceCapability: Sendable {
         originID: UUID? = nil,
         rootPath: String? = nil
     ) async throws -> WorkspaceReference {
-        try await kit.workspaceCatalog.createWorkspace(
+        try await workspaceCatalog.createWorkspace(
             uri: uri,
             location: location,
             originID: originID,
@@ -24,19 +24,19 @@ public struct WorkspaceCapability: Sendable {
     }
 
     public func get(_ workspaceID: UUID, includeTools: Bool = true) async throws -> WorkspaceReference? {
-        try await kit.workspaceCatalog.fetchWorkspace(id: workspaceID, includeTools: includeTools)
+        try await workspaceCatalog.fetchWorkspace(id: workspaceID, includeTools: includeTools)
     }
 
     public func list() async throws -> [WorkspaceReference] {
-        try await kit.workspaceCatalog.listWorkspaces()
+        try await workspaceCatalog.listWorkspaces()
     }
 
     public func update(_ workspace: WorkspaceReference) async throws {
-        try await kit.workspaceCatalog.updateWorkspace(workspace)
+        try await workspaceCatalog.updateWorkspace(workspace)
     }
 
     public func delete(_ workspaceID: UUID, includingDirectory: Bool = false) async throws {
-        try await kit.workspaceCatalog.deleteWorkspace(
+        try await workspaceCatalog.deleteWorkspace(
             id: workspaceID,
             includingDirectory: includingDirectory
         )

@@ -5,43 +5,26 @@ import PKUtilities
 
 // MARK: - Request / Result Types
 
-/// Groups the parameters for a high-level LLM generation stream request.
+/// A high-level generation request: the prompt to assemble and send, plus the response shape and
+/// model tier that belong to the generation call rather than to prompt assembly.
+///
+/// The prompt fields live once, on ``LLMPromptRequest``. A generation request adds only the
+/// structured-output request and the tier selection.
 public struct LLMGenerationRequest: Sendable {
-    public let userQuery: String
-    public let contextContributions: [TurnContextContribution]
-    public let chatHistory: [Message]
-    public let tools: [AnyTool]
-    public let workspaces: [WorkspaceReference]
-    public let primaryWorkspace: WorkspaceReference?
-    public let requestOriginName: String?
-    public let systemInstructions: String?
+    /// The prompt to assemble for this generation.
+    public let prompt: LLMPromptRequest
+    /// The response shape to request, if any.
     public let structuredOutput: StructuredOutputRequest?
-    public let generationParameters: GenerationParameters?
+    /// Which configured model tier to stream from.
     public let modelTier: ModelTier
 
     public init(
-        userQuery: String,
-        contextContributions: [TurnContextContribution] = [],
-        chatHistory: [Message],
-        tools: [AnyTool],
-        workspaces: [WorkspaceReference],
-        primaryWorkspace: WorkspaceReference?,
-        requestOriginName: String?,
-        systemInstructions: String? = nil,
+        prompt: LLMPromptRequest,
         structuredOutput: StructuredOutputRequest? = nil,
-        generationParameters: GenerationParameters? = nil,
         modelTier: ModelTier = .primary
     ) {
-        self.userQuery = userQuery
-        self.contextContributions = contextContributions
-        self.chatHistory = chatHistory
-        self.tools = tools
-        self.workspaces = workspaces
-        self.primaryWorkspace = primaryWorkspace
-        self.requestOriginName = requestOriginName
-        self.systemInstructions = systemInstructions
+        self.prompt = prompt
         self.structuredOutput = structuredOutput
-        self.generationParameters = generationParameters
         self.modelTier = modelTier
     }
 }

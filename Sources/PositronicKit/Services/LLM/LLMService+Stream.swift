@@ -5,20 +5,10 @@ import PKUtilities
 public extension LLMStreamClient {
     /// Stream a generation with full prompt building.
     func generationStreamWithContext(_ request: LLMGenerationRequest) async throws -> LLMStreamResult {
-        let promptRequest = LLMPromptRequest(
-            userQuery: request.userQuery,
-            contextContributions: request.contextContributions,
-            chatHistory: request.chatHistory,
-            tools: request.tools,
-            workspaces: request.workspaces,
-            primaryWorkspace: request.primaryWorkspace,
-            requestOriginName: request.requestOriginName,
-            systemInstructions: request.systemInstructions,
-            generationParameters: request.generationParameters
-        )
+        let promptRequest = request.prompt
         let result = try await PromptAssembler.prepare(promptRequest)
         let adapter = await structuredOutputAdapter(for: request.modelTier)
-        let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toLLMToolDefinition() }
+        let toolParams = promptRequest.tools.isEmpty ? nil : promptRequest.tools.map { $0.toLLMToolDefinition() }
         let preparedOutput = request.structuredOutput.map {
             StructuredOutputExecution.prepareRequest(
                 messages: result.messages,
@@ -44,7 +34,7 @@ public extension LLMStreamClient {
             tools: resolvedTools,
             toolChoice: toolChoice,
             responseFormat: responseFormat,
-            generationParameters: request.generationParameters,
+            generationParameters: promptRequest.generationParameters,
             modelTier: request.modelTier
         )
 

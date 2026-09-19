@@ -116,6 +116,27 @@ struct TimelineSerializationCompatibilityTests {
             excludes: ["timelineId", "timelineID", "privateTimelineId"])
     }
 
+    @Test("a legacy tool result row with errorMessage still decodes")
+    func legacyToolResultDecodesAfterErrorMessageRemoval() throws {
+        let payload = #"{"id":"00000000-0000-0000-0000-000000000030","turnID":"00000000-0000-0000-0000-000000000031","threadID":"00000000-0000-0000-0000-000000000032","toolCallID":"call-1","output":"Error: boom","isSuccessful":false,"errorMessage":"boom","workspaceID":null,"workspaceRouting":null,"createdAt":"2026-01-01T00:00:00Z"}"#
+        let result = try decoder.decode(RuntimeToolResult.self, from: Data(payload.utf8))
+
+        #expect(result.id.uuidString == "00000000-0000-0000-0000-000000000030")
+        #expect(result.turnID.uuidString == "00000000-0000-0000-0000-000000000031")
+        #expect(result.timelineID.uuidString == "00000000-0000-0000-0000-000000000032")
+        #expect(result.toolCallID == "call-1")
+        #expect(result.output == "Error: boom")
+        #expect(result.isSuccessful == false)
+        #expect(result.workspaceID == nil)
+        #expect(result.createdAt == fixtureDate("2026-01-01T00:00:00Z"))
+
+        // Re-encoding the current shape drops the retired key and keeps the wire key.
+        let reencoded = try encoder.encode(result)
+        let object = try #require(JSONSerialization.jsonObject(with: reencoded) as? [String: Any])
+        #expect(object["errorMessage"] == nil)
+        #expect(object["threadID"] as? String == "00000000-0000-0000-0000-000000000032")
+    }
+
     private func assertWireKeys<T: Encodable>(
         of value: T,
         contains required: Set<String>,

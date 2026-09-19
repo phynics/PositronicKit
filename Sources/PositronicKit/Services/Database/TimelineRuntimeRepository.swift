@@ -273,6 +273,9 @@ public struct RuntimeToolIntent: Codable, Equatable, Hashable, Sendable {
 }
 
 /// A durable tool result written before a subsequent model round can start.
+///
+/// `output` is the single payload: the tool's success output, or the model-facing failure text
+/// (`"Error: …"` plus any remediation) when `isSuccessful` is `false`.
 public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
     public let id: UUID
     public let turnID: UUID
@@ -280,7 +283,6 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
     public let toolCallID: String
     public let output: String
     public let isSuccessful: Bool
-    public let errorMessage: String?
     public let workspaceID: UUID?
     public let workspaceRouting: WorkspaceToolRouting?
     public let createdAt: Date
@@ -288,7 +290,7 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id, turnID
         case timelineID = "threadID"
-        case toolCallID, output, isSuccessful, errorMessage, workspaceID, workspaceRouting, createdAt
+        case toolCallID, output, isSuccessful, workspaceID, workspaceRouting, createdAt
     }
 
     public init(
@@ -298,7 +300,6 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
         toolCallID: String,
         output: String,
         isSuccessful: Bool = true,
-        errorMessage: String? = nil,
         workspaceID: UUID? = nil,
         workspaceRouting: WorkspaceToolRouting? = nil,
         createdAt: Date = Date()
@@ -309,7 +310,6 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
         self.toolCallID = toolCallID
         self.output = output
         self.isSuccessful = isSuccessful
-        self.errorMessage = errorMessage
         self.workspaceID = workspaceID
         self.workspaceRouting = workspaceRouting
         self.createdAt = createdAt
@@ -318,6 +318,11 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
 
 /// A summary projection. It is deliberately independent from prompt history and can only point
 /// at already durable message IDs.
+///
+/// Summary projections are a host concern: the runtime neither writes nor reads them. A host
+/// summary pipeline stores them through a ``TimelineSummaryStore``; the
+/// ``AgentContextSnapshot/primaryTimelineSummary`` prompt section is supplied by the Agent context
+/// source, not derived from these rows.
 public struct TimelineSummary: Codable, Equatable, Hashable, Sendable {
     public let id: UUID
     public let timelineID: UUID
@@ -541,17 +546,18 @@ extension TimelineRuntimeRepositoryError: PKError {
 ///
 /// ## History deletion cascade
 ///
-/// `deleteTimeline(id:)` (inherited from ``TimelinePersistenceProtocol``) MUST cascade: destroying a
-/// Deleting a Timeline destroys its durable history and summary projections along with it. Append-only (ADR
-/// 0003) means a Timeline's history is immutable *while the Timeline lives*, not that it survives the
-/// Timeline's own deletion — a conformer that drops the timeline row but leaves `messages`/summaries
+/// `deleteTimeline(id:)` (inherited from ``TimelinePersistenceProtocol``) MUST cascade: deleting
+/// a Timeline destroys its durable history along with it. Append-only (ADR 0003) means a
+/// Timeline's history is immutable *while the Timeline lives*, not that it survives the
+/// Timeline's own deletion — a conformer that drops the timeline row but leaves `messages`
 /// behind creates an unbounded, unreachable-by-ID storage leak and a data-retention problem for
 /// any content the deleted Timeline carried. `deleteMessages(for:)` remains forbidden for ordinary
 /// in-place history pruning (`TimelineRuntimeRepositoryError.historyDeletionForbidden`); the only
 /// sanctioned path to removing a Timeline's messages is deleting the Timeline itself. A SQL-backed
-/// conformer typically satisfies this with `ON DELETE CASCADE` foreign keys from messages/summary
-/// tables to the timeline row; an in-memory or other keyed-store conformer must remove the
-/// corresponding per-timeline entries explicitly inside `deleteTimeline(id:)`.
+/// conformer typically satisfies this with `ON DELETE CASCADE` foreign keys from the message table
+/// to the timeline row; an in-memory or other keyed-store conformer must remove the corresponding
+/// per-timeline entries explicitly inside `deleteTimeline(id:)`. A ``TimelineSummaryStore``
+/// implementation should cascade summary projections the same way.
 ///
 /// `PKTestSupport` ships `TimelineRuntimeRepositoryConformanceSuite` for downstream adapters. The
 /// suite exercises these durable admission, history, ordering, interruption, and terminal-transition
@@ -633,7 +639,15 @@ public protocol TimelineRuntimeRepository: TimelinePersistenceProtocol, Timeline
         confirmation: QuarantineReleaseConfirmation,
         now: Date
     ) async throws -> TurnRecord
+}
 
+/// Optional durable storage for ``TimelineSummary`` projections.
+///
+/// Summary projections are a host concern: the runtime neither writes nor reads them. A host
+/// summary pipeline can conform its own store to this protocol alongside
+/// ``TimelineRuntimeRepository``; the runtime repository does not require summary storage, so
+/// conformers are not forced to implement an unused capability.
+public protocol TimelineSummaryStore: Sendable {
     func saveSummary(_ summary: TimelineSummary) async throws
     func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary]
 }

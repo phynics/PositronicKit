@@ -40,6 +40,8 @@ public struct AgentContextMemory: Codable, Equatable, Hashable, Sendable, Identi
     public let id: UUID
     public let content: String
     public let source: String?
+    /// Host-supplied ranking metadata. The runtime carries it into the captured snapshot without
+    /// ordering or filtering on it.
     public let relevance: Double?
 
     public init(
@@ -83,12 +85,10 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
     public let resources: [AgentContextResource]
     public let diagnostics: [TurnDiagnostic]
     public let primaryTimelineSummary: String?
-    public let revision: String?
 
     private enum CodingKeys: String, CodingKey {
         case identity, instructions, memories, resources, diagnostics
         case primaryTimelineSummary = "primaryThreadSummary"
-        case revision
     }
 
     public init(
@@ -97,8 +97,7 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
         memories: [AgentContextMemory] = [],
         resources: [AgentContextResource] = [],
         diagnostics: [TurnDiagnostic] = [],
-        primaryTimelineSummary: String? = nil,
-        revision: String? = nil
+        primaryTimelineSummary: String? = nil
     ) {
         self.identity = identity
         self.instructions = instructions
@@ -106,7 +105,6 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
         self.resources = resources
         self.diagnostics = diagnostics
         self.primaryTimelineSummary = primaryTimelineSummary
-        self.revision = revision
     }
 
     public init(
@@ -115,8 +113,7 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
         memories: [AgentContextMemory] = [],
         resources: [AgentContextResource] = [],
         diagnostics: [TurnDiagnostic] = [],
-        primaryTimelineSummary: String? = nil,
-        revision: String? = nil
+        primaryTimelineSummary: String? = nil
     ) {
         self.init(
             identity: AgentContextIdentity(
@@ -128,8 +125,7 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
             memories: memories,
             resources: resources,
             diagnostics: diagnostics,
-            primaryTimelineSummary: primaryTimelineSummary,
-            revision: revision
+            primaryTimelineSummary: primaryTimelineSummary
         )
     }
 
@@ -182,7 +178,6 @@ public actor DefaultAgentContextSource: AgentContextSource {
     public func snapshot(for agent: Agent, timeline: TimelineRecord) async throws -> AgentContextSnapshot {
         var instructions = ""
         var resources: [AgentContextResource] = []
-        var revision = ""
         var diagnostics: [TurnDiagnostic] = []
 
         if let workspaceID = agent.primaryWorkspaceID,
@@ -210,7 +205,6 @@ public actor DefaultAgentContextSource: AgentContextSource {
                 // Turn. This keeps ordinary filesystem writes, including host-side edits, visible
                 // on the next Turn without requiring a fragile invalidation callback.
                 resources = try discoverCatalog(at: notesURL)
-                revision = stableRevision(resources, soul: instructions)
             } catch {
                 diagnostics.append(TurnDiagnostic(
                     dependency: .context,
@@ -227,8 +221,7 @@ public actor DefaultAgentContextSource: AgentContextSource {
             instructions: instructions,
             resources: resources,
             diagnostics: diagnostics,
-            primaryTimelineSummary: nil,
-            revision: revision.isEmpty ? nil : revision
+            primaryTimelineSummary: nil
         )
     }
 
@@ -287,15 +280,6 @@ public actor DefaultAgentContextSource: AgentContextSource {
             if !value.isEmpty { return String(value) }
         }
         return URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent
-    }
-
-    private func stableRevision(_ resources: [AgentContextResource], soul: String) -> String {
-        var hash: UInt64 = 14_695_981_039_346_656_037
-        for byte in (soul + "\0" + resources.map { "\($0.path)\0\($0.description)\n" }.joined()).utf8 {
-            hash ^= UInt64(byte)
-            hash = hash &* 1_099_511_628_211
-        }
-        return String(hash, radix: 16)
     }
 
     private func utf8Prefix(of content: String, byteCount: Int) -> String {

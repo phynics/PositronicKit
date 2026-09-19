@@ -108,6 +108,33 @@ struct RepositoryPKErrorTests {
         }
     }
 
+    @Test("Workspace provider errors expose unique stable identities")
+    func workspaceProviderErrorsHaveStableIdentities() {
+        let cases: [(error: WorkspaceError, code: Int, isBlocked: Bool)] = [
+            (.invalidWorkspaceType, 3001, false),
+            (.accessDenied, 3002, true),
+            (.toolExecutionNotSupported, 3003, false),
+            (.workspaceNotFound, 3004, false),
+            // Thrown by host WorkspaceProvider adapters when their backing workspace is
+            // unreachable; the runtime itself never constructs it.
+            (.connectionFailed, 3005, false),
+        ]
+
+        #expect(cases.map(\.code) == Array(3001...3005))
+
+        for testCase in cases {
+            let error = testCase.error
+            #expect(error.errorDomain == PKErrorDomain.workspace)
+            #expect(error.errorCode == testCase.code)
+            #expect(error.isBlocked == testCase.isBlocked)
+            #expect(!error.userFriendlyMessage.isEmpty)
+
+            let identity = TurnEvent.ErrorIdentity.extracting(from: error)
+            #expect(identity?.domain == PKErrorDomain.workspace)
+            #expect(identity?.code == testCase.code)
+        }
+    }
+
     private func assertPKError(
         _ error: any PKError,
         domain: String,

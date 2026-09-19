@@ -57,16 +57,18 @@ struct MockLLMServiceContractTests {
         let parameters = GenerationParameters(topP: 0.8, seed: 99)
         let tool = AnyTool(CaptureProbeTool(), origin: .named("contract-test"))
         let request = LLMGenerationRequest(
-            userQuery: "question",
-            contextContributions: [contribution],
-            chatHistory: [history],
-            tools: [tool],
-            workspaces: [workspace],
-            primaryWorkspace: workspace,
-            requestOriginName: "tests",
-            systemInstructions: "system",
+            prompt: LLMPromptRequest(
+                userQuery: "question",
+                contextContributions: [contribution],
+                chatHistory: [history],
+                tools: [tool],
+                workspaces: [workspace],
+                primaryWorkspace: workspace,
+                requestOriginName: "tests",
+                systemInstructions: "system",
+                generationParameters: parameters
+            ),
             structuredOutput: .jsonObject,
-            generationParameters: parameters,
             modelTier: .fast
         )
 
@@ -74,20 +76,20 @@ struct MockLLMServiceContractTests {
         _ = try await result.stream.collect()
 
         let captured = service.lastGenerationRequest
-        #expect(captured?.userQuery == "question")
-        #expect(captured?.contextContributions.map(\.noteName) == ["host.context"])
-        #expect(captured?.chatHistory.map(\.id) == [history.id])
-        #expect(captured?.tools.map(\.identity) == [tool.identity])
-        #expect(captured?.tools.map(\.callName) == ["capture_probe"])
-        #expect(captured?.tools.map(\.name) == ["Capture Probe"])
-        #expect(captured?.tools.map(\.toolDescription) == ["Verifies that mock service requests preserve tool metadata."])
-        #expect(captured?.tools.map(\.origin) == [.named("contract-test")])
-        #expect(captured?.workspaces.map(\.id) == [workspace.id])
-        #expect(captured?.primaryWorkspace?.id == workspace.id)
-        #expect(captured?.requestOriginName == "tests")
-        #expect(captured?.systemInstructions == "system")
+        #expect(captured?.prompt.userQuery == "question")
+        #expect(captured?.prompt.contextContributions.map(\.noteName) == ["host.context"])
+        #expect(captured?.prompt.chatHistory.map(\.id) == [history.id])
+        #expect(captured?.prompt.tools.map(\.identity) == [tool.identity])
+        #expect(captured?.prompt.tools.map(\.callName) == ["capture_probe"])
+        #expect(captured?.prompt.tools.map(\.name) == ["Capture Probe"])
+        #expect(captured?.prompt.tools.map(\.toolDescription) == ["Verifies that mock service requests preserve tool metadata."])
+        #expect(captured?.prompt.tools.map(\.origin) == [.named("contract-test")])
+        #expect(captured?.prompt.workspaces.map(\.id) == [workspace.id])
+        #expect(captured?.prompt.primaryWorkspace?.id == workspace.id)
+        #expect(captured?.prompt.requestOriginName == "tests")
+        #expect(captured?.prompt.systemInstructions == "system")
         #expect(captured?.structuredOutput == .jsonObject)
-        #expect(captured?.generationParameters == parameters)
+        #expect(captured?.prompt.generationParameters == parameters)
         #expect(captured?.modelTier == .fast)
         #expect(service.generationRequestHistory.count == 1)
         #expect(service.lastModelTier == .fast)

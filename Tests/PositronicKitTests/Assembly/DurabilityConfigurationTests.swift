@@ -1,7 +1,7 @@
 import Foundation
 import PKContracts
 import PKTestSupport
-import PositronicKit
+@testable import PositronicKit
 import Testing
 
 @Suite("Persistence durability validation", .tags(.unit))
@@ -11,12 +11,8 @@ struct DurabilityConfigurationTests {
         let report = PKRuntime.PersistenceConfiguration.inMemory().validateDurability()
         #expect(!report.isMixed)
         #expect(report.ephemeralStoreNames.count == 6)
-        #expect(report.runtimeRepository == .ephemeral)
-        #expect(report.workspacePersistence == .ephemeral)
-        #expect(report.workspaceBindingRepository == .ephemeral)
-        #expect(report.toolPersistence == .ephemeral)
-        #expect(report.agentStore == .ephemeral)
-        #expect(report.requestOriginStore == .ephemeral)
+        #expect(report.stores.map(\.id) == PKRuntime.DurabilityReport.Store.ID.allCases)
+        #expect(report.stores.allSatisfy { $0.durability == .ephemeral })
     }
 
     @Test("durable stores report no ephemeral names")
@@ -57,21 +53,17 @@ struct DurabilityConfigurationTests {
 
     @Test("durability report remains equatable")
     func reportEquatable() {
-        let first = PKRuntime.DurabilityReport(
-            runtimeRepository: .durable,
-            workspacePersistence: .durable,
-            workspaceBindingRepository: .durable,
-            toolPersistence: .durable,
-            agentStore: .ephemeral,
-            requestOriginStore: .durable
-        )
-        #expect(first == PKRuntime.DurabilityReport(
-            runtimeRepository: .durable,
-            workspacePersistence: .durable,
-            workspaceBindingRepository: .durable,
-            toolPersistence: .durable,
-            agentStore: .ephemeral,
-            requestOriginStore: .durable
-        ))
+        let stores: [PKRuntime.DurabilityReport.Store] = [
+            .init(id: .runtimeRepository, durability: .durable),
+            .init(id: .workspacePersistence, durability: .durable),
+            .init(id: .workspaceBindingRepository, durability: .durable),
+            .init(id: .toolPersistence, durability: .durable),
+            .init(id: .agentStore, durability: .ephemeral),
+            .init(id: .requestOriginStore, durability: .durable),
+        ]
+        let first = PKRuntime.DurabilityReport(stores: stores)
+        #expect(first == PKRuntime.DurabilityReport(stores: stores))
+        #expect(first.durability(of: .agentStore) == .ephemeral)
+        #expect(first.durability(of: .requestOriginStore) == .durable)
     }
 }

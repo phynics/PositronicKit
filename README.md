@@ -50,7 +50,7 @@ Add PositronicKit as a Swift Package dependency:
 Public products follow semver. Continue with the tagged README for stable API examples. The
 examples below describe the current Next public story and may advance beyond `6.0.0`.
 
-## Next / v5 quick start
+## Next quick start
 
 Build one configured provider value in its provider module, then pass it to the provider-neutral
 runtime:
@@ -238,7 +238,7 @@ Use these guides for details:
 
 - [Setup](docs/Setup.md) covers providers, persistence, customization, logging, and errors.
 - [Usage](docs/Usage.md) covers managed and direct Turns, Agents, and Workspaces.
-- [Architecture](docs/Architecture.md) covers v5 boundaries, durability, and execution authority.
+- [Architecture](docs/Architecture.md) covers runtime boundaries, durability, and execution authority.
 - [Development](docs/Development.md) covers contributor setup and the containerized Linux gates.
 - [Context map](CONTEXT-MAP.md) defines the canonical runtime vocabulary and ownership boundaries.
 - [Architecture decisions](docs/adr/) record accepted decisions and their trade-offs.
