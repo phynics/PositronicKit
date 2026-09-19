@@ -50,6 +50,9 @@ public enum WorkspaceError: PKError, Sendable {
     case accessDenied
     case toolExecutionNotSupported
     case workspaceNotFound
+    /// The provider's backing workspace is unreachable. A host ``WorkspaceProvider`` adapter
+    /// throws this for a remote, database-backed, or otherwise unavailable workspace; the runtime
+    /// itself never constructs it.
     case connectionFailed
 
     public var errorDomain: String { PKErrorDomain.workspace }
@@ -85,7 +88,7 @@ public enum WorkspaceError: PKError, Sendable {
         case .workspaceNotFound:
             return "The requested workspace could not be found."
         case .connectionFailed:
-            return "Failed to connect to the workspace. Please check the network connection."
+            return "The workspace is unavailable. Check that its backing store or service is reachable."
         }
     }
 }

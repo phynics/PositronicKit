@@ -156,4 +156,29 @@ struct CapabilityValuesTests {
 
         #expect(try await kit.workspaces.get(workspace.id) == nil)
     }
+
+    @Test("Workspaces capability removes a workspace directory only when asked")
+    func workspaceCapabilityDeletesDirectory() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("pk-capability-delete-\(UUID().uuidString)", isDirectory: true)
+        let directory = root.appendingPathComponent("workspace", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let kit = PKRuntime(configuration: .init(
+            languageModel: MockLLMService(),
+            persistence: .inMemory(),
+            runtime: .init(workspaceProfile: .hostManaged(root: root))
+        ))
+        let workspace = try await kit.workspaces.create(
+            uri: WorkspaceURI(parsing: "workspace://capability-delete-directory")!,
+            location: .runtime,
+            rootPath: directory.path
+        )
+
+        try await kit.workspaces.delete(workspace.id, includingDirectory: true)
+
+        #expect(try await kit.workspaces.get(workspace.id) == nil)
+        #expect(!FileManager.default.fileExists(atPath: directory.path))
+    }
 }

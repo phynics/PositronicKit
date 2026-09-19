@@ -85,8 +85,9 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
     public let resources: [AgentContextResource]
     public let diagnostics: [TurnDiagnostic]
     public let primaryTimelineSummary: String?
-    /// Host-supplied revision marker for this snapshot. The runtime persists and forwards it
-    /// without comparing revisions across Turns.
+    /// Host-supplied revision marker for this snapshot. The runtime carries it in the captured
+    /// snapshot for the lifetime of the Turn; it is not rendered into the prompt and is not
+    /// persisted with the Turn.
     public let revision: String?
 
     private enum CodingKeys: String, CodingKey {
