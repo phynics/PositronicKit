@@ -624,7 +624,6 @@ actor ToolRouter {
                     toolCallID: call.callId,
                     output: errorOutput,
                     isSuccessful: false,
-                    errorMessage: errorMsg,
                     workspaceID: workspaceRoute?.workspaceID,
                     workspaceRouting: workspaceRoute?.routing
                 ), message: message)

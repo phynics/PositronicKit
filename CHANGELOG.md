@@ -45,6 +45,10 @@ for tagged releases beginning with `1.0.0`.
   prompt fields. Build the prompt request once and pass it in; there is no compatibility
   initializer.
 
+- **`RuntimeToolResult.errorMessage` removed:** the durable tool result carries one payload in
+  `output` — the success output, or the model-facing failure text with its `Error:` prefix — and
+  `isSuccessful` is the status. Previously persisted rows still decode; the removed key is ignored.
+
 ## [6.0.0] - 2026-09-18
 
 ### Breaking

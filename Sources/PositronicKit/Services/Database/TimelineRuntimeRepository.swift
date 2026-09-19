@@ -273,6 +273,9 @@ public struct RuntimeToolIntent: Codable, Equatable, Hashable, Sendable {
 }
 
 /// A durable tool result written before a subsequent model round can start.
+///
+/// `output` is the single payload: the tool's success output, or the model-facing failure text
+/// (`"Error: …"` plus any remediation) when `isSuccessful` is `false`.
 public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
     public let id: UUID
     public let turnID: UUID
@@ -280,7 +283,6 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
     public let toolCallID: String
     public let output: String
     public let isSuccessful: Bool
-    public let errorMessage: String?
     public let workspaceID: UUID?
     public let workspaceRouting: WorkspaceToolRouting?
     public let createdAt: Date
@@ -288,7 +290,7 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id, turnID
         case timelineID = "threadID"
-        case toolCallID, output, isSuccessful, errorMessage, workspaceID, workspaceRouting, createdAt
+        case toolCallID, output, isSuccessful, workspaceID, workspaceRouting, createdAt
     }
 
     public init(
@@ -298,7 +300,6 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
         toolCallID: String,
         output: String,
         isSuccessful: Bool = true,
-        errorMessage: String? = nil,
         workspaceID: UUID? = nil,
         workspaceRouting: WorkspaceToolRouting? = nil,
         createdAt: Date = Date()
@@ -309,7 +310,6 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
         self.toolCallID = toolCallID
         self.output = output
         self.isSuccessful = isSuccessful
-        self.errorMessage = errorMessage
         self.workspaceID = workspaceID
         self.workspaceRouting = workspaceRouting
         self.createdAt = createdAt
