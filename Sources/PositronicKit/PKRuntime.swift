@@ -70,8 +70,7 @@ public final class PKRuntime: Sendable {
         dependencies.workspaceBindingRepository
     }
     let workspaceCatalog: any WorkspaceCatalog
-    // These resolved graph nodes remain package-internal for @testable assembly coverage.
-    var timelinePersistence: any TimelinePersistenceProtocol { dependencies.runtimeRepository }
+    /// Remains package-internal for @testable assembly coverage.
     var workspacePersistence: any WorkspaceStore { dependencies.workspacePersistence }
     
     // MARK: - Internal State
@@ -119,17 +118,17 @@ public final class PKRuntime: Sendable {
         timelineManager = state.timelineManager
         agentAuthorityCoordinator = state.agentAuthorityCoordinator
 
-        let catalog = PKRuntime.makeWorkspaceCatalog(dependencies: dependencies, state: state)
+        let catalog = PKRuntime.makeWorkspaceCatalog(dependencies: resolvedDependencies, state: state)
         workspaceCatalog = catalog
-        let router = PKRuntime.makeToolRouter(dependencies: dependencies, state: state)
+        let router = PKRuntime.makeToolRouter(dependencies: resolvedDependencies, state: state)
         toolRouter = router
         agentManager = PKRuntime.makeAgentManager(
-            dependencies: dependencies,
+            dependencies: resolvedDependencies,
             state: state,
             workspaceCatalog: catalog
         )
         turnEngine = PKRuntime.makeTurnEngine(
-            dependencies: dependencies,
+            dependencies: resolvedDependencies,
             state: state,
             toolRouter: router,
             activitySink: activitySink
