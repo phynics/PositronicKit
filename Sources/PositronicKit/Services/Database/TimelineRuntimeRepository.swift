@@ -318,6 +318,12 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
 
 /// A summary projection. It is deliberately independent from prompt history and can only point
 /// at already durable message IDs.
+///
+/// Host-managed: the runtime neither writes nor reads summaries. A host summary pipeline stores
+/// them through ``TimelineRuntimeRepository/saveSummary(_:)`` and reads them back with
+/// ``TimelineRuntimeRepository/fetchSummaries(for:)``. The
+/// ``AgentContextSnapshot/primaryTimelineSummary`` prompt section is supplied by the Agent context
+/// source, not derived from these rows.
 public struct TimelineSummary: Codable, Equatable, Hashable, Sendable {
     public let id: UUID
     public let timelineID: UUID
