@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Migrate package-internal TurnEngine calls to TurnExecutionRequest.
+"""Enforce the TurnExecutionRequest seam for package-internal TurnEngine calls.
 
-The rewrite is deliberately narrow: it only touches the three TurnEngine behavioral test files and
-only calls on variables named `engine` or `reloadEngine`. Run with `--check` to enforce that no
-flattened calls remain.
+The check is deliberately narrow: it audits the three TurnEngine behavioral test files, calls on
+variables named `engine` or `reloadEngine`, and the flattened source seams in `TurnEngine`,
+`TurnPreparation`, `TurnEngine+Handles`, and `PKRuntime`. Run with `--check` to fail on flattened
+calls.
 """
 
 from __future__ import annotations

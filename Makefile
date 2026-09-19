@@ -62,11 +62,11 @@ help:
 	@echo "  make verify-examples       Build and run the PositronicKitExamples executable"
 	@echo "  make verify-pktestsupport  Build PKTestSupport and an ordinary-import consumer in release mode"
 	@echo "  make verify-public-consumers  Compile ordinary imports for every public library product"
-	@echo "  make verify-public-api    Compare public Swift symbols with the reviewed Next / v5 baseline"
+	@echo "  make verify-public-api    Compare public Swift symbols with the reviewed Next baseline"
 	@echo "  make update-public-api-baseline  Record an intentionally reviewed public API change"
 	@echo "  make verify-release VERSION=x.y.z  Check local tag and release artifacts agree"
 	@echo "  make sbom                  Generate the CycloneDX release SBOM (VERSION=x.y.z names it)"
-	@echo "  make verify-dependency-direction  Check the v4 target dependency boundaries"
+	@echo "  make verify-dependency-direction  Check the target dependency boundaries"
 	@echo "  make verify-domain-vocabulary  Check the Timeline/Turn/Agent domain vocabulary"
 	@echo "  make verify-documentation  Check docs catalog, navigation, links, pins, products, and vocabulary"
 	@echo "  make verify-doc-snippets  Type-check every Swift fenced block under docs/"
@@ -136,7 +136,7 @@ verify-diagnose-scan:
 	@python3 Scripts/check-diagnose-usage.py
 
 verify-runtime-architecture:
-	@python3 Scripts/migrate-turn-execution-request.py --check
+	@python3 Scripts/check-turn-execution-request.py --check
 	@python3 Scripts/check-workspace-tool-dispatch.py
 
 # Preflight: report the Swift and container runtime prerequisites for the current platform.
@@ -285,7 +285,7 @@ verify-agent-harness:
 	@bash Tests/Scripts/test_fast_test.sh
 	@python3 -B Tests/Scripts/provider_capability_matrix_test.py
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
-	@python3 -B Tests/Scripts/migrate_turn_execution_request_test.py
+	@python3 -B Tests/Scripts/check_turn_execution_request_test.py
 	@python3 -B Tests/Scripts/check_workspace_tool_dispatch_test.py
 	@python3 -B Tests/Scripts/validate_documentation_test.py
 	@python3 -B Tests/Scripts/check_documentation_currency_test.py

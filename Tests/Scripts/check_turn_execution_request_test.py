@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed tests for Scripts/migrate-turn-execution-request.py.
+"""Fail-closed tests for Scripts/check-turn-execution-request.py.
 
 The script resolves its repository from its own location, so each case copies
 it into a synthetic fixture tree and asserts `--check` exits non-zero on a
@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "Scripts/migrate-turn-execution-request.py"
+SCRIPT = ROOT / "Scripts/check-turn-execution-request.py"
 
 TEST_FILES = (
     "Tests/PKProviderIntegrationTests/Turns/TurnEngineTests.swift",
@@ -97,4 +97,4 @@ if __name__ == "__main__":
     ]
     for test in tests:
         test()
-    print(f"migrate turn execution request script tests passed ({len(tests)} tests)")
+    print(f"check turn execution request script tests passed ({len(tests)} tests)")
