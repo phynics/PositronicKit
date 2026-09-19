@@ -17885,16 +17885,6 @@
       "declaration": "let workspaceID: UUID?"
     },
     {
-      "precise": "s:13PositronicKit17RuntimeToolResultV12errorMessageSSSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "RuntimeToolResult",
-        "errorMessage"
-      ],
-      "declaration": "let errorMessage: String?"
-    },
-    {
       "precise": "s:13PositronicKit17RuntimeToolResultV12isSuccessfulSbvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -17925,14 +17915,14 @@
       "declaration": "let id: UUID"
     },
     {
-      "precise": "s:13PositronicKit17RuntimeToolResultV2id6turnID08timelineH008toolCallH06output12isSuccessful12errorMessage09workspaceH00Q7Routing9createdAtAC10Foundation4UUIDV_A2PS2SSbSSSgAPSg11PKContracts09WorkspacedR0OSgAN4DateVtcfc",
+      "precise": "s:13PositronicKit17RuntimeToolResultV2id6turnID08timelineH008toolCallH06output12isSuccessful09workspaceH00O7Routing9createdAtAC10Foundation4UUIDV_A2OS2SSbAOSg11PKContracts09WorkspacedP0OSgAM4DateVtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "RuntimeToolResult",
-        "init(id:turnID:timelineID:toolCallID:output:isSuccessful:errorMessage:workspaceID:workspaceRouting:createdAt:)"
+        "init(id:turnID:timelineID:toolCallID:output:isSuccessful:workspaceID:workspaceRouting:createdAt:)"
       ],
-      "declaration": "init(id: UUID = UUID(), turnID: UUID, timelineID: UUID, toolCallID: String, output: String, isSuccessful: Bool = true, errorMessage: String? = nil, workspaceID: UUID? = nil, workspaceRouting: WorkspaceToolRouting? = nil, createdAt: Date = Date())"
+      "declaration": "init(id: UUID = UUID(), turnID: UUID, timelineID: UUID, toolCallID: String, output: String, isSuccessful: Bool = true, workspaceID: UUID? = nil, workspaceRouting: WorkspaceToolRouting? = nil, createdAt: Date = Date())"
     },
     {
       "precise": "s:13PositronicKit17RuntimeToolResultV4fromACs7Decoder_p_tKcfc",
@@ -53116,12 +53106,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolResultV12errorMessageSSSgvp",
-      "target": "s:13PositronicKit17RuntimeToolResultV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit17RuntimeToolResultV12isSuccessfulSbvp",
       "target": "s:13PositronicKit17RuntimeToolResultV"
     },
@@ -53140,7 +53124,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolResultV2id6turnID08timelineH008toolCallH06output12isSuccessful12errorMessage09workspaceH00Q7Routing9createdAtAC10Foundation4UUIDV_A2PS2SSbSSSgAPSg11PKContracts09WorkspacedR0OSgAN4DateVtcfc",
+      "source": "s:13PositronicKit17RuntimeToolResultV2id6turnID08timelineH008toolCallH06output12isSuccessful09workspaceH00O7Routing9createdAtAC10Foundation4UUIDV_A2OS2SSbAOSg11PKContracts09WorkspacedP0OSgAM4DateVtcfc",
       "target": "s:13PositronicKit17RuntimeToolResultV"
     },
     {
