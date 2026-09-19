@@ -77,6 +77,19 @@ jobs:
           mkdir -p .build
           make verify-linux-agent 2>&1 | tee .build/linux-verify.log
 
+      # TEMPORARY (PR #222): produce the Linux public API baseline so it is
+      # generated on Linux, as the repository standard requires. Remove this
+      # step after the baseline is committed.
+      - name: Generate Linux API baseline
+        if: always()
+        run: make update-public-api-baseline
+      - name: Upload Linux API baseline
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-api-baseline
+          path: api/6.0-public-api-linux.json
+
       - name: Publish Linux test log
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
