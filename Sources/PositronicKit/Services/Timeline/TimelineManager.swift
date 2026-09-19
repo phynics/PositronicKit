@@ -102,9 +102,9 @@ actor TimelineManager {
     /// Persists a workspace reference into the store this manager validates,
     /// so an import followed by `attachWorkspace(_:to:)` succeeds.
     ///
-    /// Hosts that construct their runtime through the `PKRuntime` facade
-    /// (whose stores are not injectable) use this to import advertised
-    /// workspace references; it runs on the actor, so it is Sendable-safe.
+    /// Package-internal, and reachable only from tests: the facade creates workspaces through
+    /// ``WorkspaceCapability``, so this serves test arrangements that need a store row before
+    /// attachment.
     func importWorkspace(_ reference: WorkspaceReference) async throws {
         try await workspaceStore.saveWorkspace(reference)
     }
