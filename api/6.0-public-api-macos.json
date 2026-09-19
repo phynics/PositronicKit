@@ -19673,36 +19673,6 @@
       "declaration": "struct LLMGenerationRequest"
     },
     {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV10workspacesSay11PKContracts18WorkspaceReferenceVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "workspaces"
-      ],
-      "declaration": "let workspaces: [WorkspaceReference]"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV11chatHistorySay11PKContracts7MessageVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "chatHistory"
-      ],
-      "declaration": "let chatHistory: [Message]"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV16primaryWorkspace11PKContracts0F9ReferenceVSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "primaryWorkspace"
-      ],
-      "declaration": "let primaryWorkspace: WorkspaceReference?"
-    },
-    {
       "precise": "s:13PositronicKit20LLMGenerationRequestV16structuredOutput11PKContracts010StructuredfD0OSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -19713,54 +19683,24 @@
       "declaration": "let structuredOutput: StructuredOutputRequest?"
     },
     {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV17requestOriginNameSSSgvp",
+      "precise": "s:13PositronicKit20LLMGenerationRequestV6prompt16structuredOutput9modelTierAcA09LLMPromptD0V_11PKContracts010StructuredgD0OSgAA05ModelI0Otcfc",
       "module": "PositronicKit",
-      "kind": "swift.property",
+      "kind": "swift.init",
       "path": [
         "LLMGenerationRequest",
-        "requestOriginName"
+        "init(prompt:structuredOutput:modelTier:)"
       ],
-      "declaration": "let requestOriginName: String?"
+      "declaration": "init(prompt: LLMPromptRequest, structuredOutput: StructuredOutputRequest? = nil, modelTier: ModelTier = .primary)"
     },
     {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV18systemInstructionsSSSgvp",
+      "precise": "s:13PositronicKit20LLMGenerationRequestV6promptAA09LLMPromptD0Vvp",
       "module": "PositronicKit",
       "kind": "swift.property",
       "path": [
         "LLMGenerationRequest",
-        "systemInstructions"
+        "prompt"
       ],
-      "declaration": "let systemInstructions: String?"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV20contextContributionsSayAA23TurnContextContributionVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "contextContributions"
-      ],
-      "declaration": "let contextContributions: [TurnContextContribution]"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV20generationParameters11PKContracts010GenerationF0VSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "generationParameters"
-      ],
-      "declaration": "let generationParameters: GenerationParameters?"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV5toolsSay11PKContracts7AnyToolVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "tools"
-      ],
-      "declaration": "let tools: [AnyTool]"
+      "declaration": "let prompt: LLMPromptRequest"
     },
     {
       "precise": "s:13PositronicKit20LLMGenerationRequestV9modelTierAA05ModelF0Ovp",
@@ -19771,26 +19711,6 @@
         "modelTier"
       ],
       "declaration": "let modelTier: ModelTier"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV9userQuery20contextContributions11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName18systemInstructions16structuredOutput20generationParameters9modelTierACSS_SayAA23TurnContextContributionVGSay11PKContracts7MessageVGSayAR7AnyToolVGSayAR0N9ReferenceVGAZSgSSSgA1_AR010StructureduD0OSgAR010GenerationW0VSgAA05ModelY0Otcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "LLMGenerationRequest",
-        "init(userQuery:contextContributions:chatHistory:tools:workspaces:primaryWorkspace:requestOriginName:systemInstructions:structuredOutput:generationParameters:modelTier:)"
-      ],
-      "declaration": "init(userQuery: String, contextContributions: [TurnContextContribution] = [], chatHistory: [Message], tools: [AnyTool], workspaces: [WorkspaceReference], primaryWorkspace: WorkspaceReference?, requestOriginName: String?, systemInstructions: String? = nil, structuredOutput: StructuredOutputRequest? = nil, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary)"
-    },
-    {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV9userQuerySSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "userQuery"
-      ],
-      "declaration": "let userQuery: String"
     },
     {
       "precise": "s:13PositronicKit20NullWorkspaceCreatorV",
@@ -54120,73 +54040,25 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV10workspacesSay11PKContracts18WorkspaceReferenceVGvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV11chatHistorySay11PKContracts7MessageVGvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV16primaryWorkspace11PKContracts0F9ReferenceVSgvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit20LLMGenerationRequestV16structuredOutput11PKContracts010StructuredfD0OSgvp",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV17requestOriginNameSSSgvp",
+      "source": "s:13PositronicKit20LLMGenerationRequestV6prompt16structuredOutput9modelTierAcA09LLMPromptD0V_11PKContracts010StructuredgD0OSgAA05ModelI0Otcfc",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV18systemInstructionsSSSgvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV20contextContributionsSayAA23TurnContextContributionVGvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV20generationParameters11PKContracts010GenerationF0VSgvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV5toolsSay11PKContracts7AnyToolVGvp",
+      "source": "s:13PositronicKit20LLMGenerationRequestV6promptAA09LLMPromptD0Vvp",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit20LLMGenerationRequestV9modelTierAA05ModelF0Ovp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV9userQuery20contextContributions11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName18systemInstructions16structuredOutput20generationParameters9modelTierACSS_SayAA23TurnContextContributionVGSay11PKContracts7MessageVGSayAR7AnyToolVGSayAR0N9ReferenceVGAZSgSSSgA1_AR010StructureduD0OSgAR010GenerationW0VSgAA05ModelY0Otcfc",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV9userQuerySSvp",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
     {
