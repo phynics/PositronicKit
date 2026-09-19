@@ -88,10 +88,19 @@ public final class PKRuntime: Sendable {
     var defaultGenerationParameters: GenerationParameters? { dependencies.policy.generationParameters }
 
     /// Consumer-facing capability values. These keep orchestration managers behind the facade.
-    public var timelines: TimelineCapability { TimelineCapability(kit: self) }
-    public var agents: AgentCapability { AgentCapability(kit: self) }
-    public var workspaces: WorkspaceCapability { WorkspaceCapability(kit: self) }
-    public var model: ModelInferenceCapability { ModelInferenceCapability(kit: self) }
+    public var timelines: TimelineCapability {
+        TimelineCapability(
+            timelineManager: timelineManager,
+            agentManager: agentManager,
+            messageStore: messageStore,
+            turnEngine: turnEngine
+        )
+    }
+    public var agents: AgentCapability { AgentCapability(agentManager: agentManager) }
+    public var workspaces: WorkspaceCapability { WorkspaceCapability(workspaceCatalog: workspaceCatalog) }
+    public var model: ModelInferenceCapability {
+        ModelInferenceCapability(languageModelClient: languageModelClient, policy: dependencies.policy)
+    }
     
     // MARK: - Init
     /// The designated initializer. Accepts a fully-resolved ``RuntimeDependencies`` bundle and
