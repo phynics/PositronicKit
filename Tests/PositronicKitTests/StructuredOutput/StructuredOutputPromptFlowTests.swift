@@ -17,14 +17,16 @@ struct StructuredOutputPromptFlowTests {
         )
 
         let request = LLMGenerationRequest(
-            userQuery: "Extract tags",
-            contextContributions: [try TurnContextContribution(namespace: "test", key: "note", text: "Prompt contribution")],
-            chatHistory: [Message(content: "Earlier question", role: .user)],
-            tools: [],
-            workspaces: [],
-            primaryWorkspace: nil,
-            requestOriginName: nil,
-            systemInstructions: "System rules",
+            prompt: LLMPromptRequest(
+                userQuery: "Extract tags",
+                contextContributions: [try TurnContextContribution(namespace: "test", key: "note", text: "Prompt contribution")],
+                chatHistory: [Message(content: "Earlier question", role: .user)],
+                tools: [],
+                workspaces: [],
+                primaryWorkspace: nil,
+                requestOriginName: nil,
+                systemInstructions: "System rules"
+            ),
             structuredOutput: .jsonObject
         )
 
@@ -55,13 +57,15 @@ struct StructuredOutputPromptFlowTests {
         try await service.updateConfiguration(.fixture(activeProvider: .ollama))
 
         let request = LLMGenerationRequest(
-            userQuery: "Extract tags",
-            chatHistory: [],
-            tools: [],
-            workspaces: [],
-            primaryWorkspace: nil,
-            requestOriginName: nil,
-            systemInstructions: "System rules",
+            prompt: LLMPromptRequest(
+                userQuery: "Extract tags",
+                chatHistory: [],
+                tools: [],
+                workspaces: [],
+                primaryWorkspace: nil,
+                requestOriginName: nil,
+                systemInstructions: "System rules"
+            ),
             structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
         )
 
@@ -106,13 +110,15 @@ struct StructuredOutputPromptFlowTests {
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
 
         let request = LLMGenerationRequest(
-            userQuery: "Extract tags",
-            chatHistory: [],
-            tools: [],
-            workspaces: [],
-            primaryWorkspace: nil,
-            requestOriginName: nil,
-            systemInstructions: "System rules",
+            prompt: LLMPromptRequest(
+                userQuery: "Extract tags",
+                chatHistory: [],
+                tools: [],
+                workspaces: [],
+                primaryWorkspace: nil,
+                requestOriginName: nil,
+                systemInstructions: "System rules"
+            ),
             structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
         )
 
@@ -143,13 +149,15 @@ struct StructuredOutputPromptFlowTests {
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .openAICompatible))
 
         let request = LLMGenerationRequest(
-            userQuery: "Extract tags",
-            chatHistory: [],
-            tools: [],
-            workspaces: [],
-            primaryWorkspace: nil,
-            requestOriginName: nil,
-            systemInstructions: "System rules",
+            prompt: LLMPromptRequest(
+                userQuery: "Extract tags",
+                chatHistory: [],
+                tools: [],
+                workspaces: [],
+                primaryWorkspace: nil,
+                requestOriginName: nil,
+                systemInstructions: "System rules"
+            ),
             structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
         )
 

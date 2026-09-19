@@ -40,6 +40,11 @@ for tagged releases beginning with `1.0.0`.
   store's classification; `isMixed`, `ephemeralStoreNames`, and `mixedDurabilityWarning` are
   unchanged.
 
+- **`LLMGenerationRequest` composes its prompt:** the high-level generation request now carries
+  `prompt: LLMPromptRequest`, `structuredOutput`, and `modelTier` instead of redeclaring the
+  prompt fields. Build the prompt request once and pass it in; there is no compatibility
+  initializer.
+
 ## [6.0.0] - 2026-09-18
 
 ### Breaking

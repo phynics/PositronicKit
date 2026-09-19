@@ -10,14 +10,14 @@ struct UnconfiguredLLMServiceTests {
     let service = UnconfiguredLLMService()
 
     private var request: LLMGenerationRequest {
-        LLMGenerationRequest(
+        LLMGenerationRequest(prompt: LLMPromptRequest(
             userQuery: "hello",
             chatHistory: [],
             tools: [],
             workspaces: [],
             primaryWorkspace: nil,
             requestOriginName: nil
-        )
+        ))
     }
 
     @Test("generationStream terminates immediately with notConfigured")

@@ -576,7 +576,7 @@ public final class MockLLMService: LLMStreamClient, LLMConfigStore, HealthChecka
             tools: nil,
             toolChoice: nil,
             responseFormat: nil,
-            generationParameters: request.generationParameters,
+            generationParameters: request.prompt.generationParameters,
             modelTier: request.modelTier
         )
         return LLMStreamResult(stream: stream, rawPrompt: "mock prompt")
