@@ -13553,14 +13553,46 @@
       "declaration": "enum TimelineRuntimeRepositoryConformanceSuite"
     },
     {
-      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run04makeE0y13PositronicKit0cdE0_pyYaKYCXE_tYaKFZ",
+      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "TimelineRuntimeRepositoryConformanceSuite",
+        "SummaryStorage"
+      ],
+      "declaration": "enum SummaryStorage"
+    },
+    {
+      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO12notSupportedyA2EmF",
+      "module": "PKTestSupport",
+      "kind": "swift.enum.case",
+      "path": [
+        "TimelineRuntimeRepositoryConformanceSuite",
+        "SummaryStorage",
+        "notSupported"
+      ],
+      "declaration": "case notSupported"
+    },
+    {
+      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO8requiredyA2EmF",
+      "module": "PKTestSupport",
+      "kind": "swift.enum.case",
+      "path": [
+        "TimelineRuntimeRepositoryConformanceSuite",
+        "SummaryStorage",
+        "required"
+      ],
+      "declaration": "case required"
+    },
+    {
+      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run14summaryStorage04makeE0yAC07SummaryJ0O_13PositronicKit0cdE0_pyYaKYCXEtYaKFZ",
       "module": "PKTestSupport",
       "kind": "swift.type.method",
       "path": [
         "TimelineRuntimeRepositoryConformanceSuite",
-        "run(makeRepository:)"
+        "run(summaryStorage:makeRepository:)"
       ],
-      "declaration": "static func run(makeRepository: () async throws -> any TimelineRuntimeRepository) async throws"
+      "declaration": "static func run(summaryStorage: SummaryStorage = .required, makeRepository: () async throws -> any TimelineRuntimeRepository) async throws"
     },
     {
       "precise": "s:13PKTestSupport9SeededRNGV",
@@ -23166,6 +23198,17 @@
         "durability(of:)"
       ],
       "declaration": "func durability(of id: Store.ID) -> StoreDurability"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV15ephemeralStoresSayAE5StoreV2IDOGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "ephemeralStores"
+      ],
+      "declaration": "var ephemeralStores: [Store.ID] { get }"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV19ephemeralStoreNamesSaySSGvp",
@@ -35538,6 +35581,34 @@
       "module": "PKTestSupport",
       "kind": "conformsTo",
       "source": "s:13PKTestSupport28MockTimelinePersistenceStoreC",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -50723,7 +50794,25 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run04makeE0y13PositronicKit0cdE0_pyYaKYCXE_tYaKFZ",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
+      "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO12notSupportedyA2EmF",
+      "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO8requiredyA2EmF",
+      "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run14summaryStorage04makeE0yAC07SummaryJ0O_13PositronicKit0cdE0_pyYaKYCXEtYaKFZ",
       "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO"
     },
     {
@@ -56052,6 +56141,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV10durability2ofAC05StoreD0OAE0H0V2IDO_tF",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV15ephemeralStoresSayAE5StoreV2IDOGvp",
       "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
     },
     {

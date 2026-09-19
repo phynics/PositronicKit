@@ -38,8 +38,9 @@ for tagged releases beginning with `1.0.0`.
   `stores: [DurabilityReport.Store]`, each carrying a closed `Store.ID` (the six persistence
   stores) and its `StoreDurability`, instead of a separate named property per store. Reports are
   produced only by `validateDurability()`, so the list is always complete and in declaration
-  order; `durability(of:)` returns one store's classification directly. `isMixed`,
-  `ephemeralStoreNames`, and `mixedDurabilityWarning` are unchanged.
+  order; `durability(of:)` returns one store's classification directly, and `ephemeralStores`
+  returns the typed classifications with `ephemeralStoreNames` deriving the labels. `isMixed` and
+  `mixedDurabilityWarning` are unchanged.
 
 - **`MemorySavePolicy` removed:** the runtime never saved memories, and the enum traveled through
   no production API. Per ADR 0006, semantic and retrieval persistence stays outside the package
@@ -53,7 +54,10 @@ for tagged releases beginning with `1.0.0`.
 - **Timeline summary storage moves to `TimelineSummaryStore`:** `saveSummary` and `fetchSummaries`
   are no longer requirements of `TimelineRuntimeRepository`. A host summary pipeline conforms its
   own store to the new ``TimelineSummaryStore`` protocol; repository conformers no longer
-  implement storage the runtime never reads.
+  implement storage the runtime never reads. `TimelineRuntimeRepositoryConformanceSuite.run` takes
+  `summaryStorage:` (default `.required`), so an adapter that omits the capability fails the
+  summary scenarios instead of skipping them; adapters that store no summaries pass
+  `.notSupported`.
 
 - **`LLMGenerationRequest` composes its prompt:** the high-level generation request now carries
   `prompt: LLMPromptRequest`, `structuredOutput`, and `modelTier` instead of redeclaring the

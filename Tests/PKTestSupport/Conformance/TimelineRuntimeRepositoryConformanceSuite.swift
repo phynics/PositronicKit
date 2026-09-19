@@ -4,14 +4,28 @@ internal import Testing
 
 /// Runs the documented behavioral checks for a ``TimelineRuntimeRepository`` implementation.
 public enum TimelineRuntimeRepositoryConformanceSuite {
+    /// Whether the adapter under test stores Timeline summary projections.
+    public enum SummaryStorage: Sendable {
+        /// The adapter implements ``TimelineSummaryStore``. The runner fails the summary
+        /// scenarios when the adapter does not conform, so the capability cannot be skipped by
+        /// omission.
+        case required
+        /// The adapter stores no summaries. The caller states this explicitly, so the summary
+        /// scenarios read as a decision rather than a silent skip.
+        case notSupported
+    }
+
     /// Runs the repository checks against a fresh repository for every scenario.
     ///
-    /// - Parameter makeRepository: A factory that returns an isolated repository for one scenario.
+    /// - Parameters:
+    ///   - summaryStorage: Whether the adapter implements ``TimelineSummaryStore``.
+    ///   - makeRepository: A factory that returns an isolated repository for one scenario.
     ///
     /// The suite records failures through Swift Testing expectations. It does not declare test
     /// functions, so the caller controls test discovery and can invoke it from its own test
     /// target.
     public static func run(
+        summaryStorage: SummaryStorage = .required,
         makeRepository: () async throws -> any TimelineRuntimeRepository
     ) async throws {
         try await runScenario("timeline.admission.input") {
@@ -39,7 +53,10 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
             try await commitsToolResultAndMessage(makeRepository: makeRepository)
         }
         try await runScenario("timeline.history.append-only") {
-            try await preservesAppendOnlyHistory(makeRepository: makeRepository)
+            try await preservesAppendOnlyHistory(
+                makeRepository: makeRepository,
+                summaryStorage: summaryStorage
+            )
         }
         try await runScenario("timeline.history.ordering") {
             try await ordersHistoryByTimestampAndAppendOrder(makeRepository: makeRepository)
@@ -438,7 +455,8 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
     }
 
     private static func preservesAppendOnlyHistory(
-        makeRepository: () async throws -> any TimelineRuntimeRepository
+        makeRepository: () async throws -> any TimelineRuntimeRepository,
+        summaryStorage: SummaryStorage
     ) async throws {
         let repository = try await makeRepository()
         let timelineID = UUID()
@@ -462,9 +480,14 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
             try #require(error == .appendOnlyViolation(messageID: messageID), "timeline.history.append-only.error")
         }
 
-        // Summary projections are an optional capability (TimelineSummaryStore): exercise them
-        // when the adapter stores them, and skip the scenario when it does not.
-        if let summaryStore = repository as? any TimelineSummaryStore {
+        // Summary projections are an optional capability (TimelineSummaryStore). A `.required`
+        // adapter that does not conform fails here instead of skipping silently; a
+        // `.notSupported` adapter runs the remaining history checks without them.
+        let summaryStore = repository as? any TimelineSummaryStore
+        if summaryStorage == .required, summaryStore == nil {
+            Issue.record("timeline.history.summary-store.must-conform")
+        }
+        if let summaryStore {
             let summary = TimelineSummary(timelineID: timelineID, sourceMessageIDs: [messageID], text: "hello", createdAt: fixedDate(12), updatedAt: fixedDate(12))
             try await summaryStore.saveSummary(summary)
             try #require(try await summaryStore.fetchSummaries(for: timelineID) == [summary], "timeline.history.summary")
@@ -495,7 +518,7 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
 
         try await repository.deleteTimeline(id: timelineID)
         try #require(try await repository.fetchMessages(for: timelineID).isEmpty, "timeline.history.delete-cascade.messages")
-        if let summaryStore = repository as? any TimelineSummaryStore {
+        if let summaryStore {
             try #require(try await summaryStore.fetchSummaries(for: timelineID).isEmpty, "timeline.history.delete-cascade.summaries")
         }
     }

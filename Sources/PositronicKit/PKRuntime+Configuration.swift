@@ -205,6 +205,11 @@ public extension PKRuntime {
         /// Every classified store, in ``PersistenceConfiguration`` declaration order.
         public let stores: [Store]
 
+        /// Creates a report from a complete, ordered classification of every store.
+        ///
+        /// ``PersistenceConfiguration/validateDurability()`` is the only producer. Adding another
+        /// producer means auditing ``durability(of:)``, which requires an entry for every
+        /// ``Store/ID``.
         init(stores: [Store]) {
             self.stores = stores
         }
@@ -226,9 +231,14 @@ public extension PKRuntime {
                 && stores.contains { $0.durability == .ephemeral }
         }
 
+        /// The stores classified as `.ephemeral`, in declaration order.
+        public var ephemeralStores: [Store.ID] {
+            stores.filter { $0.durability == .ephemeral }.map(\.id)
+        }
+
         /// The label of each store classified as `.ephemeral`, in declaration order.
         public var ephemeralStoreNames: [String] {
-            stores.filter { $0.durability == .ephemeral }.map(\.id.rawValue)
+            ephemeralStores.map(\.rawValue)
         }
 
         /// The warning message logged on mixed durability, or `nil` when the configuration
