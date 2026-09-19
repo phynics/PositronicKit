@@ -52,14 +52,6 @@ public final class PKRuntime: Sendable {
     // MARK: - Language Model Client
     var languageModelClient: any LLMStreamClient { dependencies.languageModel }
 
-    /// Whether the injected language model currently has usable provider configuration.
-    ///
-    /// This reads the model's live readiness without exposing provider configuration,
-    /// credentials, or mutation APIs through the facade.
-    var isLanguageModelConfigured: Bool {
-        get async { await languageModelClient.isConfigured }
-    }
-
     // MARK: - External Stores
     /// Durable storage for messages and timelines
     var messageStore: any TimelineMessageStoreProtocol { dependencies.runtimeRepository }
@@ -99,7 +91,12 @@ public final class PKRuntime: Sendable {
     public var agents: AgentCapability { AgentCapability(agentManager: agentManager) }
     public var workspaces: WorkspaceCapability { WorkspaceCapability(workspaceCatalog: workspaceCatalog) }
     public var model: ModelInferenceCapability {
-        ModelInferenceCapability(languageModelClient: languageModelClient, policy: dependencies.policy)
+        ModelInferenceCapability(
+            languageModelClient: languageModelClient,
+            streamTimeout: dependencies.policy.streamTimeout,
+            generationParameters: dependencies.policy.generationParameters,
+            clock: dependencies.policy.clock
+        )
     }
     
     // MARK: - Init

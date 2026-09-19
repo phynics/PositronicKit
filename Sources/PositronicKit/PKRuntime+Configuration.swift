@@ -209,9 +209,15 @@ public extension PKRuntime {
             self.stores = stores
         }
 
-        /// The classification of the given store, or `nil` when the report has no entry for it.
-        public func durability(of id: Store.ID) -> StoreDurability? {
-            stores.first { $0.id == id }?.durability
+        /// The classification of the given store.
+        ///
+        /// ``PersistenceConfiguration/validateDurability()`` is the only producer, so every
+        /// ``Store/ID`` has exactly one entry.
+        public func durability(of id: Store.ID) -> StoreDurability {
+            guard let match = stores.first(where: { $0.id == id }) else {
+                preconditionFailure("DurabilityReport is missing \(id.rawValue)")
+            }
+            return match.durability
         }
 
         /// Whether the configuration mixes durable and ephemeral stores.

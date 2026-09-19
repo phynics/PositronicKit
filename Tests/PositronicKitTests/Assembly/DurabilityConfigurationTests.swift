@@ -11,10 +11,7 @@ struct DurabilityConfigurationTests {
         let report = PKRuntime.PersistenceConfiguration.inMemory().validateDurability()
         #expect(!report.isMixed)
         #expect(report.ephemeralStoreNames.count == 6)
-        #expect(report.stores.map(\.id.rawValue) == [
-            "runtimeRepository", "workspacePersistence", "workspaceBindingRepository",
-            "toolPersistence", "agentStore", "requestOriginStore",
-        ])
+        #expect(report.stores.map(\.id) == PKRuntime.DurabilityReport.Store.ID.allCases)
         #expect(report.stores.allSatisfy { $0.durability == .ephemeral })
     }
 

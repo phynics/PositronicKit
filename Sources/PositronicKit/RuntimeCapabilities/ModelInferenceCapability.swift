@@ -22,11 +22,20 @@ public enum ModelHealthError: PKError, Sendable, Equatable {
 /// Raw, Timeline-free model inference entry points exposed by ``PKRuntime``.
 public struct ModelInferenceCapability: Sendable {
     private let languageModelClient: any LLMStreamClient
-    private let policy: RuntimePolicy
+    private let streamTimeout: TimeInterval
+    private let generationParameters: GenerationParameters?
+    private let clock: any RuntimeClock
 
-    init(languageModelClient: any LLMStreamClient, policy: RuntimePolicy) {
+    init(
+        languageModelClient: any LLMStreamClient,
+        streamTimeout: TimeInterval,
+        generationParameters: GenerationParameters?,
+        clock: any RuntimeClock
+    ) {
         self.languageModelClient = languageModelClient
-        self.policy = policy
+        self.streamTimeout = streamTimeout
+        self.generationParameters = generationParameters
+        self.clock = clock
     }
 
     public var isConfigured: Bool {
@@ -208,7 +217,7 @@ extension ModelInferenceCapability {
     /// override it: the same `RuntimeConfiguration.streamTimeout` the Turn pipeline uses, so
     /// one-shot generation and full Turns share a single configured value.
     private var configuredStreamTimeout: TimeInterval {
-        policy.streamTimeout
+        streamTimeout
     }
 
     /// Generates a response and returns provider terminal metadata without creating or updating a timeline.
@@ -269,9 +278,9 @@ extension ModelInferenceCapability {
         try await languageModelClient.sendStructuredMessage(
             prompt,
             structuredOutput: structuredOutput,
-            generationParameters: generationParameters ?? policy.generationParameters,
+            generationParameters: generationParameters ?? self.generationParameters,
             idleTimeout: idleTimeout ?? configuredStreamTimeout,
-            clock: policy.clock,
+            clock: clock,
             modelTier: .primary
         )
     }
@@ -283,8 +292,8 @@ extension ModelInferenceCapability {
         idleTimeout: TimeInterval
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let client = languageModelClient
-        let defaultGenerationParameters = policy.generationParameters
-        let clock = policy.clock
+        let defaultGenerationParameters = self.generationParameters
+        let clock = self.clock
         return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
