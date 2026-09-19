@@ -40,6 +40,8 @@ public struct AgentContextMemory: Codable, Equatable, Hashable, Sendable, Identi
     public let id: UUID
     public let content: String
     public let source: String?
+    /// Host-supplied ranking metadata. The runtime carries it into the captured snapshot without
+    /// ordering or filtering on it.
     public let relevance: Double?
 
     public init(
@@ -83,6 +85,8 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
     public let resources: [AgentContextResource]
     public let diagnostics: [TurnDiagnostic]
     public let primaryTimelineSummary: String?
+    /// Host-supplied revision marker for this snapshot. The runtime persists and forwards it
+    /// without comparing revisions across Turns.
     public let revision: String?
 
     private enum CodingKeys: String, CodingKey {
