@@ -462,23 +462,27 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
             try #require(error == .appendOnlyViolation(messageID: messageID), "timeline.history.append-only.error")
         }
 
-        let summary = TimelineSummary(timelineID: timelineID, sourceMessageIDs: [messageID], text: "hello", createdAt: fixedDate(12), updatedAt: fixedDate(12))
-        try await repository.saveSummary(summary)
-        try #require(try await repository.fetchSummaries(for: timelineID) == [summary], "timeline.history.summary")
+        // Summary projections are an optional capability (TimelineSummaryStore): exercise them
+        // when the adapter stores them, and skip the scenario when it does not.
+        if let summaryStore = repository as? any TimelineSummaryStore {
+            let summary = TimelineSummary(timelineID: timelineID, sourceMessageIDs: [messageID], text: "hello", createdAt: fixedDate(12), updatedAt: fixedDate(12))
+            try await summaryStore.saveSummary(summary)
+            try #require(try await summaryStore.fetchSummaries(for: timelineID) == [summary], "timeline.history.summary")
 
-        let missingSourceID = UUID()
-        do {
-            try await repository.saveSummary(TimelineSummary(
-                timelineID: timelineID,
-                sourceMessageIDs: [missingSourceID],
-                text: "missing",
-                createdAt: fixedDate(13),
-                updatedAt: fixedDate(13)
-            ))
-            Issue.record("timeline.history.summary-missing-source.must-fail")
-            return
-        } catch let error as TimelineRuntimeRepositoryError {
-            try #require(error == .summarySourceMissing(messageID: missingSourceID), "timeline.history.summary-missing-source.error")
+            let missingSourceID = UUID()
+            do {
+                try await summaryStore.saveSummary(TimelineSummary(
+                    timelineID: timelineID,
+                    sourceMessageIDs: [missingSourceID],
+                    text: "missing",
+                    createdAt: fixedDate(13),
+                    updatedAt: fixedDate(13)
+                ))
+                Issue.record("timeline.history.summary-missing-source.must-fail")
+                return
+            } catch let error as TimelineRuntimeRepositoryError {
+                try #require(error == .summarySourceMissing(messageID: missingSourceID), "timeline.history.summary-missing-source.error")
+            }
         }
 
         do {
@@ -491,7 +495,9 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
 
         try await repository.deleteTimeline(id: timelineID)
         try #require(try await repository.fetchMessages(for: timelineID).isEmpty, "timeline.history.delete-cascade.messages")
-        try #require(try await repository.fetchSummaries(for: timelineID).isEmpty, "timeline.history.delete-cascade.summaries")
+        if let summaryStore = repository as? any TimelineSummaryStore {
+            try #require(try await summaryStore.fetchSummaries(for: timelineID).isEmpty, "timeline.history.delete-cascade.summaries")
+        }
     }
 
     private static func interruptsRetryableTurn(

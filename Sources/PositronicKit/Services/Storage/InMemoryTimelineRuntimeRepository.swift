@@ -7,7 +7,7 @@ import PKUtilities
 /// The actor gives tests and local hosts one serialization boundary with the same transition
 /// rules that a database-backed adapter must preserve. It is intentionally ephemeral; production
 /// adapters should implement the protocol against a durable transaction.
-public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, WorkspaceBindingRepository {
+public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, WorkspaceBindingRepository, TimelineSummaryStore {
     private struct ToolKey: Hashable {
         let turnID: UUID
         let toolCallID: String

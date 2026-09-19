@@ -22,7 +22,7 @@ import Synchronization
 /// Agent insert-or-replace and each tool-workspace mirror upsert are atomic; the two backing stores
 /// are not a cross-store transaction. Callback values are snapshotted while locked, then invoked
 /// after unlocking, so no mutex crosses an `await` or caller-provided code.
-public final class MockPersistenceService: TimelineRuntimeRepository, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentStoreProtocol, HealthCheckable {
+public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSummaryStore, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentStoreProtocol, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok
         var mockHealthDetails: [String: String]? = ["mock": "true"]

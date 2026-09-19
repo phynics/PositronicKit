@@ -38,8 +38,22 @@ for tagged releases beginning with `1.0.0`.
   `stores: [DurabilityReport.Store]`, each carrying a closed `Store.ID` (the six persistence
   stores) and its `StoreDurability`, instead of a separate named property per store. Reports are
   produced only by `validateDurability()`, so the list is always complete and in declaration
-  order; use `durability(of:)` to read one store. `isMixed`, `ephemeralStoreNames`, and
-  `mixedDurabilityWarning` are unchanged.
+  order; `durability(of:)` returns one store's classification directly. `isMixed`,
+  `ephemeralStoreNames`, and `mixedDurabilityWarning` are unchanged.
+
+- **`MemorySavePolicy` removed:** the runtime never saved memories, and the enum traveled through
+  no production API. Per ADR 0006, semantic and retrieval persistence stays outside the package
+  until a concrete consumer and persistence story exist; a host memory pipeline can own its own
+  save policy.
+
+- **`AgentContextSnapshot.revision` removed:** the runtime computed a revision hash into the
+  captured snapshot and then neither rendered nor persisted it. The snapshot now carries only the
+  values prompt assembly consumes.
+
+- **Timeline summary storage moves to `TimelineSummaryStore`:** `saveSummary` and `fetchSummaries`
+  are no longer requirements of `TimelineRuntimeRepository`. A host summary pipeline conforms its
+  own store to the new ``TimelineSummaryStore`` protocol; repository conformers no longer
+  implement storage the runtime never reads.
 
 - **`LLMGenerationRequest` composes its prompt:** the high-level generation request now carries
   `prompt: LLMPromptRequest`, `structuredOutput`, and `modelTier` instead of redeclaring the
