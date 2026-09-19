@@ -23287,59 +23287,15 @@
       "declaration": "var mixedDurabilityWarning: String? { get }"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV10agentStoreAC0gD0Ovp",
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV10durability2ofAC05StoreD0OSgSS_tF",
       "module": "PositronicKit",
-      "kind": "swift.property",
+      "kind": "swift.method",
       "path": [
         "PKRuntime",
         "DurabilityReport",
-        "agentStore"
+        "durability(of:)"
       ],
-      "declaration": "let agentStore: StoreDurability"
-    },
-    {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV15toolPersistenceAC05StoreD0Ovp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "PKRuntime",
-        "DurabilityReport",
-        "toolPersistence"
-      ],
-      "declaration": "let toolPersistence: StoreDurability"
-    },
-    {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV17runtimeRepository20workspacePersistence0h7BindingG004toolI010agentStore013requestOriginM0AeC0mD0O_A5Mtcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "PKRuntime",
-        "DurabilityReport",
-        "init(runtimeRepository:workspacePersistence:workspaceBindingRepository:toolPersistence:agentStore:requestOriginStore:)"
-      ],
-      "declaration": "init(runtimeRepository: StoreDurability, workspacePersistence: StoreDurability, workspaceBindingRepository: StoreDurability, toolPersistence: StoreDurability, agentStore: StoreDurability, requestOriginStore: StoreDurability)"
-    },
-    {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV17runtimeRepositoryAC05StoreD0Ovp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "PKRuntime",
-        "DurabilityReport",
-        "runtimeRepository"
-      ],
-      "declaration": "let runtimeRepository: StoreDurability"
-    },
-    {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV18requestOriginStoreAC0hD0Ovp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "PKRuntime",
-        "DurabilityReport",
-        "requestOriginStore"
-      ],
-      "declaration": "let requestOriginStore: StoreDurability"
+      "declaration": "func durability(of name: String) -> StoreDurability?"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV19ephemeralStoreNamesSaySSGvp",
@@ -23353,26 +23309,73 @@
       "declaration": "var ephemeralStoreNames: [String] { get }"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV20workspacePersistenceAC05StoreD0Ovp",
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV",
       "module": "PositronicKit",
-      "kind": "swift.property",
+      "kind": "swift.struct",
       "path": [
         "PKRuntime",
         "DurabilityReport",
-        "workspacePersistence"
+        "Store"
       ],
-      "declaration": "let workspacePersistence: StoreDurability"
+      "declaration": "struct Store"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV26workspaceBindingRepositoryAC05StoreD0Ovp",
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV10durabilityAC0fD0Ovp",
       "module": "PositronicKit",
       "kind": "swift.property",
       "path": [
         "PKRuntime",
         "DurabilityReport",
-        "workspaceBindingRepository"
+        "Store",
+        "durability"
       ],
-      "declaration": "let workspaceBindingRepository: StoreDurability"
+      "declaration": "let durability: StoreDurability"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV4name10durabilityAGSS_AC0fD0Otcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "Store",
+        "init(name:durability:)"
+      ],
+      "declaration": "init(name: String, durability: StoreDurability)"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV4nameSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "Store",
+        "name"
+      ],
+      "declaration": "let name: String"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV6storesAESayAE5StoreVG_tcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "init(stores:)"
+      ],
+      "declaration": "init(stores: [Store])"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV6storesSayAE5StoreVGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "PKRuntime",
+        "DurabilityReport",
+        "stores"
+      ],
+      "declaration": "let stores: [Store]"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV7isMixedSbvp",
@@ -39454,6 +39457,27 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -56100,31 +56124,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV10agentStoreAC0gD0Ovp",
-      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV15toolPersistenceAC05StoreD0Ovp",
-      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV17runtimeRepository20workspacePersistence0h7BindingG004toolI010agentStore013requestOriginM0AeC0mD0O_A5Mtcfc",
-      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV17runtimeRepositoryAC05StoreD0Ovp",
-      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV18requestOriginStoreAC0hD0Ovp",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV10durability2ofAC05StoreD0OSgSS_tF",
       "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
     },
     {
@@ -56136,13 +56136,37 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV20workspacePersistenceAC05StoreD0Ovp",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV",
       "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV26workspaceBindingRepositoryAC05StoreD0Ovp",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV10durabilityAC0fD0Ovp",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV4name10durabilityAGSS_AC0fD0Otcfc",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV4nameSSvp",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV6storesAESayAE5StoreVG_tcfc",
+      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV6storesSayAE5StoreVGvp",
       "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV"
     },
     {

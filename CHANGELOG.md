@@ -34,6 +34,12 @@ for tagged releases beginning with `1.0.0`.
   builder is removed; the internal `init(configuration:sharedRegistry:additionalStages:clock:)`
   already accepts pipeline stages. There is no compatibility alias.
 
+- **`DurabilityReport` is one list of per-store classifications:** the type stores
+  `stores: [DurabilityReport.Store]` instead of a separate named property per store, and its
+  six-parameter initializer is replaced by `init(stores:)`. Use `durability(of:)` to read one
+  store's classification; `isMixed`, `ephemeralStoreNames`, and `mixedDurabilityWarning` are
+  unchanged.
+
 ## [6.0.0] - 2026-09-18
 
 ### Breaking

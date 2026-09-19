@@ -144,14 +144,14 @@ public extension PKRuntime {
         /// and others do not — a data-consistency risk. Use `report.ephemeralStoreNames` to
         /// identify which specific stores are ephemeral.
         public func validateDurability() -> DurabilityReport {
-            DurabilityReport(
-                runtimeRepository: runtimeRepository.isDurable ? .durable : .ephemeral,
-                workspacePersistence: workspacePersistence.isDurable ? .durable : .ephemeral,
-                workspaceBindingRepository: workspaceBindingRepository.isDurable ? .durable : .ephemeral,
-                toolPersistence: toolPersistence.isDurable ? .durable : .ephemeral,
-                agentStore: agentStore.isDurable ? .durable : .ephemeral,
-                requestOriginStore: requestOriginStore.isDurable ? .durable : .ephemeral
-            )
+            DurabilityReport(stores: [
+                .init(name: "runtimeRepository", isDurable: runtimeRepository.isDurable),
+                .init(name: "workspacePersistence", isDurable: workspacePersistence.isDurable),
+                .init(name: "workspaceBindingRepository", isDurable: workspaceBindingRepository.isDurable),
+                .init(name: "toolPersistence", isDurable: toolPersistence.isDurable),
+                .init(name: "agentStore", isDurable: agentStore.isDurable),
+                .init(name: "requestOriginStore", isDurable: requestOriginStore.isDurable),
+            ])
         }
 
     }
@@ -171,55 +171,46 @@ public extension PKRuntime {
     /// stores — a data-consistency risk because durable stores may reference entities
     /// (timelines, workspaces, agents) that will be missing after restart.
     struct DurabilityReport: Sendable, Equatable {
-        /// The durability classification of the Timeline history and Turn lifecycle owner.
-        public let runtimeRepository: StoreDurability
-        /// The durability classification of the Workspace file and metadata store.
-        public let workspacePersistence: StoreDurability
-        /// The durability classification of the Workspace-to-Timeline binding authority.
-        public let workspaceBindingRepository: StoreDurability
-        /// The durability classification of the tool execution record store.
-        public let toolPersistence: StoreDurability
-        /// The durability classification of the Agent identity store.
-        public let agentStore: StoreDurability
-        /// The durability classification of the request-origin record store.
-        public let requestOriginStore: StoreDurability
+        /// The durability classification of one persistence store.
+        public struct Store: Sendable, Equatable {
+            /// The store's name as it appears on ``PersistenceConfiguration``.
+            public let name: String
+            /// Whether the store survives process restart.
+            public let durability: StoreDurability
 
-        /// Creates a cross-store durability classification from per-store values.
-        public init(
-            runtimeRepository: StoreDurability,
-            workspacePersistence: StoreDurability,
-            workspaceBindingRepository: StoreDurability,
-            toolPersistence: StoreDurability,
-            agentStore: StoreDurability,
-            requestOriginStore: StoreDurability
-        ) {
-            self.runtimeRepository = runtimeRepository
-            self.workspacePersistence = workspacePersistence
-            self.workspaceBindingRepository = workspaceBindingRepository
-            self.toolPersistence = toolPersistence
-            self.agentStore = agentStore
-            self.requestOriginStore = requestOriginStore
+            /// Creates a classification for one store.
+            public init(name: String, durability: StoreDurability) {
+                self.name = name
+                self.durability = durability
+            }
+
+            init(name: String, isDurable: Bool) {
+                self.init(name: name, durability: isDurable ? .durable : .ephemeral)
+            }
+        }
+
+        /// Every classified store, in ``PersistenceConfiguration`` declaration order.
+        public let stores: [Store]
+
+        /// Creates a report from individual store classifications.
+        public init(stores: [Store]) {
+            self.stores = stores
+        }
+
+        /// The classification of the named store, or `nil` when the report has no such store.
+        public func durability(of name: String) -> StoreDurability? {
+            stores.first { $0.name == name }?.durability
         }
 
         /// Whether the configuration mixes durable and ephemeral stores.
         public var isMixed: Bool {
-            let all: [StoreDurability] = [
-                runtimeRepository, workspacePersistence, workspaceBindingRepository,
-                toolPersistence, agentStore, requestOriginStore,
-            ]
-            return all.contains(.durable) && all.contains(.ephemeral)
+            stores.contains { $0.durability == .durable }
+                && stores.contains { $0.durability == .ephemeral }
         }
 
         /// The label of each store classified as `.ephemeral`, in declaration order.
         public var ephemeralStoreNames: [String] {
-            var names: [String] = []
-            if runtimeRepository == .ephemeral { names.append("runtimeRepository") }
-            if workspacePersistence == .ephemeral { names.append("workspacePersistence") }
-            if workspaceBindingRepository == .ephemeral { names.append("workspaceBindingRepository") }
-            if toolPersistence == .ephemeral { names.append("toolPersistence") }
-            if agentStore == .ephemeral { names.append("agentStore") }
-            if requestOriginStore == .ephemeral { names.append("requestOriginStore") }
-            return names
+            stores.filter { $0.durability == .ephemeral }.map(\.name)
         }
 
         /// The warning message logged on mixed durability, or `nil` when the configuration
