@@ -2,14 +2,14 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// The runtime policy values that flow unchanged from ``PKRuntime/Configuration`` through
-/// ``KitDependencies`` into ``TurnEngine/Dependencies``.
+/// The runtime policy values that flow from ``PKRuntime/Configuration`` through
+/// ``RuntimeDependencies`` into ``TurnEngine/Dependencies``.
 ///
-/// These six values are pure policy: nothing between the consumer's configuration and the Turn
-/// loop reads or rewrites them, so carrying them individually meant declaring the same six names
-/// in both dependency bundles and re-listing them at every forwarding site. Grouping them also
-/// gives the two bounds a single home — the stream watchdog and the terminal-commit stall limit
-/// were previously clamped in two different types.
+/// Grouping them means every forwarding site stops re-listing the same names, and the two bounds
+/// get a single home: the stream watchdog and the terminal-commit stall limit were previously
+/// clamped in two different types. Only `generationParameters` is replaced by a
+/// ``PKRuntime/replacingLanguageModel(_:generationParameters:)`` view; the rest are fixed at
+/// construction.
 ///
 /// Not part of the public API surface.
 internal struct RuntimePolicy: Sendable {

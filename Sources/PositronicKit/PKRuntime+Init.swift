@@ -38,9 +38,10 @@ extension PKRuntime {
     /// deliberately does not expose, and forwards the result to the designated initializer.
     ///
     /// The three extra parameters are the internal seams: `sharedRegistry` is the prompt-journal
-    /// state shared across `reconfigured` views, `additionalStages` is reserved for runtime-owned
-    /// verification stages, and `clock` exists so tests can drive the stream watchdog
-    /// deterministically. Consumers reach this through ``PKRuntime/init(configuration:)``.
+    /// state shared across ``PKRuntime/replacingLanguageModel(_:generationParameters:)`` views,
+    /// `additionalStages` is reserved for runtime-owned verification stages, and `clock` exists so
+    /// tests can drive the stream watchdog deterministically. Consumers reach this through
+    /// ``PKRuntime/init(configuration:)``.
     convenience init(
         configuration: Configuration,
         sharedRegistry: TimelinePromptJournals,
@@ -48,31 +49,11 @@ extension PKRuntime {
         clock: any RuntimeClock = ContinuousRuntimeClock()
     ) {
         self.init(
-            dependencies: KitDependencies(
-                languageModel: configuration.languageModel,
-                runtimeRepository: configuration.persistence.runtimeRepository,
-                workspaceBindingRepository: configuration.persistence.workspaceBindingRepository,
-                agentStore: configuration.persistence.agentStore,
-                requestOriginStore: configuration.persistence.requestOriginStore,
-                workspacePersistence: configuration.persistence.workspacePersistence,
-                toolPersistence: configuration.persistence.toolPersistence,
-                workspaceProfile: configuration.runtime.workspaceProfile,
-                workspaceCreator: configuration.runtime.workspaceCreator,
-                customization: configuration.runtime.customization,
-                agentAuthorityCoordinator: nil,
-                runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
-                toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
+            dependencies: RuntimeDependencies(
+                configuration: configuration,
                 sharedRegistry: sharedRegistry,
                 additionalStages: additionalStages,
-                policy: RuntimePolicy(
-                    streamTimeout: configuration.runtime.streamTimeout,
-                    terminalCommitStallLimit: configuration.runtime.terminalCommitStallLimit,
-                    degradationPolicy: configuration.runtime.degradationPolicy,
-                    diagnosticSnapshotConfiguration: configuration.runtime.diagnosticSnapshotConfiguration,
-                    loggingConfiguration: configuration.logging,
-                    clock: clock,
-                    generationParameters: configuration.generationParameters
-                )
+                clock: clock
             )
         )
         if let warning = configuration.persistence.validateDurability().mixedDurabilityWarning {

@@ -20,8 +20,20 @@ struct CustomPipelineStageInternalStoriesTests {
         let tracker = MockStageRunTracker()
         let customStage = MockCustomStage(tracker: tracker)
 
-        let chat = makeChat(llmService: mockLLM, persistence: mockPersistence)
-            .addingStage(customStage)
+        let chat = PKRuntime(
+            configuration: .init(
+                languageModel: mockLLM,
+                persistence: .init(
+                    runtimeRepository: mockPersistence,
+                    workspacePersistence: mockPersistence,
+                    toolPersistence: mockPersistence,
+                    agentStore: mockPersistence,
+                    requestOriginStore: mockPersistence
+                )
+            ),
+            sharedRegistry: TimelinePromptJournals(),
+            additionalStages: [customStage]
+        )
 
         let stream = try await chat.turnEngine.run(TurnRequest(
             timelineID: timelineID,
@@ -34,22 +46,6 @@ struct CustomPipelineStageInternalStoriesTests {
 
         let didRun = await tracker.didRun
         #expect(didRun, "Custom stage should have been executed")
-    }
-
-    private func makeChat(
-        llmService languageModel: any LLMStreamClient,
-        persistence: MockPersistenceService
-    ) -> PKRuntime {
-        PKRuntime(configuration: .init(
-            languageModel: languageModel,
-            persistence: .init(
-                runtimeRepository: persistence,
-                workspacePersistence: persistence,
-                toolPersistence: persistence,
-                agentStore: persistence,
-                requestOriginStore: persistence
-            )
-        ))
     }
 }
 

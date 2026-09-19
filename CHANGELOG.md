@@ -28,6 +28,12 @@ for tagged releases beginning with `1.0.0`.
   optional `usage` value instead of four flat counters. Previously persisted snapshots still decode
   with `usage == nil`.
 
+- **Provider refresh renamed, `addingStage` removed:** `reconfigured(languageModel:generationParameters:)`
+  becomes `replacingLanguageModel(_:generationParameters:)`, which names what the returned view
+  replaces while preserving the original's runtime-owned state. The internal `addingStage(_:)`
+  builder is removed; the internal `init(configuration:sharedRegistry:additionalStages:clock:)`
+  already accepts pipeline stages. There is no compatibility alias.
+
 ## [6.0.0] - 2026-09-18
 
 ### Breaking

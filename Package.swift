@@ -195,7 +195,6 @@ let package = Package(
                 "PKObservable",
                 "PKContracts",
                 "PKPrompt",
-                "PKObservable",
                 "PKOpenAIProvider",
                 "PKOllamaProvider",
                 "PKAnthropicProvider",

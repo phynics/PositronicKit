@@ -46,13 +46,16 @@ The fallback is intentional because `WorkspaceBindingRepository` has no durabili
 Hosts that supply a custom cohesive repository without binding conformance must also supply the
 durable binding repository explicitly; `validateDurability()` cannot classify that boundary.
 
-`reconfigured(languageModel:generationParameters:)` creates a new provider-facing view while
+`replacingLanguageModel(_:generationParameters:)` creates a new provider-facing view while
 preserving the Timeline manager, its task and Workspace execution coordinators, authority
 coordinators, PromptJournal registry, and Turn event hub. `AgentManager`, `ToolRouter`, and
 `TurnEngine` are rebuilt so the view can carry its replacement provider and other view-specific
-configuration while retaining those shared identities. A separate `RuntimeAssembly` module is not
+configuration while retaining those shared identities. Provider configuration is view-local: a
+Timeline handle binds the view's Turn engine when it opens, and the shared state carries no
+provider settings, so replacing a model never changes an in-flight Turn or an existing handle. A
+separate `RuntimeAssembly` module is not
 justified until it owns a semantic normalized graph and has an independent implementation or test
-seam; extracting a wrapper around `KitDependencies` would only rename the existing transport
+seam; extracting a wrapper around `RuntimeDependencies` would only rename the existing transport
 snapshot.
 
 ## Domain model

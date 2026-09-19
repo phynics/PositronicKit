@@ -277,8 +277,8 @@ struct RuntimeAssemblyTests {
         #expect(notices.contains { $0.kind == "tool-intent-durable" })
     }
 
-    @Test("reconfigured views preserve repositories, authorities, PromptJournal state, and live events")
-    func reconfiguredViewsPreserveRuntimeState() async throws {
+    @Test("replacement views preserve repositories, authorities, PromptJournal state, and live events")
+    func replacingLanguageModelViewsPreserveRuntimeState() async throws {
         let repository = InMemoryTimelineRuntimeRepository()
         let bindingRepository = InMemoryWorkspaceBindingRepository()
         let workspaceStore = MockWorkspacePersistence()
@@ -292,19 +292,19 @@ struct RuntimeAssemblyTests {
         )
 
         let replacementModel = MockLLMService()
-        let reconfiguredKit = originalKit.reconfigured(languageModel: replacementModel)
+        let replacementKit = originalKit.replacingLanguageModel(replacementModel)
 
-        #expect(originalKit.timelineManager === reconfiguredKit.timelineManager)
-        #expect(originalKit.toolRouter as AnyObject !== reconfiguredKit.toolRouter as AnyObject)
+        #expect(originalKit.timelineManager === replacementKit.timelineManager)
+        #expect(originalKit.toolRouter as AnyObject !== replacementKit.toolRouter as AnyObject)
         #expect(
             originalKit.turnEngine.dependencies.llmService as AnyObject
-                !== reconfiguredKit.turnEngine.dependencies.llmService as AnyObject
+                !== replacementKit.turnEngine.dependencies.llmService as AnyObject
         )
-        #expect(originalKit.agentAuthorityCoordinator === reconfiguredKit.agentAuthorityCoordinator)
-        #expect(originalKit.turnEngine.dependencies.agentAuthorityCoordinator === reconfiguredKit.agentAuthorityCoordinator)
-        #expect(originalKit.turnEngine.dependencies.timelineAuthorityCoordinator === reconfiguredKit.turnEngine.dependencies.timelineAuthorityCoordinator)
-        #expect(originalKit.turnEngine.dependencies.eventHub === reconfiguredKit.turnEngine.dependencies.eventHub)
-        #expect(originalKit.turnEngine.dependencies.promptHistoryRegistry === reconfiguredKit.turnEngine.dependencies.promptHistoryRegistry)
+        #expect(originalKit.agentAuthorityCoordinator === replacementKit.agentAuthorityCoordinator)
+        #expect(originalKit.turnEngine.dependencies.agentAuthorityCoordinator === replacementKit.agentAuthorityCoordinator)
+        #expect(originalKit.turnEngine.dependencies.timelineAuthorityCoordinator === replacementKit.turnEngine.dependencies.timelineAuthorityCoordinator)
+        #expect(originalKit.turnEngine.dependencies.eventHub === replacementKit.turnEngine.dependencies.eventHub)
+        #expect(originalKit.turnEngine.dependencies.promptHistoryRegistry === replacementKit.turnEngine.dependencies.promptHistoryRegistry)
 
         let managerRegistry = await originalKit.timelineManager.promptHistoryRegistry
         guard let managerRegistry else {
@@ -313,12 +313,12 @@ struct RuntimeAssemblyTests {
         }
         #expect(managerRegistry === originalKit.turnEngine.dependencies.promptHistoryRegistry)
         let originalRepository = originalKit.runtimeRepository
-        let reconfiguredRepository = reconfiguredKit.runtimeRepository
-        #expect(originalRepository as AnyObject === reconfiguredRepository as AnyObject)
-        #expect(originalKit.messageStore as AnyObject === reconfiguredKit.messageStore as AnyObject)
-        #expect(originalKit.workspaceBindingRepository as AnyObject === reconfiguredKit.workspaceBindingRepository as AnyObject)
+        let replacementRepository = replacementKit.runtimeRepository
+        #expect(originalRepository as AnyObject === replacementRepository as AnyObject)
+        #expect(originalKit.messageStore as AnyObject === replacementKit.messageStore as AnyObject)
+        #expect(originalKit.workspaceBindingRepository as AnyObject === replacementKit.workspaceBindingRepository as AnyObject)
 
-        let timeline = try await originalKit.timelines.create(title: "Reconfigured assembly")
+        let timeline = try await originalKit.timelines.create(title: "Replacement assembly")
         let requestID = timeline.id
         let original = try await originalKit.timelines.open(timeline.id).startDirectTurn(
             "same request",
@@ -328,17 +328,17 @@ struct RuntimeAssemblyTests {
         guard await waitForNeverFinishingStreamStart(originalModel) else {
             await original.cancel()
             _ = await original.events().collect()
-            Issue.record("The original reconfigured Turn did not start its provider stream")
+            Issue.record("The original Turn did not start its provider stream")
             return
         }
 
         let journalBefore = await originalKit.turnEngine.dependencies.promptHistoryRegistry.history(for: timeline.id)
-        let joined = try await reconfiguredKit.timelines.open(timeline.id).startDirectTurn(
+        let joined = try await replacementKit.timelines.open(timeline.id).startDirectTurn(
             "same request",
             context: DirectTurnContext(systemInstructions: "", contributor: .host),
             options: TurnOptions(requestID: requestID)
         )
-        let journalAfter = await reconfiguredKit.turnEngine.dependencies.promptHistoryRegistry.history(for: timeline.id)
+        let journalAfter = await replacementKit.turnEngine.dependencies.promptHistoryRegistry.history(for: timeline.id)
         #expect(journalBefore === journalAfter)
         #expect(joined.id == original.id)
 
@@ -349,7 +349,7 @@ struct RuntimeAssemblyTests {
         #expect(try await original.outcome() == .cancelled(reason: "Turn task cancelled."))
 
         replacementModel.mockClient.nextResponse = "replacement reply"
-        let replacementTurn = try await reconfiguredKit.timelines.open(timeline.id).startDirectTurn(
+        let replacementTurn = try await replacementKit.timelines.open(timeline.id).startDirectTurn(
             "new provider view",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
@@ -358,10 +358,10 @@ struct RuntimeAssemblyTests {
         #expect(replacementModel.generationCaptureHistory.count == 1)
     }
 
-    @Test("reconfigured views retain one per-Workspace execution lane")
-    func reconfiguredViewsRetainWorkspaceSerialization() async throws {
+    @Test("replacement views retain one per-Workspace execution lane")
+    func replacingLanguageModelViewsRetainWorkspaceSerialization() async throws {
         let originalKit = PKRuntime(languageModel: MockLLMService())
-        let reconfiguredKit = originalKit.reconfigured(languageModel: MockLLMService())
+        let replacementKit = originalKit.replacingLanguageModel(MockLLMService())
         let workspaceID = (try await originalKit.timelines.create(title: "Lane workspace")).id
         let probe = LaneProbe()
 
@@ -375,7 +375,7 @@ struct RuntimeAssemblyTests {
         #expect(await probe.waitUntilEntryCount(1))
         let second = Task {
             await probe.markSecondReady()
-            try await reconfiguredKit.timelineManager.withWorkspaceExecution(workspaceID) {
+            try await replacementKit.timelineManager.withWorkspaceExecution(workspaceID) {
                 await probe.enter(2)
                 await probe.leave()
             }

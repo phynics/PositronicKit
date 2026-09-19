@@ -153,8 +153,8 @@ struct TurnFinalizerLivenessTests {
         consumerA.cancel()
     }
 
-    @Test("a reconfigured runtime does not interrupt the original runtime's pending commit")
-    func reconfiguredRuntimeSharesFinalizer() async throws {
+    @Test("a replacement runtime does not interrupt the original runtime's pending commit")
+    func replacementRuntimeSharesFinalizer() async throws {
         let persistence = MockPersistenceService()
         let gate = CommitGate()
         persistence.completeTurnBlocker = { await gate.block() }
@@ -164,7 +164,7 @@ struct TurnFinalizerLivenessTests {
             languageModel: llm,
             persistence: .init(runtimeRepository: persistence)
         ))
-        let timeline = try await kit.timelines.create(title: "Reconfigured")
+        let timeline = try await kit.timelines.create(title: "Replacement")
         let turn = try await kit.timelines.open(timeline.id).startDirectTurn(
             "A",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
@@ -172,13 +172,13 @@ struct TurnFinalizerLivenessTests {
         let consumer = Task { for await _ in turn.events() {} }
         #expect(await gate.waitUntilBlocked(), "A's commit should be parked")
 
-        let reconfigured = kit.reconfigured(languageModel: llm)
+        let replacement = kit.replacingLanguageModel(llm)
         do {
-            _ = try await reconfigured.timelines.open(timeline.id).startDirectTurn(
+            _ = try await replacement.timelines.open(timeline.id).startDirectTurn(
                 "B",
                 context: DirectTurnContext(systemInstructions: "", contributor: .host)
             )
-            Issue.record("expected timelineBusy through the reconfigured runtime")
+            Issue.record("expected timelineBusy through the replacement runtime")
         } catch let error as TimelineRuntimeRepositoryError {
             #expect(error == .timelineBusy(timelineID: timeline.id, activeTurnID: turn.id))
         }

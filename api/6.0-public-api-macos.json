@@ -23127,16 +23127,6 @@
       "declaration": "var workspaces: WorkspaceCapability { get }"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC12reconfigured13languageModel20generationParametersAcA15LLMStreamClient_p_11PKContracts010GenerationH0VSgtF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "PKRuntime",
-        "reconfigured(languageModel:generationParameters:)"
-      ],
-      "declaration": "func reconfigured(languageModel: any LLMStreamClient, generationParameters: GenerationParameters? = nil) -> PKRuntime"
-    },
-    {
       "precise": "s:13PositronicKit9PKRuntimeC13ConfigurationV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -23525,6 +23515,16 @@
         "default"
       ],
       "declaration": "static var `default`: RuntimeConfiguration { get }"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC22replacingLanguageModel_20generationParametersAcA15LLMStreamClient_p_11PKContracts010GenerationH0VSgtF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "PKRuntime",
+        "replacingLanguageModel(_:generationParameters:)"
+      ],
+      "declaration": "func replacingLanguageModel(_ languageModel: any LLMStreamClient, generationParameters: GenerationParameters? = nil) -> PKRuntime"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV",
@@ -56010,12 +56010,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC12reconfigured13languageModel20generationParametersAcA15LLMStreamClient_p_11PKContracts010GenerationH0VSgtF",
-      "target": "s:13PositronicKit9PKRuntimeC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit9PKRuntimeC13ConfigurationV",
       "target": "s:13PositronicKit9PKRuntimeC"
     },
@@ -56228,6 +56222,12 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV7defaultAEvpZ",
       "target": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC22replacingLanguageModel_20generationParametersAcA15LLMStreamClient_p_11PKContracts010GenerationH0VSgtF",
+      "target": "s:13PositronicKit9PKRuntimeC"
     },
     {
       "module": "PositronicKit",

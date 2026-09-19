@@ -8,6 +8,10 @@ import PKContracts
 /// construction, and does not expose the underlying coordinator. Opening a handle via
 /// ``TimelineCapability/open(_:)`` is pure value construction — persistence happens lazily,
 /// when `startTurn` or `startDirectTurn` admits a Turn.
+///
+/// A handle captures the provider configuration of the view it was opened from, so
+/// ``PKRuntime/replacingLanguageModel(_:generationParameters:)`` affects only handles opened
+/// from the replacement view. A handle opened earlier keeps sending through its original model.
 public struct TimelineHandle: Identifiable, Sendable {
     /// The persisted TimelineRecord this handle sends to and cancels work for.
     public let timelineID: UUID
