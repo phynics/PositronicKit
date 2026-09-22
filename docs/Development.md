@@ -30,10 +30,14 @@ runtime resolved.
 ## Supported Swift toolchains
 
 `Package.swift` sets the consumer floor at Swift 6.4 (`swift-tools-version: 6.4`). Linux CI runs
-the `make verify-linux-agent` contract on Swift 6.4.0 installed from swift.org. The native macOS
-gate runs on the `xcode-27` runner image, whose bundled Xcode 27 toolchain is Swift 6.4 and whose
-Testing library declares `CustomTestReflectable`; the Xcode 26 SDK on `macos-latest` ships Testing
-6.3 without it. `make doctor` reports the required toolchain.
+the `make verify-linux-agent` contract on Swift 6.4.0 installed from swift.org. The macOS CI lane
+runs `make verify-macos-ci` on the `xcode-27` runner image, whose bundled Xcode 27 toolchain is
+Swift 6.4 and whose Testing library declares `CustomTestReflectable`; the Xcode 26 SDK on
+`macos-latest` ships Testing 6.3 without it. That lane runs only the Apple-platform gates; the
+platform-neutral ones (lint, doc snippets, release-mode consumer builds) run on Linux, so the two
+lanes together cover `make verify`, which remains the full local macOS gate. A preflight job runs
+`make verify-static`, the gates that need no Swift toolchain, before either lane starts.
+`make doctor` reports the required toolchain.
 
 ## Linux image and prerequisites
 
