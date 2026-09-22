@@ -3,6 +3,7 @@
 	verify-linux-agent verify-linux-filter verify-linux-repeat verify-linux-coverage \
 	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-domain-vocabulary verify-doc-snippets detect-flakes \
 	verify-public-api update-public-api-baseline verify-release sbom \
+	verify-static verify-documentation-static verify-docc verify-macos-ci \
 	agent-verify agent-test agent-test-repeat linux-image linux-build linux-coverage require-container-runtime
 
 # Swift toolchain baked into the supported Linux development image.
@@ -55,6 +56,8 @@ help:
 	@echo "  make test                  Run tests"
 	@echo "  make test-fast             Run generated fast test filter"
 	@echo "  make verify                Run docs, linkage, products, examples, and test gates (macOS)"
+	@echo "  make verify-static         Run the source-level gates that need no Swift toolchain"
+	@echo "  make verify-macos-ci       Run only the macOS-specific gates (CI; pairs with the Linux lane)"
 	@echo "  make verify-concurrency-scan Run the concurrency inline-annotation scan"
 	@echo "  make verify-diagnose-scan  Check the scoped @diagnose warning-control policy"
 	@echo "  make verify-runtime-architecture Check enforced runtime ownership seams"
@@ -102,16 +105,22 @@ test-fast:
 	 echo "Running fast tests (--filter $(FAST_FILTER))..."; \
 	 swift test $(SWIFT_BUILD_FLAGS) --filter "$(FAST_FILTER)"
 
-validate-docs: verify-documentation
+validate-docs: verify-documentation verify-docc
+
+# The Apple-toolchain half of `validate-docs`: the public story tests and DocC.
+verify-docc:
 	@bash Scripts/validate-docs.sh
 
-verify-documentation:
+verify-documentation: verify-documentation-static
+	@$(MAKE) verify-doc-snippets
+
+# The documentation checks that need only Python and Bash, no Swift toolchain.
+verify-documentation-static:
 	@python3 Scripts/generate-doc-navigation.py --check
 	@python3 Scripts/validate-documentation.py
 	@python3 Scripts/validate-provider-capability-matrix.py
 	@python3 Scripts/check-documentation-currency.py
 	@bash Scripts/check-domain-vocabulary.sh
-	@$(MAKE) verify-doc-snippets
 
 # Type-check every ```swift block under docs/ against the real modules by
 # building the generated DocSnippetConsumer target. Standalone entry point for
@@ -144,6 +153,17 @@ doctor:
 	@bash Scripts/doctor.sh "$(CONTAINER_RUNTIME)"
 
 verify: verify-concurrency-scan verify-diagnose-scan verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test-fast test
+
+# Source-level gates that need only Python and Bash. CI runs them in a preflight
+# job before any Swift toolchain is installed, so a policy failure stops the
+# expensive build jobs within seconds.
+verify-static: verify-diagnose-scan verify-runtime-architecture verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-documentation-static
+
+# The macOS CI lane: only the gates whose result depends on the Apple platform.
+# The platform-neutral ones (lint, doc snippets, the release-mode PKTestSupport
+# and public-consumer builds) run in the Linux lane, so the two CI lanes together
+# cover `make verify`. Run `make verify` locally for the full macOS gate.
+verify-macos-ci: verify-agent-harness verify-docc verify-products verify-public-api verify-examples test-fast test
 
 verify-linux-coverage:
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py

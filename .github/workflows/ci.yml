@@ -16,15 +16,40 @@ defaults:
   run:
     shell: bash
 
-# Single source for the supported toolchain: cache key, install step, and
-# assert step all read it. Named to avoid SWIFT_VERSION, which the swift: images
+# A newer push to the same pull request supersedes the running gate, so cancel it
+# instead of finishing four jobs nobody will read. Pushes to main always run to
+# completion because they seed the build cache below.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Single source for the supported toolchain: the install and assert steps read
+# it. The build cache keys on the compiler's own `swift --version` instead, so it
+# also turns over when a runner image updates Xcode. Named to avoid SWIFT_VERSION, which the swift: images
 # export.
 env:
   SWIFT_TOOLCHAIN_VERSION: "6.4.0"
 
 jobs:
+  # Toolchain-free policy gates. They finish in seconds, so every build job waits
+  # on them: a missing docs-impact declaration or a policy violation no longer
+  # lets the macOS and iOS jobs run on for fifteen minutes after Linux has failed.
+  preflight:
+    name: "Preflight — source policy gates"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Require documentation impact declaration
+        if: github.event_name == 'pull_request'
+        run: python3 Scripts/check-pr-docs-impact.py
+
+      - name: Source policy gates (make verify-static)
+        run: make verify-static
+
   linux-verify:
     name: "Linux — Swift 6.4 (Ubuntu 24.04)"
+    needs: preflight
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -48,15 +73,26 @@ jobs:
       - name: Assert Swift 6.4
         run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
 
-      - name: Cache SwiftPM downloads
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # Cache the whole build directory, not just the downloaded sources, so the
+      # dependency graph (swift-syntax via the JSONSchema macro, swift-crypto,
+      # OpenAI) is not recompiled in debug and release on every run. Checkout
+      # gives package sources a fresh mtime, so PositronicKit's own modules still
+      # rebuild; only the untouched dependencies are reused. The key names the
+      # exact compiler, because modules from another compiler cannot be imported.
+      - name: Identify the compiler for the build cache
+        id: toolchain
+        run: echo "id=$(swift --version 2>&1 | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the build cache
+        id: build-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            .build/checkouts
+            .build
             ~/.swiftpm
-          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-${{ hashFiles('Package.resolved') }}
+          key: build-linux-verify-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-
+            build-linux-verify-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
 
       - name: Install SwiftLint
         run: |
@@ -68,14 +104,21 @@ jobs:
       - name: Concurrency guardrail scan
         run: swiftlint lint --strict
 
-      - name: Require documentation impact declaration
-        if: github.event_name == 'pull_request'
-        run: python3 Scripts/check-pr-docs-impact.py
-
       - name: Verify agent/CI Linux contract
         run: |
           mkdir -p .build
           make verify-linux-agent 2>&1 | tee .build/linux-verify.log
+
+      # Only main seeds the cache: pull-request caches are scoped to their own ref,
+      # so saving them would spend the repository quota without helping other PRs.
+      - name: Save the build cache
+        if: success() && github.event_name == 'push' && steps.build-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build
+            ~/.swiftpm
+          key: ${{ steps.build-cache.outputs.cache-primary-key }}
 
       - name: Publish Linux test log
         if: always()
@@ -86,7 +129,8 @@ jobs:
           if-no-files-found: ignore
 
   macos-verify:
-    name: "macOS — make verify (xcode-27)"
+    name: "macOS — platform gates (xcode-27)"
+    needs: preflight
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -101,23 +145,46 @@ jobs:
       - name: Assert Swift 6.4
         run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
 
-      - name: Cache SwiftPM downloads
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # Cache the whole build directory, not just the downloaded sources, so the
+      # dependency graph (swift-syntax via the JSONSchema macro, swift-crypto,
+      # OpenAI) is not recompiled in debug and release on every run. Checkout
+      # gives package sources a fresh mtime, so PositronicKit's own modules still
+      # rebuild; only the untouched dependencies are reused. The key names the
+      # exact compiler, because modules from another compiler cannot be imported.
+      - name: Identify the compiler for the build cache
+        id: toolchain
+        run: echo "id=$(swift --version 2>&1 | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the build cache
+        id: build-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            .build/checkouts
+            .build
             ~/.swiftpm
-          key: swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          key: build-macos-verify-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-
+            build-macos-verify-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
 
-      - name: Install SwiftLint
-        run: brew install swiftlint
-
-      - name: Verify macOS gate (make verify)
+      # Only the gates whose result depends on the Apple platform. Lint, doc
+      # snippets, and the release-mode PKTestSupport and public-consumer builds
+      # are platform-neutral and run in linux-verify, so the two lanes together
+      # still cover `make verify`.
+      - name: Verify macOS platform gates (make verify-macos-ci)
         run: |
           mkdir -p .build
-          make verify 2>&1 | tee .build/macos-verify.log
+          make verify-macos-ci 2>&1 | tee .build/macos-verify.log
+
+      # Only main seeds the cache: pull-request caches are scoped to their own ref,
+      # so saving them would spend the repository quota without helping other PRs.
+      - name: Save the build cache
+        if: success() && github.event_name == 'push' && steps.build-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build
+            ~/.swiftpm
+          key: ${{ steps.build-cache.outputs.cache-primary-key }}
 
       - name: Publish macOS verify log
         if: always()
@@ -129,6 +196,7 @@ jobs:
 
   ios-verify:
     name: "iOS Simulator — PKFoundationModelsProvider (xcode-27)"
+    needs: preflight
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -177,6 +245,7 @@ jobs:
 
   linux-coverage:
     name: "Linux — coverage reports (Ubuntu 24.04)"
+    needs: preflight
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -196,20 +265,42 @@ jobs:
       - name: Assert Swift 6.4
         run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
 
-      - name: Cache SwiftPM downloads
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # Cache the whole build directory, not just the downloaded sources, so the
+      # dependency graph (swift-syntax via the JSONSchema macro, swift-crypto,
+      # OpenAI) is not recompiled in debug and release on every run. Checkout
+      # gives package sources a fresh mtime, so PositronicKit's own modules still
+      # rebuild; only the untouched dependencies are reused. The key names the
+      # exact compiler, because modules from another compiler cannot be imported.
+      - name: Identify the compiler for the build cache
+        id: toolchain
+        run: echo "id=$(swift --version 2>&1 | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the build cache
+        id: build-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            .build/checkouts
+            .build
             ~/.swiftpm
-          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-${{ hashFiles('Package.resolved') }}
+          key: build-linux-coverage-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
           restore-keys: |
-            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-
+            build-linux-coverage-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
 
       - name: Run Linux coverage target
         run: |
           mkdir -p .build
           make verify-linux-coverage 2>&1 | tee .build/linux-coverage.log
+
+      # Only main seeds the cache: pull-request caches are scoped to their own ref,
+      # so saving them would spend the repository quota without helping other PRs.
+      - name: Save the build cache
+        if: success() && github.event_name == 'push' && steps.build-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build
+            ~/.swiftpm
+          key: ${{ steps.build-cache.outputs.cache-primary-key }}
 
       - name: Publish Linux coverage artifacts
         if: always()
