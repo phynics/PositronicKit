@@ -39,6 +39,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        # Full history with tags: the documentation gate checks that the stable
+        # documentation ref is a local Git tag.
+        with:
+          fetch-depth: 0
 
       - name: Require documentation impact declaration
         if: github.event_name == 'pull_request'
