@@ -9375,17 +9375,6 @@
       "declaration": "init(from decoder: any Decoder) throws"
     },
     {
-      "precise": "s:11PKContracts9TurnEventO010CompletionC0O6encode2toys7Encoder_p_tKF",
-      "module": "PKContracts",
-      "kind": "swift.method",
-      "path": [
-        "TurnEvent",
-        "CompletionEvent",
-        "encode(to:)"
-      ],
-      "declaration": "func encode(to encoder: any Encoder) throws"
-    },
-    {
       "precise": "s:11PKContracts9TurnEventO05DeltaC0O",
       "module": "PKContracts",
       "kind": "swift.enum",
@@ -9438,17 +9427,6 @@
         "audio(delta:)"
       ],
       "declaration": "case audio(delta: LLMAudioDelta)"
-    },
-    {
-      "precise": "s:11PKContracts9TurnEventO05DeltaC0O6encode2toys7Encoder_p_tKF",
-      "module": "PKContracts",
-      "kind": "swift.method",
-      "path": [
-        "TurnEvent",
-        "DeltaEvent",
-        "encode(to:)"
-      ],
-      "declaration": "func encode(to encoder: any Encoder) throws"
     },
     {
       "precise": "s:11PKContracts9TurnEventO05DeltaC0O7sidecaryAeA07SidecarD0V_tcAEmF",
@@ -9547,17 +9525,6 @@
         "error(message:identity:)"
       ],
       "declaration": "case error(message: String, identity: TurnEvent.ErrorIdentity?)"
-    },
-    {
-      "precise": "s:11PKContracts9TurnEventO05ErrorC0O6encode2toys7Encoder_p_tKF",
-      "module": "PKContracts",
-      "kind": "swift.method",
-      "path": [
-        "TurnEvent",
-        "ErrorEvent",
-        "encode(to:)"
-      ],
-      "declaration": "func encode(to encoder: any Encoder) throws"
     },
     {
       "precise": "s:11PKContracts9TurnEventO10audioDeltaAA08LLMAudioE0VSgvp",
@@ -45309,16 +45276,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO010CompletionC0O6encode2toys7Encoder_p_tKF",
-      "target": "s:11PKContracts9TurnEventO010CompletionC0O",
-      "sourceOrigin": {
-        "identifier": "s:SE6encode2toys7Encoder_p_tKF",
-        "displayName": "Encodable.encode(to:)"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts9TurnEventO05DeltaC0O",
       "target": "s:11PKContracts9TurnEventO"
     },
@@ -45349,16 +45306,6 @@
       "kind": "memberOf",
       "source": "s:11PKContracts9TurnEventO05DeltaC0O5audioyAeA08LLMAudioD0V_tcAEmF",
       "target": "s:11PKContracts9TurnEventO05DeltaC0O"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO05DeltaC0O6encode2toys7Encoder_p_tKF",
-      "target": "s:11PKContracts9TurnEventO05DeltaC0O",
-      "sourceOrigin": {
-        "identifier": "s:SE6encode2toys7Encoder_p_tKF",
-        "displayName": "Encodable.encode(to:)"
-      }
     },
     {
       "module": "PKContracts",
@@ -45417,16 +45364,6 @@
       "kind": "memberOf",
       "source": "s:11PKContracts9TurnEventO05ErrorC0O5erroryAESS_AC0D8IdentityVSgtcAEmF",
       "target": "s:11PKContracts9TurnEventO05ErrorC0O"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO05ErrorC0O6encode2toys7Encoder_p_tKF",
-      "target": "s:11PKContracts9TurnEventO05ErrorC0O",
-      "sourceOrigin": {
-        "identifier": "s:SE6encode2toys7Encoder_p_tKF",
-        "displayName": "Encodable.encode(to:)"
-      }
     },
     {
       "module": "PKContracts",
