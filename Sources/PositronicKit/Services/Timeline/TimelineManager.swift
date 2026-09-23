@@ -332,12 +332,6 @@ extension TimelineManager {
 // MARK: - PKTool Management
 
 extension TimelineManager {
-    func findWorkspaceForTool(_ tool: ToolReference, in workspaceIDs: [UUID]) async throws
-        -> UUID?
-    {
-        return try await toolPersistence.findWorkspace(hostingToolNamed: tool.toolID, in: workspaceIDs)
-    }
-
     /// Enabled tools for an active timeline (empty if the timeline has no active tool manager).
     /// A pure query, not subordinate-manager access: it does not expose `TimelineToolRegistry`
     /// itself (PKV3-010), only the read a host needs to merge system tools with request-scoped

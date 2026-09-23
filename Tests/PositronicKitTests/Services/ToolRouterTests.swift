@@ -713,8 +713,7 @@ final class ToolRouterTests {
         let mockTool = MockTool(callName: toolId, name: toolId, result: .success("Local success"))
         await toolManager?.updateAvailableTools([AnyTool(mockTool)])
 
-        // The mock persistence doesn't automatically wire tool IDs to workspaces for `findWorkspaceForTool`
-        // We simulate `addToolToWorkspace` or just rely on the tool manager falling back to the candidates.
+        // The mock persistence doesn't wire tool IDs to workspaces on its own; register one.
         try await mockPersistence.addToolToWorkspace(workspaceID: workspaceId, tool: .known(toolId))
 
         let toolRef = ToolReference.known(toolId)

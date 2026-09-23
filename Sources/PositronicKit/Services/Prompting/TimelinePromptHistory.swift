@@ -27,27 +27,8 @@ actor TimelinePromptHistory {
     var appendedTokens: Int { pressure.appendedTokens }
     var thresholds: PromptJournalCompactionThresholds { pressure.thresholds }
 
-    /// The next inspection-turn index to assign for this timeline, persisted across
-    /// `TurnEngine.execute` calls (i.e. across user sends), not just within one.
-    ///
-    /// `TurnContext.modelRoundIndex` resets to 0 at the start of every `execute()` call, so it
-    /// cannot be used as the persisted `PromptInspectionModel` row index — two different sends
-    /// would both produce row index 0 for their first internal round-trip, and the second
-    /// send's row would silently overwrite the first send's row (same `"timelineId:modelRoundIndex"`
-    /// key). This counter increments once per `nextInspectionTurnIndex()` call and is never
-    /// reset, so every internal round-trip across the whole timeline gets a unique,
-    /// monotonically increasing row index.
-    private var nextInspectionIndex = 0
-
     init(thresholds: PromptJournalCompactionThresholds = .default) {
         self.pressure = AppendPressure(thresholds: thresholds)
-    }
-
-    /// Returns the next inspection-turn index for this timeline and advances the counter.
-    func nextInspectionTurnIndex() -> Int {
-        let index = nextInspectionIndex
-        nextInspectionIndex += 1
-        return index
     }
 
     /// Record a rendered prompt snapshot and compact append state if thresholds were exceeded.
@@ -70,15 +51,6 @@ actor TimelinePromptHistory {
     @discardableResult
     func update(prompt: AssembledPrompt) async throws -> PromptHistoryUpdate {
         try update(prompt: await prompt.render())
-    }
-
-    @discardableResult
-    func update(
-        sections: [PromptSection],
-        renderedContent: [String: String]
-    ) throws -> PromptHistoryUpdate {
-        let diff = try record(sections: sections, renderedContent: renderedContent)
-        return PromptHistoryUpdate(diff: diff, didCompact: compactIfNeeded())
     }
 
     /// Track appended messages and compact append state if thresholds were exceeded.

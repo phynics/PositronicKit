@@ -12,7 +12,7 @@ import PKUtilities
 /// - One agent can attach to multiple timelines simultaneously.
 /// - `attach` is idempotent: re-attaching the same agent to the same timeline is a no-op.
 /// - If `attachedAgentId` references a deleted agent, it is nulled on access.
-actor AgentManager: AgentManagerProtocol {
+actor AgentManager {
     public struct Stores: Sendable {
         public let agentStore: any AgentStoreProtocol
         public let timelineStore: any TimelinePersistenceProtocol
@@ -107,7 +107,7 @@ actor AgentManager: AgentManagerProtocol {
     ///   - description: Purpose description.
     /// - Returns: The created `Agent`.
     public func createAgent(
-        from template: AgentTemplate?,
+        from template: AgentTemplate? = nil,
         name: String,
         description: String
     ) async throws -> Agent {
@@ -354,21 +354,12 @@ actor AgentManager: AgentManagerProtocol {
         try await agentStore.fetchAgent(id: id)
     }
 
-    public func getAgent(id: UUID) async throws -> Agent? {
-        try await agent(id: id)
-    }
-
     public func listAgents() async throws -> [Agent] {
         try await agentStore.fetchAllAgents()
     }
 
     public func timelines(attachedTo agentID: UUID) async throws -> [TimelineRecord] {
         try await fetchAttachedTimelines(for: agentID)
-    }
-
-
-    public func getTimelines(attachedTo agentID: UUID) async throws -> [TimelineRecord] {
-        try await timelines(attachedTo: agentID)
     }
 
     public func updateAgent(_ agent: Agent) async throws {
