@@ -84,7 +84,6 @@ struct TurnResultTests {
             persistence: .init(
                 runtimeRepository: repository,
                 workspacePersistence: persistence,
-                toolPersistence: persistence,
                 agentStore: persistence,
                 requestOriginStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository()

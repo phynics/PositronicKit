@@ -6,66 +6,8 @@ import PKTestSupport
 import Testing
 
 /// Implementation-specific checks for the in-memory persistence stores.
-///
-/// Generic tool persistence behavior is exercised through the public
-/// ``ToolPersistenceConformanceSuite``. These checks retain only the in-memory source-label
-/// presentation, which is intentionally outside that protocol's universal contract.
 @Suite("In-memory stores", .tags(.unit))
 struct InMemoryStoresContractTests {
-    @Suite("InMemoryToolPersistence source labels", .tags(.unit))
-    struct ToolPersistenceTests {
-        private func makeWorkspace(
-            id: UUID = UUID(),
-            location: WorkspaceReference.WorkspaceLocation = .runtime,
-            uri: WorkspaceURI = WorkspaceURI(host: "localhost", path: "/tmp/ws")
-        ) -> WorkspaceReference {
-            WorkspaceReference(id: id, uri: uri, location: location)
-        }
-
-        @Test("fetchToolSource returns the attached-workspace label")
-        func fetchToolSourceAttachedWorkspace() async throws {
-            let store = InMemoryToolPersistence()
-            let wsID = UUID()
-            await store.replaceWorkspaces([makeWorkspace(id: wsID, location: .attached)])
-            try await store.addToolToWorkspace(workspaceID: wsID, tool: .known("t"))
-
-            let source = try await store.fetchToolSource(
-                named: "t", in: [wsID], preferring: UUID()
-            )
-            #expect(source == "Additional Workspace")
-        }
-
-        @Test("fetchToolSource returns the primary-workspace label")
-        func fetchToolSourcePrimaryWorkspace() async throws {
-            let store = InMemoryToolPersistence()
-            let wsID = UUID()
-            await store.replaceWorkspaces([makeWorkspace(id: wsID, location: .runtimeTimeline)])
-            try await store.addToolToWorkspace(workspaceID: wsID, tool: .known("t"))
-
-            let source = try await store.fetchToolSource(
-                named: "t", in: [wsID], preferring: wsID
-            )
-            #expect(source == "Primary Workspace")
-        }
-
-        @Test("fetchToolSource returns a URI-based label for another runtime workspace")
-        func fetchToolSourceOtherRuntimeWorkspace() async throws {
-            let store = InMemoryToolPersistence()
-            let wsID = UUID()
-            let uri = WorkspaceURI(host: "localhost", path: "/projects/extra")
-            await store.replaceWorkspaces([
-                makeWorkspace(id: wsID, location: .runtimeTimeline, uri: uri)
-            ])
-            try await store.addToolToWorkspace(workspaceID: wsID, tool: .known("t"))
-
-            let source = try await store.fetchToolSource(
-                named: "t", in: [wsID], preferring: UUID()
-            )
-            #expect(source?.hasPrefix("Workspace:") == true)
-            #expect(source?.contains("/projects/extra") == true)
-        }
-    }
-
     // MARK: - InMemoryMessageStore
 
     @Suite("InMemoryMessageStore", .tags(.unit))

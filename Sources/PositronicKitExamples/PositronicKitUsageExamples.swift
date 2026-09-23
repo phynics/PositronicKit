@@ -134,7 +134,6 @@ public enum PositronicKitUsageExamples {
             persistence: .init(
                 runtimeRepository: InMemoryTimelineRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
-                toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
                 requestOriginStore: InMemoryRequestOriginStore()
             ),

@@ -118,8 +118,7 @@ struct WorkspaceToolDispatchIntegrationTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: bindings,
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .noWorkspace,
             workspaceCreator: MockWorkspaceCreator()

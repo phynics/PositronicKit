@@ -682,8 +682,7 @@ final class ToolRouterTests {
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: mockPersistence,
-                toolPersistence: mockPersistence
+                runtimeRepository: mockPersistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -919,8 +918,7 @@ struct WorkspaceToolDispatcherTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .noWorkspace,
             workspaceCreator: MockWorkspaceCreator()
@@ -1057,8 +1055,7 @@ struct ToolTurnProjectionTests {
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: mockPersistence,
-                toolPersistence: mockPersistence
+                runtimeRepository: mockPersistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -1264,8 +1261,7 @@ struct ToolDurabilityOrderingTests {
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: mockPersistence,
-                toolPersistence: mockPersistence
+                runtimeRepository: mockPersistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )

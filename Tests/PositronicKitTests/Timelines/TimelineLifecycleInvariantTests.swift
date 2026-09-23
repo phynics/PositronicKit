@@ -19,7 +19,6 @@ struct TimelineLifecycleInvariantTests {
             persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
-                toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             )
@@ -48,7 +47,6 @@ struct TimelineLifecycleInvariantTests {
             persistence: .init(
                 runtimeRepository: mockMessages,
                 workspacePersistence: mockMessages,
-                toolPersistence: mockMessages,
                 agentStore: mockMessages,
                 requestOriginStore: mockMessages
             )

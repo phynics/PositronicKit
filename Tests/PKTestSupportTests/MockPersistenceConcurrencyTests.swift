@@ -55,8 +55,7 @@ struct MockPersistenceConcurrencyTests {
         #expect(saved.count == workspaces.count)
         #expect(Set(saved.map(\.id)) == Set(workspaces.map(\.id)))
 
-        let mirroredTools = try await persistence.fetchTools(forWorkspaces: workspaces.map(\.id))
-        #expect(Set(mirroredTools.map(\.toolID)) == Set((0 ..< 100).map { "tool-\($0)" }))
+        #expect(Set(saved.flatMap(\.tools).map(\.toolID)) == Set((0 ..< 100).map { "tool-\($0)" }))
     }
 
     private func fixedUUID(_ value: Int) -> UUID {

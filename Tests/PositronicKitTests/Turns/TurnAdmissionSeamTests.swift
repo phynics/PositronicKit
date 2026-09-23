@@ -315,8 +315,7 @@ struct TurnAdmissionSeamTests {
                 messageStore: repository,
                 workspaceStore: backing,
                 workspaceBindingRepository: repository,
-                runtimeRepository: repository,
-                toolPersistence: backing
+                runtimeRepository: repository
             ),
             workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-admission-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()

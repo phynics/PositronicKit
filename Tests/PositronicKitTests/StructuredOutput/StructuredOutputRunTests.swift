@@ -32,7 +32,6 @@ struct StructuredOutputRunTests {
         let chat = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
-                toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             )))
@@ -71,7 +70,6 @@ struct StructuredOutputRunTests {
         let chat = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
-                toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             )))
@@ -94,7 +92,6 @@ struct StructuredOutputRunTests {
         let chat = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
-                toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             )))
@@ -120,7 +117,6 @@ struct StructuredOutputRunTests {
         let chat = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: .init(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
-                toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             )))

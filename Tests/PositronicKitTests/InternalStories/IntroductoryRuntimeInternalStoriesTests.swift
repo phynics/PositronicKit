@@ -39,7 +39,6 @@ struct IntroductoryRuntimeInternalStoriesTests {
         let runtime = PKRuntime(configuration: .init(languageModel: mockLLM, persistence: PKRuntime.PersistenceConfiguration(
                 runtimeRepository: persistence,
                 workspacePersistence: persistence,
-                toolPersistence: persistence,
                 agentStore: persistence,
                 requestOriginStore: persistence
             ), runtime: .init(

@@ -17,7 +17,6 @@ struct PersistenceProtocolTests {
         let _: TimelinePersistenceProtocol = mock
         let _: AgentTemplateStoreProtocol = mock
         let _: WorkspaceStore = mock
-        let _: ToolPersistenceProtocol = mock
     }
 }
 
@@ -27,7 +26,6 @@ final class MockPersistenceStore:
     TimelinePersistenceProtocol,
     AgentTemplateStoreProtocol,
     WorkspaceStore,
-    ToolPersistenceProtocol,
     @unchecked Sendable // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
 {
     // MessageStoreProtocol
@@ -93,23 +91,4 @@ final class MockPersistenceStore:
     }
 
     func deleteWorkspace(id _: UUID) async throws {}
-
-    // ToolPersistenceProtocol
-    func addToolToWorkspace(workspaceID _: UUID, tool _: ToolReference) async throws {}
-    func syncTools(workspaceID _: UUID, tools _: [ToolReference]) async throws {}
-    func fetchTools(forWorkspaces _: [UUID]) async throws -> [ToolReference] {
-        []
-    }
-
-    func fetchOriginTools(originID _: UUID) async throws -> [ToolReference] {
-        []
-    }
-
-    func findWorkspace(hostingToolNamed _: String, in _: [UUID]) async throws -> UUID? {
-        nil
-    }
-
-    func fetchToolSource(named _: String, in _: [UUID], preferring _: UUID?) async throws -> String? {
-        nil
-    }
 }

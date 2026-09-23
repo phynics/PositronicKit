@@ -107,7 +107,6 @@ let kit = PKRuntime(configuration: .init(
     persistence: .init(
         runtimeRepository: myRuntimeRepository,
         workspacePersistence: myWorkspacePersistence,
-        toolPersistence: myToolPersistence,
         agentStore: myAgentStore,
         requestOriginStore: myRequestOriginStore
     ),

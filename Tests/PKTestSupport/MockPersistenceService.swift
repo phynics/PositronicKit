@@ -5,10 +5,10 @@ import PositronicKit
 import Synchronization
 
 /// Composite in-memory test double for the full persistence surface (messages,
-/// timelines, agent templates, workspaces, tools, request origins, agents,
+/// timelines, agent templates, workspaces, request origins, agents,
 /// health), delegating each protocol area to its own focused mock,
 /// ``MockMessageStore``, ``MockTimelinePersistenceStore``, ``MockAgentTemplateStore``,
-/// ``MockWorkspacePersistence``, ``MockToolPersistence``) so a test can construct a single
+/// ``MockWorkspacePersistence``) so a test can construct a single
 /// object instead of wiring up every store protocol separately.
 ///
 /// Configurable: `mockHealthStatus`/`mockHealthDetails`; `saveOriginMock`/`fetchOriginMock`/
@@ -19,10 +19,9 @@ import Synchronization
 /// every backing store.
 ///
 /// Health, durability, request-origin callbacks, and agents share one mutex state.
-/// Agent insert-or-replace and each tool-workspace mirror upsert are atomic; the two backing stores
-/// are not a cross-store transaction. Callback values are snapshotted while locked, then invoked
+/// Agent insert-or-replace is atomic. Callback values are snapshotted while locked, then invoked
 /// after unlocking, so no mutex crosses an `await` or caller-provided code.
-public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSummaryStore, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentStoreProtocol, HealthCheckable {
+public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSummaryStore, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, AgentStoreProtocol, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok
         var mockHealthDetails: [String: String]? = ["mock": "true"]
@@ -49,7 +48,6 @@ public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSu
     private let timelinesMock = MockTimelinePersistenceStore()
     private let agentTemplatesMock = MockAgentTemplateStore()
     private let workspacesMock = MockWorkspacePersistence()
-    private let toolsMock = MockToolPersistence()
     private let turnRuntime = InMemoryTimelineRuntimeRepository()
     private let state = Mutex(State())
 
@@ -307,27 +305,17 @@ public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSu
 
     public var workspaces: [WorkspaceReference] {
         get { workspacesMock.workspaces }
-        set {
-            workspacesMock.workspaces = newValue
-            toolsMock.workspaces = newValue
-        }
+        set { workspacesMock.workspaces = newValue }
     }
 
     public func saveWorkspace(_ workspace: WorkspaceReference) async throws {
         defer { recordPersistenceAccess() }
         try await workspacesMock.saveWorkspace(workspace)
-        toolsMock.upsertWorkspace(workspace)
     }
 
     public func fetchWorkspace(id: UUID, includeTools: Bool = false) async throws -> WorkspaceReference? {
         defer { recordPersistenceAccess() }
-        var ws = try await workspacesMock.fetchWorkspace(id: id, includeTools: includeTools)
-        if includeTools, ws != nil {
-            if let toolsWs = toolsMock.workspaces.first(where: { $0.id == id }) {
-                ws?.tools = toolsWs.tools
-            }
-        }
-        return ws
+        return try await workspacesMock.fetchWorkspace(id: id, includeTools: includeTools)
     }
 
     public func fetchAllWorkspaces() async throws -> [WorkspaceReference] {
@@ -340,36 +328,11 @@ public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSu
         try await workspacesMock.deleteWorkspace(id: id)
     }
 
-    // MARK: - ToolPersistenceProtocol
-
+    /// Test seeding: appends `tool` to a saved workspace's tool list, as a host provider reports
+    /// a newly available tool. Throws `ToolError.workspaceNotFound` for an unsaved workspace.
     public func addToolToWorkspace(workspaceID: UUID, tool: ToolReference) async throws {
         defer { recordPersistenceAccess() }
-        try await toolsMock.addToolToWorkspace(workspaceID: workspaceID, tool: tool)
-    }
-
-    public func syncTools(workspaceID: UUID, tools: [ToolReference]) async throws {
-        defer { recordPersistenceAccess() }
-        try await toolsMock.syncTools(workspaceID: workspaceID, tools: tools)
-    }
-
-    public func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference] {
-        defer { recordPersistenceAccess() }
-        return try await toolsMock.fetchTools(forWorkspaces: workspaceIDs)
-    }
-
-    public func fetchOriginTools(originID: UUID) async throws -> [ToolReference] {
-        defer { recordPersistenceAccess() }
-        return try await toolsMock.fetchOriginTools(originID: originID)
-    }
-
-    public func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID? {
-        defer { recordPersistenceAccess() }
-        return try await toolsMock.findWorkspace(hostingToolNamed: toolName, in: workspaceIDs)
-    }
-
-    public func fetchToolSource(named toolName: String, in workspaceIDs: [UUID], preferring primaryWorkspaceID: UUID?) async throws -> String? {
-        defer { recordPersistenceAccess() }
-        return try await toolsMock.fetchToolSource(named: toolName, in: workspaceIDs, preferring: primaryWorkspaceID)
+        try workspacesMock.appendTool(tool, toWorkspace: workspaceID)
     }
 
     // MARK: - RequestOriginStoreProtocol
@@ -451,7 +414,6 @@ public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSu
             $0.agents = []
             $0.deletedMessageTimelineIDs = []
         }
-        toolsMock.workspaces = []
     }
 }
 

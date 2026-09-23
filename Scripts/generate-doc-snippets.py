@@ -68,8 +68,6 @@ PLACEHOLDERS = [
     ("myTimelineRuntimeRepository", "any TimelineRuntimeRepository"),
     ("myWorkspacePersistence", "any WorkspaceStore"),
     ("myWorkspaceStore", "any WorkspaceStore"),
-    ("myToolPersistence", "any ToolPersistenceProtocol"),
-    ("myToolStore", "any ToolPersistenceProtocol"),
     ("myAgentStore", "any AgentStoreProtocol"),
     ("myRequestOriginStore", "any RequestOriginStoreProtocol"),
     ("myWorkspaceBindingRepository", "any WorkspaceBindingRepository"),

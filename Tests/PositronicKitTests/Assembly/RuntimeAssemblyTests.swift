@@ -112,7 +112,6 @@ struct RuntimeAssemblyTests {
     func customizationRolesAndSubordinateStoresAreAssembled() async throws {
         let repository = InMemoryTimelineRuntimeRepository()
         let workspaceStore = MockWorkspacePersistence()
-        let toolPersistence = MockToolPersistence()
         let agentStore = InMemoryAgentStore()
         let requestOriginStore = InMemoryRequestOriginStore()
         let agentContextSource = AssemblyAgentContextSource()
@@ -130,7 +129,6 @@ struct RuntimeAssemblyTests {
         let kit = makeFullyPersistentKit(
             model: model,
             workspacePersistence: workspaceStore,
-            toolPersistence: toolPersistence,
             agentStore: agentStore,
             requestOriginStore: requestOriginStore,
             runtimeRepository: repository,
@@ -169,8 +167,6 @@ struct RuntimeAssemblyTests {
         } else {
             Issue.record("AgentManager lost the cohesive runtime repository")
         }
-        let managerToolPersistence = await kit.timelineManager.toolPersistence
-        #expect(managerToolPersistence as AnyObject === toolPersistence as AnyObject)
         let agent = try await kit.agents.create(name: "Assembly Agent", description: "custom")
         let primaryWorkspaceID = try #require(agent.primaryWorkspaceID)
         #expect(try await agentStore.fetchAgent(id: agent.id) != nil)
@@ -196,13 +192,11 @@ struct RuntimeAssemblyTests {
     func cohesiveDurabilityBarriersAreVisible() async throws {
         let repository = InMemoryTimelineRuntimeRepository()
         let workspaceStore = MockWorkspacePersistence()
-        let toolPersistence = MockToolPersistence()
         let model = MockLLMService()
         model.mockClient.shouldThrowError = true
         let kit = makeKit(
             model: model,
             workspacePersistence: workspaceStore,
-            toolPersistence: toolPersistence,
             runtimeRepository: repository,
             workspaceBindingRepository: InMemoryWorkspaceBindingRepository()
         )
@@ -229,13 +223,11 @@ struct RuntimeAssemblyTests {
         let repository = InMemoryTimelineRuntimeRepository()
         let bindingRepository = InMemoryWorkspaceBindingRepository()
         let workspaceStore = MockWorkspacePersistence()
-        let toolPersistence = MockToolPersistence()
         let workspace = TestWorkspace()
         let model = MockLLMService()
         let kit = makeKit(
             model: model,
             workspacePersistence: workspaceStore,
-            toolPersistence: toolPersistence,
             runtimeRepository: repository,
             workspaceBindingRepository: bindingRepository
         )
@@ -248,11 +240,6 @@ struct RuntimeAssemblyTests {
             rootPath: workspace.root.path
         )
         try await workspaceStore.saveWorkspace(attachedWorkspace)
-        toolPersistence.upsertWorkspace(attachedWorkspace)
-        try await toolPersistence.addToolToWorkspace(
-            workspaceID: attachedWorkspace.id,
-            tool: .known("cat")
-        )
         try await kit.timelines.attachWorkspace(attachedWorkspace.id, to: timeline.id)
 
         model.mockClient.nextToolCalls = [[MockToolCall(
@@ -397,7 +384,6 @@ struct RuntimeAssemblyTests {
     private func makeKit(
         model: MockLLMService,
         workspacePersistence: any WorkspaceStore? = nil,
-        toolPersistence: any ToolPersistenceProtocol? = nil,
         agentStore: any AgentStoreProtocol? = nil,
         requestOriginStore: any RequestOriginStoreProtocol? = nil,
         runtimeRepository: any TimelineRuntimeRepository? = nil,
@@ -409,7 +395,6 @@ struct RuntimeAssemblyTests {
             persistence: .init(
                 runtimeRepository: runtimeRepository ?? InMemoryTimelineRuntimeRepository(),
                 workspacePersistence: workspacePersistence,
-                toolPersistence: toolPersistence,
                 agentStore: agentStore,
                 requestOriginStore: requestOriginStore,
                 workspaceBindingRepository: workspaceBindingRepository
@@ -421,7 +406,6 @@ struct RuntimeAssemblyTests {
     private func makeFullyPersistentKit(
         model: MockLLMService,
         workspacePersistence: any WorkspaceStore,
-        toolPersistence: any ToolPersistenceProtocol,
         agentStore: any AgentStoreProtocol,
         requestOriginStore: any RequestOriginStoreProtocol,
         runtimeRepository: any TimelineRuntimeRepository,
@@ -433,7 +417,6 @@ struct RuntimeAssemblyTests {
             persistence: .fullyPersistent(
                 runtimeRepository: runtimeRepository,
                 workspacePersistence: workspacePersistence,
-                toolPersistence: toolPersistence,
                 agentStore: agentStore,
                 requestOriginStore: requestOriginStore,
                 workspaceBindingRepository: workspaceBindingRepository

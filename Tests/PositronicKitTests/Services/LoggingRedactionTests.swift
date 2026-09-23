@@ -62,7 +62,6 @@ struct LoggingRedactionTests {
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
-                toolPersistence: persistence,
             ),
             workspaceProfile: .hostManaged(root: workspaceRoot)
         )

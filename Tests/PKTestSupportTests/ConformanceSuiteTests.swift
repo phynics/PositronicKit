@@ -22,25 +22,6 @@ struct ConformanceSuiteTests {
         }
     }
 
-    @Test("ToolPersistenceProtocol runs against in-tree conformers")
-    func toolPersistenceConformers() async throws {
-        try await ToolPersistenceConformanceSuite.run { workspaces in
-            let store = InMemoryToolPersistence()
-            await store.replaceWorkspaces(workspaces)
-            return store
-        }
-        try await ToolPersistenceConformanceSuite.run { workspaces in
-            let store = MockToolPersistence()
-            store.workspaces = workspaces
-            return store
-        }
-        try await ToolPersistenceConformanceSuite.run { workspaces in
-            let store = MockPersistenceService()
-            store.workspaces = workspaces
-            return store
-        }
-    }
-
     @Test("AgentStoreProtocol runs against seeded in-tree conformers")
     func agentStoreConformers() async throws {
         try await AgentStoreConformanceSuite.run { timelines in
@@ -113,19 +94,6 @@ struct ConformanceSuiteTests {
                 }
             },
             matching: Self.matchesScenario("workspace.save.fetch")
-        )
-    }
-
-    @Test("broken ToolPersistenceProtocol is reported at add/fetch")
-    func brokenToolPersistence() async throws {
-        try await withKnownIssue(
-            "broken fixture must be observed",
-            {
-                try await ToolPersistenceConformanceSuite.run { workspaces in
-                    BrokenToolPersistence(workspaces: workspaces)
-                }
-            },
-            matching: Self.matchesScenario("tool.add.fetch")
         )
     }
 
@@ -217,16 +185,6 @@ private actor BrokenWorkspaceStore: WorkspaceStore {
     func fetchWorkspace(id _: UUID, includeTools _: Bool) async throws -> WorkspaceReference? { nil }
     func fetchAllWorkspaces() async throws -> [WorkspaceReference] { [] }
     func deleteWorkspace(id _: UUID) async throws {}
-}
-
-private actor BrokenToolPersistence: ToolPersistenceProtocol {
-    init(workspaces _: [WorkspaceReference]) {}
-    func addToolToWorkspace(workspaceID _: UUID, tool _: ToolReference) async throws {}
-    func syncTools(workspaceID _: UUID, tools _: [ToolReference]) async throws {}
-    func fetchTools(forWorkspaces _: [UUID]) async throws -> [ToolReference] { [] }
-    func fetchOriginTools(originID _: UUID) async throws -> [ToolReference] { [] }
-    func findWorkspace(hostingToolNamed _: String, in _: [UUID]) async throws -> UUID? { nil }
-    func fetchToolSource(named _: String, in _: [UUID], preferring _: UUID?) async throws -> String? { nil }
 }
 
 private actor BrokenAgentStore: AgentStoreProtocol {

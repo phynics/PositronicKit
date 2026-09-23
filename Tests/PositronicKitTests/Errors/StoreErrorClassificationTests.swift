@@ -25,8 +25,7 @@ struct StoreErrorClassificationTests {
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: InMemoryTimelineRuntimeRepository(),
-                toolPersistence: MockPersistenceService()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -74,8 +73,7 @@ struct StoreErrorClassificationTests {
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: InMemoryTimelineRuntimeRepository(),
-                toolPersistence: MockPersistenceService()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -109,8 +107,7 @@ struct StoreErrorClassificationTests {
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: InMemoryTimelineRuntimeRepository(),
-                toolPersistence: MockPersistenceService()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -144,8 +141,7 @@ struct StoreErrorClassificationTests {
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: InMemoryTimelineRuntimeRepository(),
-                toolPersistence: MockPersistenceService()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -194,8 +190,7 @@ struct StoreErrorClassificationTests {
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -221,61 +216,6 @@ struct StoreErrorClassificationTests {
         #expect(failingWorkspaceStore.fetchAttemptCount >= 1)
     }
 
-    // MARK: - getToolSource: store outage must throw, not return nil
-
-    @Test("getToolSource throws unavailable when the store fails, not nil")
-    func getToolSourceStoreFailureThrowsUnavailable() async throws {
-        let failingToolPersistence = FailingToolPersistence(fetchSourceFails: true)
-        let persistence = MockPersistenceService()
-        let workspace = TestWorkspace()
-        let manager = TimelineManager(
-            stores: .init(
-                timelineStore: persistence,
-                messageStore: persistence,
-                workspaceStore: persistence,
-                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: failingToolPersistence
-            ),
-            workspaceProfile: .hostManaged(root: workspace.root)
-        )
-
-        let timeline = try await manager.createTimeline()
-
-        do {
-            _ = try await manager.getToolSource(toolName: "some_tool", for: timeline.id)
-            Issue.record("Expected TimelineError.unavailable")
-        } catch TimelineError.unavailable {
-            // Correct — store outage throws rather than returning nil.
-        } catch {
-            Issue.record("Unexpected error: \(error)")
-        }
-
-        #expect(failingToolPersistence.fetchSourceAttemptCount >= 1)
-    }
-
-    @Test("getToolSource returns nil (not throws) when the tool genuinely has no source")
-    func getToolSourceUnknownReturnsNil() async throws {
-        let persistence = MockPersistenceService()
-        let workspace = TestWorkspace()
-        let manager = TimelineManager(
-            stores: .init(
-                timelineStore: persistence,
-                messageStore: persistence,
-                workspaceStore: persistence,
-                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
-            ),
-            workspaceProfile: .hostManaged(root: workspace.root)
-        )
-
-        let timeline = try await manager.createTimeline()
-
-        let source = try await manager.getToolSource(toolName: "nonexistent_tool", for: timeline.id)
-        #expect(source == nil, "A genuinely unknown tool should return nil, not throw")
-    }
-
     // MARK: - setupTimelineComponents: workspace resolution failure is survivable
 
     @Test("createTimeline succeeds even when workspace resolver fails for attached workspaces")
@@ -289,8 +229,7 @@ struct StoreErrorClassificationTests {
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )

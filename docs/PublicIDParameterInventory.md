@@ -12,7 +12,7 @@ overloads.
 | Turn request and identity | `turnID`, `requestID`, `modelRoundIndex` |
 | Tool calls and progress events | `toolCallID` |
 | Workspace URI factories | `agentID`, `timelineID` |
-| Tool persistence and routing | `workspaceID`, `workspaceIDs`, `originID`, `toolName`, `primaryWorkspaceID` |
+| Tool routing | `workspaceID`, `toolName` |
 | Agent-attached Timeline lookup | `agentID` |
 | Timeline tool toggling | `toolName` |
 

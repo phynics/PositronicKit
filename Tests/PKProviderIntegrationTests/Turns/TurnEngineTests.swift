@@ -29,8 +29,7 @@ struct TurnEngineTests {
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: mockPersistence,
-                toolPersistence: mockPersistence
+                runtimeRepository: mockPersistence
             ),
             workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
@@ -1095,8 +1094,7 @@ struct TurnEngineTests {
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: mockPersistence,
-                toolPersistence: mockPersistence
+                runtimeRepository: mockPersistence
             ),
             workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
@@ -1228,8 +1226,7 @@ struct TurnEngineTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
@@ -1435,8 +1432,7 @@ struct TurnEngineTests {
                 messageStore: repository,
                 workspaceStore: repository,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: repository,
-                toolPersistence: repository
+                runtimeRepository: repository
             ),
             workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()

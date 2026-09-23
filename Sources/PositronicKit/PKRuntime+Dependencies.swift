@@ -19,7 +19,6 @@ internal struct RuntimeDependencies: Sendable {
     var agentStore: any AgentStoreProtocol
     var requestOriginStore: any RequestOriginStoreProtocol
     var workspacePersistence: any WorkspaceStore
-    var toolPersistence: any ToolPersistenceProtocol
     var workspaceProfile: WorkspaceProfile
     var workspaceCreator: any WorkspaceFactory
     var customization: RuntimeCustomization
@@ -53,7 +52,6 @@ extension RuntimeDependencies {
             agentStore: configuration.persistence.agentStore,
             requestOriginStore: configuration.persistence.requestOriginStore,
             workspacePersistence: configuration.persistence.workspacePersistence,
-            toolPersistence: configuration.persistence.toolPersistence,
             workspaceProfile: configuration.runtime.workspaceProfile,
             workspaceCreator: configuration.runtime.workspaceCreator,
             customization: configuration.runtime.customization,

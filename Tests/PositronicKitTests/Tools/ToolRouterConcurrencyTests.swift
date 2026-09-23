@@ -19,8 +19,7 @@ import Testing
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )

@@ -36,8 +36,7 @@ struct AgentManagerTests {
                 messageStore: messageStore,
                 workspaceStore: workspaceStore,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: InMemoryTimelineRuntimeRepository(),
-                toolPersistence: messageStore
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
             workspaceProfile: .noWorkspace
         )
@@ -426,8 +425,7 @@ struct AgentManagerTests {
                 messageStore: messageStore,
                 workspaceStore: workspaceStore,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: InMemoryTimelineRuntimeRepository(),
-                toolPersistence: InMemoryToolPersistence()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
             workspaceProfile: .hostManaged(root: workspaceRoot),
             promptHistoryRegistry: registry
