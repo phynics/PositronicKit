@@ -68,6 +68,13 @@ for tagged releases beginning with `1.0.0`.
   `output` — the success output, or the model-facing failure text with its `Error:` prefix — and
   `isSuccessful` is the status. Previously persisted rows still decode; the removed key is ignored.
 
+### Changed
+
+- **`TurnEvent` payload coding is compiler-synthesized:** `DeltaEvent`, `ErrorEvent`, and
+  `CompletionEvent` drop about 300 lines of hand-written coders. The JSON for every event is
+  unchanged. Decoding is stricter: a payload object that carries more than one case key now fails
+  instead of silently choosing the first match.
+
 ### Fixed
 
 - **Provider retries no longer multiply or repeat reasoning:** `OpenRouterClient.sendMessage` and
