@@ -15,14 +15,7 @@ public actor InMemoryMessageStore: TimelineMessageStoreProtocol {
     public func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage] {
         messages
             .filter { $0.timelineID == timelineID }
-            .enumerated()
-            .sorted { lhs, rhs in
-                if lhs.element.timestamp != rhs.element.timestamp {
-                    return lhs.element.timestamp < rhs.element.timestamp
-                }
-                return lhs.offset < rhs.offset
-            }
-            .map { $0.element }
+            .chronological()
     }
 
     public func deleteMessages(for timelineID: UUID) async throws {
@@ -35,10 +28,7 @@ public actor InMemoryMessageStore: TimelineMessageStoreProtocol {
 
     public func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] {
         messages
-            .filter { $0.timelineID == timelineID && $0.role == "assistant" }
-            .compactMap { msg in
-                guard let data = msg.snapshotData else { return nil }
-                return try? SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
-            }
+            .filter { $0.timelineID == timelineID }
+            .assistantSnapshots()
     }
 }

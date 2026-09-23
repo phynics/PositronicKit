@@ -5,8 +5,7 @@ import PKUtilities
 /// Timeline-safe in-memory workspace persistence for prototyping and development.
 public actor InMemoryWorkspacePersistence: WorkspaceStore, WorkspaceBindingRepository {
     private var workspaces: [WorkspaceReference] = []
-    private var bindingsByWorkspace: [UUID: WorkspaceBinding] = [:]
-    private var workspaceIDsByTimeline: [UUID: Set<UUID>] = [:]
+    private var workspaceBindings = WorkspaceBindingTable()
 
     public init() {}
 
@@ -28,16 +27,7 @@ public actor InMemoryWorkspacePersistence: WorkspaceStore, WorkspaceBindingRepos
 
     public func deleteWorkspace(id: UUID) async throws {
         workspaces.removeAll { $0.id == id }
-        if let binding = bindingsByWorkspace.removeValue(forKey: id) {
-            workspaceIDsByTimeline[binding.timelineID]?.remove(id)
-            if workspaceIDsByTimeline[binding.timelineID]?.isEmpty == true {
-                workspaceIDsByTimeline.removeValue(forKey: binding.timelineID)
-            }
-        }
-    }
-
-    package func allWorkspaces() -> [WorkspaceReference] {
-        workspaces
+        workspaceBindings.removeBinding(of: id)
     }
 
     package func replaceWorkspaces(_ workspaces: [WorkspaceReference]) {
@@ -51,24 +41,7 @@ public actor InMemoryWorkspacePersistence: WorkspaceStore, WorkspaceBindingRepos
         for timelineID: UUID,
         now: Date = Date()
     ) async throws -> WorkspaceBinding {
-        if let existing = bindingsByWorkspace[workspaceID] {
-            guard existing.timelineID == timelineID else {
-                throw WorkspaceBindingRepositoryError.workspaceAlreadyBound(
-                    workspaceID: workspaceID,
-                    timelineID: existing.timelineID
-                )
-            }
-            return existing
-        }
-        let binding = WorkspaceBinding(
-            workspaceID: workspaceID,
-            timelineID: timelineID,
-            createdAt: now,
-            updatedAt: now
-        )
-        bindingsByWorkspace[workspaceID] = binding
-        workspaceIDsByTimeline[timelineID, default: []].insert(workspaceID)
-        return binding
+        try workspaceBindings.claim(workspaceID: workspaceID, for: timelineID, now: now)
     }
 
     public func release(
@@ -76,17 +49,7 @@ public actor InMemoryWorkspacePersistence: WorkspaceStore, WorkspaceBindingRepos
         from timelineID: UUID,
         now _: Date = Date()
     ) async throws {
-        guard let existing = bindingsByWorkspace[workspaceID], existing.timelineID == timelineID else {
-            throw WorkspaceBindingRepositoryError.bindingNotFound(
-                workspaceID: workspaceID,
-                timelineID: timelineID
-            )
-        }
-        bindingsByWorkspace.removeValue(forKey: workspaceID)
-        workspaceIDsByTimeline[timelineID]?.remove(workspaceID)
-        if workspaceIDsByTimeline[timelineID]?.isEmpty == true {
-            workspaceIDsByTimeline.removeValue(forKey: timelineID)
-        }
+        try workspaceBindings.release(workspaceID: workspaceID, from: timelineID)
     }
 
     public func transfer(
@@ -95,34 +58,19 @@ public actor InMemoryWorkspacePersistence: WorkspaceStore, WorkspaceBindingRepos
         to destinationTimelineID: UUID,
         now: Date = Date()
     ) async throws -> WorkspaceBinding {
-        guard let existing = bindingsByWorkspace[workspaceID], existing.timelineID == sourceTimelineID else {
-            throw WorkspaceBindingRepositoryError.transferSourceMismatch(
-                workspaceID: workspaceID,
-                timelineID: sourceTimelineID
-            )
-        }
-        let binding = WorkspaceBinding(
+        try workspaceBindings.transfer(
             workspaceID: workspaceID,
-            timelineID: destinationTimelineID,
-            createdAt: existing.createdAt,
-            updatedAt: now
+            from: sourceTimelineID,
+            to: destinationTimelineID,
+            now: now
         )
-        bindingsByWorkspace[workspaceID] = binding
-        workspaceIDsByTimeline[sourceTimelineID]?.remove(workspaceID)
-        if workspaceIDsByTimeline[sourceTimelineID]?.isEmpty == true {
-            workspaceIDsByTimeline.removeValue(forKey: sourceTimelineID)
-        }
-        workspaceIDsByTimeline[destinationTimelineID, default: []].insert(workspaceID)
-        return binding
     }
 
     public func bindings(for timelineID: UUID) async throws -> [WorkspaceBinding] {
-        (workspaceIDsByTimeline[timelineID] ?? [])
-            .compactMap { bindingsByWorkspace[$0] }
-            .sorted { $0.createdAt < $1.createdAt }
+        workspaceBindings.bindings(for: timelineID)
     }
 
     public func timelineID(for workspaceID: UUID) async throws -> UUID? {
-        bindingsByWorkspace[workspaceID]?.timelineID
+        workspaceBindings.timelineID(for: workspaceID)
     }
 }

@@ -187,7 +187,7 @@ public actor DefaultAgentContextSource: AgentContextSource {
             let rootURL = URL(fileURLWithPath: rootPath, isDirectory: true)
             let soulURL = rootURL.appendingPathComponent("SOUL.md")
             if let content = try? String(contentsOf: soulURL, encoding: .utf8) {
-                instructions = utf8Prefix(of: content, byteCount: maxBytes)
+                instructions = content.utf8Prefix(maxBytes: maxBytes)
             } else {
                 diagnostics.append(TurnDiagnostic(
                     dependency: .context,
@@ -255,7 +255,7 @@ public actor DefaultAgentContextSource: AgentContextSource {
             let safeFileURL = URL(fileURLWithPath: resolvedFile)
             guard let content = try? String(contentsOf: safeFileURL, encoding: .utf8)
             else { continue }
-            let bounded = utf8Prefix(of: content, byteCount: min(remainingBytes, 4_096))
+            let bounded = content.utf8Prefix(maxBytes: min(remainingBytes, 4_096))
             remainingBytes -= bounded.utf8.count
             let path = resolvedFile.replacingOccurrences(of: notesRoot + "/", with: "")
             resources.append(AgentContextResource(path: "Notes/\(path)", description: description(for: bounded, filename: fileURL.lastPathComponent)))
@@ -280,17 +280,5 @@ public actor DefaultAgentContextSource: AgentContextSource {
             if !value.isEmpty { return String(value) }
         }
         return URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent
-    }
-
-    private func utf8Prefix(of content: String, byteCount: Int) -> String {
-        guard byteCount > 0 else { return "" }
-        var output = ""
-        var used = 0
-        for character in content {
-            guard used + character.utf8.count <= byteCount else { break }
-            output.append(character)
-            used += character.utf8.count
-        }
-        return output
     }
 }

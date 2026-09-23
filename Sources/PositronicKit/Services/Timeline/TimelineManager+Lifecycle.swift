@@ -209,30 +209,11 @@ extension TimelineManager {
 
     /// Updates the title of a specific timeline.
     func updateTimelineTitle(_ timelineID: UUID, title: String) async throws {
-        var timeline: TimelineRecord
-        if let memoryTimeline = timelines[timelineID] {
-            timeline = memoryTimeline
-        } else {
-            do {
-                guard let dbTimeline = try await timelineStore.fetchTimeline(id: timelineID) else {
-                    throw TimelineError.timelineNotFound
-                }
-                timeline = dbTimeline
-            } catch let error as TimelineError {
-                throw error
-            } catch {
-                logger.error("""
-                updateTimelineTitle fetch failed — timeline: \(timelineID.uuidString.prefix(8)), \
-                operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
-                """)
-                throw TimelineError.unavailable
-            }
-        }
-
+        var timeline = try await cachedOrStoredTimeline(timelineID, operation: "updateTimelineTitle")
         timeline.title = title
         timeline.updatedAt = Date()
 
-        if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
+        replaceCachedTimelineIfPresent(timeline)
         try await timelineStore.saveTimeline(timeline)
     }
 
@@ -528,8 +509,7 @@ private extension TimelineManager {
                 dependency: .workspace,
                 operation: "fetchWorkspaceBindings",
                 entityID: "timeline:\(timeline.id.uuidString.prefix(8))",
-                errorIdentity: TurnEvent.ErrorIdentity.extracting(from: error),
-                message: ErrorKit.userFriendlyMessage(for: error)
+                error: error
             ))
             workspaceIDs = []
         }
@@ -557,8 +537,7 @@ private extension TimelineManager {
                     dependency: .workspace,
                     operation: "registerAttachedWorkspace",
                     entityID: "workspace:\(attachedId.uuidString.prefix(8))",
-                    errorIdentity: TurnEvent.ErrorIdentity.extracting(from: error),
-                    message: ErrorKit.userFriendlyMessage(for: error)
+                    error: error
                 ))
             }
         }

@@ -11,27 +11,8 @@ extension TimelineManager {
         try await requireExecutionContextMutable(for: timelineID)
         let livenessVersion = timelineLivenessVersion(for: timelineID)
         try requireTimelineLiveness(for: timelineID, version: livenessVersion)
-        var timeline: TimelineRecord
-
-        if let memoryTimeline = timelines[timelineID] {
-            timeline = memoryTimeline
-        } else {
-            do {
-                guard let dbTimeline = try await timelineStore.fetchTimeline(id: timelineID) else {
-                    throw TimelineError.timelineNotFound
-                }
-                timeline = dbTimeline
-                try requireTimelineLiveness(for: timelineID, version: livenessVersion)
-            } catch let error as TimelineError {
-                throw error
-            } catch {
-                logger.error("""
-                attachWorkspace fetch failed — timeline: \(timelineID.uuidString.prefix(8)), \
-                operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
-                """)
-                throw TimelineError.unavailable
-            }
-        }
+        _ = try await cachedOrStoredTimeline(timelineID, operation: "attachWorkspace")
+        try requireTimelineLiveness(for: timelineID, version: livenessVersion)
 
         do {
             guard try await workspaceStore.fetchWorkspace(
@@ -58,10 +39,10 @@ extension TimelineManager {
 
         try requireTimelineLiveness(for: timelineID, version: livenessVersion)
 
-        let attachmentMutation: (TimelineRecord, Bool) = try await withTimelineAuthority(timelineID) { [self] in
+        let (timeline, claimedNewBinding): (TimelineRecord, Bool) = try await withTimelineAuthority(timelineID) { [self] in
             // The initial lookup above only validates the request. Re-read after acquiring the
             // authority lane so metadata committed by another Timeline mutation is not overwritten.
-            var candidate = try await self.authoritativeTimeline(for: timelineID)
+            var candidate = try await self.storedTimeline(timelineID, operation: "attachWorkspace refresh")
             try await self.requireTimelineLiveness(for: timelineID, version: livenessVersion)
             let existingOwner = try await self.workspaceBindingRepository.timelineID(for: workspaceId)
             if let existingOwner, existingOwner != timelineID {
@@ -95,8 +76,6 @@ extension TimelineManager {
             }
             return (candidate, claimed)
         }
-        timeline = attachmentMutation.0
-        let claimedNewBinding = attachmentMutation.1
         do {
             try requireTimelineLiveness(for: timelineID, version: livenessVersion)
         } catch {
@@ -112,7 +91,7 @@ extension TimelineManager {
             }
             throw error
         }
-        if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
+        replaceCachedTimelineIfPresent(timeline)
 
         if let toolManager = toolManagers[timelineID] {
             do {
@@ -129,8 +108,7 @@ extension TimelineManager {
                     dependency: .workspace,
                     operation: "registerWorkspace",
                     entityID: "workspace:\(workspaceId.uuidString.prefix(8))",
-                    errorIdentity: TurnEvent.ErrorIdentity.extracting(from: error),
-                    message: ErrorKit.userFriendlyMessage(for: error)
+                    error: error
                 ))
             }
         }
@@ -138,31 +116,12 @@ extension TimelineManager {
 
     func detachWorkspace(_ workspaceId: UUID, from timelineID: UUID) async throws {
         try await requireExecutionContextMutable(for: timelineID)
-        var timeline: TimelineRecord
+        _ = try await cachedOrStoredTimeline(timelineID, operation: "detachWorkspace")
 
-        if let memoryTimeline = timelines[timelineID] {
-            timeline = memoryTimeline
-        } else {
-            do {
-                guard let dbTimeline = try await timelineStore.fetchTimeline(id: timelineID) else {
-                    throw TimelineError.timelineNotFound
-                }
-                timeline = dbTimeline
-            } catch let error as TimelineError {
-                throw error
-            } catch {
-                logger.error("""
-                detachWorkspace fetch failed — timeline: \(timelineID.uuidString.prefix(8)), \
-                operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
-                """)
-                throw TimelineError.unavailable
-            }
-        }
-
-        timeline = try await withTimelineAuthority(timelineID) { [self] in
+        let timeline = try await withTimelineAuthority(timelineID) { [self] in
             // The initial lookup above only validates the request. Re-read after acquiring the
             // authority lane so metadata committed by another Timeline mutation is not overwritten.
-            var candidate = try await self.authoritativeTimeline(for: timelineID)
+            var candidate = try await self.storedTimeline(timelineID, operation: "detachWorkspace refresh")
             let owner = try await self.workspaceBindingRepository.timelineID(for: workspaceId)
             try await self.requireExecutionContextMutable(for: timelineID)
             if owner == timelineID {
@@ -193,7 +152,7 @@ extension TimelineManager {
             }
             return candidate
         }
-        if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
+        replaceCachedTimelineIfPresent(timeline)
 
         if let toolManager = toolManagers[timelineID] {
             await toolManager.unregisterWorkspace(workspaceId)
@@ -203,21 +162,7 @@ extension TimelineManager {
     // MARK: - Workspace Lookup
 
     func getWorkspaces(for timelineID: UUID) async throws -> WorkspaceQueryResult {
-        if timelines[timelineID] == nil {
-            do {
-                guard try await timelineStore.fetchTimeline(id: timelineID) != nil else {
-                    throw TimelineError.timelineNotFound
-                }
-            } catch let error as TimelineError {
-                throw error
-            } catch {
-                logger.error("""
-                getWorkspaces fetch failed — timeline: \(timelineID.uuidString.prefix(8)), \
-                operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
-                """)
-                throw TimelineError.unavailable
-            }
-        }
+        _ = try await cachedOrStoredTimeline(timelineID, operation: "getWorkspaces")
 
         let attachedIds: [UUID]
         do {
@@ -275,25 +220,6 @@ extension TimelineManager {
 // MARK: - Workspace Status Normalization
 
 private extension TimelineManager {
-    /// Reads the Timeline after its authority lane is acquired. A pre-lane snapshot is only a
-    /// validation read; this read is the one that may be persisted by an attachment mutation.
-    func authoritativeTimeline(for timelineID: UUID) async throws -> TimelineRecord {
-        do {
-            guard let timeline = try await timelineStore.fetchTimeline(id: timelineID) else {
-                throw TimelineError.timelineNotFound
-            }
-            return timeline
-        } catch let error as TimelineError {
-            throw error
-        } catch {
-            logger.error("""
-            workspace attachment Timeline refresh failed — timeline: \(timelineID.uuidString.prefix(8)), \
-            operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
-            """)
-            throw TimelineError.unavailable
-        }
-    }
-
     /// Returns `.missing` for a `.runtime` workspace whose `rootPath` no longer exists on disk;
     /// leaves other workspaces (including `.attached` and `.runtimeTimeline`) unchanged.
     func normalizeWorkspaceStatus(_ workspace: WorkspaceReference) -> WorkspaceReference {

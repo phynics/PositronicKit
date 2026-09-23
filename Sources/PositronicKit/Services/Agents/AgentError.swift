@@ -91,3 +91,18 @@ public enum AgentError: PKError, Sendable {
         }
     }
 }
+
+extension Agent {
+    /// Throws unless the Agent is `.active`: a retiring or retired Agent cannot be attached,
+    /// updated, or admitted into a Turn.
+    func requireActive() throws {
+        switch lifecycle {
+        case .active:
+            return
+        case .retiring:
+            throw AgentError.agentRetiring(id)
+        case .retired:
+            throw AgentError.agentRetired(id)
+        }
+    }
+}

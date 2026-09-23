@@ -101,28 +101,13 @@ struct MessagePersistenceStage: PipelineStage {
             logger: logger
         )
 
-        let fullResponse = await context.outputs.fullResponse
+        let content = await context.outputs.assistantContent
         let fullThinking = await context.outputs.fullThinking
-        let audioData = await context.outputs.audioData
-        let audioFormat = await context.outputs.audioFormat
-        let audioTranscript = await context.outputs.audioTranscript
-        let audioContinuation = await context.outputs.audioContinuation
-
-        var contentParts: [MessageContentPart] = []
-        if !fullResponse.isEmpty { contentParts.append(.text(fullResponse)) }
-        if !audioData.isEmpty, let audioFormat {
-            contentParts.append(.audio(AudioContent(
-                data: audioData,
-                format: audioFormat,
-                transcript: audioTranscript.isEmpty ? nil : audioTranscript,
-                continuation: audioContinuation
-            )))
-        }
 
         return TimelineMessage(
             timelineID: context.timelineID,
             role: .assistant,
-            content: MessageContent(parts: contentParts),
+            content: content,
             reasoning: fullThinking.isEmpty ? nil : fullThinking,
             toolCalls: toolCallsJSON,
             agentID: context.agentId,

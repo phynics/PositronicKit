@@ -21,8 +21,7 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
     private var intents: [ToolKey: RuntimeToolIntent] = [:]
     private var results: [ToolKey: RuntimeToolResult] = [:]
     private var summaries: [UUID: [TimelineSummary]] = [:]
-    private var workspaceBindingsByWorkspace: [UUID: WorkspaceBinding] = [:]
-    private var workspaceIDsByTimeline: [UUID: Set<UUID>] = [:]
+    private var workspaceBindings = WorkspaceBindingTable()
     private let durable: Bool
 
     public nonisolated var isDurable: Bool {
@@ -62,9 +61,7 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         // documented on `TimelineRuntimeRepository`.
         messages.removeValue(forKey: id)
         summaries.removeValue(forKey: id)
-        for workspaceID in workspaceIDsByTimeline.removeValue(forKey: id) ?? [] {
-            workspaceBindingsByWorkspace.removeValue(forKey: workspaceID)
-        }
+        workspaceBindings.removeAll(for: id)
         if let activeTurnID = activeTurns.removeValue(forKey: id) {
             turns[activeTurnID]?.quarantine = TurnQuarantine(
                 reason: "Timeline deleted while Turn was active."
@@ -113,15 +110,7 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
     }
 
     public func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage] {
-        messages[timelineID, default: []]
-            .enumerated()
-            .sorted { lhs, rhs in
-                if lhs.element.timestamp != rhs.element.timestamp {
-                    return lhs.element.timestamp < rhs.element.timestamp
-                }
-                return lhs.offset < rhs.offset
-            }
-            .map { $0.element }
+        messages[timelineID, default: []].chronological()
     }
 
     public func deleteMessages(for timelineID: UUID) async throws {
@@ -141,12 +130,7 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
     }
 
     public func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] {
-        messages[timelineID, default: []]
-            .filter { $0.role == "assistant" }
-            .compactMap { message in
-                guard let data = message.snapshotData else { return nil }
-                return try? SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
-            }
+        messages[timelineID, default: []].assistantSnapshots()
     }
 
     // MARK: Admission
@@ -294,10 +278,7 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
     }
 
     public func appendCorrelation(turnID: UUID, correlation: TurnCorrelation, now: Date) async throws {
-        var turn = try mutableTurn(turnID)
-        guard !turn.isTerminal else {
-            throw TimelineRuntimeRepositoryError.invalidTransition(turnID: turnID, lifecycle: turn.lifecycle)
-        }
+        var turn = try openTurn(turnID)
         turn.correlations.append(correlation)
         turn.updatedAt = now
         turns[turnID] = turn
@@ -314,10 +295,7 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
     // MARK: Ordering barriers
 
     public func beginModelRound(turnID: UUID, modelRoundIndex: Int, now: Date) async throws {
-        var turn = try mutableTurn(turnID)
-        guard !turn.isTerminal else {
-            throw TimelineRuntimeRepositoryError.invalidTransition(turnID: turnID, lifecycle: turn.lifecycle)
-        }
+        var turn = try openTurn(turnID)
         let unresolved = intents.values
             .filter { $0.turnID == turnID && $0.modelRoundIndex < modelRoundIndex }
             .first { results[ToolKey(turnID: $0.turnID, toolCallID: $0.toolCallID)] == nil }
@@ -337,10 +315,7 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         correlation: TurnCorrelation?,
         now: Date
     ) async throws {
-        var turn = try mutableTurn(turnID)
-        guard !turn.isTerminal else {
-            throw TimelineRuntimeRepositoryError.invalidTransition(turnID: turnID, lifecycle: turn.lifecycle)
-        }
+        var turn = try openTurn(turnID)
         turn.lifecycle = .running
         turn.updatedAt = now
         turn.notices.append(TurnNotice(kind: "provider-request-durable", message: "(modelRoundIndex)", createdAt: now))
@@ -349,10 +324,7 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
     }
 
     public func recordToolIntent(_ intent: RuntimeToolIntent) async throws {
-        var turn = try mutableTurn(intent.turnID)
-        guard turn.timelineID == intent.timelineID, !turn.isTerminal else {
-            throw TimelineRuntimeRepositoryError.invalidTransition(turnID: intent.turnID, lifecycle: turn.lifecycle)
-        }
+        var turn = try openTurn(intent.turnID, on: intent.timelineID)
         let key = ToolKey(turnID: intent.turnID, toolCallID: intent.toolCallID)
         if intents[key] != nil {
             throw TimelineRuntimeRepositoryError.duplicateToolIntent(turnID: intent.turnID, toolCallID: intent.toolCallID)
@@ -365,47 +337,11 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
     }
 
     public func recordToolResult(_ result: RuntimeToolResult) async throws {
-        var turn = try mutableTurn(result.turnID)
-        guard turn.timelineID == result.timelineID, !turn.isTerminal else {
-            throw TimelineRuntimeRepositoryError.invalidTransition(turnID: result.turnID, lifecycle: turn.lifecycle)
-        }
-        let key = ToolKey(turnID: result.turnID, toolCallID: result.toolCallID)
-        guard intents[key] != nil else {
-            throw TimelineRuntimeRepositoryError.toolIntentRequired(turnID: result.turnID, toolCallID: result.toolCallID)
-        }
-        guard results[key] == nil else {
-            throw TimelineRuntimeRepositoryError.duplicateToolResult(turnID: result.turnID, toolCallID: result.toolCallID)
-        }
-        results[key] = result
-        turn.lifecycle = .running
-        turn.updatedAt = result.createdAt
-        turn.notices.append(TurnNotice(kind: "tool-result-durable", message: result.toolCallID, createdAt: result.createdAt))
-        turns[result.turnID] = turn
+        try commitToolResult(result, appending: nil)
     }
 
     public func recordToolResult(_ result: RuntimeToolResult, message: TimelineMessage) async throws {
-        var turn = try mutableTurn(result.turnID)
-        guard turn.timelineID == result.timelineID,
-              message.timelineID == result.timelineID,
-              !turn.isTerminal
-        else {
-            throw TimelineRuntimeRepositoryError.invalidTransition(turnID: result.turnID, lifecycle: turn.lifecycle)
-        }
-        let key = ToolKey(turnID: result.turnID, toolCallID: result.toolCallID)
-        guard intents[key] != nil else {
-            throw TimelineRuntimeRepositoryError.toolIntentRequired(turnID: result.turnID, toolCallID: result.toolCallID)
-        }
-        guard results[key] == nil else {
-            throw TimelineRuntimeRepositoryError.duplicateToolResult(turnID: result.turnID, toolCallID: result.toolCallID)
-        }
-        // Validate the append before mutating either side of the transition. Once this actor
-        // returns, the message and result are visible together to the next model round.
-        try appendMessage(message)
-        results[key] = result
-        turn.lifecycle = .running
-        turn.updatedAt = result.createdAt
-        turn.notices.append(TurnNotice(kind: "tool-result-durable", message: result.toolCallID, createdAt: result.createdAt))
-        turns[result.turnID] = turn
+        try commitToolResult(result, appending: message)
     }
 
     public func fetchToolIntents(turnID: UUID) async throws -> [RuntimeToolIntent] {
@@ -543,24 +479,7 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         for timelineID: UUID,
         now: Date = Date()
     ) async throws -> WorkspaceBinding {
-        if let existing = workspaceBindingsByWorkspace[workspaceID] {
-            guard existing.timelineID == timelineID else {
-                throw WorkspaceBindingRepositoryError.workspaceAlreadyBound(
-                    workspaceID: workspaceID,
-                    timelineID: existing.timelineID
-                )
-            }
-            return existing
-        }
-        let binding = WorkspaceBinding(
-            workspaceID: workspaceID,
-            timelineID: timelineID,
-            createdAt: now,
-            updatedAt: now
-        )
-        workspaceBindingsByWorkspace[workspaceID] = binding
-        workspaceIDsByTimeline[timelineID, default: []].insert(workspaceID)
-        return binding
+        try workspaceBindings.claim(workspaceID: workspaceID, for: timelineID, now: now)
     }
 
     public func release(
@@ -568,17 +487,7 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         from timelineID: UUID,
         now _: Date = Date()
     ) async throws {
-        guard let existing = workspaceBindingsByWorkspace[workspaceID], existing.timelineID == timelineID else {
-            throw WorkspaceBindingRepositoryError.bindingNotFound(
-                workspaceID: workspaceID,
-                timelineID: timelineID
-            )
-        }
-        workspaceBindingsByWorkspace.removeValue(forKey: workspaceID)
-        workspaceIDsByTimeline[timelineID]?.remove(workspaceID)
-        if workspaceIDsByTimeline[timelineID]?.isEmpty == true {
-            workspaceIDsByTimeline.removeValue(forKey: timelineID)
-        }
+        try workspaceBindings.release(workspaceID: workspaceID, from: timelineID)
     }
 
     public func transfer(
@@ -587,35 +496,20 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         to destinationTimelineID: UUID,
         now: Date = Date()
     ) async throws -> WorkspaceBinding {
-        guard let existing = workspaceBindingsByWorkspace[workspaceID], existing.timelineID == sourceTimelineID else {
-            throw WorkspaceBindingRepositoryError.transferSourceMismatch(
-                workspaceID: workspaceID,
-                timelineID: sourceTimelineID
-            )
-        }
-        let binding = WorkspaceBinding(
+        try workspaceBindings.transfer(
             workspaceID: workspaceID,
-            timelineID: destinationTimelineID,
-            createdAt: existing.createdAt,
-            updatedAt: now
+            from: sourceTimelineID,
+            to: destinationTimelineID,
+            now: now
         )
-        workspaceBindingsByWorkspace[workspaceID] = binding
-        workspaceIDsByTimeline[sourceTimelineID]?.remove(workspaceID)
-        if workspaceIDsByTimeline[sourceTimelineID]?.isEmpty == true {
-            workspaceIDsByTimeline.removeValue(forKey: sourceTimelineID)
-        }
-        workspaceIDsByTimeline[destinationTimelineID, default: []].insert(workspaceID)
-        return binding
     }
 
     public func bindings(for timelineID: UUID) async throws -> [WorkspaceBinding] {
-        (workspaceIDsByTimeline[timelineID] ?? [])
-            .compactMap { workspaceBindingsByWorkspace[$0] }
-            .sorted { $0.createdAt < $1.createdAt }
+        workspaceBindings.bindings(for: timelineID)
     }
 
     public func timelineID(for workspaceID: UUID) async throws -> UUID? {
-        workspaceBindingsByWorkspace[workspaceID]?.timelineID
+        workspaceBindings.timelineID(for: workspaceID)
     }
 
     // MARK: Internal transition helpers
@@ -625,6 +519,39 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
             throw TimelineRuntimeRepositoryError.turnNotFound(turnID)
         }
         return turn
+    }
+
+    /// The Turn if it can still transition: it exists, is not terminal, and (when given)
+    /// belongs to `timelineID`.
+    private func openTurn(_ turnID: UUID, on timelineID: UUID? = nil) throws -> TurnRecord {
+        let turn = try mutableTurn(turnID)
+        guard !turn.isTerminal, timelineID.map({ $0 == turn.timelineID }) ?? true else {
+            throw TimelineRuntimeRepositoryError.invalidTransition(turnID: turnID, lifecycle: turn.lifecycle)
+        }
+        return turn
+    }
+
+    /// Records a tool result against its durable intent, optionally appending the tool message
+    /// in the same transition so the message and result become visible together.
+    private func commitToolResult(_ result: RuntimeToolResult, appending message: TimelineMessage?) throws {
+        var turn = try openTurn(result.turnID, on: result.timelineID)
+        if let message, message.timelineID != result.timelineID {
+            throw TimelineRuntimeRepositoryError.invalidTransition(turnID: result.turnID, lifecycle: turn.lifecycle)
+        }
+        let key = ToolKey(turnID: result.turnID, toolCallID: result.toolCallID)
+        guard intents[key] != nil else {
+            throw TimelineRuntimeRepositoryError.toolIntentRequired(turnID: result.turnID, toolCallID: result.toolCallID)
+        }
+        guard results[key] == nil else {
+            throw TimelineRuntimeRepositoryError.duplicateToolResult(turnID: result.turnID, toolCallID: result.toolCallID)
+        }
+        // Validate the append before mutating either side of the transition.
+        if let message { try appendMessage(message) }
+        results[key] = result
+        turn.lifecycle = .running
+        turn.updatedAt = result.createdAt
+        turn.notices.append(TurnNotice(kind: "tool-result-durable", message: result.toolCallID, createdAt: result.createdAt))
+        turns[result.turnID] = turn
     }
 
     private func firstUnresolvedToolIntent(turnID: UUID) async throws -> RuntimeToolIntent? {

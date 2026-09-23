@@ -212,7 +212,7 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
     }
 
     private func boundedOutput(_ content: String, byteCount: Int) -> String {
-        let bounded = utf8Prefix(of: content, byteCount: byteCount)
+        let bounded = content.utf8Prefix(maxBytes: byteCount)
         return bounded.utf8.count == content.utf8.count ? bounded : bounded + "\n[output truncated]"
     }
 
@@ -297,18 +297,6 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
             "required": .array(required.map(AnyCodable.string)),
             "additionalProperties": .boolean(false),
         ]
-    }
-
-    private func utf8Prefix(of content: String, byteCount: Int) -> String {
-        guard byteCount > 0 else { return "" }
-        var output = ""
-        var used = 0
-        for character in content {
-            guard used + character.utf8.count <= byteCount else { break }
-            output.append(character)
-            used += character.utf8.count
-        }
-        return output
     }
 }
 
