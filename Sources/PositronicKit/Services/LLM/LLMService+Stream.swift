@@ -3,7 +3,8 @@ import PKContracts
 import PKUtilities
 
 public extension LLMStreamClient {
-    /// Stream a generation with full prompt building.
+    /// Assembles the prompt, applies structured output when requested, and streams from the
+    /// selected tier. See ``LLMStreamClient/generationStreamWithContext(_:)``.
     func generationStreamWithContext(_ request: LLMGenerationRequest) async throws -> LLMStreamResult {
         let promptRequest = request.prompt
         let result = try await PromptAssembler.prepare(promptRequest)
