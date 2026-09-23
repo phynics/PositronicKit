@@ -47,6 +47,11 @@ for tagged releases beginning with `1.0.0`.
   `TurnEvent.sidecarsCompleted(results:)`, which fabricated a random Turn identity. Build a
   `SidecarCompletion` with the real identity and use `TurnEvent.sidecarsCompleted(_:)`.
 
+- **Redundant provider `sendMessage` overrides removed:** `OpenRouterClient`, `OllamaClient`, and
+  `AnthropicClient` declared a `sendMessage(_:responseFormat:generationParameters:)` identical to
+  the `LLMClientProtocol` default. Calls resolve to the default with the same behavior; only the
+  concrete-type symbols are gone.
+
 - **Tool-loop result types collapse:** `ToolExecutionOutcome` is no longer public, and the internal
   `ToolHandlingResult`/`ToolTurnResult` pair is now a single internal `ToolTurnResult`. No
   consumer-visible behavior changes.
