@@ -232,7 +232,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                         recoveryState.withLock { $0.shouldRetryAfterError } && RetryPolicy.isTransient(error: error)
                     },
                     operation: {
-                        let request = self.buildChatRequest(
+                        let request = try self.buildChatRequest(
                             chatURL: chatURL,
                             apiKey: apiKey,
                             timeoutInterval: self.timeoutInterval,
@@ -274,7 +274,7 @@ public actor OpenRouterClient: LLMClientProtocol {
 
                         if !Task.isCancelled, recoveryState.withLock(\.shouldRecoverToolCalls) {
                             logger.warning("OpenRouter stream finished with tool_calls but no streamed delta.toolCalls were received. Recovering tool calls from non-stream response.")
-                            let recoveryRequest = self.buildChatRequest(
+                            let recoveryRequest = try self.buildChatRequest(
                                 chatURL: chatURL,
                                 apiKey: apiKey,
                                 timeoutInterval: self.timeoutInterval,
@@ -326,7 +326,7 @@ public actor OpenRouterClient: LLMClientProtocol {
         timeoutInterval: TimeInterval,
         attribution: Attribution,
         query: OpenRouterChatRequest
-    ) -> URLRequest {
+    ) throws -> URLRequest {
         var request = URLRequest(url: chatURL)
         request.httpMethod = "POST"
         request.timeoutInterval = timeoutInterval
@@ -340,7 +340,7 @@ public actor OpenRouterClient: LLMClientProtocol {
         }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        request.httpBody = try? encoder.encode(query)
+        request.httpBody = try encoder.encode(query)
         return request
     }
 
@@ -404,7 +404,7 @@ public actor OpenRouterClient: LLMClientProtocol {
             let result = raw.toLLMStreamChunk(audioFormat: audioFormat)
             recoveryState.withLock {
                 $0.observe(
-                    yieldedContent: !(result.choices.first?.delta.content?.isEmpty ?? true),
+                    yieldedContent: result.carriesConsumerOutput,
                     streamedToolCalls: result.choices.first?.delta.toolCalls != nil,
                     finishedWithToolCalls: result.choices.contains(where: { $0.finishReason == "tool_calls" })
                 )
@@ -468,17 +468,15 @@ public actor OpenRouterClient: LLMClientProtocol {
         responseFormat: LLMResponseFormat? = nil,
         generationParameters: GenerationParameters? = nil
     ) async throws -> String {
-        let maxRetries = self.maxRetries
-        return try await RetryPolicy.retry(maxRetries: maxRetries) {
-            let stream = await self.chatStream(
-                messages: [LLMMessage(role: .user, content: content)],
-                tools: nil,
-                toolChoice: nil,
-                responseFormat: responseFormat,
-                generationParameters: generationParameters
-            )
-            return try await accumulateStreamContent(from: stream)
-        }
+        // `chatStream` owns transient-error retries; retrying here too would multiply attempts.
+        let stream = await chatStream(
+            messages: [LLMMessage(role: .user, content: content)],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters
+        )
+        return try await accumulateStreamContent(from: stream)
     }
 
     /// Fetches the model IDs available from the OpenRouter models API.

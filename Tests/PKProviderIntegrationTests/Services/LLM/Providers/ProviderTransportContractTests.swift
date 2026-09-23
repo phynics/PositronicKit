@@ -504,6 +504,60 @@ struct ProviderTransportContractTests {
         #expect(await transport.recordedRequests().count == 1)
     }
 
+    @Test("OpenRouter: reasoning-only output then transient error → no retry (#226)")
+    func openRouterReasoningThenErrorDoesNotRetry() async throws {
+        let transport = TestProviderTransport { _ in
+            .linesThenError(
+                [
+                    #"data: {"id":"chunk-1","model":"openai/gpt-4o","choices":[{"index":0,"delta":{"role":"assistant","reasoning":"Thinking"}}]}"#,
+                ],
+                URLError(.timedOut),
+                self.response(url: "https://openrouter.ai/api/v1/chat/completions")
+            )
+        }
+        let client = OpenRouterClient(apiKey: "secret", modelName: "openai/gpt-4o", maxRetries: 3, transport: transport)
+
+        await #expect(throws: URLError.self) {
+            for try await _ in await client.chatStream(
+                messages: [LLMMessage(role: .user, content: "hi")],
+                tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+            ) {}
+        }
+        // A retried request would stream the reasoning to the consumer a second time.
+        #expect(await transport.recordedRequests().count == 1)
+    }
+
+    @Test("OpenRouter and Ollama: sendMessage retries only inside chatStream (#226)")
+    func sendMessageDoesNotNestRetries() async throws {
+        let openRouterTransport = TestProviderTransport { _ in .error(URLError(.timedOut)) }
+        let openRouter = OpenRouterClient(apiKey: "secret", maxRetries: 1, transport: openRouterTransport)
+        await #expect(throws: URLError.self) { _ = try await openRouter.sendMessage("hi") }
+        // One attempt plus one retry. A second retry layer would issue (1 + 1)² = 4 requests.
+        #expect(await openRouterTransport.recordedRequests().count == 2)
+
+        let ollamaTransport = TestProviderTransport { _ in .error(URLError(.networkConnectionLost)) }
+        let ollama = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", maxRetries: 1, transport: ollamaTransport)
+        await #expect(throws: URLError.self) { _ = try await ollama.sendMessage("hi") }
+        #expect(await ollamaTransport.recordedRequests().count == 2)
+    }
+
+    @Test("OpenRouter: an unencodable request body throws instead of sending no body (#226)")
+    func openRouterUnencodableBodyThrows() async throws {
+        let transport = TestProviderTransport { _ in
+            .lines(["data: [DONE]"], self.response(url: "https://openrouter.ai/api/v1/chat/completions"))
+        }
+        let client = OpenRouterClient(apiKey: "secret", maxRetries: 0, transport: transport)
+
+        await #expect(throws: EncodingError.self) {
+            for try await _ in await client.chatStream(
+                messages: [LLMMessage(role: .user, content: "hi")],
+                tools: nil, toolChoice: nil, responseFormat: nil,
+                generationParameters: GenerationParameters(temperature: .nan)
+            ) {}
+        }
+        #expect(await transport.recordedRequests().isEmpty)
+    }
+
     // MARK: - PKR-11: non-2xx error body is sanitized, never logged raw
 
     @Test("Ollama non-2xx response surfaces a sanitized error body via the thrown error, not raw")

@@ -8,7 +8,7 @@ import Testing
 /// The gate was extracted from near-identical logic previously duplicated in the Ollama and
 /// Anthropic provider clients. These tests pin the preserved semantics: retry is allowed only
 /// while nothing has been yielded, and the gate flips the first time a chunk carries non-empty
-/// `content`, non-empty `reasoning`, or any (non-`nil`) `toolCalls` delta.
+/// `content`, non-empty `reasoning`, an audio delta, or any (non-`nil`) `toolCalls` delta.
 @Suite("DuplicateContentRetryGate (PKCR-005)")
 struct DuplicateContentRetryGateTests {
     // MARK: - Helpers
@@ -131,6 +131,22 @@ struct DuplicateContentRetryGateTests {
         gate.markYieldedIfNeeded(makeChunk(reasoning: "hmm"))
         #expect(!gate.shouldRetry(error: URLError(.timedOut)))
         #expect(!gate.shouldRetry(error: LLMServiceError.networkError("again")))
+    }
+
+    @Test("An audio-only delta latches the gate (#226)")
+    func audioDeltaLatchesGate() {
+        let gate = DuplicateContentRetryGate()
+        let audioChunk = LLMStreamChunk(
+            id: "test",
+            model: "test-model",
+            choices: [LLMStreamChoice(
+                index: 0,
+                delta: LLMStreamDelta(audio: LLMAudioDelta(data: Data([1, 2, 3]), format: .pcm16))
+            )]
+        )
+        #expect(audioChunk.carriesConsumerOutput)
+        gate.markYieldedIfNeeded(audioChunk)
+        #expect(!gate.shouldRetry(error: URLError(.timedOut)))
     }
 
     // MARK: - Concurrency (Sendable)

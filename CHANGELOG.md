@@ -68,6 +68,16 @@ for tagged releases beginning with `1.0.0`.
   `output` — the success output, or the model-facing failure text with its `Error:` prefix — and
   `isSuccessful` is the status. Previously persisted rows still decode; the removed key is ignored.
 
+### Fixed
+
+- **Provider retries no longer multiply or repeat reasoning:** `OpenRouterClient.sendMessage` and
+  `OllamaClient.sendMessage` no longer wrap a second retry loop around `chatStream`, which could
+  issue up to `(maxRetries + 1)²` requests. Every streaming provider now stops retrying once it has
+  yielded content, reasoning, audio, or a tool-call delta. Previously OpenAI and OpenRouter could
+  retry after reasoning-only (or, for OpenRouter, audio-only) output and deliver it twice.
+  `OpenRouterClient` also throws when the request body cannot be encoded instead of sending a POST
+  with no body.
+
 ## [6.0.0] - 2026-09-18
 
 ### Breaking

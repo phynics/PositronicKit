@@ -9,11 +9,10 @@ import Synchronization
 /// type encapsulates that gate so provider adapters (Ollama, Anthropic, …) share one
 /// implementation instead of each carrying their own `Mutex<Bool>` + helper (PKCR-005).
 ///
-/// Semantics are preserved exactly from the prior per-provider implementations:
 /// - `shouldRetry(error:)` returns `true` only when the error is transient **and** nothing
 ///   has been yielded yet.
-/// - `markYieldedIfNeeded(_:)` flips the gate the first time a chunk carries non-empty
-///   `content`, non-empty `reasoning`, or any (non-`nil`) `toolCalls` delta.
+/// - `markYieldedIfNeeded(_:)` flips the gate the first time a chunk carries consumer-visible
+///   output (see ``PKContracts/LLMStreamChunk/carriesConsumerOutput``).
 package final class DuplicateContentRetryGate: Sendable {
     private let hasYielded = Mutex(false)
 
@@ -26,18 +25,25 @@ package final class DuplicateContentRetryGate: Sendable {
         }
     }
 
-    /// Marks the gate as yielded if the chunk carries non-empty content/reasoning or any
-    /// tool-call delta. Once yielded, subsequent calls are no-ops and `shouldRetry` will
-    /// always return `false`.
+    /// Marks the gate as yielded if the chunk carries consumer-visible output. Once yielded,
+    /// subsequent calls are no-ops and `shouldRetry` will always return `false`.
     package func markYieldedIfNeeded(_ chunk: LLMStreamChunk) {
-        hasYielded.withLock { yielded in
-            if yielded { return }
-            guard let delta = chunk.choices.first?.delta else { return }
-            if delta.content?.isEmpty == false
-                || delta.reasoning?.isEmpty == false
-                || delta.toolCalls != nil {
-                yielded = true
-            }
-        }
+        guard chunk.carriesConsumerOutput else { return }
+        hasYielded.withLock { $0 = true }
+    }
+}
+
+extension LLMStreamChunk {
+    /// Whether yielding this chunk exposes output a retried request would repeat: non-empty
+    /// `content` or `reasoning`, an audio delta, or any tool-call delta.
+    ///
+    /// Every streaming provider uses this one classification to decide whether a mid-stream
+    /// transient error is still safe to retry.
+    package var carriesConsumerOutput: Bool {
+        guard let delta = choices.first?.delta else { return false }
+        return delta.content?.isEmpty == false
+            || delta.reasoning?.isEmpty == false
+            || delta.audio != nil
+            || delta.toolCalls != nil
     }
 }

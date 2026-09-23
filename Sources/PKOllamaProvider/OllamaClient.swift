@@ -311,17 +311,15 @@ public actor OllamaClient: LLMClientProtocol {
         responseFormat: LLMResponseFormat? = nil,
         generationParameters: GenerationParameters? = nil
     ) async throws -> String {
-        let maxRetries = self.maxRetries
-        return try await RetryPolicy.retry(maxRetries: maxRetries) {
-            let stream = await self.chatStream(
-                messages: [LLMMessage(role: .user, content: content)],
-                tools: nil,
-                toolChoice: nil,
-                responseFormat: responseFormat,
-                generationParameters: generationParameters
-            )
-            return try await accumulateStreamContent(from: stream)
-        }
+        // `chatStream` owns transient-error retries; retrying here too would multiply attempts.
+        let stream = await chatStream(
+            messages: [LLMMessage(role: .user, content: content)],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters
+        )
+        return try await accumulateStreamContent(from: stream)
     }
 
     /// Fetches the model names installed on the Ollama server via `/api/tags`.

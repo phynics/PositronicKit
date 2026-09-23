@@ -159,16 +159,16 @@ public actor OpenAIClient: LLMClientProtocol {
 
                             for try await result in stream {
                                 if Task.isCancelled { break }
+                                let chunk = result.toLLMStreamChunk(audioFormat: audioOutput?.format)
                                 recoveryState.withLock {
                                     $0.observe(
-                                        yieldedContent: !(result.choices.first?.delta.content?.isEmpty ?? true)
-                                            || result.choices.first?.delta.audio != nil,
-                                        streamedToolCalls: result.choices.first?.delta.toolCalls != nil,
+                                        yieldedContent: chunk.carriesConsumerOutput,
+                                        streamedToolCalls: chunk.choices.first?.delta.toolCalls != nil,
                                         finishedWithToolCalls: result.choices.contains(where: { $0.finishReason == .toolCalls })
                                     )
                                 }
 
-                                continuation.yield(result.toLLMStreamChunk(audioFormat: audioOutput?.format))
+                                continuation.yield(chunk)
                             }
 
                             if !Task.isCancelled, recoveryState.withLock(\.shouldRecoverToolCalls) {
