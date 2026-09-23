@@ -41,12 +41,4 @@ public actor InMemoryMessageStore: TimelineMessageStoreProtocol {
                 return try? SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
             }
     }
-
-    package func allMessages() -> [TimelineMessage] {
-        messages
-    }
-
-    package func replaceMessages(_ messages: [TimelineMessage]) {
-        self.messages = messages
-    }
 }

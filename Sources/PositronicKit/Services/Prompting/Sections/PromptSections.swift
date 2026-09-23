@@ -235,17 +235,6 @@ public struct AgentContext: Prompt {
     public var body: some Prompt {
         AgentIdentityContext(snapshot: snapshot, timelineTitle: timelineTitle)
     }
-
-    /// Retained as a compact compatibility wrapper; the runtime uses the four reserved
-    /// sections below so each stable/semi-stable portion can be journaled independently.
-    private var text: String {
-        [
-            "## Your Identity",
-            "You are **\(snapshot.identity.name)**.",
-            snapshot.identity.description.isEmpty ? nil : "Description: \(snapshot.identity.description)",
-            timelineTitle.map { "Currently operating on timeline: \"\($0)\"" },
-        ].compactMap { $0 }.joined(separator: "\n")
-    }
 }
 
 /// Stable Agent identity section owned by the runtime.

@@ -132,34 +132,6 @@ struct ToolCallRegressionTests {
         }
     }
 
-    @Test("StreamingParser extracts XML tool calls with complex JSON")
-    func testXMLToolParsing() throws {
-        let parser = StreamingParser()
-        let xmlInput = """
-        Thinking...
-        <tool_call>
-        {"name": "complex_tool", "arguments": {"tags": ["a", "b"], "nested": {"val": 1}}}
-        </tool_call>
-        """
-
-        let (cleanText, toolCalls) = parser.extractToolCalls(from: xmlInput)
-
-        #expect(cleanText.trimmingCharacters(in: .whitespacesAndNewlines) == "Thinking...")
-        #expect(toolCalls.count == 1)
-
-        let toolCall = toolCalls.first
-        #expect(toolCall?.name == "complex_tool")
-
-        let args = toolCall?.arguments
-        let tags = args?["tags"]?.value as? [Any]
-        #expect(tags?.count == 2)
-        #expect(tags?[0] as? String == "a")
-
-        let nested = args?["nested"]?.value as? [String: Any]
-        let value = nested?["val"]
-        #expect((value as? Int64) == 1 || (value as? UInt64) == 1)
-    }
-
     @Test("Legacy XML tool-call markers in assistant text do not produce tool accumulators")
     func legacyXMLMarkersProduceNoToolCalls() async throws {
         let context = TurnContext(

@@ -186,7 +186,6 @@ struct TurnEngine: Sendable {
 
     enum Constants {
         static let sentinelToolName = "tool_call"
-        static let defaultMaxModelRounds = 5
         static let maxRemoteDepth = 3
         /// Response tokens reserved for the model's output when the caller leaves
         /// `GenerationParameters.maxTokens` nil. Matches Anthropic's `defaultMaxTokens` and is a

@@ -22,7 +22,7 @@ public struct AgentCapability: Sendable {
     }
 
     public func get(_ agentID: UUID) async throws -> Agent? {
-        try await agentManager.getAgent(id: agentID)
+        try await agentManager.agent(id: agentID)
     }
 
     /// Updates an Agent's durable identity fields. The next admitted managed Turn observes
@@ -44,7 +44,7 @@ public struct AgentCapability: Sendable {
     }
 
     public func timelines(attachedTo agentID: UUID) async throws -> [TimelineRecord] {
-        try await agentManager.getTimelines(attachedTo: agentID)
+        try await agentManager.timelines(attachedTo: agentID)
     }
 
     /// Begins the drain-to-retired lifecycle. Admitted Turns finish before ordinary

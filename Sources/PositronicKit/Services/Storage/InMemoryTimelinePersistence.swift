@@ -35,13 +35,4 @@ public actor InMemoryTimelinePersistence: TimelinePersistenceProtocol {
     public func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int {
         0
     }
-
-    package func allTimelines() -> [TimelineRecord] {
-        timelines
-    }
-
-    package func replaceTimelines(_ timelines: [TimelineRecord]) {
-        self.timelines = timelines
-    }
-
 }

@@ -9,7 +9,7 @@ private let redactedHash = PKUtilities.redactedHash
 /// Pipeline stage responsible for extracting and normalising tool calls from the LLM response.
 ///
 /// This stage does NOT execute tools. It validates and cleans `context.outputs.toolCallAccumulators`
-/// so that `PersistenceStage` and `TurnEngine.runTurnLoop` can rely on it:
+/// so that `MessagePersistenceStage` and `TurnEngine.runTurnLoop` can rely on it:
 /// - Strips sentinel and empty-named calls.
 /// - Leaves durable tool auditing to `TimelineRuntimeRepository`.
 ///
@@ -23,8 +23,6 @@ struct ToolCallExtractionStage: PipelineStage {
     }
 
     func process(_ context: TurnContext) async throws -> AsyncThrowingStream<TurnEvent, Error> {
-        let eventsToYield: [TurnEvent] = []
-
         let accumulators = await context.outputs.toolCallAccumulators
         // timelineID is logged raw (not hashed) so PKRuntime records correlate
         // end-to-end with Yakamoz logs (YAK-40), which log the raw timelineId. A UUID is
@@ -36,7 +34,7 @@ struct ToolCallExtractionStage: PipelineStage {
             LogKeys.modelRoundIndex: .string("\(context.modelRoundIndex)"),
             LogKeys.stage: .string("tool-call-extraction"),
         ]
-        logger.debug("ToolCallExtractionStage: \(accumulators.count) accumulator(s) before fallback/cleanup", metadata: baseMeta)
+        logger.debug("ToolCallExtractionStage: \(accumulators.count) accumulator(s) before cleanup", metadata: baseMeta)
         for (index, acc) in accumulators.sorted(by: { $0.key < $1.key }) {
             let name = acc.name.isEmpty ? "(empty)" : acc.name
             var meta = baseMeta
@@ -64,11 +62,6 @@ struct ToolCallExtractionStage: PipelineStage {
         finalMeta["finalCount"] = .string("\(finalAccumulators.count)")
         logger.debug("ToolCallExtractionStage: \(finalAccumulators.count) accumulator(s) after cleanup", metadata: finalMeta)
 
-        return AsyncThrowingStream { continuation in
-            for event in eventsToYield {
-                continuation.yield(event)
-            }
-            continuation.finish()
-        }
+        return AsyncThrowingStream { $0.finish() }
     }
 }

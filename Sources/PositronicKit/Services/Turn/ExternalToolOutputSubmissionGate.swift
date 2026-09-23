@@ -9,7 +9,7 @@ import PKContracts
 /// across independent runtime instances — two `PKRuntime` instances constructed in one
 /// process are documented to start independent histories, and a process-global gate would let
 /// them contend over identical keys. `PKRuntime` owns exactly one instance per runtime
-/// identity (see `PKRuntime.RuntimeState`) and timelines it through
+/// identity (see `PKRuntime.RuntimeState`) and passes it through
 /// `TurnEngine.Dependencies`, the same way `TurnEventHub` is carried through.
 actor ExternalToolOutputSubmissionGate {
     private var reservedToolOutputs: Set<ReservedToolOutput> = []
