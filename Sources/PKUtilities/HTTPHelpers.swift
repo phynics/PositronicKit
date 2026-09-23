@@ -39,6 +39,40 @@ package enum HTTPHelpers {
         }
     }
 
+    /// Opens a streaming request and returns its lines once the response is `2xx`.
+    ///
+    /// On any other status the error body is read (size-limited) and thrown through
+    /// ``ensureSuccessStatus(_:provider:body:)``. The raw body is never logged: a proxy could echo
+    /// request headers in it, and `ProviderHTTPFailure.makeError` sanitizes it before it reaches
+    /// the thrown error (PKR-11).
+    package static func openLineStream(
+        _ request: URLRequest,
+        transport: any ProviderHTTPTransport,
+        provider: String
+    ) async throws -> AsyncThrowingStream<String, Error> {
+        let (stream, response) = try await transport.lines(for: request)
+        let httpResponse = try ensureHTTPResponse(response, provider: provider)
+        if !(200 ... 299).contains(httpResponse.statusCode) {
+            let errorBody = try await LimitedErrorBodyCollector.collect(from: stream)
+            try ensureSuccessStatus(httpResponse, provider: provider, body: Data(errorBody.utf8))
+        }
+        return stream
+    }
+
+    /// Performs `request` and decodes a `2xx` body as `T`.
+    package static func fetchDecodable<T: Decodable>(
+        _ type: T.Type,
+        for request: URLRequest,
+        transport: any ProviderHTTPTransport,
+        provider: String,
+        decoder: JSONDecoder = JSONDecoder()
+    ) async throws -> T {
+        let (data, response) = try await transport.data(for: request)
+        let httpResponse = try ensureHTTPResponse(response, provider: provider)
+        try ensureSuccessStatus(httpResponse, provider: provider, body: data)
+        return try decoder.decode(type, from: data)
+    }
+
     /// Extracts the `Data` payload from an SSE `data:` line.
     ///
     /// Replaces the duplicated trim/prefix/drop/`[DONE]`/data conversion pattern.

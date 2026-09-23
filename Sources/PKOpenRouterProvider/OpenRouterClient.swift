@@ -219,49 +219,45 @@ public actor OpenRouterClient: LLMClientProtocol {
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        let endpoint = self.endpoint
-        let apiKey = self.apiKey
         let modelName = self.modelName
         let logger = self.logger
         let maxRetries = self.maxRetries
-        let chatURL = endpoint
-            .appendingPathComponent("v1")
-            .appendingPathComponent("chat")
-            .appendingPathComponent("completions")
+        let chatMessages = messages.map { OpenRouterMessage($0, logger: logger) }
+        let chatTools = tools?.map(OpenRouterTool.init)
+        let chatResponseFormat = mapResponseFormat(responseFormat)
+        let chatToolChoice = mapToolChoice(toolChoice, tools: tools)
+        // The tool-call recovery request repeats the streamed one without streaming or audio.
+        let makeQuery: @Sendable (Bool) -> OpenRouterChatRequest = { streaming in
+            OpenRouterChatRequest(
+                messages: chatMessages,
+                model: modelName,
+                frequencyPenalty: generationParameters?.frequencyPenalty,
+                maxCompletionTokens: generationParameters?.maxTokens,
+                presencePenalty: generationParameters?.presencePenalty,
+                responseFormat: chatResponseFormat,
+                seed: generationParameters?.seed,
+                temperature: generationParameters?.temperature,
+                toolChoice: chatToolChoice,
+                tools: chatTools,
+                topP: generationParameters?.topP,
+                stream: streaming,
+                streamOptions: streaming ? .init(includeUsage: true) : nil,
+                modalities: streaming && responseModalities.contains(.audio) ? [.text, .audio] : nil,
+                audio: streaming ? audioOutput : nil
+            )
+        }
 
         return CancellableAsyncThrowingStream.make(of: LLMStreamChunk.self) { continuation in
             let recoveryState = Mutex(LLMToolCallRecoveryState())
 
             do {
+                let request = try self.buildChatRequest(query: makeQuery(true))
                 try await RetryPolicy.retry(
                     maxRetries: maxRetries,
                     shouldRetry: { error in
                         recoveryState.withLock { $0.shouldRetryAfterError } && RetryPolicy.isTransient(error: error)
                     },
                     operation: {
-                        let request = try self.buildChatRequest(
-                            chatURL: chatURL,
-                            apiKey: apiKey,
-                            timeoutInterval: self.timeoutInterval,
-                            attribution: self.attribution,
-                            query: OpenRouterChatRequest(
-                                messages: messages.map { OpenRouterMessage($0, logger: logger) },
-                                model: modelName,
-                                frequencyPenalty: generationParameters?.frequencyPenalty,
-                                maxCompletionTokens: generationParameters?.maxTokens,
-                                presencePenalty: generationParameters?.presencePenalty,
-                                responseFormat: self.mapResponseFormat(responseFormat),
-                                seed: generationParameters?.seed,
-                                temperature: generationParameters?.temperature,
-                                toolChoice: self.mapToolChoice(toolChoice, tools: tools),
-                                tools: tools?.map(OpenRouterTool.init),
-                                topP: generationParameters?.topP,
-                                stream: true,
-                                streamOptions: .init(includeUsage: true),
-                                modalities: responseModalities.contains(.audio) ? [.text, .audio] : nil,
-                                audio: audioOutput
-                            )
-                        )
                         try await self.streamChatResponse(
                             request: request,
                             recoveryState: recoveryState,
@@ -281,29 +277,7 @@ public actor OpenRouterClient: LLMClientProtocol {
 
                         if !Task.isCancelled, recoveryState.withLock(\.shouldRecoverToolCalls) {
                             logger.warning("OpenRouter stream finished with tool_calls but no streamed delta.toolCalls were received. Recovering tool calls from non-stream response.")
-                            let recoveryRequest = try self.buildChatRequest(
-                                chatURL: chatURL,
-                                apiKey: apiKey,
-                                timeoutInterval: self.timeoutInterval,
-                                attribution: self.attribution,
-                                query: OpenRouterChatRequest(
-                                    messages: messages.map { OpenRouterMessage($0, logger: logger) },
-                                    model: modelName,
-                                    frequencyPenalty: generationParameters?.frequencyPenalty,
-                                    maxCompletionTokens: generationParameters?.maxTokens,
-                                    presencePenalty: generationParameters?.presencePenalty,
-                                    responseFormat: self.mapResponseFormat(responseFormat),
-                                    seed: generationParameters?.seed,
-                                    temperature: generationParameters?.temperature,
-                                    toolChoice: self.mapToolChoice(toolChoice, tools: tools),
-                                    tools: tools?.map(OpenRouterTool.init),
-                                    topP: generationParameters?.topP,
-                                    stream: false,
-                                    streamOptions: nil,
-                                    modalities: nil,
-                                    audio: nil
-                                )
-                            )
+                            let recoveryRequest = try self.buildChatRequest(query: makeQuery(false))
                             let recoveryResult = try await self.fetchChatResponse(request: recoveryRequest)
                             if !Task.isCancelled, let recoveryChunk = self.makeToolCallRecoveryChunk(from: recoveryResult) {
                                 logger.debug("OpenRouter tool-call recovery succeeded: \(recoveryChunk.choices.first?.delta.toolCalls?.count ?? 0) tool call(s) recovered")
@@ -327,13 +301,11 @@ public actor OpenRouterClient: LLMClientProtocol {
         }
     }
 
-    private nonisolated func buildChatRequest(
-        chatURL: URL,
-        apiKey: String,
-        timeoutInterval: TimeInterval,
-        attribution: Attribution,
-        query: OpenRouterChatRequest
-    ) throws -> URLRequest {
+    private nonisolated func buildChatRequest(query: OpenRouterChatRequest) throws -> URLRequest {
+        let chatURL = endpoint
+            .appendingPathComponent("v1")
+            .appendingPathComponent("chat")
+            .appendingPathComponent("completions")
         var request = URLRequest(url: chatURL)
         request.httpMethod = "POST"
         request.timeoutInterval = timeoutInterval
@@ -358,12 +330,7 @@ public actor OpenRouterClient: LLMClientProtocol {
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation,
         audioFormat: AudioFormat? = nil
     ) async throws {
-        let (stream, response) = try await transport.lines(for: request)
-        let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "OpenRouter")
-        if !(200 ... 299).contains(httpResponse.statusCode) {
-            let errorBody = try await LimitedErrorBodyCollector.collect(from: stream)
-            try HTTPHelpers.ensureSuccessStatus(httpResponse, provider: "OpenRouter", body: Data(errorBody.utf8))
-        }
+        let stream = try await HTTPHelpers.openLineStream(request, transport: transport, provider: "OpenRouter")
         for try await line in stream {
             if Task.isCancelled { break }
             processSSELine(
@@ -382,10 +349,12 @@ public actor OpenRouterClient: LLMClientProtocol {
     }
 
     private func fetchChatResponse(request: URLRequest) async throws -> OpenRouterChatResponse {
-        let (data, response) = try await transport.data(for: request)
-        let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "OpenRouter")
-        try HTTPHelpers.ensureSuccessStatus(httpResponse, provider: "OpenRouter", body: data)
-        return try JSONDecoder().decode(OpenRouterChatResponse.self, from: data)
+        try await HTTPHelpers.fetchDecodable(
+            OpenRouterChatResponse.self,
+            for: request,
+            transport: transport,
+            provider: "OpenRouter"
+        )
     }
 
     private nonisolated func processSSELine(
@@ -498,11 +467,12 @@ public actor OpenRouterClient: LLMClientProtocol {
                 .appendingPathComponent("models")
             var request = URLRequest(url: url)
             request.timeoutInterval = self.timeoutInterval
-            let (data, response) = try await self.transport.data(for: request)
-            let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "OpenRouter models API")
-            try HTTPHelpers.ensureSuccessStatus(httpResponse, provider: "OpenRouter", body: data)
-            let modelsResponse = try JSONDecoder().decode(OpenRouterModelsResponse.self, from: data)
-            return modelsResponse.data.map { $0.id }.sorted()
+            return try await HTTPHelpers.fetchDecodable(
+                OpenRouterModelsResponse.self,
+                for: request,
+                transport: self.transport,
+                provider: "OpenRouter"
+            ).data.map(\.id).sorted()
         }
     }
 
