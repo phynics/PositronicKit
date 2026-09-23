@@ -40,7 +40,7 @@ enum FoundationModelsStreamMapper {
         switch event {
         case let .textDelta(text):
             guard !text.isEmpty else { return nil }
-            return makeChunk(
+            return LLMStreamChunk(
                 id: messageID,
                 model: model,
                 delta: LLMStreamDelta(role: .assistant, content: text)
@@ -48,7 +48,7 @@ enum FoundationModelsStreamMapper {
 
         case let .toolCall(id, name, argumentsJSON):
             let ordinal = state.ordinal(for: id)
-            return makeChunk(
+            return LLMStreamChunk(
                 id: messageID,
                 model: model,
                 delta: LLMStreamDelta(
@@ -65,25 +65,12 @@ enum FoundationModelsStreamMapper {
             return nil
 
         case let .finished(reason):
-            return makeChunk(
+            return LLMStreamChunk(
                 id: messageID,
                 model: model,
                 delta: LLMStreamDelta(role: .assistant),
                 finishReason: reason.wireValue
             )
         }
-    }
-
-    private static func makeChunk(
-        id: String,
-        model: String,
-        delta: LLMStreamDelta,
-        finishReason: String? = nil
-    ) -> LLMStreamChunk {
-        LLMStreamChunk(
-            id: id,
-            model: model,
-            choices: [LLMStreamChoice(index: 0, delta: delta, finishReason: finishReason)]
-        )
     }
 }

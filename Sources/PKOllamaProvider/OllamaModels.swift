@@ -244,7 +244,7 @@ struct OllamaChatResponse: Codable {
     /// Observed wire values include `"stop"` (natural stop) and `"length"` (the response was
     /// truncated because `num_predict`/context limits were hit). Previously undecoded, so a
     /// truncated response was indistinguishable from a normal stop once `finishReason` was
-    /// synthesized in `OllamaClient.buildFinalChunk`.
+    /// synthesized in `OllamaClient.buildChunk`.
     let doneReason: String?
     let totalDuration: Int64?
     let loadDuration: Int64?

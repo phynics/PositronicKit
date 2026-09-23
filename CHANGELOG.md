@@ -78,6 +78,10 @@ for tagged releases beginning with `1.0.0`.
   `OpenRouterClient` also throws when the request body cannot be encoded instead of sending a POST
   with no body.
 
+- **Anthropic tool inputs keep integer precision:** `AnthropicClient` replays an assistant tool
+  call's arguments as `tool_use.input` through `AnyCodable`, so integers beyond 2^53 are sent
+  exactly instead of being rounded through `Double`.
+
 ## [6.0.0] - 2026-09-18
 
 ### Breaking

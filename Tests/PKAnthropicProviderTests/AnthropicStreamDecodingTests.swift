@@ -316,13 +316,35 @@ struct AnthropicMessageConversionTests {
         #expect(messages[0] == AnthropicMessage(role: "user", content: [.text("weather in berlin?")]))
         #expect(messages[1] == AnthropicMessage(
             role: "assistant",
-            content: [.toolUse(id: "toolu_01", name: "lookup_weather", input: .object(["city": .string("Berlin")]))]
+            content: [.toolUse(id: "toolu_01", name: "lookup_weather", input: .dictionary(["city": .string("Berlin")]))]
         ))
         // PKTool results ride in a user-role message as tool_result blocks, pairing by tool_use_id.
         #expect(messages[2] == AnthropicMessage(
             role: "user",
             content: [.toolResult(toolUseID: "toolu_01", content: "12°C")]
         ))
+    }
+
+    @Test("tool_use input keeps integers beyond 2^53 exact (#227)")
+    func toolUseInputKeepsLargeIntegersExact() throws {
+        let (_, messages) = try AnthropicMessageConversion.convert(
+            messages: [
+                LLMMessage(role: .user, content: "look it up"),
+                LLMMessage(
+                    role: .assistant,
+                    content: "",
+                    toolCalls: [LLMToolCall(id: "toolu_03", name: "lookup", arguments: #"{"id":9007199254740993}"#)]
+                ),
+            ],
+            logger: logger
+        )
+
+        #expect(messages[1] == AnthropicMessage(
+            role: "assistant",
+            content: [.toolUse(id: "toolu_03", name: "lookup", input: .dictionary(["id": .integer(9_007_199_254_740_993)]))]
+        ))
+        let encoded = try String(decoding: JSONEncoder().encode(messages[1]), as: UTF8.self)
+        #expect(encoded.contains("9007199254740993"))
     }
 
     @Test("Consecutive same-role messages merge into one alternating-turn message")
@@ -369,7 +391,7 @@ struct AnthropicMessageConversionTests {
 
         #expect(messages == [AnthropicMessage(
             role: "assistant",
-            content: [.toolUse(id: "toolu_02", name: "broken", input: .object([:]))]
+            content: [.toolUse(id: "toolu_02", name: "broken", input: .dictionary([:]))]
         )])
     }
 

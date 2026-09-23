@@ -4,56 +4,6 @@ import Logging
 import PKContracts
 import PKUtilities
 
-// MARK: - JSON value bridging
-
-/// Minimal JSON value model used to carry a tool call's already-serialized `arguments` JSON
-/// string into Anthropic's structured `tool_use.input` field, which is a JSON object on the
-/// wire (not a string like the OpenAI-family `function.arguments`).
-enum AnthropicJSONValue: Codable, Equatable {
-    case null
-    case bool(Bool)
-    case number(Double)
-    case string(String)
-    case array([AnthropicJSONValue])
-    case object([String: AnthropicJSONValue])
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if container.decodeNil() {
-            self = .null
-        } else if let value = try? container.decode(Bool.self) {
-            self = .bool(value)
-        } else if let value = try? container.decode(Double.self) {
-            self = .number(value)
-        } else if let value = try? container.decode(String.self) {
-            self = .string(value)
-        } else if let value = try? container.decode([AnthropicJSONValue].self) {
-            self = .array(value)
-        } else {
-            self = try .object(container.decode([String: AnthropicJSONValue].self))
-        }
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        switch self {
-        case .null: try container.encodeNil()
-        case let .bool(value): try container.encode(value)
-        case let .number(value): try container.encode(value)
-        case let .string(value): try container.encode(value)
-        case let .array(value): try container.encode(value)
-        case let .object(value): try container.encode(value)
-        }
-    }
-
-    /// Parses a JSON object string (e.g. `LLMToolCall.arguments`) into a JSON value.
-    /// Returns `nil` when the string is not valid JSON.
-    static func fromJSONString(_ string: String) -> AnthropicJSONValue? {
-        guard let data = string.data(using: .utf8) else { return nil }
-        return try? JSONDecoder().decode(AnthropicJSONValue.self, from: data)
-    }
-}
-
 // MARK: - Request payload
 
 struct AnthropicChatRequest: Encodable {
@@ -85,7 +35,9 @@ struct AnthropicMessage: Encodable, Equatable {
 enum AnthropicContentBlock: Encodable, Equatable {
     case text(String)
     case image(mediaType: String, data: Data)
-    case toolUse(id: String, name: String, input: AnthropicJSONValue)
+    /// `input` is a JSON object on the wire, not a string like the OpenAI-family
+    /// `function.arguments`.
+    case toolUse(id: String, name: String, input: AnyCodable)
     case toolResult(toolUseID: String, content: String)
 
     private enum CodingKeys: String, CodingKey {
@@ -235,14 +187,16 @@ enum AnthropicMessageConversion {
                     blocks.append(.text(transcript))
                 }
                 for call in message.toolCalls ?? [] {
-                    let input: AnthropicJSONValue
-                    if let parsed = AnthropicJSONValue.fromJSONString(call.arguments) {
+                    let input: AnyCodable
+                    if let data = call.arguments.data(using: .utf8),
+                       let parsed = try? JSONDecoder().decode(AnyCodable.self, from: data)
+                    {
                         input = parsed
                     } else {
                         logger.warning(
                             "Anthropic tool_use input for call \(call.id) (\(call.name)) is not valid JSON; sending an empty object instead."
                         )
-                        input = .object([:])
+                        input = .dictionary([:])
                     }
                     blocks.append(.toolUse(id: call.id, name: call.name, input: input))
                 }

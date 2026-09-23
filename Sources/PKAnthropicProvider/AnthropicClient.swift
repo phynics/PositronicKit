@@ -155,17 +155,7 @@ public actor AnthropicClient: LLMClientProtocol {
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) async throws {
-        let (stream, response) = try await transport.lines(for: request)
-
-        let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "Anthropic")
-        if !(200 ... 299).contains(httpResponse.statusCode) {
-            let errorBody = try await LimitedErrorBodyCollector.collect(from: stream)
-            try HTTPHelpers.ensureSuccessStatus(
-                httpResponse,
-                provider: "Anthropic",
-                body: Data(errorBody.utf8)
-            )
-        }
+        let stream = try await HTTPHelpers.openLineStream(request, transport: transport, provider: "Anthropic")
 
         var state = AnthropicStreamState(fallbackModel: modelName)
         for try await line in stream {
@@ -307,11 +297,12 @@ public actor AnthropicClient: LLMClientProtocol {
             request.timeoutInterval = self.timeoutInterval
             request.setValue(self.apiKey, forHTTPHeaderField: "x-api-key")
             request.setValue(Self.apiVersion, forHTTPHeaderField: "anthropic-version")
-            let (data, response) = try await self.transport.data(for: request)
-            let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "Anthropic models API")
-            try HTTPHelpers.ensureSuccessStatus(httpResponse, provider: "Anthropic", body: data)
-            let modelsResponse = try JSONDecoder().decode(AnthropicModelsResponse.self, from: data)
-            return modelsResponse.data.map { $0.id }.sorted()
+            return try await HTTPHelpers.fetchDecodable(
+                AnthropicModelsResponse.self,
+                for: request,
+                transport: self.transport,
+                provider: "Anthropic"
+            ).data.map(\.id).sorted()
         }
     }
 }

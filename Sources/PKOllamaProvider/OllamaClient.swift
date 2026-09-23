@@ -126,21 +126,7 @@ public actor OllamaClient: LLMClientProtocol {
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) async throws {
-        let (stream, response) = try await transport.lines(for: request)
-
-        let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "Ollama")
-        if !(200 ... 299).contains(httpResponse.statusCode) {
-            let errorBody = try await collectErrorBody(from: stream)
-            // Do not log the raw error body: an Ollama-compatible proxy could echo request
-            // headers or other sensitive content in its error responses. `makeError` sanitizes
-            // the body before it's embedded in the thrown error, which is the only place it
-            // should surface (matches OpenAI/OpenRouter, which never log the raw body — PKR-11).
-            try HTTPHelpers.ensureSuccessStatus(
-                httpResponse,
-                provider: "Ollama",
-                body: Data(errorBody.utf8)
-            )
-        }
+        let stream = try await HTTPHelpers.openLineStream(request, transport: transport, provider: "Ollama")
 
         for try await line in stream {
             if Task.isCancelled { break }
@@ -160,10 +146,6 @@ public actor OllamaClient: LLMClientProtocol {
                 return
             }
         }
-    }
-
-    private func collectErrorBody(from stream: AsyncThrowingStream<String, Error>) async throws -> String {
-        try await LimitedErrorBodyCollector.collect(from: stream)
     }
 
     private func buildRequest(
@@ -213,16 +195,14 @@ public actor OllamaClient: LLMClientProtocol {
 
     private nonisolated func convertToChunk(_ response: OllamaChatResponse) -> LLMStreamChunk? {
         let toolCalls = mapToolCalls(response.message.toolCalls)
-        if response.done {
-            return buildFinalChunk(response, toolCalls: toolCalls)
-        }
-        guard !response.message.content.isEmpty
+        guard response.done
+            || !response.message.content.isEmpty
             || response.message.thinking?.isEmpty == false
             || response.message.toolCalls?.isEmpty == false
         else {
             return nil
         }
-        return buildIntermediateChunk(response, toolCalls: toolCalls)
+        return buildChunk(response, toolCalls: toolCalls)
     }
 
     private nonisolated func mapToolCalls(_ toolCalls: [OllamaToolCall]?) -> [LLMToolCallDelta]? {
@@ -238,31 +218,28 @@ public actor OllamaClient: LLMClientProtocol {
         }
     }
 
-    private nonisolated func buildFinalChunk(
+    /// Maps one Ollama frame. The `done` frame also carries the finish reason and token usage.
+    private nonisolated func buildChunk(
         _ response: OllamaChatResponse,
         toolCalls: [LLMToolCallDelta]?
     ) -> LLMStreamChunk {
         let promptEvalCount = response.promptEvalCount ?? 0
         let evalCount = response.evalCount ?? 0
-        let finishReason = mapFinishReason(response).wireValue
         return LLMStreamChunk(
             id: UUID().uuidString,
             model: response.model,
-            choices: [LLMStreamChoice(
-                index: 0,
-                delta: LLMStreamDelta(
-                    role: .assistant,
-                    content: response.message.content,
-                    reasoning: response.message.thinking,
-                    toolCalls: toolCalls
-                ),
-                finishReason: finishReason
-            )],
-            usage: LLMTokenUsage(
+            delta: LLMStreamDelta(
+                role: .assistant,
+                content: response.message.content,
+                reasoning: response.message.thinking,
+                toolCalls: toolCalls
+            ),
+            finishReason: response.done ? mapFinishReason(response).wireValue : nil,
+            usage: response.done ? LLMTokenUsage(
                 promptTokens: promptEvalCount,
                 completionTokens: evalCount,
                 totalTokens: promptEvalCount + evalCount
-            )
+            ) : nil
         )
     }
 
@@ -280,25 +257,6 @@ public actor OllamaClient: LLMClientProtocol {
             return .stop
         }
         return FinishReason(wireValue: doneReason)
-    }
-
-    private nonisolated func buildIntermediateChunk(
-        _ response: OllamaChatResponse,
-        toolCalls: [LLMToolCallDelta]?
-    ) -> LLMStreamChunk {
-        LLMStreamChunk(
-            id: UUID().uuidString,
-            model: response.model,
-            choices: [LLMStreamChoice(
-                index: 0,
-                delta: LLMStreamDelta(
-                    role: .assistant,
-                    content: response.message.content,
-                    reasoning: response.message.thinking,
-                    toolCalls: toolCalls
-                )
-            )]
-        )
     }
 
     /// Sends a single user message and returns the full accumulated text response.
@@ -339,12 +297,12 @@ public actor OllamaClient: LLMClientProtocol {
 
             var request = URLRequest(url: tagsURL)
             request.timeoutInterval = self.timeoutInterval
-            let (data, response) = try await self.transport.data(for: request)
-            let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "Ollama models API")
-            try HTTPHelpers.ensureSuccessStatus(httpResponse, provider: "Ollama", body: data)
-
-            let tagsResponse = try JSONDecoder().decode(OllamaTagsResponse.self, from: data)
-            return tagsResponse.models.map { $0.name }
+            return try await HTTPHelpers.fetchDecodable(
+                OllamaTagsResponse.self,
+                for: request,
+                transport: self.transport,
+                provider: "Ollama"
+            ).models.map(\.name)
         }
     }
 }

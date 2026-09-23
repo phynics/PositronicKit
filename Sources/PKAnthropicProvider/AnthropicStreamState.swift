@@ -1,5 +1,6 @@
 import Foundation
 import PKContracts
+import PKUtilities
 
 // MARK: - Stream state
 
@@ -98,7 +99,8 @@ struct AnthropicStreamState {
         LLMStreamChunk(
             id: messageID.isEmpty ? UUID().uuidString : messageID,
             model: model,
-            choices: [LLMStreamChoice(index: 0, delta: delta, finishReason: finishReason)],
+            delta: delta,
+            finishReason: finishReason,
             usage: usage
         )
     }
