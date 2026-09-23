@@ -24,8 +24,7 @@ final class LLMConfigurationModelsTests {
                     apiKey: "sk-or-v1-test",
                     modelName: "anthropic/claude-3-5-sonnet",
                     utilityModel: "gpt-4o-mini",
-                    fastModel: "gpt-4o-mini",
-                    toolFormat: .openAI
+                    fastModel: "gpt-4o-mini"
                 ),
             ]
         )
@@ -62,11 +61,9 @@ final class LLMConfigurationModelsTests {
             apiKey: "",
             modelName: "llama3",
             utilityModel: "llama3",
-            fastModel: "llama3",
-            toolFormat: .openAI
+            fastModel: "llama3"
         )
         try assertCodable(config)
-        #expect(config.toolFormat == .openAI)
     }
 
     @Test
@@ -76,8 +73,7 @@ final class LLMConfigurationModelsTests {
             apiKey: "",
             modelName: "llama3",
             utilityModel: "llama3",
-            fastModel: "llama3",
-            toolFormat: .openAI
+            fastModel: "llama3"
         )
 
         config.temperature = 0.7
@@ -125,27 +121,5 @@ final class LLMConfigurationModelsTests {
         let sparse = LLMConfiguration(activeProvider: .anthropic, providers: [:])
         #expect(sparse.activeProviderConfiguration.modelName == ProviderConfiguration.makeDefault(for: .anthropic).modelName)
         #expect(sparse.activeProviderConfiguration.topP == nil)
-    }
-
-    // MARK: - ToolCallFormat
-
-    @Test
-    func toolCallFormatCodable() throws {
-        // PKCLEAN-007: `.json`/`.xml` were removed; `.openAI` is the only case
-        // and must round-trip cleanly.
-        try assertCodable(ToolCallFormat.openAI)
-    }
-
-    @Test
-    func toolCallFormatDecodesUnknownRawValueAsOpenAI() throws {
-        // PKCLEAN-007: lenient decode for on-disk configs predating the
-        // `.json`/`.xml` removal — stale raw values fall back to `.openAI`
-        // instead of throwing.
-        let decoder = JSONDecoder()
-        for staleRawValue in ["JSON", "XML"] {
-            let json = "\"\(staleRawValue)\"".data(using: .utf8)!
-            let decoded = try decoder.decode(ToolCallFormat.self, from: json)
-            #expect(decoded == .openAI)
-        }
     }
 }

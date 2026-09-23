@@ -52,21 +52,21 @@ struct PromptSectionValidationTests {
     func assembledPromptRejectsDuplicateResolvedSectionIDs() throws {
         let sections = [makeResolvedSection(id: "dup"), makeResolvedSection(id: "dup")]
 
-        #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["dup"])) {
+        #expect(throws: PromptAssemblyError.duplicateSectionIDs(["dup"])) {
             try AssembledPrompt(sections: sections)
         }
     }
 
     @Test("Prompt assembledPrompt surfaces validation errors")
     func promptAssembledPromptSurfacesValidationErrors() throws {
-        #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["dup"])) {
+        #expect(throws: PromptAssemblyError.duplicateSectionIDs(["dup"])) {
             try DuplicateSectionsPrompt().assemblePrompt()
         }
     }
 
     @Test("Prompt renderToString surfaces validation errors instead of swallowing them")
     func promptRenderToStringSurfacesValidationErrors() async throws {
-        await #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["dup"])) {
+        await #expect(throws: PromptAssemblyError.duplicateSectionIDs(["dup"])) {
             _ = try await DuplicateSectionsPrompt().renderToString()
         }
     }

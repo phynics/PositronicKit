@@ -44,10 +44,6 @@ public enum AnyCodable: Codable, Sendable, Equatable, Hashable, CustomStringConv
         }
     }
 
-    public func toAny() -> Any {
-        value
-    }
-
     public var asString: String? {
         if case let .string(str) = self { return str }
         return nil

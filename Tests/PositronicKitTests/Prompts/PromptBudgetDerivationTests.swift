@@ -93,7 +93,6 @@ struct PromptBudgetDerivationTests {
             modelName: "gpt-4o",
             utilityModel: "gpt-4o-mini",
             fastModel: "gpt-4o-mini",
-            toolFormat: .openAI,
             contextWindowTokens: 64_000
         )
         let data = try JSONEncoder().encode(config)

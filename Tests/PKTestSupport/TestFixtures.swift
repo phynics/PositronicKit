@@ -50,7 +50,6 @@ import PositronicKit
             fastModel: String? = nil,
             apiKey: String? = nil,
             activeProvider: LLMProvider = .openAI,
-            toolFormat: ToolCallFormat? = nil,
             memoryContextLimit: Int = 5,
             documentContextLimit: Int = 5,
             timeoutInterval: TimeInterval? = nil,
@@ -70,7 +69,6 @@ import PositronicKit
             if let utilityModel { providerConfig.utilityModel = utilityModel }
             if let fastModel { providerConfig.fastModel = fastModel }
             if let apiKey { providerConfig.apiKey = apiKey }
-            if let toolFormat { providerConfig.toolFormat = toolFormat }
             if let timeoutInterval { providerConfig.timeoutInterval = timeoutInterval }
             if let maxRetries { providerConfig.maxRetries = maxRetries }
             providerConfig.temperature = temperature

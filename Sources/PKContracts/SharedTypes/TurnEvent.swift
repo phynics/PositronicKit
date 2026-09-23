@@ -348,14 +348,6 @@ public extension TurnEvent {
     static func sidecarsCompleted(_ completion: SidecarCompletion) -> TurnEvent {
         .completion(.sidecarsCompleted(completion))
     }
-
-    /// Creates a compatibility sidecar completion event from `results` with a generated turn identity.
-    static func sidecarsCompleted(results: [SidecarResult]) -> TurnEvent {
-        .sidecarsCompleted(SidecarCompletion(
-            identity: TurnIdentity(turnID: UUID(), requestID: UUID(), modelRoundIndex: 0),
-            results: results
-        ))
-    }
 }
 
 // MARK: - Computed Properties (Consumer Ergonomics)

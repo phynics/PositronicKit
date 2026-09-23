@@ -271,7 +271,7 @@ struct PromptJournalTests {
         var journal = PromptJournal()
         let stateBefore = journal.state
 
-        #expect(throws: PromptJournal.ValidationError.duplicateStableSectionIDs(["duplicate"])) {
+        #expect(throws: PromptJournalValidationError.duplicateStableSectionIDs(["duplicate"])) {
             try journal.observe(duplicatePrompt(cachePolicy: .stable))
         }
         #expect(journal.state == stateBefore)
@@ -283,7 +283,7 @@ struct PromptJournalTests {
         _ = try journal.observe(await renderPrompt(system: "System", context: "Context", query: "Question"))
         let stateBefore = journal.state
 
-        #expect(throws: PromptJournal.ValidationError.duplicateStableSectionIDs(["duplicate"])) {
+        #expect(throws: PromptJournalValidationError.duplicateStableSectionIDs(["duplicate"])) {
             try journal.observe(duplicatePrompt(cachePolicy: .stable))
         }
         #expect(journal.state == stateBefore)
@@ -294,7 +294,7 @@ struct PromptJournalTests {
         var journal = PromptJournal()
         let stateBefore = journal.state
 
-        #expect(throws: PromptJournal.ValidationError.duplicateSemiStableSectionIDs(["duplicate"])) {
+        #expect(throws: PromptJournalValidationError.duplicateSemiStableSectionIDs(["duplicate"])) {
             try journal.observe(duplicatePrompt(cachePolicy: .semiStable))
         }
         #expect(journal.state == stateBefore)
@@ -306,7 +306,7 @@ struct PromptJournalTests {
         _ = try journal.observe(await renderPrompt(system: "System", context: "Context", query: "Question"))
         let stateBefore = journal.state
 
-        #expect(throws: PromptJournal.ValidationError.duplicateSemiStableSectionIDs(["duplicate"])) {
+        #expect(throws: PromptJournalValidationError.duplicateSemiStableSectionIDs(["duplicate"])) {
             try journal.observe(duplicatePrompt(cachePolicy: .semiStable))
         }
         #expect(journal.state == stateBefore)

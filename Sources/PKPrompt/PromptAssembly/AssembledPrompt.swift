@@ -8,9 +8,6 @@ import PKContracts
 /// sections into a single canonical ``RenderedPrompt`` product that can be reused by downstream
 /// projections such as provider message arrays.
 public struct AssembledPrompt: Sendable {
-    /// Compatibility alias for prompt assembly validation failures.
-    public typealias ValidationError = PromptAssemblyError
-
     // MARK: - Properties
 
     /// Ordered concrete sections that make up this prompt.
@@ -32,7 +29,7 @@ public struct AssembledPrompt: Sendable {
     /// - Parameters:
     ///   - sections: Concrete prompt sections to validate and order.
     ///   - compressionReport: Optional report describing compression applied during assembly.
-    /// - Throws: ``ValidationError`` when duplicate section identifiers are present or the prompt
+    /// - Throws: ``PromptAssemblyError`` when duplicate section identifiers are present or the prompt
     ///   contains more than one user-query section.
     public init(
         sections: [PromptSection],

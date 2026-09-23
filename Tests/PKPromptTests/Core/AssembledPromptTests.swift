@@ -222,7 +222,7 @@ struct AssembledPromptTests {
         let query1 = DummyPromptSection(id: "q1", priority: 10, estimatedTokens: 5, text: "One")
         let query2 = DummyPromptSection(id: "q2", priority: 5, estimatedTokens: 5, text: "Two")
 
-        #expect(throws: AssembledPrompt.ValidationError.multipleUserQuerySections(["q1", "q2"])) {
+        #expect(throws: PromptAssemblyError.multipleUserQuerySections(["q1", "q2"])) {
             try AssembledPrompt(sections: [
                 PromptSection(
                     id: query1.id,
