@@ -471,9 +471,8 @@ public extension LLMClientProtocol {
 
     /// Sends a single user message and returns the full accumulated text response.
     ///
-    /// Providers that need custom retry wrapping (OpenAI, OpenRouter, Anthropic, Ollama)
-    /// override this with their own `sendMessage`; providers without retry needs
-    /// (FoundationModelsClient) rely on this default.
+    /// Transient-error retries belong to `chatStream`; an override must not add a second
+    /// retry loop around it.
     func sendMessage(
         _ content: String,
         responseFormat: LLMResponseFormat? = nil,
