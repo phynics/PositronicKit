@@ -343,46 +343,4 @@ struct StreamingParser {
             buffer = ""
         }
     }
-
-    // MARK: - PKTool Parsing
-
-    /// Extract tool calls from text containing XML tags
-    func extractToolCalls(from text: String) -> (cleanText: String, toolCalls: [ToolCall]) {
-        var cleanText = text
-        var toolCalls: [ToolCall] = []
-
-        // Pattern handles optional code fences around <tool_call>
-        let pattern = "(?:```(?:xml)?\\s*)?<tool_call>(.*?)</tool_call>(?:\\s*```)?"
-
-        guard
-            let regex = try? NSRegularExpression(
-                pattern: pattern,
-                options: [.dotMatchesLineSeparators, .caseInsensitive]
-            )
-        else { return (text, []) }
-
-        let nsString = text as NSString
-        let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsString.length))
-
-        // Process in reverse to preserve ranges during replacement
-        for match in matches.reversed() {
-            let fullRange = match.range
-            let contentRange = match.range(at: 1)
-
-            let jsonString = nsString.substring(with: contentRange)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-
-            if let jsonData = jsonString.data(using: .utf8),
-               let toolCall = try? JSONDecoder().decode(ToolCall.self, from: jsonData)
-            {
-                toolCalls.append(toolCall)
-            } else {
-                Logger.module(named: "parser").error("Failed to parse tool call JSON: \(jsonString)")
-            }
-
-            cleanText = (cleanText as NSString).replacingCharacters(in: fullRange, with: "")
-        }
-
-        return (cleanText, toolCalls.reversed())
-    }
 }

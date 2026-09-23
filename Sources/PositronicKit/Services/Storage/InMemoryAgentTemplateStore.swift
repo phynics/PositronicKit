@@ -40,12 +40,4 @@ public actor InMemoryAgentTemplateStore: AgentTemplateStoreProtocol {
         }
         return false
     }
-
-    package func allTemplates() -> [AgentTemplate] {
-        templates
-    }
-
-    package func replaceTemplates(_ templates: [AgentTemplate]) {
-        self.templates = templates
-    }
 }

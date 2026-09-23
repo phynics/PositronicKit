@@ -182,13 +182,6 @@ public actor OpenRouterClient: LLMClientProtocol {
         return components.url ?? defaultBaseURL
     }
 
-    /// Exposes the configured attribution for `@testable` verification that the public
-    /// `PKRuntime.init(openRouterKey:...)` → `LLMConfiguration` → registry factory path
-    /// actually timelines `applicationURL`/`applicationTitle` through to a real client (PKR-4).
-    var currentAttribution: Attribution {
-        attribution
-    }
-
     package var currentBaseURL: URL {
         endpoint
     }

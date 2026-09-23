@@ -634,21 +634,6 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
             .first { results[ToolKey(turnID: turnID, toolCallID: $0.toolCallID)] == nil }
     }
 
-    private func validateAppend(_ message: TimelineMessage, into history: inout [TimelineMessage]) throws {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        if let existing = history.first(where: { $0.id == message.id }) {
-            let existingData = try encoder.encode(existing)
-            let newData = try encoder.encode(message)
-            guard existingData == newData else {
-                throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: message.id)
-            }
-            return
-        }
-        _ = try encoder.encode(message)
-        history.append(message)
-    }
-
     private func lifecycle(for outcome: TurnOutcome) -> TurnLifecycle {
         switch outcome {
         case .completed: return .completed
