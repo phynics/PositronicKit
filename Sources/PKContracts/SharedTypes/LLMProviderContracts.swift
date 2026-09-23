@@ -382,23 +382,6 @@ public struct LLMStreamChunk: Sendable, Codable, Equatable {
     }
 }
 
-/// A configuration endpoint URL broken into the components a provider client's HTTP
-/// transport configuration needs individually.
-public struct EndpointComponents: Sendable, Equatable {
-    /// The endpoint's hostname.
-    public let host: String
-    /// The endpoint's port.
-    public let port: Int
-    /// The endpoint's URL scheme (e.g. `"https"`).
-    public let scheme: String
-
-    public init(host: String, port: Int, scheme: String) {
-        self.host = host
-        self.port = port
-        self.scheme = scheme
-    }
-}
-
 /// A concrete provider SDK adapter (OpenAI, Anthropic, Ollama, OpenRouter, ...) that
 /// speaks the provider-neutral `LLMMessage`/`LLMStreamChunk` contract.
 public protocol LLMClientProtocol: Sendable {

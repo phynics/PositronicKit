@@ -437,7 +437,7 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
 /// JSON work after taking a state snapshot and before committing decoded state;
 /// `loadConfiguration` and `restoreFromBackup` are no-op hooks. No lock crosses JSON work,
 /// delegated streaming, stream iteration, or caller-provided execution.
-public final class MockLLMService: LLMStreamClient, LLMConfigStore, HealthCheckable {
+public final class MockLLMService: LLMStreamClient, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok
         var mockHealthDetails: [String: String]? = ["mock": "true"]

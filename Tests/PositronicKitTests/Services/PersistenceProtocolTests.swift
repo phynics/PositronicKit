@@ -15,7 +15,6 @@ struct PersistenceProtocolTests {
         // Verify it conforms to all required domains
         let _: TimelineMessageStoreProtocol = mock
         let _: TimelinePersistenceProtocol = mock
-        let _: AgentTemplateStoreProtocol = mock
         let _: WorkspaceStore = mock
     }
 }
@@ -24,7 +23,6 @@ struct PersistenceProtocolTests {
 final class MockPersistenceStore:
     TimelineMessageStoreProtocol,
     TimelinePersistenceProtocol,
-    AgentTemplateStoreProtocol,
     WorkspaceStore,
     @unchecked Sendable // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
 {
@@ -56,24 +54,6 @@ final class MockPersistenceStore:
     func deleteTimeline(id _: UUID) async throws {}
     func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int {
         0
-    }
-
-    // AgentTemplateStoreProtocol
-    func saveAgentTemplate(_: AgentTemplate) async throws {}
-    func fetchAgentTemplate(id _: UUID) async throws -> AgentTemplate? {
-        nil
-    }
-
-    func fetchAgentTemplate(key _: String) async throws -> AgentTemplate? {
-        nil
-    }
-
-    func fetchAllAgentTemplates() async throws -> [AgentTemplate] {
-        []
-    }
-
-    func hasAgentTemplate(id _: String) async -> Bool {
-        false
     }
 
     // WorkspaceStore

@@ -23,7 +23,6 @@ public enum WorkspaceFactoryConformanceSuite {
         try #require(provider.reference.originID == supportedReference.originID, "workspace-factory.reference.origin")
         try #require(provider.reference.tools == supportedReference.tools, "workspace-factory.reference.tools")
         try #require(provider.reference.rootPath == supportedReference.rootPath, "workspace-factory.reference.root-path")
-        try #require(provider.reference.trustLevel == supportedReference.trustLevel, "workspace-factory.reference.trust")
         try #require(provider.reference.lastModifiedBy == supportedReference.lastModifiedBy, "workspace-factory.reference.last-modified-by")
         try #require(provider.reference.status == supportedReference.status, "workspace-factory.reference.status")
         try #require(provider.reference.contextInjection == supportedReference.contextInjection, "workspace-factory.reference.context")

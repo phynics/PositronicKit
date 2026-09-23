@@ -5,23 +5,22 @@ import PositronicKit
 import Synchronization
 
 /// Composite in-memory test double for the full persistence surface (messages,
-/// timelines, agent templates, workspaces, request origins, agents,
+/// timelines, workspaces, request origins, agents,
 /// health), delegating each protocol area to its own focused mock,
-/// ``MockMessageStore``, ``MockTimelinePersistenceStore``, ``MockAgentTemplateStore``,
-/// ``MockWorkspacePersistence``) so a test can construct a single
+/// ``MockMessageStore``, ``MockTimelinePersistenceStore``, ``MockWorkspacePersistence``) so a test can construct a single
 /// object instead of wiring up every store protocol separately.
 ///
 /// Configurable: `mockHealthStatus`/`mockHealthDetails`; `saveOriginMock`/`fetchOriginMock`/
 /// `fetchAllOriginsMock`/`deleteOriginMock` (closures overriding `RequestOriginStoreProtocol`
 /// behavior — unset closures make origin operations no-ops/return empty). Inspectable:
-/// `messages`, `timelines`, `agentTemplates`, `workspaces`,
+/// `messages`, `timelines`, `workspaces`,
 /// `agents` all forward to the underlying focused mocks. `resetDatabase()` clears
 /// every backing store.
 ///
 /// Health, durability, request-origin callbacks, and agents share one mutex state.
 /// Agent insert-or-replace is atomic. Callback values are snapshotted while locked, then invoked
 /// after unlocking, so no mutex crosses an `await` or caller-provided code.
-public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSummaryStore, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, AgentStoreProtocol, HealthCheckable {
+public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSummaryStore, WorkspaceStore, RequestOriginStoreProtocol, AgentStoreProtocol, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok
         var mockHealthDetails: [String: String]? = ["mock": "true"]
@@ -46,7 +45,6 @@ public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSu
 
     private let messagesMock = MockMessageStore()
     private let timelinesMock = MockTimelinePersistenceStore()
-    private let agentTemplatesMock = MockAgentTemplateStore()
     private let workspacesMock = MockWorkspacePersistence()
     private let turnRuntime = InMemoryTimelineRuntimeRepository()
     private let state = Mutex(State())
@@ -269,38 +267,6 @@ public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSu
         return try await timelinesMock.pruneTimelines(olderThan: timeInterval, excluding: excludedTimelineIDs, dryRun: dryRun)
     }
 
-    // MARK: - AgentTemplateStoreProtocol
-
-    public var agentTemplates: [AgentTemplate] {
-        get { agentTemplatesMock.agentTemplates }
-        set { agentTemplatesMock.agentTemplates = newValue }
-    }
-
-    public func saveAgentTemplate(_ agent: AgentTemplate) async throws {
-        defer { recordPersistenceAccess() }
-        try await agentTemplatesMock.saveAgentTemplate(agent)
-    }
-
-    public func fetchAgentTemplate(id: UUID) async throws -> AgentTemplate? {
-        defer { recordPersistenceAccess() }
-        return try await agentTemplatesMock.fetchAgentTemplate(id: id)
-    }
-
-    public func fetchAgentTemplate(key: String) async throws -> AgentTemplate? {
-        defer { recordPersistenceAccess() }
-        return try await agentTemplatesMock.fetchAgentTemplate(key: key)
-    }
-
-    public func fetchAllAgentTemplates() async throws -> [AgentTemplate] {
-        defer { recordPersistenceAccess() }
-        return try await agentTemplatesMock.fetchAllAgentTemplates()
-    }
-
-    public func hasAgentTemplate(id: String) async -> Bool {
-        defer { recordPersistenceAccess() }
-        return await agentTemplatesMock.hasAgentTemplate(id: id)
-    }
-
     // MARK: - WorkspaceStore
 
     public var workspaces: [WorkspaceReference] {
@@ -408,7 +374,6 @@ public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSu
         defer { recordPersistenceAccess() }
         messages = []
         timelines = []
-        agentTemplates = []
         workspaces = []
         state.withLock {
             $0.agents = []

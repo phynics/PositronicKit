@@ -1,15 +1,5 @@
 import Foundation
 
-/// How much a tool/workspace consumer is permitted to do within a workspace's boundary.
-public enum WorkspaceTrustLevel: String, Codable, Sendable {
-    /// Unrestricted operations within the workspace boundary.
-    case full // Unrestricted within boundary
-    /// Only an allowlisted set of operations is permitted.
-    case restricted // Allowlist of operations
-    /// Only read-only filesystem operations are permitted.
-    case readOnly // Read-only filesystem operations
-}
-
 /// A workspace reference defines the metadata and location of a workspace
 public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public let id: UUID
@@ -22,7 +12,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public var tools: [ToolReference] // Tools available in this workspace
     /// Filesystem root for the workspace
     public var rootPath: String? // Filesystem root for the workspace
-    public var trustLevel: WorkspaceTrustLevel
     /// The id of the timeline that last modified this workspace, if any.
     public var lastModifiedBy: UUID? // Timeline ID that last modified
     public var status: WorkspaceStatus
@@ -93,7 +82,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         originID: UUID? = nil,
         tools: [ToolReference] = [],
         rootPath: String? = nil,
-        trustLevel: WorkspaceTrustLevel = .full,
         lastModifiedBy: UUID? = nil,
         status: WorkspaceStatus = .active,
         contextInjection: String? = nil,
@@ -105,7 +93,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         self.originID = originID
         self.tools = tools
         self.rootPath = rootPath
-        self.trustLevel = trustLevel
         self.lastModifiedBy = lastModifiedBy
         self.status = status
         self.contextInjection = contextInjection
@@ -121,7 +108,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
             originID: originID,
             tools: newTools,
             rootPath: rootPath,
-            trustLevel: trustLevel,
             lastModifiedBy: lastModifiedBy,
             status: status,
             contextInjection: contextInjection,
@@ -137,8 +123,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         WorkspaceReference(
             uri: .timelineWorkspace(timelineID),
             location: .runtime,
-            rootPath: rootPath,
-            trustLevel: .full
+            rootPath: rootPath
         )
     }
 
@@ -148,6 +133,6 @@ private extension WorkspaceReference {
     enum CodingKeys: String, CodingKey {
         case id, uri, location
         case originID = "originId"
-        case tools, rootPath, trustLevel, lastModifiedBy, status, contextInjection, createdAt
+        case tools, rootPath, lastModifiedBy, status, contextInjection, createdAt
     }
 }

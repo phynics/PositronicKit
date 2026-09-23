@@ -12,21 +12,8 @@ struct TimelineManagerWorkspaceResolverContractTests {
     /// A resolver that vends a single fixed, always-healthy in-memory workspace for any ID and
     /// keeps no catalog/factory collaborators of its own.
     private final actor FixedWorkspaceResolver: WorkspaceResolver {
-        private var opened: Set<UUID> = []
-
-        var activeWorkspaceCount: Int { opened.count }
-
         func workspace(id: UUID) async throws -> any WorkspaceProvider? {
-            opened.insert(id)
-            return CustomFixedWorkspace(id: id)
-        }
-
-        func closeWorkspace(id: UUID) async {
-            opened.remove(id)
-        }
-
-        func healthCheckAll() async -> [UUID: Bool] {
-            Dictionary(uniqueKeysWithValues: opened.map { ($0, true) })
+            CustomFixedWorkspace(id: id)
         }
     }
 

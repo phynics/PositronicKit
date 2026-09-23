@@ -10,7 +10,7 @@ import PKUtilities
 /// internal `apply(_:)`, and every dispatch path resolves clients through the single
 /// `resolve(tier:)` operation, so the service never runs with stale clients,
 /// conflicting readiness, or duplicated tier fallback rules.
-public actor LLMService: LLMStreamClient, LLMConfigStore, HealthCheckable {
+public actor LLMService: LLMStreamClient, HealthCheckable {
     /// The current configuration. Read-only projection of the runtime snapshot.
     public var configuration: LLMConfiguration {
         snapshot.configuration

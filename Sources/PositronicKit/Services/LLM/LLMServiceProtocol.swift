@@ -178,18 +178,6 @@ public protocol LLMStreamClient: Sendable {
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
 }
 
-/// Configuration lifecycle seam: load, update, clear, back up, and transfer an LLM
-/// service's configuration. Consumers that only manage provider settings depend on this
-/// rather than the full LLM surface.
-public protocol LLMConfigStore: Sendable {
-    func loadConfiguration() async
-    func updateConfiguration(_ config: LLMConfiguration) async throws
-    func clearConfiguration() async
-    func restoreFromBackup() async throws
-    func exportConfiguration() async throws -> Data
-    func importConfiguration(from data: Data) async throws
-}
-
 public extension LLMStreamClient {
     var readiness: ModelReadiness {
         get async {
