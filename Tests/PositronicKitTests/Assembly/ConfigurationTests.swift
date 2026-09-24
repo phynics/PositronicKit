@@ -118,6 +118,12 @@ struct LLMConfigurationTests {
         #expect(decoded.activeProviderConfiguration == replacement)
     }
 
+    @Test("Provider configuration no longer encodes the removed toolFormat key (#228)")
+    func providerConfigurationOmitsToolFormat() throws {
+        let encoded = try JSONEncoder().encode(ProviderConfiguration.makeDefault(for: .openAI))
+        #expect(!String(decoding: encoded, as: UTF8.self).contains("toolFormat"))
+    }
+
     @Test("Legacy JSON Decoding")
     func legacyJSONDecoding() throws {
         // Simulating JSON (dictionary format)

@@ -10,6 +10,17 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Unread `ToolCallFormat` removed:** `ProviderConfiguration.toolFormat` and the single-case
+  `ToolCallFormat` enum are gone; nothing in the runtime or any provider read them. Drop the
+  `toolFormat:` argument. Stored configurations that still carry a `toolFormat` key decode
+  unchanged; the key is ignored and no longer encoded.
+
+- **Compatibility aliases removed:** `AssembledPrompt.ValidationError` (use
+  `PromptAssemblyError`), `PromptJournal.ValidationError` (use `PromptJournalValidationError`),
+  `AnyCodable.toAny()` (use `value`), and
+  `TurnEvent.sidecarsCompleted(results:)`, which fabricated a random Turn identity. Build a
+  `SidecarCompletion` with the real identity and use `TurnEvent.sidecarsCompleted(_:)`.
+
 - **Tool-loop result types collapse:** `ToolExecutionOutcome` is no longer public, and the internal
   `ToolHandlingResult`/`ToolTurnResult` pair is now a single internal `ToolTurnResult`. No
   consumer-visible behavior changes.

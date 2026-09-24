@@ -221,12 +221,11 @@ public enum PositronicKitUsageExamples {
         [AnyTool(ExampleGreetingTool())]
     }
 
-    /// PKPOST-004: `ToolSource` is the canonical surface for grouping tools under a
-    /// structural `ToolOrigin` (rather than passing a flat `[AnyTool]`). Conform a type,
-    /// return its tools from `tools()`, and register it with a runtime's
-    /// `TimelineToolRegistry` (`registerToolProvider(_:id:)`); the `resolvedTools()` extension
-    /// re-stamps each tool's `.global` origin with the provider's `toolOrigin` so the
-    /// prompt labels tools as belonging to this workspace/terminal.
+    /// PKPOST-004: `ToolSource` groups tools under a structural `ToolOrigin` (rather than a
+    /// flat `[AnyTool]`). Conform a type, return its tools from `tools()`, and pass
+    /// `await source.resolvedTools()` to `TurnOptions(tools:)`; `resolvedTools()` re-stamps each
+    /// tool's `.global` origin with the source's `toolOrigin` so the prompt labels tools as
+    /// belonging to this workspace/terminal.
     public static func makeWorkspaceToolProviderExample(
         workspaceID: UUID = UUID(),
         workspaceName: String = "example-workspace"

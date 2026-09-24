@@ -64,7 +64,7 @@ extension PKPromptErrorCoverageTests {
 
     @Test("PromptJournalValidationError exposes typed fields for both cases")
     func promptJournalValidationErrorAccessors() {
-        let cases: [(PromptJournal.ValidationError, Int)] = [
+        let cases: [(PromptJournalValidationError, Int)] = [
             (.duplicateStableSectionIDs(["a"]), 1301),
             (.duplicateSemiStableSectionIDs(["b"]), 1302),
         ]

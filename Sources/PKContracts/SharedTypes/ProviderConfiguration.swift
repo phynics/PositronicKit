@@ -10,7 +10,6 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
     public var modelName: String
     public var utilityModel: String
     public var fastModel: String
-    public var toolFormat: ToolCallFormat
     public var timeoutInterval: TimeInterval
     public var maxRetries: Int
     /// Model media capabilities that callers have explicitly enabled.
@@ -54,7 +53,6 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         modelName: String,
         utilityModel: String,
         fastModel: String,
-        toolFormat: ToolCallFormat,
         timeoutInterval: TimeInterval = 60.0,
         maxRetries: Int = 3,
         contextWindowTokens: Int = 8_192,
@@ -73,7 +71,6 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         self.modelName = modelName
         self.utilityModel = utilityModel
         self.fastModel = fastModel
-        self.toolFormat = toolFormat
         self.timeoutInterval = timeoutInterval
         self.maxRetries = maxRetries
         self.capabilities = capabilities
@@ -95,7 +92,6 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         modelName = try container.decode(String.self, forKey: .modelName)
         utilityModel = try container.decode(String.self, forKey: .utilityModel)
         fastModel = try container.decode(String.self, forKey: .fastModel)
-        toolFormat = try container.decodeIfPresent(ToolCallFormat.self, forKey: .toolFormat) ?? .openAI
         timeoutInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .timeoutInterval) ?? 60.0
         maxRetries = try container.decodeIfPresent(Int.self, forKey: .maxRetries) ?? 3
         capabilities = try container.decodeIfPresent(Set<ModelCapability>.self, forKey: .capabilities) ?? []
@@ -121,7 +117,6 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 modelName: "gpt-4o",
                 utilityModel: "gpt-4o-mini",
                 fastModel: "gpt-4o-mini",
-                toolFormat: .openAI,
                 timeoutInterval: 60.0,
                 maxRetries: 3,
                 contextWindowTokens: 128_000
@@ -133,7 +128,6 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 modelName: "openai/gpt-4o",
                 utilityModel: "openai/gpt-4o-mini",
                 fastModel: "openai/gpt-4o-mini",
-                toolFormat: .openAI,
                 timeoutInterval: 60.0,
                 maxRetries: 3,
                 contextWindowTokens: 128_000
@@ -145,7 +139,6 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 modelName: "llama3",
                 utilityModel: "llama3",
                 fastModel: "llama3",
-                toolFormat: .openAI,
                 timeoutInterval: 120.0, // Local models can be slower
                 maxRetries: 3,
                 contextWindowTokens: 8_192
@@ -157,7 +150,6 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 modelName: "claude-sonnet-4-5",
                 utilityModel: "claude-haiku-4-5",
                 fastModel: "claude-haiku-4-5",
-                toolFormat: .openAI,
                 timeoutInterval: 60.0,
                 maxRetries: 3,
                 contextWindowTokens: 200_000
@@ -169,7 +161,6 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 modelName: "model",
                 utilityModel: "model",
                 fastModel: "model",
-                toolFormat: .openAI,
                 timeoutInterval: 60.0,
                 maxRetries: 3,
                 contextWindowTokens: 8_192

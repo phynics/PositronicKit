@@ -133,7 +133,7 @@ struct PromptAssemblyTests {
 
     @Test("PromptAssembler rejects duplicate section ids")
     func promptBuilderRejectsDuplicateSectionIDs() async {
-        await #expect(throws: AssembledPrompt.ValidationError.self) {
+        await #expect(throws: PromptAssemblyError.self) {
             _ = try await PromptAssembler.assemble(
                 makeRequest(userQuery: "test"),
                 options: PromptAssemblyOptions(

@@ -581,7 +581,6 @@ struct LLMServiceTests {
                     modelName: "gpt-4o",
                     utilityModel: "gpt-4o-mini",
                     fastModel: "gpt-4o-mini",
-                    toolFormat: .openAI,
                     temperature: 0.8,
                     maxTokens: 500
                 ),

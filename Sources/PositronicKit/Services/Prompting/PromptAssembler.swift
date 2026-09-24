@@ -104,7 +104,7 @@ enum PromptAssembler {
             let sections = await customSections()
             let duplicateIDs = sections.flatMap { $0.resolveSections() }.duplicateIDs(idKeyPath: \.id)
             guard duplicateIDs.isEmpty else {
-                throw AssembledPrompt.ValidationError.duplicateSectionIDs(duplicateIDs)
+                throw PromptAssemblyError.duplicateSectionIDs(duplicateIDs)
             }
             return sections
         }
@@ -162,7 +162,7 @@ enum PromptAssembler {
         })
         let duplicateIDs = sections.flatMap { $0.resolveSections() }.duplicateIDs(idKeyPath: \.id)
         guard duplicateIDs.isEmpty else {
-            throw AssembledPrompt.ValidationError.duplicateSectionIDs(duplicateIDs)
+            throw PromptAssemblyError.duplicateSectionIDs(duplicateIDs)
         }
         return sections
     }

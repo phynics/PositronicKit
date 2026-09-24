@@ -146,7 +146,7 @@ struct PromptBuilderTests {
             }
         }
 
-        #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["same"])) {
+        #expect(throws: PromptAssemblyError.duplicateSectionIDs(["same"])) {
             try build().assemblePrompt()
         }
     }
@@ -162,7 +162,7 @@ struct PromptBuilderTests {
             TextPrompt(item.content, id: item.id)
         }
 
-        #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["dup"])) {
+        #expect(throws: PromptAssemblyError.duplicateSectionIDs(["dup"])) {
             try prompt.assemblePrompt()
         }
     }

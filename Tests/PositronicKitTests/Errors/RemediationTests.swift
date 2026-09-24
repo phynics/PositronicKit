@@ -25,8 +25,7 @@ struct RemediationTests {
             apiKey: "",
             modelName: "gpt-4",
             utilityModel: "gpt-4",
-            fastModel: "gpt-4",
-            toolFormat: .openAI
+            fastModel: "gpt-4"
         )
 
         #expect(throws: ConfigurationError.self) {

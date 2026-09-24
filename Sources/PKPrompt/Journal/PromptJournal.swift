@@ -42,9 +42,6 @@ public enum PromptJournalValidationError: PKError, Sendable, Equatable {
 /// This is the prompt-layer journaling abstraction intended for public use. Reach for it when you
 /// want to reason about prompt evolution directly, outside the runtime loop.
 public struct PromptJournal: Sendable {
-    /// Validation failures raised while observing a rendered prompt.
-    public typealias ValidationError = PromptJournalValidationError
-
     /// Codable, Sendable snapshot of the journal's complete replay state.
     public struct State: Codable, Sendable, Equatable {
         /// Sections committed as the journal's non-volatile base.
@@ -115,7 +112,7 @@ public struct PromptJournal: Sendable {
     ///
     /// - Parameter prompt: The rendered prompt snapshot to journal.
     /// - Returns: A plan describing the current base, overlay, and volatile layers.
-    /// - Throws: ``ValidationError`` when stable or semi-stable section identifiers are duplicated.
+    /// - Throws: ``PromptJournalValidationError`` when stable or semi-stable section identifiers are duplicated.
     public mutating func observe(_ prompt: RenderedPrompt) throws -> PromptJournalPlan {
         let currentSections = prompt.sections
         try PromptJournalDiffer.validate(committedBaseSections)

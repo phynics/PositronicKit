@@ -8,7 +8,7 @@
 public extension Prompt {
     /// Assembles this declarative prompt tree into a validated, ordered prompt artifact.
     ///
-    /// - Throws: ``AssembledPrompt/ValidationError`` when the concrete section graph is invalid.
+    /// - Throws: ``PromptAssemblyError`` when the concrete section graph is invalid.
     func assemblePrompt() throws -> AssembledPrompt {
         try AssembledPrompt(sections: resolveSections(in: .init()))
     }

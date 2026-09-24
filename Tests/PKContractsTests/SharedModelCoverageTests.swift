@@ -19,8 +19,7 @@ struct LLMConfigurationValidationTests {
                 apiKey: "sk-test",
                 modelName: "gpt-4o",
                 utilityModel: "gpt-4o",
-                fastModel: "gpt-4o",
-                toolFormat: .openAI
+                fastModel: "gpt-4o"
             )]
         )
         #expect(throws: Never.self) { try config.validate() }
@@ -65,8 +64,7 @@ struct LLMConfigurationValidationTests {
                 apiKey: "",
                 modelName: "llama3",
                 utilityModel: "llama3",
-                fastModel: "llama3",
-                toolFormat: .openAI
+                fastModel: "llama3"
             )]
         )
         #expect(throws: Never.self) { try config.validate() }
@@ -199,45 +197,6 @@ struct ToolCallCodableTests {
         let a = ToolCall(id: "1", name: "search", arguments: ["q": .string("x")])
         let b = ToolCall(id: "2", name: "search", arguments: ["q": .string("x")])
         #expect(a.hashValue == b.hashValue)
-    }
-}
-
-/// Coverage for `ToolCallFormat` lenient decoding.
-@Suite("ToolCallFormat")
-struct ToolCallFormatTests {
-
-    @Test("decodes the canonical raw value")
-    func decodesCanonical() throws {
-        let format = try JSONDecoder().decode(ToolCallFormat.self, from: Data("\"Native (OpenAI)\"".utf8))
-        #expect(format == .openAI)
-    }
-
-    @Test("decodes stale legacy values to .openAI")
-    func decodesLegacyToOpenAI() throws {
-        let json = Data("\"JSON\"".utf8)
-        let format = try JSONDecoder().decode(ToolCallFormat.self, from: json)
-        #expect(format == .openAI)
-
-        let xmlJson = Data("\"XML\"".utf8)
-        let xmlFormat = try JSONDecoder().decode(ToolCallFormat.self, from: xmlJson)
-        #expect(xmlFormat == .openAI)
-    }
-
-    @Test("encodes to the canonical raw value")
-    func encodesCanonical() throws {
-        let data = try JSONEncoder().encode(ToolCallFormat.openAI)
-        let str = try #require(String(data: data, encoding: .utf8))
-        #expect(str.contains("Native (OpenAI)"))
-    }
-
-    @Test("id returns the raw value")
-    func idReturnsRawValue() {
-        #expect(ToolCallFormat.openAI.id == "Native (OpenAI)")
-    }
-
-    @Test("CaseIterable contains only openAI")
-    func caseIterable() {
-        #expect(ToolCallFormat.allCases == [.openAI])
     }
 }
 
