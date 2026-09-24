@@ -47137,27 +47137,7 @@
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC19exportConfiguration10Foundation4DataVyYaKF",
-      "target": "s:13PKTestSupport14MockLLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP19exportConfiguration10Foundation4DataVyYaKF",
-        "displayName": "LLMConfigStore.exportConfiguration()"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport14MockLLMServiceC19exportConfiguration10Foundation4DataVyYaKF",
       "target": "s:13PKTestSupport14MockLLMServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport14MockLLMServiceC19importConfiguration4fromy10Foundation4DataV_tYaKF",
-      "target": "s:13PKTestSupport14MockLLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP19importConfiguration4fromy10Foundation4DataV_tYaKF",
-        "displayName": "LLMConfigStore.importConfiguration(from:)"
-      }
     },
     {
       "module": "PKTestSupport",
@@ -49133,27 +49113,7 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10LLMServiceC19exportConfiguration10Foundation4DataVyYaKF",
-      "target": "s:13PositronicKit10LLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP19exportConfiguration10Foundation4DataVyYaKF",
-        "displayName": "LLMConfigStore.exportConfiguration()"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10LLMServiceC19exportConfiguration10Foundation4DataVyYaKF",
       "target": "s:13PositronicKit10LLMServiceC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10LLMServiceC19importConfiguration4fromy10Foundation4DataV_tYaKF",
-      "target": "s:13PositronicKit10LLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP19importConfiguration4fromy10Foundation4DataV_tYaKF",
-        "displayName": "LLMConfigStore.importConfiguration(from:)"
-      }
     },
     {
       "module": "PositronicKit",
@@ -52649,16 +52609,6 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit24DefaultWorkspaceResolverC05closeD02idy10Foundation4UUIDV_tYaF",
-      "target": "s:13PositronicKit24DefaultWorkspaceResolverC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit17WorkspaceResolverP05closeC02idy10Foundation4UUIDV_tYaF",
-        "displayName": "WorkspaceResolver.closeWorkspace(id:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit24DefaultWorkspaceResolverC05closeD02idy10Foundation4UUIDV_tYaF",
       "target": "s:13PositronicKit24DefaultWorkspaceResolverC"
     },
     {
@@ -52672,16 +52622,6 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit24DefaultWorkspaceResolverC10repository16workspaceCreatorAcA0D7Catalog_p_AA0D7Factory_ptcfc",
       "target": "s:13PositronicKit24DefaultWorkspaceResolverC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit24DefaultWorkspaceResolverC14healthCheckAllSDy10Foundation4UUIDVSbGyYaF",
-      "target": "s:13PositronicKit24DefaultWorkspaceResolverC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit17WorkspaceResolverP14healthCheckAllSDy10Foundation4UUIDVSbGyYaF",
-        "displayName": "WorkspaceResolver.healthCheckAll()"
-      }
     },
     {
       "module": "PositronicKit",
