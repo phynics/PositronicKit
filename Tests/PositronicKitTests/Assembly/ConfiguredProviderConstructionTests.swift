@@ -27,7 +27,6 @@ struct ConfiguredProviderConstructionTests {
             persistence: .fullyPersistent(
                 runtimeRepository: repository,
                 workspacePersistence: store,
-                toolPersistence: store,
                 agentStore: store,
                 requestOriginStore: store
             )

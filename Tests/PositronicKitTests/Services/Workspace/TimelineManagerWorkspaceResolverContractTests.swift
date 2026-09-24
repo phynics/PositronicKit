@@ -58,8 +58,7 @@ struct TimelineManagerWorkspaceResolverContractTests {
                 messageStore: InMemoryMessageStore(),
                 workspaceStore: workspaceStore,
                 workspaceBindingRepository: workspaceStore,
-                runtimeRepository: InMemoryTimelineRuntimeRepository(),
-                toolPersistence: InMemoryToolPersistence()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
             workspaceProfile: .hostManaged(root: workspace.root),
             resolver: FixedWorkspaceResolver()

@@ -48,7 +48,6 @@ import PositronicKit
             core = PKRuntime(configuration: .init(languageModel: llm, persistence: .init(
                     runtimeRepository: persistence,
                     workspacePersistence: persistence,
-                    toolPersistence: persistence,
                     agentStore: persistence,
                     requestOriginStore: persistence
                 ), runtime: .init(

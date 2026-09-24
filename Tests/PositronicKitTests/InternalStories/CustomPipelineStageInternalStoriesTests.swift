@@ -26,7 +26,6 @@ struct CustomPipelineStageInternalStoriesTests {
                 persistence: .init(
                     runtimeRepository: mockPersistence,
                     workspacePersistence: mockPersistence,
-                    toolPersistence: mockPersistence,
                     agentStore: mockPersistence,
                     requestOriginStore: mockPersistence
                 )

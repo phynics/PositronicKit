@@ -23,7 +23,6 @@ import Testing
         let persistence = PKRuntime.PersistenceConfiguration(
             runtimeRepository: mockPersistence,
             workspacePersistence: mockPersistence,
-            toolPersistence: mockPersistence,
             agentStore: mockPersistence,
             requestOriginStore: mockPersistence
         )

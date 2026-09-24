@@ -15,7 +15,6 @@ struct TypedStructuredGenerationTests {
         let persistence = PKRuntime.PersistenceConfiguration(
             runtimeRepository: InMemoryTimelineRuntimeRepository(),
             workspacePersistence: InMemoryWorkspacePersistence(),
-            toolPersistence: InMemoryToolPersistence(),
             agentStore: InMemoryAgentStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
@@ -50,7 +49,6 @@ struct TypedStructuredGenerationTests {
         #expect(try await persistence.runtimeRepository.fetchAllTimelines(includeArchived: true).isEmpty)
         #expect(try await persistence.runtimeRepository.fetchMessages(for: UUID()).isEmpty)
         #expect(try await persistence.workspacePersistence.fetchAllWorkspaces().isEmpty)
-        #expect(try await persistence.toolPersistence.fetchTools(forWorkspaces: []).isEmpty)
         #expect(try await persistence.agentStore.fetchAllAgents().isEmpty)
         #expect(try await persistence.requestOriginStore.fetchAllOrigins().isEmpty)
     }

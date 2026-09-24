@@ -89,8 +89,7 @@ struct TimelineEvictionDeletionTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -120,8 +119,7 @@ struct TimelineEvictionDeletionTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -162,8 +160,7 @@ struct TimelineEvictionDeletionTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -206,8 +203,7 @@ struct TimelineEvictionDeletionTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .noWorkspace
         )
@@ -276,8 +272,7 @@ struct TimelineEvictionDeletionTests {
                 messageStore: backing,
                 workspaceStore: backing,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: InMemoryTimelineRuntimeRepository(),
-                toolPersistence: backing
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -331,8 +326,7 @@ struct TimelineEvictionDeletionTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )

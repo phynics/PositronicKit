@@ -460,10 +460,9 @@ func timelineRepositoryConforms() async throws {
 ```
 
 The package ships runners for `TimelineRuntimeRepository`, `WorkspaceStore`,
-`ToolPersistenceProtocol`, `AgentStoreProtocol`, `RequestOriginStoreProtocol`, and
-`WorkspaceFactory`. Each scenario creates an isolated fixture and runs sequentially. Result
-ordering, storage schema, exact tool-source labels, and unsupported workspace-factory inputs
-remain adapter-specific unless the protocol documents otherwise.
+`AgentStoreProtocol`, `RequestOriginStoreProtocol`, and `WorkspaceFactory`. Each scenario creates
+an isolated fixture and runs sequentially. Result ordering, storage schema, and unsupported
+workspace-factory inputs remain adapter-specific unless the protocol documents otherwise.
 
 The harness follows these contracts:
 

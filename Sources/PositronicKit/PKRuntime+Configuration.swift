@@ -75,7 +75,7 @@ public extension PKRuntime {
     ///
     /// Use ``validateDurability()`` to detect mixed-durability configurations (some stores
     /// durable, others in-memory) that can lose data on restart. Use
-    /// ``fullyPersistent(runtimeRepository:workspacePersistence:toolPersistence:agentStore:requestOriginStore:workspaceBindingRepository:)``
+    /// ``fullyPersistent(runtimeRepository:workspacePersistence:agentStore:requestOriginStore:workspaceBindingRepository:)``
     /// when all stores must be explicitly provided for full durability.
     struct PersistenceConfiguration: Sendable {
         /// Cohesive owner for Timeline history and Turn lifecycle.
@@ -84,8 +84,6 @@ public extension PKRuntime {
         public let workspacePersistence: any WorkspaceStore
         /// The durable authority for ordinary Workspace-to-Timeline bindings.
         public let workspaceBindingRepository: any WorkspaceBindingRepository
-        /// The durable store for tool execution records.
-        public let toolPersistence: any ToolPersistenceProtocol
         /// The durable store for Agent identities.
         public let agentStore: any AgentStoreProtocol
         /// The durable store for request-origin records.
@@ -95,7 +93,6 @@ public extension PKRuntime {
         public init(
             runtimeRepository: any TimelineRuntimeRepository,
             workspacePersistence: any WorkspaceStore? = nil,
-            toolPersistence: any ToolPersistenceProtocol? = nil,
             agentStore: any AgentStoreProtocol? = nil,
             requestOriginStore: any RequestOriginStoreProtocol? = nil,
             workspaceBindingRepository: any WorkspaceBindingRepository? = nil
@@ -106,7 +103,6 @@ public extension PKRuntime {
             self.workspaceBindingRepository = workspaceBindingRepository
                 ?? (runtimeRepository as? any WorkspaceBindingRepository)
                 ?? InMemoryWorkspaceBindingRepository()
-            self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
             self.agentStore = agentStore ?? InMemoryAgentStore()
             self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
         }
@@ -116,14 +112,13 @@ public extension PKRuntime {
             PersistenceConfiguration(runtimeRepository: InMemoryTimelineRuntimeRepository())
         }
 
-        /// Requires the runtime, workspace, tool, agent, and request-origin stores explicitly —
+        /// Requires the runtime, workspace, agent, and request-origin stores explicitly —
         /// the "full durability" entry point for production hosts (Monad, Shuttle). Unlike the
         /// optional-store init, no required store can
         /// silently default to in-memory.
         public static func fullyPersistent(
             runtimeRepository: any TimelineRuntimeRepository,
             workspacePersistence: any WorkspaceStore,
-            toolPersistence: any ToolPersistenceProtocol,
             agentStore: any AgentStoreProtocol,
             requestOriginStore: any RequestOriginStoreProtocol,
             workspaceBindingRepository: any WorkspaceBindingRepository? = nil
@@ -131,7 +126,6 @@ public extension PKRuntime {
             PersistenceConfiguration(
                 runtimeRepository: runtimeRepository,
                 workspacePersistence: workspacePersistence,
-                toolPersistence: toolPersistence,
                 agentStore: agentStore,
                 requestOriginStore: requestOriginStore,
                 workspaceBindingRepository: workspaceBindingRepository
@@ -148,7 +142,6 @@ public extension PKRuntime {
                 .init(id: .runtimeRepository, isDurable: runtimeRepository.isDurable),
                 .init(id: .workspacePersistence, isDurable: workspacePersistence.isDurable),
                 .init(id: .workspaceBindingRepository, isDurable: workspaceBindingRepository.isDurable),
-                .init(id: .toolPersistence, isDurable: toolPersistence.isDurable),
                 .init(id: .agentStore, isDurable: agentStore.isDurable),
                 .init(id: .requestOriginStore, isDurable: requestOriginStore.isDurable),
             ])
@@ -182,7 +175,6 @@ public extension PKRuntime {
                 case runtimeRepository
                 case workspacePersistence
                 case workspaceBindingRepository
-                case toolPersistence
                 case agentStore
                 case requestOriginStore
             }

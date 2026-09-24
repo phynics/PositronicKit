@@ -23,8 +23,8 @@ struct MockPersistenceServiceTests {
         #expect(try await persistence.fetchAllAgents().isEmpty)
     }
 
-    @Test("resetDatabase clears the tool-associated workspace list, not just the primary workspace store")
-    func resetDatabaseClearsToolsMockWorkspaces() async throws {
+    @Test("resetDatabase clears seeded workspace tools")
+    func resetDatabaseClearsSeededWorkspaceTools() async throws {
         let persistence = MockPersistenceService()
 
         let workspaceId = UUID()
@@ -44,8 +44,7 @@ struct MockPersistenceServiceTests {
 
         #expect(try await persistence.fetchAllWorkspaces().isEmpty)
 
-        // After reset, saving a fresh workspace with the same id should not resurrect stale tools
-        // from the internal toolsMock list mutated by the earlier saveWorkspace/addToolToWorkspace calls.
+        // After reset, saving a fresh workspace with the same id must not resurrect seeded tools.
         let freshWorkspace = WorkspaceReference(
             id: workspaceId,
             uri: WorkspaceURI(host: "test", path: "/tmp/test"),

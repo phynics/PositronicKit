@@ -79,7 +79,6 @@ let kit = PKRuntime(configuration: .init(
     persistence: .init(
         runtimeRepository: myTimelineRuntimeRepository,
         workspacePersistence: myWorkspaceStore,
-        toolPersistence: myToolStore,
         agentStore: myAgentStore,
         requestOriginStore: myRequestOriginStore,
         workspaceBindingRepository: myWorkspaceBindingRepository
@@ -137,15 +136,13 @@ func workspaceAdapterConforms() async throws {
 }
 ```
 
-The six available runners cover `TimelineRuntimeRepository`, `WorkspaceStore`,
-`ToolPersistenceProtocol`, `AgentStoreProtocol`, `RequestOriginStoreProtocol`, and
-`WorkspaceFactory`. Each runner creates a fresh fixture for every scenario and runs scenarios
-sequentially. The suites make durable behavior normative: ID-based replacement, targeted and
-idempotent deletion, scope-aware tool queries, attached-timeline filtering, atomic Turn admission
-and terminal transitions, and complete workspace-reference preservation. They intentionally do
-not prescribe result ordering, storage technology, exact tool-source presentation strings,
-`includeTools` projection details, unsupported factory inputs, or the self-reported `isDurable`
-capability.
+The five available runners cover `TimelineRuntimeRepository`, `WorkspaceStore`,
+`AgentStoreProtocol`, `RequestOriginStoreProtocol`, and `WorkspaceFactory`. Each runner creates a
+fresh fixture for every scenario and runs scenarios sequentially. The suites make durable behavior
+normative: ID-based replacement, targeted and idempotent deletion, attached-timeline filtering,
+atomic Turn admission and terminal transitions, and complete workspace-reference preservation. They
+intentionally do not prescribe result ordering, storage technology, `includeTools` projection
+details, unsupported factory inputs, or the self-reported `isDurable` capability.
 
 ### Default PKTool Installation
 
@@ -185,7 +182,6 @@ let core = PKRuntime(configuration: .init(
     persistence: .fullyPersistent(
         runtimeRepository: myTimelineRuntimeRepository,
         workspacePersistence: myWorkspaceStore,
-        toolPersistence: myToolStore,
         agentStore: myAgentStore,
         requestOriginStore: myRequestOriginStore
     )

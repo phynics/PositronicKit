@@ -103,8 +103,7 @@ extension TimelineManager {
                 messageStore: runtimeRepository,
                 workspaceStore: workspaceStore,
                 workspaceBindingRepository: workspaceStore,
-                runtimeRepository: runtimeRepository,
-                toolPersistence: InMemoryToolPersistence()
+                runtimeRepository: runtimeRepository
             ),
             workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,

@@ -7,8 +7,8 @@ import Synchronization
 /// In-memory `WorkspaceStore` test double backed by a mutex-guarded array.
 ///
 /// Inspectable: `workspaces` reads/writes the backing store directly, so tests can seed
-/// fixtures or assert on saved state. `fetchWorkspace` ignores `includeTools` (tools are
-/// always present as stored, unlike the split real-persistence path).
+/// fixtures or assert on saved state. `fetchWorkspace` ignores `includeTools`: tools are
+/// always present as stored.
 public final class MockWorkspacePersistence: WorkspaceStore, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let workspacesState = Mutex<[WorkspaceReference]>([])
 
@@ -42,6 +42,16 @@ public final class MockWorkspacePersistence: WorkspaceStore, @unchecked Sendable
     public func deleteWorkspace(id: UUID) async throws {
         workspacesState.withLock {
             $0.removeAll { $0.id == id }
+        }
+    }
+
+    /// Appends `tool` to a saved workspace's tool list in one atomic mutation.
+    func appendTool(_ tool: ToolReference, toWorkspace workspaceID: UUID) throws {
+        try workspacesState.withLock {
+            guard let index = $0.firstIndex(where: { $0.id == workspaceID }) else {
+                throw ToolError.workspaceNotFound(workspaceID)
+            }
+            $0[index].tools.append(tool)
         }
     }
 }

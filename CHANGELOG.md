@@ -10,6 +10,15 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **`ToolPersistenceProtocol` removed:** hosts had to supply a tool store in
+  `PKRuntime.PersistenceConfiguration`, but the runtime never wrote to it and read it only through
+  internal test-only paths; Workspace tools come from `WorkspaceReference.tools`. Removed with it:
+  `InMemoryToolPersistence`, the `toolPersistence:` parameter of the persistence configuration
+  initializer and `fullyPersistent(...)`, `DurabilityReport.Store.ID.toolPersistence`, and
+  PKTestSupport's `MockToolPersistence`, `FailingToolPersistence`, and
+  `ToolPersistenceConformanceSuite`. `MockPersistenceService.addToolToWorkspace(workspaceID:tool:)`
+  remains as test seeding that appends to the saved workspace's `tools`.
+
 - **Unread `ToolCallFormat` removed:** `ProviderConfiguration.toolFormat` and the single-case
   `ToolCallFormat` enum are gone; nothing in the runtime or any provider read them. Drop the
   `toolFormat:` argument. Stored configurations that still carry a `toolFormat` key decode

@@ -328,7 +328,6 @@ struct ProviderCapabilityMatrixTests {
             persistence: .init(
                 runtimeRepository: persistence,
                 workspacePersistence: persistence,
-                toolPersistence: persistence,
                 agentStore: persistence,
                 requestOriginStore: persistence
             )
@@ -372,7 +371,6 @@ struct ProviderCapabilityMatrixTests {
             persistence: .init(
                 runtimeRepository: persistence,
                 workspacePersistence: persistence,
-                toolPersistence: persistence,
                 agentStore: persistence,
                 requestOriginStore: persistence
             )

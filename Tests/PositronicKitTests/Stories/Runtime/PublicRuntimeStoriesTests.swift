@@ -384,7 +384,6 @@ struct PublicRuntimeStoriesTests {
             let persistence = PKRuntime.PersistenceConfiguration(
                 runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
-                toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             )
@@ -411,7 +410,6 @@ struct PublicRuntimeStoriesTests {
                 persistence: .init(
                     runtimeRepository: mockPersistence,
                     workspacePersistence: mockPersistence,
-                    toolPersistence: mockPersistence,
                     agentStore: mockPersistence,
                     requestOriginStore: mockPersistence
                 ),

@@ -12,7 +12,6 @@ The persistence layer is split into focused protocols to ensure high cohesion an
 - `WorkspaceBindingRepository`: Atomic exclusive claims between ordinary Workspaces and Timelines;
   Agent primary Workspace ownership remains on the Agent record.
 - `RequestOriginStoreProtocol`: Request-origin identity and attached-tool metadata.
-- `ToolPersistenceProtocol`: PKTool registry and routing metadata.
 - `TimelineRuntimeRepository`: Atomic Timeline history and Turn lifecycle transitions.
 
 ## Implementation

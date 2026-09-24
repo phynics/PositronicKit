@@ -70,8 +70,7 @@ internal extension PKRuntime {
                     messageStore: dependencies.runtimeRepository,
                     workspaceStore: dependencies.workspacePersistence,
                     workspaceBindingRepository: dependencies.workspaceBindingRepository,
-                    runtimeRepository: dependencies.runtimeRepository,
-                    toolPersistence: dependencies.toolPersistence
+                    runtimeRepository: dependencies.runtimeRepository
                 ),
                 workspaceProfile: dependencies.workspaceProfile,
                 workspaceCreator: dependencies.workspaceCreator,

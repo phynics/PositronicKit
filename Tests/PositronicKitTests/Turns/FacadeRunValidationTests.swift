@@ -213,7 +213,6 @@ struct FacadeRunValidationTests {
             persistence: .init(
                 runtimeRepository: persistence,
                 workspacePersistence: persistence,
-                toolPersistence: persistence,
                 agentStore: agentStore,
                 requestOriginStore: persistence,
             ),

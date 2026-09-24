@@ -49,8 +49,7 @@ private struct AttachmentFixture {
                     messageStore: persistence,
                     workspaceStore: persistence,
                     workspaceBindingRepository: bindingRepository,
-                    runtimeRepository: persistence,
-                    toolPersistence: persistence
+                    runtimeRepository: persistence
                 ),
                 workspaceProfile: .hostManaged(root: workspaceRoot)
             ),
@@ -130,8 +129,7 @@ private func makeGatedManager(
             messageStore: fixture.persistence,
             workspaceStore: fixture.persistence,
             workspaceBindingRepository: fixture.bindingRepository,
-            runtimeRepository: fixture.persistence,
-            toolPersistence: fixture.persistence
+            runtimeRepository: fixture.persistence
         ),
         workspaceProfile: .hostManaged(root: fixture.workspaceRoot),
         resolver: resolver
@@ -203,8 +201,7 @@ struct AttachWorkspaceTests {
                     messageStore: fix.persistence,
                     workspaceStore: fix.persistence,
                     workspaceBindingRepository: fix.bindingRepository,
-                    runtimeRepository: fix.persistence,
-                    toolPersistence: fix.persistence
+                    runtimeRepository: fix.persistence
                 ),
                 workspaceProfile: .hostManaged(root: fix.workspaceRoot)
             )
@@ -349,8 +346,7 @@ struct DetachWorkspaceTests {
                     messageStore: fix.persistence,
                     workspaceStore: fix.persistence,
                     workspaceBindingRepository: fix.bindingRepository,
-                    runtimeRepository: fix.persistence,
-                    toolPersistence: fix.persistence
+                    runtimeRepository: fix.persistence
                 ),
                 workspaceProfile: .hostManaged(root: fix.workspaceRoot)
             )

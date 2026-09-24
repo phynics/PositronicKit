@@ -17,7 +17,6 @@ struct TimelineManagerTests {
         _ = await manager.enabledTools(for: timeline.id)
         _ = await manager.enableTool(id: "missing", for: timeline.id)
         _ = await manager.disableTool(id: "missing", for: timeline.id)
-        #expect(try await manager.getToolSource(toolName: "missing", for: timeline.id) == nil)
 
         let task = Task<Void, Never> {}
         let requestID = UUID()
@@ -54,8 +53,7 @@ struct TimelineManagerTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: InMemoryTimelineRuntimeRepository(),
-                toolPersistence: persistence
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
             workspaceProfile: .noWorkspace
         )
@@ -92,8 +90,7 @@ struct TimelineManagerTests {
             messageStore: InMemoryMessageStore(),
             workspaceStore: workspaceStore,
             workspaceBindingRepository: workspaceStore,
-            runtimeRepository: InMemoryTimelineRuntimeRepository(),
-            toolPersistence: InMemoryToolPersistence()
+            runtimeRepository: InMemoryTimelineRuntimeRepository()
         )
         _ = stores.timelineStore
     }
@@ -107,8 +104,7 @@ struct TimelineManagerTests {
                 messageStore: InMemoryMessageStore(),
                 workspaceStore: store,
                 workspaceBindingRepository: store,
-                runtimeRepository: InMemoryTimelineRuntimeRepository(),
-                toolPersistence: InMemoryToolPersistence()
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
             workspaceProfile: .noWorkspace
         )
@@ -256,8 +252,7 @@ struct TimelineManagerTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -292,8 +287,7 @@ struct TimelineManagerTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
@@ -331,8 +325,7 @@ struct TimelineManagerTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: persistence,
-                toolPersistence: persistence
+                runtimeRepository: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )

@@ -38,8 +38,7 @@ struct TurnEngineTerminalEventTests {
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: mockPersistence,
-                toolPersistence: mockPersistence
+                runtimeRepository: mockPersistence
             ),
             workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()
@@ -105,8 +104,7 @@ struct TurnEngineTerminalEventTests {
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
-                runtimeRepository: mockPersistence,
-                toolPersistence: mockPersistence
+                runtimeRepository: mockPersistence
             ),
             workspaceProfile: .hostManaged(root: FileManager.default.temporaryDirectory.appendingPathComponent("pk-turnengine-" + UUID().uuidString)),
             workspaceCreator: MockWorkspaceCreator()

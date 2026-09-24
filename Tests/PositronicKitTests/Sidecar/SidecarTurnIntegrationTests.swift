@@ -20,7 +20,6 @@ struct SidecarTurnIntegrationTests {
         PKRuntime(configuration: .init(languageModel: llmService, persistence: .init(
                 runtimeRepository: persistence,
                 workspacePersistence: persistence,
-                toolPersistence: persistence,
                 agentStore: persistence,
                 requestOriginStore: persistence
             )))

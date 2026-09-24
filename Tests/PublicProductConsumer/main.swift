@@ -136,7 +136,6 @@ let durableConfiguredKit = PKRuntime(configuration: .init(
     persistence: .fullyPersistent(
         runtimeRepository: InMemoryTimelineRuntimeRepository(),
         workspacePersistence: InMemoryWorkspacePersistence(),
-        toolPersistence: InMemoryToolPersistence(),
         agentStore: InMemoryAgentStore(),
         requestOriginStore: InMemoryRequestOriginStore()
     )

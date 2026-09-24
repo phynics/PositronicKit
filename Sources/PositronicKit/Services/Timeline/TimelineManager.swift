@@ -39,7 +39,6 @@ actor TimelineManager {
         let workspaceStore: any WorkspaceStore
         let workspaceBindingRepository: any WorkspaceBindingRepository
         let runtimeRepository: any TimelineRuntimeRepository
-        let toolPersistence: any ToolPersistenceProtocol
 
         // The binding repository is resolved exactly once, by `PersistenceConfiguration`
         // (ADR 0004: binding authority is repository-only). This seam receives it rather than
@@ -50,15 +49,13 @@ actor TimelineManager {
             messageStore: any TimelineMessageStoreProtocol,
             workspaceStore: any WorkspaceStore,
             workspaceBindingRepository: any WorkspaceBindingRepository,
-            runtimeRepository: any TimelineRuntimeRepository,
-            toolPersistence: any ToolPersistenceProtocol
+            runtimeRepository: any TimelineRuntimeRepository
         ) {
             self.timelineStore = timelineStore
             self.messageStore = messageStore
             self.workspaceStore = workspaceStore
             self.workspaceBindingRepository = workspaceBindingRepository
             self.runtimeRepository = runtimeRepository
-            self.toolPersistence = toolPersistence
         }
     }
 
@@ -97,7 +94,6 @@ actor TimelineManager {
     let workspaceStore: any WorkspaceStore
     let workspaceBindingRepository: any WorkspaceBindingRepository
     let runtimeRepository: any TimelineRuntimeRepository
-    let toolPersistence: any ToolPersistenceProtocol
 
     /// Persists a workspace reference into the store this manager validates,
     /// so an import followed by `attachWorkspace(_:to:)` succeeds.
@@ -173,7 +169,6 @@ actor TimelineManager {
         workspaceStore = stores.workspaceStore
         workspaceBindingRepository = stores.workspaceBindingRepository
         runtimeRepository = stores.runtimeRepository
-        toolPersistence = stores.toolPersistence
         self.workspaceProfile = workspaceProfile
         self.runtimeToolPolicy = runtimeToolPolicy
         self.promptHistoryRegistry = promptHistoryRegistry
@@ -385,34 +380,6 @@ extension TimelineManager {
         guard let toolManager = toolManagers[timelineID] else { return false }
         await toolManager.disableTool(id: id)
         return true
-    }
-
-    func getToolSource(toolName: String, for timelineID: UUID) async throws -> String? {
-        guard timelines[timelineID] != nil else { return nil }
-
-        if let toolManager = toolManagers[timelineID] {
-            let systemTools = await toolManager.getAvailableTools()
-            if systemTools.contains(where: { $0.callName == toolName }) {
-                return "System"
-            }
-        }
-
-        do {
-            let workspaceIDs = try await workspaceBindingRepository
-                .bindings(for: timelineID)
-                .map(\.workspaceID)
-            return try await toolPersistence.fetchToolSource(
-                named: toolName,
-                in: workspaceIDs,
-                preferring: nil
-            )
-        } catch {
-            logger.error("""
-            getToolSource failed — toolName: \(toolName), timeline: \(timelineID.uuidString.prefix(8)), \
-            operation: fetchToolSource, error: \(ErrorKit.userFriendlyMessage(for: error))
-            """)
-            throw TimelineError.unavailable
-        }
     }
 }
 
