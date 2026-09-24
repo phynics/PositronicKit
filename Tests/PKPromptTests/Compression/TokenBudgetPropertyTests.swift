@@ -41,7 +41,7 @@ struct TokenBudgetPropertyTests {
 
     private func generatedCases(count: Int, seed: UInt64) -> [([PromptSection], TokenBudget)] {
         var rng = SeededRNG(seed: seed)
-        let strategies: [CompressionStrategy] = [.keep, .truncate(tail: true), .truncate(tail: false), .summarize, .drop]
+        let strategies: [CompressionStrategy] = [.keep, .truncate(keeping: .head), .truncate(keeping: .tail), .summarize, .drop]
         return (0 ..< count).map { _ in
             let sectionCount = rng.nextInt(in: 1 ..< 7)
             // Small ID pool so duplicates arise naturally some of the time.

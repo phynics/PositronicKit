@@ -50,16 +50,6 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
         WorkspaceURI(host: hostname, path: "~")
     }
 
-    /// Create a request-origin project workspace URI.
-    public static func requestOriginProject(hostname: String, path: String) -> WorkspaceURI {
-        WorkspaceURI(host: hostname, path: path)
-    }
-
-    /// Create a git repository workspace URI
-    public static func gitRepository(url: String) -> WorkspaceURI {
-        WorkspaceURI(host: "git", path: url)
-    }
-
     /// Create a terminal workspace URI (an agent-driven PTY shell rooted at `rootPath`).
     public static func terminal(rootPath: String) -> WorkspaceURI {
         WorkspaceURI(host: "pk-terminal", path: rootPath)

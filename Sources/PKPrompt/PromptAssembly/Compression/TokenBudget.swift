@@ -372,16 +372,16 @@ public struct TokenBudget: Sendable {
                 fallbackReason: nil
             )
         case let .constrain(limit):
-            let tail: Bool
+            let retention: TruncationRetention
             if case let .truncate(value) = section.compression {
-                tail = value
+                retention = value
             } else {
-                tail = true
+                retention = .head
             }
             return CompressionNodeReport(
                 nodeID: section.id,
                 path: section.path,
-                action: .truncate(limit: limit, keeping: tail ? .head : .tail),
+                action: .truncate(limit: limit, keeping: retention),
                 beforeTokens: section.estimatedTokens,
                 afterTokens: min(section.estimatedTokens, limit),
                 didHitCache: false,

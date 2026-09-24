@@ -10,6 +10,18 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Truncation states the retained end:** `CompressionStrategy.truncate(tail:)` and
+  `CompressionAction.truncate(limit:tail:)` are removed; `truncate(keeping:)` and
+  `truncate(limit:keeping:)` are now the enum cases themselves, so pattern matches bind a
+  `TruncationRetention` instead of a Boolean where `true` meant "keep the head".
+  `TruncationRetention` gains a `String` raw value. Encoded truncation now reads
+  `{"truncate":{"keeping":"head"}}` (plus `"limit"` for actions); the Boolean `tail` payload no
+  longer decodes.
+
+- **Unused `WorkspaceURI` factories removed:** `requestOriginProject(hostname:path:)` and
+  `gitRepository(url:)` had no callers and no workspace kind behind them. Use
+  `WorkspaceURI(host:path:)` directly.
+
 - **Unenforced `WorkspaceReference.trustLevel` removed:** nothing read `WorkspaceTrustLevel`, so
   `.restricted` and `.readOnly` promised restrictions that were never applied. Drop the
   `trustLevel:` argument. Stored workspaces that carry the key still decode; it is no longer

@@ -73,9 +73,9 @@ struct PKPromptCompressionCoverageTests {
         ]
         let plan = try planner.plan(nodes: nodes, availableTokens: 50, diff: nil)
         let action = plan.nodeActions.first
-        if case let .truncate(limit, tail) = action?.action {
+        if case let .truncate(limit, retention) = action?.action {
             #expect(limit == 50)
-            #expect(tail == true)
+            #expect(retention == .head)
         } else {
             Issue.record("Expected truncate action")
         }
