@@ -11337,105 +11337,6 @@
       "declaration": "init()"
     },
     {
-      "precise": "s:13PKTestSupport19MockToolPersistenceC",
-      "module": "PKTestSupport",
-      "kind": "swift.class",
-      "path": [
-        "MockToolPersistence"
-      ],
-      "declaration": "final class MockToolPersistence"
-    },
-    {
-      "precise": "s:13PKTestSupport19MockToolPersistenceC03addD11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0D9ReferenceOtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockToolPersistence",
-        "addToolToWorkspace(workspaceID:tool:)"
-      ],
-      "declaration": "func addToolToWorkspace(workspaceID: UUID, tool: ToolReference) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport19MockToolPersistenceC05fetchD6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockToolPersistence",
-        "fetchToolSource(named:in:preferring:)"
-      ],
-      "declaration": "func fetchToolSource(named toolName: String, in workspaceIDs: [UUID], preferring primaryWorkspaceID: UUID?) async throws -> String?"
-    },
-    {
-      "precise": "s:13PKTestSupport19MockToolPersistenceC10fetchTools13forWorkspacesSay11PKContracts0D9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockToolPersistence",
-        "fetchTools(forWorkspaces:)"
-      ],
-      "declaration": "func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference]"
-    },
-    {
-      "precise": "s:13PKTestSupport19MockToolPersistenceC10workspacesSay11PKContracts18WorkspaceReferenceVGvp",
-      "module": "PKTestSupport",
-      "kind": "swift.property",
-      "path": [
-        "MockToolPersistence",
-        "workspaces"
-      ],
-      "declaration": "var workspaces: [WorkspaceReference] { get set }"
-    },
-    {
-      "precise": "s:13PKTestSupport19MockToolPersistenceC13findWorkspace07hostingD5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockToolPersistence",
-        "findWorkspace(hostingToolNamed:in:)"
-      ],
-      "declaration": "func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID?"
-    },
-    {
-      "precise": "s:13PKTestSupport19MockToolPersistenceC15upsertWorkspaceyy11PKContracts0G9ReferenceVF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockToolPersistence",
-        "upsertWorkspace(_:)"
-      ],
-      "declaration": "func upsertWorkspace(_ workspace: WorkspaceReference)"
-    },
-    {
-      "precise": "s:13PKTestSupport19MockToolPersistenceC16fetchOriginTools8originIDSay11PKContracts0D9ReferenceOG10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockToolPersistence",
-        "fetchOriginTools(originID:)"
-      ],
-      "declaration": "func fetchOriginTools(originID: UUID) async throws -> [ToolReference]"
-    },
-    {
-      "precise": "s:13PKTestSupport19MockToolPersistenceC9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0D9ReferenceOGtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockToolPersistence",
-        "syncTools(workspaceID:tools:)"
-      ],
-      "declaration": "func syncTools(workspaceID: UUID, tools: [ToolReference]) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport19MockToolPersistenceCACycfc",
-      "module": "PKTestSupport",
-      "kind": "swift.init",
-      "path": [
-        "MockToolPersistence",
-        "init()"
-      ],
-      "declaration": "init()"
-    },
-    {
       "precise": "s:13PKTestSupport20MockWorkspaceCreatorV",
       "module": "PKTestSupport",
       "kind": "swift.struct",
@@ -11612,95 +11513,6 @@
       "declaration": "static func split(_ text: String, chunkCount: Int, rng: inout SeededRNG) -> [String]"
     },
     {
-      "precise": "s:13PKTestSupport22FailingToolPersistenceC",
-      "module": "PKTestSupport",
-      "kind": "swift.class",
-      "path": [
-        "FailingToolPersistence"
-      ],
-      "declaration": "final class FailingToolPersistence"
-    },
-    {
-      "precise": "s:13PKTestSupport22FailingToolPersistenceC03addD11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0D9ReferenceOtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "FailingToolPersistence",
-        "addToolToWorkspace(workspaceID:tool:)"
-      ],
-      "declaration": "func addToolToWorkspace(workspaceID: UUID, tool: ToolReference) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport22FailingToolPersistenceC05fetchD6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "FailingToolPersistence",
-        "fetchToolSource(named:in:preferring:)"
-      ],
-      "declaration": "func fetchToolSource(named toolName: String, in workspaceIDs: [UUID], preferring primaryWorkspaceID: UUID?) async throws -> String?"
-    },
-    {
-      "precise": "s:13PKTestSupport22FailingToolPersistenceC10fetchTools13forWorkspacesSay11PKContracts0D9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "FailingToolPersistence",
-        "fetchTools(forWorkspaces:)"
-      ],
-      "declaration": "func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference]"
-    },
-    {
-      "precise": "s:13PKTestSupport22FailingToolPersistenceC13findWorkspace07hostingD5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "FailingToolPersistence",
-        "findWorkspace(hostingToolNamed:in:)"
-      ],
-      "declaration": "func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID?"
-    },
-    {
-      "precise": "s:13PKTestSupport22FailingToolPersistenceC16fetchOriginTools8originIDSay11PKContracts0D9ReferenceOG10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "FailingToolPersistence",
-        "fetchOriginTools(originID:)"
-      ],
-      "declaration": "func fetchOriginTools(originID: UUID) async throws -> [ToolReference]"
-    },
-    {
-      "precise": "s:13PKTestSupport22FailingToolPersistenceC16fetchSourceFailsACSb_tcfc",
-      "module": "PKTestSupport",
-      "kind": "swift.init",
-      "path": [
-        "FailingToolPersistence",
-        "init(fetchSourceFails:)"
-      ],
-      "declaration": "init(fetchSourceFails: Bool = false)"
-    },
-    {
-      "precise": "s:13PKTestSupport22FailingToolPersistenceC23fetchSourceAttemptCountSivp",
-      "module": "PKTestSupport",
-      "kind": "swift.property",
-      "path": [
-        "FailingToolPersistence",
-        "fetchSourceAttemptCount"
-      ],
-      "declaration": "var fetchSourceAttemptCount: Int { get }"
-    },
-    {
-      "precise": "s:13PKTestSupport22FailingToolPersistenceC9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0D9ReferenceOGtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "FailingToolPersistence",
-        "syncTools(workspaceID:tools:)"
-      ],
-      "declaration": "func syncTools(workspaceID: UUID, tools: [ToolReference]) async throws"
-    },
-    {
       "precise": "s:13PKTestSupport22MockAgentTemplateStoreC",
       "module": "PKTestSupport",
       "kind": "swift.class",
@@ -11849,16 +11661,6 @@
       "declaration": "func fetchAgent(id: UUID) async throws -> Agent?"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC10fetchTools13forWorkspacesSay11PKContracts13ToolReferenceOGSay10Foundation4UUIDVG_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "fetchTools(forWorkspaces:)"
-      ],
-      "declaration": "func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference]"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC10saveOriginyy11PKContracts07RequestG8IdentityVYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -11997,16 +11799,6 @@
         "fetchTimeline(id:)"
       ],
       "declaration": "func fetchTimeline(id: UUID) async throws -> TimelineRecord?"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC13findWorkspace16hostingToolNamed2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "findWorkspace(hostingToolNamed:in:)"
-      ],
-      "declaration": "func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID?"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC13healthDetailsSDyS2SGSgvp",
@@ -12197,26 +11989,6 @@
         "fetchAllOrigins()"
       ],
       "declaration": "func fetchAllOrigins() async throws -> [RequestOriginIdentity]"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC15fetchToolSource5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "fetchToolSource(named:in:preferring:)"
-      ],
-      "declaration": "func fetchToolSource(named toolName: String, in workspaceIDs: [UUID], preferring primaryWorkspaceID: UUID?) async throws -> String?"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC16fetchOriginTools8originIDSay11PKContracts13ToolReferenceOG10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "fetchOriginTools(originID:)"
-      ],
-      "declaration": "func fetchOriginTools(originID: UUID) async throws -> [ToolReference]"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC16fetchToolIntents6turnIDSay13PositronicKit07RuntimeG6IntentVG10Foundation4UUIDV_tYaKF",
@@ -12527,16 +12299,6 @@
         "saveAgent(_:)"
       ],
       "declaration": "func saveAgent(_ instance: Agent) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts13ToolReferenceOGtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "syncTools(workspaceID:tools:)"
-      ],
-      "declaration": "func syncTools(workspaceID: UUID, tools: [ToolReference]) async throws"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC9timelinesSay13PositronicKit14TimelineRecordVGvp",
@@ -13373,25 +13135,6 @@
         "run(makeStore:)"
       ],
       "declaration": "static func run(makeStore: () async throws -> any WorkspaceStore) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport31ToolPersistenceConformanceSuiteO",
-      "module": "PKTestSupport",
-      "kind": "swift.enum",
-      "path": [
-        "ToolPersistenceConformanceSuite"
-      ],
-      "declaration": "enum ToolPersistenceConformanceSuite"
-    },
-    {
-      "precise": "s:13PKTestSupport31ToolPersistenceConformanceSuiteO3run9makeStorey13PositronicKit0cD8Protocol_pSay11PKContracts18WorkspaceReferenceVGYaKYCXE_tYaKFZ",
-      "module": "PKTestSupport",
-      "kind": "swift.type.method",
-      "path": [
-        "ToolPersistenceConformanceSuite",
-        "run(makeStore:)"
-      ],
-      "declaration": "static func run(makeStore: ([WorkspaceReference]) async throws -> any ToolPersistenceProtocol) async throws"
     },
     {
       "precise": "s:13PKTestSupport32WorkspaceFactoryConformanceSuiteO",
@@ -20104,154 +19847,6 @@
       "declaration": "init()"
     },
     {
-      "precise": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "module": "PositronicKit",
-      "kind": "swift.class",
-      "path": [
-        "InMemoryToolPersistence"
-      ],
-      "declaration": "actor InMemoryToolPersistence"
-    },
-    {
-      "precise": "s:13PositronicKit23InMemoryToolPersistenceC03addE11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0E9ReferenceOtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryToolPersistence",
-        "addToolToWorkspace(workspaceID:tool:)"
-      ],
-      "declaration": "func addToolToWorkspace(workspaceID: UUID, tool: ToolReference) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit23InMemoryToolPersistenceC05fetchE6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryToolPersistence",
-        "fetchToolSource(named:in:preferring:)"
-      ],
-      "declaration": "func fetchToolSource(named toolName: String, in workspaceIDs: [UUID], preferring primaryWorkspaceID: UUID?) async throws -> String?"
-    },
-    {
-      "precise": "s:13PositronicKit23InMemoryToolPersistenceC10fetchTools13forWorkspacesSay11PKContracts0E9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryToolPersistence",
-        "fetchTools(forWorkspaces:)"
-      ],
-      "declaration": "func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference]"
-    },
-    {
-      "precise": "s:13PositronicKit23InMemoryToolPersistenceC13findWorkspace07hostingE5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryToolPersistence",
-        "findWorkspace(hostingToolNamed:in:)"
-      ],
-      "declaration": "func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID?"
-    },
-    {
-      "precise": "s:13PositronicKit23InMemoryToolPersistenceC16fetchOriginTools8originIDSay11PKContracts0E9ReferenceOG10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryToolPersistence",
-        "fetchOriginTools(originID:)"
-      ],
-      "declaration": "func fetchOriginTools(originID: UUID) async throws -> [ToolReference]"
-    },
-    {
-      "precise": "s:13PositronicKit23InMemoryToolPersistenceC9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0E9ReferenceOGtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryToolPersistence",
-        "syncTools(workspaceID:tools:)"
-      ],
-      "declaration": "func syncTools(workspaceID: UUID, tools: [ToolReference]) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit23InMemoryToolPersistenceCACycfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "InMemoryToolPersistence",
-        "init()"
-      ],
-      "declaration": "init()"
-    },
-    {
-      "precise": "s:13PositronicKit23ToolPersistenceProtocolP",
-      "module": "PositronicKit",
-      "kind": "swift.protocol",
-      "path": [
-        "ToolPersistenceProtocol"
-      ],
-      "declaration": "protocol ToolPersistenceProtocol : DurabilityAware"
-    },
-    {
-      "precise": "s:13PositronicKit23ToolPersistenceProtocolP03addC11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0C9ReferenceOtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ToolPersistenceProtocol",
-        "addToolToWorkspace(workspaceID:tool:)"
-      ],
-      "declaration": "func addToolToWorkspace(workspaceID: UUID, tool: ToolReference) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit23ToolPersistenceProtocolP05fetchC6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ToolPersistenceProtocol",
-        "fetchToolSource(named:in:preferring:)"
-      ],
-      "declaration": "func fetchToolSource(named toolName: String, in workspaceIDs: [UUID], preferring primaryWorkspaceID: UUID?) async throws -> String?"
-    },
-    {
-      "precise": "s:13PositronicKit23ToolPersistenceProtocolP10fetchTools13forWorkspacesSay11PKContracts0C9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ToolPersistenceProtocol",
-        "fetchTools(forWorkspaces:)"
-      ],
-      "declaration": "func fetchTools(forWorkspaces workspaceIDs: [UUID]) async throws -> [ToolReference]"
-    },
-    {
-      "precise": "s:13PositronicKit23ToolPersistenceProtocolP13findWorkspace07hostingC5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ToolPersistenceProtocol",
-        "findWorkspace(hostingToolNamed:in:)"
-      ],
-      "declaration": "func findWorkspace(hostingToolNamed toolName: String, in workspaceIDs: [UUID]) async throws -> UUID?"
-    },
-    {
-      "precise": "s:13PositronicKit23ToolPersistenceProtocolP16fetchOriginTools8originIDSay11PKContracts0C9ReferenceOG10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ToolPersistenceProtocol",
-        "fetchOriginTools(originID:)"
-      ],
-      "declaration": "func fetchOriginTools(originID: UUID) async throws -> [ToolReference]"
-    },
-    {
-      "precise": "s:13PositronicKit23ToolPersistenceProtocolP9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0C9ReferenceOGtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ToolPersistenceProtocol",
-        "syncTools(workspaceID:tools:)"
-      ],
-      "declaration": "func syncTools(workspaceID: UUID, tools: [ToolReference]) async throws"
-    },
-    {
       "precise": "s:13PositronicKit23TurnContextContributionV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -23171,19 +22766,6 @@
       "declaration": "case agentStore"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO15toolPersistenceyA2ImF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "PKRuntime",
-        "DurabilityReport",
-        "Store",
-        "ID",
-        "toolPersistence"
-      ],
-      "declaration": "case toolPersistence"
-    },
-    {
       "precise": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO17runtimeRepositoryyA2ImF",
       "module": "PositronicKit",
       "kind": "swift.enum.case",
@@ -23421,17 +23003,6 @@
       "declaration": "struct PersistenceConfiguration"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV04toolD0AA04ToolD8Protocol_pvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "PKRuntime",
-        "PersistenceConfiguration",
-        "toolPersistence"
-      ],
-      "declaration": "let toolPersistence: any ToolPersistenceProtocol"
-    },
-    {
       "precise": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV09workspaceD0AA14WorkspaceStore_pvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -23454,26 +23025,26 @@
       "declaration": "let agentStore: any AgentStoreProtocol"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV15fullyPersistent17runtimeRepository09workspaceD004toolD010agentStore013requestOriginM00j7BindingI0AeA015TimelineRuntimeI0_p_AA09WorkspaceM0_pAA04ToolD8Protocol_pAA05AgentmU0_pAA07RequestomU0_pAA0spI0_pSgtFZ",
+      "precise": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV15fullyPersistent17runtimeRepository09workspaceD010agentStore013requestOriginL00j7BindingI0AeA015TimelineRuntimeI0_p_AA09WorkspaceL0_pAA05AgentL8Protocol_pAA07RequestnlT0_pAA0roI0_pSgtFZ",
       "module": "PositronicKit",
       "kind": "swift.type.method",
       "path": [
         "PKRuntime",
         "PersistenceConfiguration",
-        "fullyPersistent(runtimeRepository:workspacePersistence:toolPersistence:agentStore:requestOriginStore:workspaceBindingRepository:)"
+        "fullyPersistent(runtimeRepository:workspacePersistence:agentStore:requestOriginStore:workspaceBindingRepository:)"
       ],
-      "declaration": "static func fullyPersistent(runtimeRepository: any TimelineRuntimeRepository, workspacePersistence: any WorkspaceStore, toolPersistence: any ToolPersistenceProtocol, agentStore: any AgentStoreProtocol, requestOriginStore: any RequestOriginStoreProtocol, workspaceBindingRepository: any WorkspaceBindingRepository? = nil) -> PersistenceConfiguration"
+      "declaration": "static func fullyPersistent(runtimeRepository: any TimelineRuntimeRepository, workspacePersistence: any WorkspaceStore, agentStore: any AgentStoreProtocol, requestOriginStore: any RequestOriginStoreProtocol, workspaceBindingRepository: any WorkspaceBindingRepository? = nil) -> PersistenceConfiguration"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV17runtimeRepository09workspaceD004toolD010agentStore013requestOriginK00h7BindingG0AeA015TimelineRuntimeG0_p_AA09WorkspaceK0_pSgAA04ToolD8Protocol_pSgAA05AgentkS0_pSgAA07RequestmkS0_pSgAA0qnG0_pSgtcfc",
+      "precise": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV17runtimeRepository09workspaceD010agentStore013requestOriginJ00h7BindingG0AeA015TimelineRuntimeG0_p_AA09WorkspaceJ0_pSgAA05AgentJ8Protocol_pSgAA07RequestljR0_pSgAA0pmG0_pSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "PKRuntime",
         "PersistenceConfiguration",
-        "init(runtimeRepository:workspacePersistence:toolPersistence:agentStore:requestOriginStore:workspaceBindingRepository:)"
+        "init(runtimeRepository:workspacePersistence:agentStore:requestOriginStore:workspaceBindingRepository:)"
       ],
-      "declaration": "init(runtimeRepository: any TimelineRuntimeRepository, workspacePersistence: any WorkspaceStore? = nil, toolPersistence: any ToolPersistenceProtocol? = nil, agentStore: any AgentStoreProtocol? = nil, requestOriginStore: any RequestOriginStoreProtocol? = nil, workspaceBindingRepository: any WorkspaceBindingRepository? = nil)"
+      "declaration": "init(runtimeRepository: any TimelineRuntimeRepository, workspacePersistence: any WorkspaceStore? = nil, agentStore: any AgentStoreProtocol? = nil, requestOriginStore: any RequestOriginStoreProtocol? = nil, workspaceBindingRepository: any WorkspaceBindingRepository? = nil)"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV17runtimeRepositoryAA015TimelineRuntimeG0_pvp",
@@ -34958,34 +34529,6 @@
     {
       "module": "PKTestSupport",
       "kind": "conformsTo",
-      "source": "s:13PKTestSupport19MockToolPersistenceC",
-      "target": "s:13PositronicKit15DurabilityAwareP",
-      "targetFallback": "PositronicKit.DurabilityAware"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport19MockToolPersistenceC",
-      "target": "s:13PositronicKit23ToolPersistenceProtocolP",
-      "targetFallback": "PositronicKit.ToolPersistenceProtocol"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport19MockToolPersistenceC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport19MockToolPersistenceC",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
       "source": "s:13PKTestSupport20MockWorkspaceCreatorV",
       "target": "s:13PositronicKit16WorkspaceFactoryP",
       "targetFallback": "PositronicKit.WorkspaceFactory"
@@ -35029,34 +34572,6 @@
       "module": "PKTestSupport",
       "kind": "conformsTo",
       "source": "s:13PKTestSupport21FailingWorkspaceStoreC",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC",
-      "target": "s:13PositronicKit15DurabilityAwareP",
-      "targetFallback": "PositronicKit.DurabilityAware"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC",
-      "target": "s:13PositronicKit23ToolPersistenceProtocolP",
-      "targetFallback": "PositronicKit.ToolPersistenceProtocol"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -35115,13 +34630,6 @@
       "source": "s:13PKTestSupport22MockPersistenceServiceC",
       "target": "s:13PositronicKit20TimelineSummaryStoreP",
       "targetFallback": "PositronicKit.TimelineSummaryStore"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC",
-      "target": "s:13PositronicKit23ToolPersistenceProtocolP",
-      "targetFallback": "PositronicKit.ToolPersistenceProtocol"
     },
     {
       "module": "PKTestSupport",
@@ -38129,59 +37637,6 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit22UnconfiguredLLMServiceV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "target": "s:13PositronicKit15DurabilityAwareP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "target": "s:13PositronicKit23ToolPersistenceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "target": "s:ScA",
-      "targetFallback": "_Concurrency.Actor"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit23ToolPersistenceProtocolP",
-      "target": "s:13PositronicKit15DurabilityAwareP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit23ToolPersistenceProtocolP",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit23ToolPersistenceProtocolP",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -48927,84 +48382,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport19MockToolPersistenceC03addD11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0D9ReferenceOtYaKF",
-      "target": "s:13PKTestSupport19MockToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP03addC11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0C9ReferenceOtYaKF",
-        "displayName": "ToolPersistenceProtocol.addToolToWorkspace(workspaceID:tool:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport19MockToolPersistenceC05fetchD6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-      "target": "s:13PKTestSupport19MockToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP05fetchC6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchToolSource(named:in:preferring:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport19MockToolPersistenceC10fetchTools13forWorkspacesSay11PKContracts0D9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-      "target": "s:13PKTestSupport19MockToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP10fetchTools13forWorkspacesSay11PKContracts0C9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchTools(forWorkspaces:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport19MockToolPersistenceC10workspacesSay11PKContracts18WorkspaceReferenceVGvp",
-      "target": "s:13PKTestSupport19MockToolPersistenceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport19MockToolPersistenceC13findWorkspace07hostingD5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-      "target": "s:13PKTestSupport19MockToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP13findWorkspace07hostingC5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-        "displayName": "ToolPersistenceProtocol.findWorkspace(hostingToolNamed:in:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport19MockToolPersistenceC15upsertWorkspaceyy11PKContracts0G9ReferenceVF",
-      "target": "s:13PKTestSupport19MockToolPersistenceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport19MockToolPersistenceC16fetchOriginTools8originIDSay11PKContracts0D9ReferenceOG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport19MockToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP16fetchOriginTools8originIDSay11PKContracts0C9ReferenceOG10Foundation4UUIDV_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originID:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport19MockToolPersistenceC9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0D9ReferenceOGtYaKF",
-      "target": "s:13PKTestSupport19MockToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0C9ReferenceOGtYaKF",
-        "displayName": "ToolPersistenceProtocol.syncTools(workspaceID:tools:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport19MockToolPersistenceCACycfc",
-      "target": "s:13PKTestSupport19MockToolPersistenceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport20MockWorkspaceCreatorV6create4from13PositronicKit0D8Provider_p11PKContracts0D9ReferenceV_tKF",
       "target": "s:13PKTestSupport20MockWorkspaceCreatorV",
       "sourceOrigin": {
@@ -49105,78 +48482,6 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport22ChunkBoundaryGeneratorO5split_10chunkCount3rngSaySSGSS_SiAA9SeededRNGVztFZ",
       "target": "s:13PKTestSupport22ChunkBoundaryGeneratorO"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC03addD11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0D9ReferenceOtYaKF",
-      "target": "s:13PKTestSupport22FailingToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP03addC11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0C9ReferenceOtYaKF",
-        "displayName": "ToolPersistenceProtocol.addToolToWorkspace(workspaceID:tool:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC05fetchD6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-      "target": "s:13PKTestSupport22FailingToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP05fetchC6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchToolSource(named:in:preferring:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC10fetchTools13forWorkspacesSay11PKContracts0D9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-      "target": "s:13PKTestSupport22FailingToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP10fetchTools13forWorkspacesSay11PKContracts0C9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchTools(forWorkspaces:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC13findWorkspace07hostingD5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-      "target": "s:13PKTestSupport22FailingToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP13findWorkspace07hostingC5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-        "displayName": "ToolPersistenceProtocol.findWorkspace(hostingToolNamed:in:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC16fetchOriginTools8originIDSay11PKContracts0D9ReferenceOG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport22FailingToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP16fetchOriginTools8originIDSay11PKContracts0C9ReferenceOG10Foundation4UUIDV_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originID:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC16fetchSourceFailsACSb_tcfc",
-      "target": "s:13PKTestSupport22FailingToolPersistenceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC23fetchSourceAttemptCountSivp",
-      "target": "s:13PKTestSupport22FailingToolPersistenceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22FailingToolPersistenceC9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0D9ReferenceOGtYaKF",
-      "target": "s:13PKTestSupport22FailingToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0C9ReferenceOGtYaKF",
-        "displayName": "ToolPersistenceProtocol.syncTools(workspaceID:tools:)"
-      }
     },
     {
       "module": "PKTestSupport",
@@ -49282,16 +48587,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit18AgentStoreProtocolP05fetchC02id11PKContracts0C0VSg10Foundation4UUIDV_tYaKF",
         "displayName": "AgentStoreProtocol.fetchAgent(id:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC10fetchTools13forWorkspacesSay11PKContracts13ToolReferenceOGSay10Foundation4UUIDVG_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP10fetchTools13forWorkspacesSay11PKContracts0C9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchTools(forWorkspaces:)"
       }
     },
     {
@@ -49428,16 +48723,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit27TimelinePersistenceProtocolP05fetchC02idAA0C6RecordVSg10Foundation4UUIDV_tYaKF",
         "displayName": "TimelinePersistenceProtocol.fetchTimeline(id:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC13findWorkspace16hostingToolNamed2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP13findWorkspace07hostingC5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-        "displayName": "ToolPersistenceProtocol.findWorkspace(hostingToolNamed:in:)"
       }
     },
     {
@@ -49621,26 +48906,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC15fetchToolSource5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP05fetchC6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchToolSource(named:in:preferring:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC16fetchOriginTools8originIDSay11PKContracts13ToolReferenceOG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP16fetchOriginTools8originIDSay11PKContracts0C9ReferenceOG10Foundation4UUIDV_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originID:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC16fetchToolIntents6turnIDSay13PositronicKit07RuntimeG6IntentVG10Foundation4UUIDV_tYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -49779,6 +49044,12 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC18addToolToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0G9ReferenceOtYaKF",
+      "target": "s:13PKTestSupport22MockPersistenceServiceC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC18fetchAgentTemplate2id11PKContracts0gH0VSg10Foundation4UUIDV_tYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -49906,16 +49177,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit18AgentStoreProtocolP04saveC0yy11PKContracts0C0VYaKF",
         "displayName": "AgentStoreProtocol.saveAgent(_:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts13ToolReferenceOGtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0C9ReferenceOGtYaKF",
-        "displayName": "ToolPersistenceProtocol.syncTools(workspaceID:tools:)"
       }
     },
     {
@@ -50467,12 +49728,6 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport30WorkspaceStoreConformanceSuiteO3run04makeD0y13PositronicKit0cD0_pyYaKYCXE_tYaKFZ",
       "target": "s:13PKTestSupport30WorkspaceStoreConformanceSuiteO"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport31ToolPersistenceConformanceSuiteO3run9makeStorey13PositronicKit0cD8Protocol_pSay11PKContracts18WorkspaceReferenceVGYaKYCXE_tYaKFZ",
-      "target": "s:13PKTestSupport31ToolPersistenceConformanceSuiteO"
     },
     {
       "module": "PKTestSupport",
@@ -54179,72 +53434,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceC03addE11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0E9ReferenceOtYaKF",
-      "target": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP03addC11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0C9ReferenceOtYaKF",
-        "displayName": "ToolPersistenceProtocol.addToolToWorkspace(workspaceID:tool:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceC05fetchE6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-      "target": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP05fetchC6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchToolSource(named:in:preferring:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceC10fetchTools13forWorkspacesSay11PKContracts0E9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-      "target": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP10fetchTools13forWorkspacesSay11PKContracts0C9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchTools(forWorkspaces:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceC13findWorkspace07hostingE5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-      "target": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP13findWorkspace07hostingC5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-        "displayName": "ToolPersistenceProtocol.findWorkspace(hostingToolNamed:in:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceC16fetchOriginTools8originIDSay11PKContracts0E9ReferenceOG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP16fetchOriginTools8originIDSay11PKContracts0C9ReferenceOG10Foundation4UUIDV_tYaKF",
-        "displayName": "ToolPersistenceProtocol.fetchOriginTools(originID:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceC9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0E9ReferenceOGtYaKF",
-      "target": "s:13PositronicKit23InMemoryToolPersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit23ToolPersistenceProtocolP9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0C9ReferenceOGtYaKF",
-        "displayName": "ToolPersistenceProtocol.syncTools(workspaceID:tools:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit23InMemoryToolPersistenceCACycfc",
-      "target": "s:13PositronicKit23InMemoryToolPersistenceC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit23TurnContextContributionV11requirementAA0cdE11RequirementOvp",
       "target": "s:13PositronicKit23TurnContextContributionV"
     },
@@ -55883,12 +55072,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO15toolPersistenceyA2ImF",
-      "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO17runtimeRepositoryyA2ImF",
       "target": "s:13PositronicKit9PKRuntimeC16DurabilityReportV5StoreV2IDO"
     },
@@ -56019,12 +55202,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV04toolD0AA04ToolD8Protocol_pvp",
-      "target": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV09workspaceD0AA14WorkspaceStore_pvp",
       "target": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV"
     },
@@ -56037,13 +55214,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV15fullyPersistent17runtimeRepository09workspaceD004toolD010agentStore013requestOriginM00j7BindingI0AeA015TimelineRuntimeI0_p_AA09WorkspaceM0_pAA04ToolD8Protocol_pAA05AgentmU0_pAA07RequestomU0_pAA0spI0_pSgtFZ",
+      "source": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV15fullyPersistent17runtimeRepository09workspaceD010agentStore013requestOriginL00j7BindingI0AeA015TimelineRuntimeI0_p_AA09WorkspaceL0_pAA05AgentL8Protocol_pAA07RequestnlT0_pAA0roI0_pSgtFZ",
       "target": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV17runtimeRepository09workspaceD004toolD010agentStore013requestOriginK00h7BindingG0AeA015TimelineRuntimeG0_p_AA09WorkspaceK0_pSgAA04ToolD8Protocol_pSgAA05AgentkS0_pSgAA07RequestmkS0_pSgAA0qnG0_pSgtcfc",
+      "source": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV17runtimeRepository09workspaceD010agentStore013requestOriginJ00h7BindingG0AeA015TimelineRuntimeG0_p_AA09WorkspaceJ0_pSgAA05AgentJ8Protocol_pSgAA07RequestljR0_pSgAA0pmG0_pSgtcfc",
       "target": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV"
     },
     {
@@ -56753,42 +55930,6 @@
       "kind": "requirementOf",
       "source": "s:13PositronicKit21WorkspaceToolProviderP9listToolsSay11PKContracts0D9ReferenceOGyYaKF",
       "target": "s:13PositronicKit21WorkspaceToolProviderP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit23ToolPersistenceProtocolP03addC11ToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0C9ReferenceOtYaKF",
-      "target": "s:13PositronicKit23ToolPersistenceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit23ToolPersistenceProtocolP05fetchC6Source5named2in10preferringSSSgSS_Say10Foundation4UUIDVGAKSgtYaKF",
-      "target": "s:13PositronicKit23ToolPersistenceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit23ToolPersistenceProtocolP10fetchTools13forWorkspacesSay11PKContracts0C9ReferenceOGSay10Foundation4UUIDVG_tYaKF",
-      "target": "s:13PositronicKit23ToolPersistenceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit23ToolPersistenceProtocolP13findWorkspace07hostingC5Named2in10Foundation4UUIDVSgSS_SayAIGtYaKF",
-      "target": "s:13PositronicKit23ToolPersistenceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit23ToolPersistenceProtocolP16fetchOriginTools8originIDSay11PKContracts0C9ReferenceOG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit23ToolPersistenceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit23ToolPersistenceProtocolP9syncTools11workspaceID5toolsy10Foundation4UUIDV_Say11PKContracts0C9ReferenceOGtYaKF",
-      "target": "s:13PositronicKit23ToolPersistenceProtocolP"
     },
     {
       "module": "PositronicKit",
