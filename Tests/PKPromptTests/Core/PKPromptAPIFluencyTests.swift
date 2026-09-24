@@ -4,32 +4,31 @@ import Testing
 
 @Suite("PKPrompt API fluency")
 struct PKPromptAPIFluencyTests {
-    @Test("Canonical truncation retention maps to the compatible Boolean payload")
-    func canonicalTruncationRetention() {
-        #expect(CompressionStrategy.truncate(keeping: .head) == .truncate(tail: true))
-        #expect(CompressionStrategy.truncate(keeping: .tail) == .truncate(tail: false))
-        #expect(CompressionAction.truncate(limit: 12, keeping: .head) == .truncate(limit: 12, tail: true))
-        #expect(CompressionAction.truncate(limit: 12, keeping: .tail) == .truncate(limit: 12, tail: false))
-    }
-
-    @Test("Canonical truncation keeps the legacy wire representation")
-    func truncationWireCompatibility() throws {
+    @Test("Truncation encodes the retained end by name")
+    func truncationWireFormat() throws {
         let strategy = CompressionStrategy.truncate(keeping: .head)
         let action = CompressionAction.truncate(limit: 12, keeping: .tail)
 
-        #expect(try jsonDictionary(strategy).isEqual(to: ["truncate": ["tail": true]]))
-        #expect(try jsonDictionary(action).isEqual(to: ["truncate": ["limit": 12, "tail": false]]))
+        #expect(try jsonDictionary(strategy).isEqual(to: ["truncate": ["keeping": "head"]]))
+        #expect(try jsonDictionary(action).isEqual(to: ["truncate": ["limit": 12, "keeping": "tail"]]))
 
         let decodedStrategy = try JSONDecoder().decode(
             CompressionStrategy.self,
-            from: Data(#"{"truncate":{"tail":false}}"#.utf8)
+            from: Data(#"{"truncate":{"keeping":"tail"}}"#.utf8)
         )
         let decodedAction = try JSONDecoder().decode(
             CompressionAction.self,
-            from: Data(#"{"truncate":{"limit":9,"tail":true}}"#.utf8)
+            from: Data(#"{"truncate":{"limit":9,"keeping":"head"}}"#.utf8)
         )
         #expect(decodedStrategy == .truncate(keeping: .tail))
         #expect(decodedAction == .truncate(limit: 9, keeping: .head))
+    }
+
+    @Test("The removed Boolean truncation payload no longer decodes")
+    func legacyBooleanTruncationPayloadIsRejected() {
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(CompressionStrategy.self, from: Data(#"{"truncate":{"tail":true}}"#.utf8))
+        }
     }
 
     @Test("Resetting an observation retains the committed base")

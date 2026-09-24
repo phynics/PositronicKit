@@ -15,17 +15,10 @@ public enum CompressionAction: Sendable, Equatable, Codable {
     /// Replace the node's content with a summary of roughly `targetTokens` tokens, `reason`
     /// recording why the summary was needed.
     case summarize(targetTokens: Int, reason: CompressionReason)
-    /// Legacy source-compatible truncation payload. When `tail` is `true`, truncation keeps the
-    /// head and removes the tail; when `false`, it keeps the tail and removes the head. Prefer
-    /// ``truncate(limit:keeping:)`` in new code.
-    case truncate(limit: Int, tail: Bool)
+    /// Truncate the node's content to `limit` tokens, retaining the given end.
+    case truncate(limit: Int, keeping: TruncationRetention)
     /// Drop the node's content entirely.
     case drop
-
-    /// Creates a truncation action that explicitly states which end is retained.
-    public static func truncate(limit: Int, keeping retention: TruncationRetention) -> Self {
-        .truncate(limit: limit, tail: retention == .head)
-    }
 }
 
 /// A candidate node the ``StructuredCompressionPlanner`` ranks and decides an action for.

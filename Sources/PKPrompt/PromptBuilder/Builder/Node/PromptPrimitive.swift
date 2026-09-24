@@ -41,7 +41,7 @@ public enum CachePolicy: Sendable, Comparable, Codable {
 }
 
 /// The end of truncated content that remains in the prompt.
-public enum TruncationRetention: Sendable, Equatable, Codable {
+public enum TruncationRetention: String, Sendable, Equatable, Codable {
     /// Retain content from the beginning and remove content from the end.
     case head
     /// Retain content from the end and remove content from the beginning.
@@ -54,19 +54,13 @@ public enum TruncationRetention: Sendable, Equatable, Codable {
 public enum CompressionStrategy: Sendable, Equatable, Codable {
     /// Render the content in full regardless of the token budget.
     case keep
-    /// Legacy source-compatible truncation payload; `tail` selects which end is removed
-    /// (`true` keeps the head, `false` keeps the tail). Prefer ``truncate(keeping:)`` in new code.
-    case truncate(tail: Bool)
+    /// Truncate the content to the budget, retaining the given end.
+    case truncate(keeping: TruncationRetention)
     /// Replace the content with a compact summary produced out-of-band by an injected
     /// section compressor (not performed by the render-time constraint itself).
     case summarize
     /// Omit the section's content entirely when it doesn't fit.
     case drop
-
-    /// Creates a truncation strategy that explicitly states which end is retained.
-    public static func truncate(keeping retention: TruncationRetention) -> Self {
-        .truncate(tail: retention == .head)
-    }
 }
 
 /// The shape of a rendered prompt section's content.
@@ -227,11 +221,12 @@ package extension PromptPrimitive {
         switch strategy {
         case .keep:
             return content
-        case let .truncate(tail):
+        case let .truncate(retention):
             let charLimit = tokenLimit * 2
-            if tail {
+            switch retention {
+            case .head:
                 return String(content.prefix(charLimit)) + "\n... [Truncated]"
-            } else {
+            case .tail:
                 return "... [Truncated]\n" + String(content.suffix(charLimit))
             }
         case .summarize:

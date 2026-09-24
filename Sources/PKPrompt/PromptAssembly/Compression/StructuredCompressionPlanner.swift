@@ -113,9 +113,9 @@ public struct StructuredCompressionPlanner: Sendable {
         switch node.strategy {
         case .keep:
             return .keep
-        case let .truncate(tail):
+        case let .truncate(retention):
             guard remainingTokens > 0 else { return .drop }
-            return .truncate(limit: remainingTokens, keeping: tail ? .head : .tail)
+            return .truncate(limit: remainingTokens, keeping: retention)
         case .summarize:
             guard remainingTokens > 0 else { return .drop }
             let target = max(1, min(remainingTokens, node.estimatedTokens / 3))

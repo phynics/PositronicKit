@@ -1763,16 +1763,6 @@
       "declaration": "var description: String { get }"
     },
     {
-      "precise": "s:11PKContracts12WorkspaceURIV13gitRepository3urlACSS_tFZ",
-      "module": "PKContracts",
-      "kind": "swift.type.method",
-      "path": [
-        "WorkspaceURI",
-        "gitRepository(url:)"
-      ],
-      "declaration": "static func gitRepository(url: String) -> WorkspaceURI"
-    },
-    {
       "precise": "s:11PKContracts12WorkspaceURIV18requestOriginShell8hostnameACSS_tFZ",
       "module": "PKContracts",
       "kind": "swift.type.method",
@@ -1781,16 +1771,6 @@
         "requestOriginShell(hostname:)"
       ],
       "declaration": "static func requestOriginShell(hostname: String) -> WorkspaceURI"
-    },
-    {
-      "precise": "s:11PKContracts12WorkspaceURIV20requestOriginProject8hostname4pathACSS_SStFZ",
-      "module": "PKContracts",
-      "kind": "swift.type.method",
-      "path": [
-        "WorkspaceURI",
-        "requestOriginProject(hostname:path:)"
-      ],
-      "declaration": "static func requestOriginProject(hostname: String, path: String) -> WorkspaceURI"
     },
     {
       "precise": "s:11PKContracts12WorkspaceURIV4fromACs7Decoder_p_tKcfc",
@@ -25551,24 +25531,14 @@
       "declaration": "case keep"
     },
     {
-      "precise": "s:8PKPrompt17CompressionActionO8truncate5limit7keepingACSi_AA19TruncationRetentionOtFZ",
-      "module": "PKPrompt",
-      "kind": "swift.type.method",
-      "path": [
-        "CompressionAction",
-        "truncate(limit:keeping:)"
-      ],
-      "declaration": "static func truncate(limit: Int, keeping retention: TruncationRetention) -> CompressionAction"
-    },
-    {
-      "precise": "s:8PKPrompt17CompressionActionO8truncateyACSi_SbtcACmF",
+      "precise": "s:8PKPrompt17CompressionActionO8truncateyACSi_AA19TruncationRetentionOtcACmF",
       "module": "PKPrompt",
       "kind": "swift.enum.case",
       "path": [
         "CompressionAction",
-        "truncate(limit:tail:)"
+        "truncate(limit:keeping:)"
       ],
-      "declaration": "case truncate(limit: Int, tail: Bool)"
+      "declaration": "case truncate(limit: Int, keeping: TruncationRetention)"
     },
     {
       "precise": "s:8PKPrompt17CompressionActionO9summarizeyACSi_AA0B6ReasonOtcACmF",
@@ -26192,24 +26162,14 @@
       "declaration": "case keep"
     },
     {
-      "precise": "s:8PKPrompt19CompressionStrategyO8truncate7keepingAcA19TruncationRetentionO_tFZ",
-      "module": "PKPrompt",
-      "kind": "swift.type.method",
-      "path": [
-        "CompressionStrategy",
-        "truncate(keeping:)"
-      ],
-      "declaration": "static func truncate(keeping retention: TruncationRetention) -> CompressionStrategy"
-    },
-    {
-      "precise": "s:8PKPrompt19CompressionStrategyO8truncateyACSb_tcACmF",
+      "precise": "s:8PKPrompt19CompressionStrategyO8truncateyAcA19TruncationRetentionO_tcACmF",
       "module": "PKPrompt",
       "kind": "swift.enum.case",
       "path": [
         "CompressionStrategy",
-        "truncate(tail:)"
+        "truncate(keeping:)"
       ],
-      "declaration": "case truncate(tail: Bool)"
+      "declaration": "case truncate(keeping: TruncationRetention)"
     },
     {
       "precise": "s:8PKPrompt19CompressionStrategyO9summarizeyA2CmF",
@@ -26300,16 +26260,6 @@
       "declaration": "enum TruncationRetention"
     },
     {
-      "precise": "s:8PKPrompt19TruncationRetentionO4fromACs7Decoder_p_tKcfc",
-      "module": "PKPrompt",
-      "kind": "swift.init",
-      "path": [
-        "TruncationRetention",
-        "init(from:)"
-      ],
-      "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
       "precise": "s:8PKPrompt19TruncationRetentionO4headyA2CmF",
       "module": "PKPrompt",
       "kind": "swift.enum.case",
@@ -26328,6 +26278,16 @@
         "tail"
       ],
       "declaration": "case tail"
+    },
+    {
+      "precise": "s:8PKPrompt19TruncationRetentionO8rawValueACSgSS_tcfc",
+      "module": "PKPrompt",
+      "kind": "swift.init",
+      "path": [
+        "TruncationRetention",
+        "init(rawValue:)"
+      ],
+      "declaration": "init?(rawValue: String)"
     },
     {
       "precise": "s:8PKPrompt21CompressionNodeReportV",
@@ -33265,6 +33225,13 @@
       "module": "PKPrompt",
       "kind": "conformsTo",
       "source": "s:8PKPrompt19TruncationRetentionO",
+      "target": "s:SY",
+      "targetFallback": "Swift.RawRepresentable"
+    },
+    {
+      "module": "PKPrompt",
+      "kind": "conformsTo",
+      "source": "s:8PKPrompt19TruncationRetentionO",
       "target": "s:Se",
       "targetFallback": "Swift.Decodable"
     },
@@ -39621,19 +39588,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts12WorkspaceURIV13gitRepository3urlACSS_tFZ",
-      "target": "s:11PKContracts12WorkspaceURIV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts12WorkspaceURIV18requestOriginShell8hostnameACSS_tFZ",
-      "target": "s:11PKContracts12WorkspaceURIV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts12WorkspaceURIV20requestOriginProject8hostname4pathACSS_SStFZ",
       "target": "s:11PKContracts12WorkspaceURIV"
     },
     {
@@ -45778,13 +45733,7 @@
     {
       "module": "PKPrompt",
       "kind": "memberOf",
-      "source": "s:8PKPrompt17CompressionActionO8truncate5limit7keepingACSi_AA19TruncationRetentionOtFZ",
-      "target": "s:8PKPrompt17CompressionActionO"
-    },
-    {
-      "module": "PKPrompt",
-      "kind": "memberOf",
-      "source": "s:8PKPrompt17CompressionActionO8truncateyACSi_SbtcACmF",
+      "source": "s:8PKPrompt17CompressionActionO8truncateyACSi_AA19TruncationRetentionOtcACmF",
       "target": "s:8PKPrompt17CompressionActionO"
     },
     {
@@ -46104,13 +46053,7 @@
     {
       "module": "PKPrompt",
       "kind": "memberOf",
-      "source": "s:8PKPrompt19CompressionStrategyO8truncate7keepingAcA19TruncationRetentionO_tFZ",
-      "target": "s:8PKPrompt19CompressionStrategyO"
-    },
-    {
-      "module": "PKPrompt",
-      "kind": "memberOf",
-      "source": "s:8PKPrompt19CompressionStrategyO8truncateyACSb_tcACmF",
+      "source": "s:8PKPrompt19CompressionStrategyO8truncateyAcA19TruncationRetentionO_tcACmF",
       "target": "s:8PKPrompt19CompressionStrategyO"
     },
     {
@@ -46174,16 +46117,6 @@
     {
       "module": "PKPrompt",
       "kind": "memberOf",
-      "source": "s:8PKPrompt19TruncationRetentionO4fromACs7Decoder_p_tKcfc",
-      "target": "s:8PKPrompt19TruncationRetentionO",
-      "sourceOrigin": {
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
-        "displayName": "Decodable.init(from:)"
-      }
-    },
-    {
-      "module": "PKPrompt",
-      "kind": "memberOf",
       "source": "s:8PKPrompt19TruncationRetentionO4headyA2CmF",
       "target": "s:8PKPrompt19TruncationRetentionO"
     },
@@ -46192,6 +46125,16 @@
       "kind": "memberOf",
       "source": "s:8PKPrompt19TruncationRetentionO4tailyA2CmF",
       "target": "s:8PKPrompt19TruncationRetentionO"
+    },
+    {
+      "module": "PKPrompt",
+      "kind": "memberOf",
+      "source": "s:8PKPrompt19TruncationRetentionO8rawValueACSgSS_tcfc",
+      "target": "s:8PKPrompt19TruncationRetentionO",
+      "sourceOrigin": {
+        "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc",
+        "displayName": "RawRepresentable.init(rawValue:)"
+      }
     },
     {
       "module": "PKPrompt",
