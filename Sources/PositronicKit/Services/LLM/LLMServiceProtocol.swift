@@ -149,6 +149,12 @@ public protocol LLMStreamClient: Sendable {
     /// Returns the structured-output preparation behavior for the selected model tier.
     func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter
 
+    /// Assembles a prompt and streams one generation, with structured output applied when
+    /// requested.
+    ///
+    /// This is the deliberate low-level entry point for hosts that want an LLM client without
+    /// Timelines, Turns, or Agents. The runtime itself never calls it: managed and direct Turns,
+    /// and `kit.model`, build their requests through their own paths.
     func generationStreamWithContext(_ request: LLMGenerationRequest) async throws -> LLMStreamResult
 
     /// Stream chat response from a prepared list of messages (low-level).
@@ -176,18 +182,6 @@ public protocol LLMStreamClient: Sendable {
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
-}
-
-/// Configuration lifecycle seam: load, update, clear, back up, and transfer an LLM
-/// service's configuration. Consumers that only manage provider settings depend on this
-/// rather than the full LLM surface.
-public protocol LLMConfigStore: Sendable {
-    func loadConfiguration() async
-    func updateConfiguration(_ config: LLMConfiguration) async throws
-    func clearConfiguration() async
-    func restoreFromBackup() async throws
-    func exportConfiguration() async throws -> Data
-    func importConfiguration(from data: Data) async throws
 }
 
 public extension LLMStreamClient {

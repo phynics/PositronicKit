@@ -4604,55 +4604,6 @@
       "declaration": "var userFriendlyMessage: String { get }"
     },
     {
-      "precise": "s:11PKContracts18EndpointComponentsV",
-      "module": "PKContracts",
-      "kind": "swift.struct",
-      "path": [
-        "EndpointComponents"
-      ],
-      "declaration": "struct EndpointComponents"
-    },
-    {
-      "precise": "s:11PKContracts18EndpointComponentsV4host4port6schemeACSS_SiSStcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "EndpointComponents",
-        "init(host:port:scheme:)"
-      ],
-      "declaration": "init(host: String, port: Int, scheme: String)"
-    },
-    {
-      "precise": "s:11PKContracts18EndpointComponentsV4hostSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "EndpointComponents",
-        "host"
-      ],
-      "declaration": "let host: String"
-    },
-    {
-      "precise": "s:11PKContracts18EndpointComponentsV4portSivp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "EndpointComponents",
-        "port"
-      ],
-      "declaration": "let port: Int"
-    },
-    {
-      "precise": "s:11PKContracts18EndpointComponentsV6schemeSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "EndpointComponents",
-        "scheme"
-      ],
-      "declaration": "let scheme: String"
-    },
-    {
       "precise": "s:11PKContracts18LLMProviderFactoryP",
       "module": "PKContracts",
       "kind": "swift.protocol",
@@ -5019,16 +4970,6 @@
       "declaration": "var rawValue: String { get }"
     },
     {
-      "precise": "s:11PKContracts18WorkspaceReferenceV10trustLevelAA0b5TrustE0Ovp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "WorkspaceReference",
-        "trustLevel"
-      ],
-      "declaration": "var trustLevel: WorkspaceTrustLevel"
-    },
-    {
       "precise": "s:11PKContracts18WorkspaceReferenceV11makePrimary11forTimeline8rootPathAC10Foundation4UUIDV_SStFZ",
       "module": "PKContracts",
       "kind": "swift.type.method",
@@ -5079,14 +5020,14 @@
       "declaration": "let id: UUID"
     },
     {
-      "precise": "s:11PKContracts18WorkspaceReferenceV2id3uri8location8originID5tools8rootPath10trustLevel14lastModifiedBy6status16contextInjection9createdAtAC10Foundation4UUIDV_AA0B3URIVAC0B8LocationOAQSgSayAA04ToolC0OGSSSgAA0b5TrustM0OAvC0B6StatusOAzO4DateVtcfc",
+      "precise": "s:11PKContracts18WorkspaceReferenceV2id3uri8location8originID5tools8rootPath14lastModifiedBy6status16contextInjection9createdAtAC10Foundation4UUIDV_AA0B3URIVAC0B8LocationOAPSgSayAA04ToolC0OGSSSgAuC0B6StatusOAyN4DateVtcfc",
       "module": "PKContracts",
       "kind": "swift.init",
       "path": [
         "WorkspaceReference",
-        "init(id:uri:location:originID:tools:rootPath:trustLevel:lastModifiedBy:status:contextInjection:createdAt:)"
+        "init(id:uri:location:originID:tools:rootPath:lastModifiedBy:status:contextInjection:createdAt:)"
       ],
-      "declaration": "init(id: UUID = UUID(), uri: WorkspaceURI, location: WorkspaceReference.WorkspaceLocation, originID: UUID? = nil, tools: [ToolReference] = [], rootPath: String? = nil, trustLevel: WorkspaceTrustLevel = .full, lastModifiedBy: UUID? = nil, status: WorkspaceReference.WorkspaceStatus = .active, contextInjection: String? = nil, createdAt: Date = Date())"
+      "declaration": "init(id: UUID = UUID(), uri: WorkspaceURI, location: WorkspaceReference.WorkspaceLocation, originID: UUID? = nil, tools: [ToolReference] = [], rootPath: String? = nil, lastModifiedBy: UUID? = nil, status: WorkspaceReference.WorkspaceStatus = .active, contextInjection: String? = nil, createdAt: Date = Date())"
     },
     {
       "precise": "s:11PKContracts18WorkspaceReferenceV3uriAA0B3URIVvp",
@@ -5517,55 +5458,6 @@
         "init(from:)"
       ],
       "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
-      "precise": "s:11PKContracts19WorkspaceTrustLevelO",
-      "module": "PKContracts",
-      "kind": "swift.enum",
-      "path": [
-        "WorkspaceTrustLevel"
-      ],
-      "declaration": "enum WorkspaceTrustLevel"
-    },
-    {
-      "precise": "s:11PKContracts19WorkspaceTrustLevelO10restrictedyA2CmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "WorkspaceTrustLevel",
-        "restricted"
-      ],
-      "declaration": "case restricted"
-    },
-    {
-      "precise": "s:11PKContracts19WorkspaceTrustLevelO4fullyA2CmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "WorkspaceTrustLevel",
-        "full"
-      ],
-      "declaration": "case full"
-    },
-    {
-      "precise": "s:11PKContracts19WorkspaceTrustLevelO8rawValueACSgSS_tcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "WorkspaceTrustLevel",
-        "init(rawValue:)"
-      ],
-      "declaration": "init?(rawValue: String)"
-    },
-    {
-      "precise": "s:11PKContracts19WorkspaceTrustLevelO8readOnlyyA2CmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "WorkspaceTrustLevel",
-        "readOnly"
-      ],
-      "declaration": "case readOnly"
     },
     {
       "precise": "s:11PKContracts20GenerationParametersV",
@@ -11513,85 +11405,6 @@
       "declaration": "static func split(_ text: String, chunkCount: Int, rng: inout SeededRNG) -> [String]"
     },
     {
-      "precise": "s:13PKTestSupport22MockAgentTemplateStoreC",
-      "module": "PKTestSupport",
-      "kind": "swift.class",
-      "path": [
-        "MockAgentTemplateStore"
-      ],
-      "declaration": "final class MockAgentTemplateStore"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockAgentTemplateStoreC03hasdE02idSbSS_tYaF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockAgentTemplateStore",
-        "hasAgentTemplate(id:)"
-      ],
-      "declaration": "func hasAgentTemplate(id: String) async -> Bool"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockAgentTemplateStoreC04savedE0yy11PKContracts0dE0VYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockAgentTemplateStore",
-        "saveAgentTemplate(_:)"
-      ],
-      "declaration": "func saveAgentTemplate(_ agent: AgentTemplate) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockAgentTemplateStoreC05fetchdE02id11PKContracts0dE0VSg10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockAgentTemplateStore",
-        "fetchAgentTemplate(id:)"
-      ],
-      "declaration": "func fetchAgentTemplate(id: UUID) async throws -> AgentTemplate?"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockAgentTemplateStoreC05fetchdE03key11PKContracts0dE0VSgSS_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockAgentTemplateStore",
-        "fetchAgentTemplate(key:)"
-      ],
-      "declaration": "func fetchAgentTemplate(key: String) async throws -> AgentTemplate?"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockAgentTemplateStoreC08fetchAllD9TemplatesSay11PKContracts0dE0VGyYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockAgentTemplateStore",
-        "fetchAllAgentTemplates()"
-      ],
-      "declaration": "func fetchAllAgentTemplates() async throws -> [AgentTemplate]"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockAgentTemplateStoreC14agentTemplatesSay11PKContracts0dE0VGvp",
-      "module": "PKTestSupport",
-      "kind": "swift.property",
-      "path": [
-        "MockAgentTemplateStore",
-        "agentTemplates"
-      ],
-      "declaration": "var agentTemplates: [AgentTemplate] { get set }"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockAgentTemplateStoreCACycfc",
-      "module": "PKTestSupport",
-      "kind": "swift.init",
-      "path": [
-        "MockAgentTemplateStore",
-        "init()"
-      ],
-      "declaration": "init()"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC",
       "module": "PKTestSupport",
       "kind": "swift.class",
@@ -11861,16 +11674,6 @@
       "declaration": "func saveWorkspace(_ workspace: WorkspaceReference) async throws"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC14agentTemplatesSay11PKContracts13AgentTemplateVGvp",
-      "module": "PKTestSupport",
-      "kind": "swift.property",
-      "path": [
-        "MockPersistenceService",
-        "agentTemplates"
-      ],
-      "declaration": "var agentTemplates: [AgentTemplate] { get set }"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12011,16 +11814,6 @@
       "declaration": "func fetchToolResults(turnID: UUID) async throws -> [RuntimeToolResult]"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC16hasAgentTemplate2idSbSS_tYaF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "hasAgentTemplate(id:)"
-      ],
-      "declaration": "func hasAgentTemplate(id: String) async -> Bool"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC16mockHealthStatus11PKContracts0gH0Ovp",
       "module": "PKTestSupport",
       "kind": "swift.property",
@@ -12121,16 +11914,6 @@
       "declaration": "func releaseQuarantine(timelineID: UUID, turnID: UUID, confirmation: QuarantineReleaseConfirmation, now: Date) async throws -> TurnRecord"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC17saveAgentTemplateyy11PKContracts0gH0VYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "saveAgentTemplate(_:)"
-      ],
-      "declaration": "func saveAgentTemplate(_ agent: AgentTemplate) async throws"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC18addToolToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0G9ReferenceOtYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12139,26 +11922,6 @@
         "addToolToWorkspace(workspaceID:tool:)"
       ],
       "declaration": "func addToolToWorkspace(workspaceID: UUID, tool: ToolReference) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC18fetchAgentTemplate2id11PKContracts0gH0VSg10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "fetchAgentTemplate(id:)"
-      ],
-      "declaration": "func fetchAgentTemplate(id: UUID) async throws -> AgentTemplate?"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC18fetchAgentTemplate3key11PKContracts0gH0VSgSS_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "fetchAgentTemplate(key:)"
-      ],
-      "declaration": "func fetchAgentTemplate(key: String) async throws -> AgentTemplate?"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC18fetchAllWorkspacesSay11PKContracts18WorkspaceReferenceVGyYaKF",
@@ -12199,16 +11962,6 @@
         "recordProviderRequest(turnID:modelRoundIndex:correlation:now:)"
       ],
       "declaration": "func recordProviderRequest(turnID: UUID, modelRoundIndex: Int, correlation: TurnCorrelation?, now: Date) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC22fetchAllAgentTemplatesSay11PKContracts0H8TemplateVGyYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "fetchAllAgentTemplates()"
-      ],
-      "declaration": "func fetchAllAgentTemplates() async throws -> [AgentTemplate]"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC23saveMessageFailureAfterSiSgvp",
@@ -14902,75 +14655,6 @@
         "completed"
       ],
       "declaration": "case completed"
-    },
-    {
-      "precise": "s:13PositronicKit14LLMConfigStoreP",
-      "module": "PositronicKit",
-      "kind": "swift.protocol",
-      "path": [
-        "LLMConfigStore"
-      ],
-      "declaration": "protocol LLMConfigStore : Sendable"
-    },
-    {
-      "precise": "s:13PositronicKit14LLMConfigStoreP17loadConfigurationyyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMConfigStore",
-        "loadConfiguration()"
-      ],
-      "declaration": "func loadConfiguration() async"
-    },
-    {
-      "precise": "s:13PositronicKit14LLMConfigStoreP17restoreFromBackupyyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMConfigStore",
-        "restoreFromBackup()"
-      ],
-      "declaration": "func restoreFromBackup() async throws"
-    },
-    {
-      "precise": "s:13PositronicKit14LLMConfigStoreP18clearConfigurationyyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMConfigStore",
-        "clearConfiguration()"
-      ],
-      "declaration": "func clearConfiguration() async"
-    },
-    {
-      "precise": "s:13PositronicKit14LLMConfigStoreP19exportConfiguration10Foundation4DataVyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMConfigStore",
-        "exportConfiguration()"
-      ],
-      "declaration": "func exportConfiguration() async throws -> Data"
-    },
-    {
-      "precise": "s:13PositronicKit14LLMConfigStoreP19importConfiguration4fromy10Foundation4DataV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMConfigStore",
-        "importConfiguration(from:)"
-      ],
-      "declaration": "func importConfiguration(from data: Data) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit14LLMConfigStoreP19updateConfigurationyy11PKContracts16LLMConfigurationVYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMConfigStore",
-        "updateConfiguration(_:)"
-      ],
-      "declaration": "func updateConfiguration(_ config: LLMConfiguration) async throws"
     },
     {
       "precise": "s:13PositronicKit14TimelineHandleV",
@@ -17863,36 +17547,6 @@
       "declaration": "protocol WorkspaceResolver : Sendable"
     },
     {
-      "precise": "s:13PositronicKit17WorkspaceResolverP05closeC02idy10Foundation4UUIDV_tYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "WorkspaceResolver",
-        "closeWorkspace(id:)"
-      ],
-      "declaration": "func closeWorkspace(id: UUID) async"
-    },
-    {
-      "precise": "s:13PositronicKit17WorkspaceResolverP06activeC5CountSivp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "WorkspaceResolver",
-        "activeWorkspaceCount"
-      ],
-      "declaration": "var activeWorkspaceCount: Int { get async }"
-    },
-    {
-      "precise": "s:13PositronicKit17WorkspaceResolverP14healthCheckAllSDy10Foundation4UUIDVSbGyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "WorkspaceResolver",
-        "healthCheckAll()"
-      ],
-      "declaration": "func healthCheckAll() async -> [UUID : Bool]"
-    },
-    {
       "precise": "s:13PositronicKit17WorkspaceResolverP9workspace2idAA0C8Provider_pSg10Foundation4UUIDV_tYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -20577,65 +20231,6 @@
       "declaration": "func admitTurn(timelineID: UUID, requestID: UUID, callerIntentFingerprint: String, inputMessage: TimelineMessage? = nil, now: Date = Date()) async throws -> TurnAdmission"
     },
     {
-      "precise": "s:13PositronicKit26AgentTemplateStoreProtocolP",
-      "module": "PositronicKit",
-      "kind": "swift.protocol",
-      "path": [
-        "AgentTemplateStoreProtocol"
-      ],
-      "declaration": "protocol AgentTemplateStoreProtocol : Sendable"
-    },
-    {
-      "precise": "s:13PositronicKit26AgentTemplateStoreProtocolP03hascD02idSbSS_tYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "AgentTemplateStoreProtocol",
-        "hasAgentTemplate(id:)"
-      ],
-      "declaration": "func hasAgentTemplate(id: String) async -> Bool"
-    },
-    {
-      "precise": "s:13PositronicKit26AgentTemplateStoreProtocolP04savecD0yy11PKContracts0cD0VYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "AgentTemplateStoreProtocol",
-        "saveAgentTemplate(_:)"
-      ],
-      "declaration": "func saveAgentTemplate(_ agent: AgentTemplate) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit26AgentTemplateStoreProtocolP05fetchcD02id11PKContracts0cD0VSg10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "AgentTemplateStoreProtocol",
-        "fetchAgentTemplate(id:)"
-      ],
-      "declaration": "func fetchAgentTemplate(id: UUID) async throws -> AgentTemplate?"
-    },
-    {
-      "precise": "s:13PositronicKit26AgentTemplateStoreProtocolP05fetchcD03key11PKContracts0cD0VSgSS_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "AgentTemplateStoreProtocol",
-        "fetchAgentTemplate(key:)"
-      ],
-      "declaration": "func fetchAgentTemplate(key: String) async throws -> AgentTemplate?"
-    },
-    {
-      "precise": "s:13PositronicKit26AgentTemplateStoreProtocolP08fetchAllC9TemplatesSay11PKContracts0cD0VGyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "AgentTemplateStoreProtocol",
-        "fetchAllAgentTemplates()"
-      ],
-      "declaration": "func fetchAllAgentTemplates() async throws -> [AgentTemplate]"
-    },
-    {
       "precise": "s:13PositronicKit26IdentityAgentContextSourceV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -20660,75 +20255,6 @@
       "kind": "swift.init",
       "path": [
         "IdentityAgentContextSource",
-        "init()"
-      ],
-      "declaration": "init()"
-    },
-    {
-      "precise": "s:13PositronicKit26InMemoryAgentTemplateStoreC",
-      "module": "PositronicKit",
-      "kind": "swift.class",
-      "path": [
-        "InMemoryAgentTemplateStore"
-      ],
-      "declaration": "actor InMemoryAgentTemplateStore"
-    },
-    {
-      "precise": "s:13PositronicKit26InMemoryAgentTemplateStoreC03haseF02idSbSS_tYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryAgentTemplateStore",
-        "hasAgentTemplate(id:)"
-      ],
-      "declaration": "func hasAgentTemplate(id: String) async -> Bool"
-    },
-    {
-      "precise": "s:13PositronicKit26InMemoryAgentTemplateStoreC04saveeF0yy11PKContracts0eF0VYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryAgentTemplateStore",
-        "saveAgentTemplate(_:)"
-      ],
-      "declaration": "func saveAgentTemplate(_ template: AgentTemplate) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit26InMemoryAgentTemplateStoreC05fetcheF02id11PKContracts0eF0VSg10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryAgentTemplateStore",
-        "fetchAgentTemplate(id:)"
-      ],
-      "declaration": "func fetchAgentTemplate(id: UUID) async throws -> AgentTemplate?"
-    },
-    {
-      "precise": "s:13PositronicKit26InMemoryAgentTemplateStoreC05fetcheF03key11PKContracts0eF0VSgSS_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryAgentTemplateStore",
-        "fetchAgentTemplate(key:)"
-      ],
-      "declaration": "func fetchAgentTemplate(key: String) async throws -> AgentTemplate?"
-    },
-    {
-      "precise": "s:13PositronicKit26InMemoryAgentTemplateStoreC08fetchAllE9TemplatesSay11PKContracts0eF0VGyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryAgentTemplateStore",
-        "fetchAllAgentTemplates()"
-      ],
-      "declaration": "func fetchAllAgentTemplates() async throws -> [AgentTemplate]"
-    },
-    {
-      "precise": "s:13PositronicKit26InMemoryAgentTemplateStoreCACycfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "InMemoryAgentTemplateStore",
         "init()"
       ],
       "declaration": "init()"
@@ -23358,16 +22884,6 @@
       "declaration": "func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
-      "precise": "s:16PKOllamaProvider12OllamaClientC11sendMessage_14responseFormat20generationParametersS2S_11PKContracts011LLMResponseH0OSgAG010GenerationJ0VSgtYaKF",
-      "module": "PKOllamaProvider",
-      "kind": "swift.method",
-      "path": [
-        "OllamaClient",
-        "sendMessage(_:responseFormat:generationParameters:)"
-      ],
-      "declaration": "func sendMessage(_ content: String, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil) async throws -> String"
-    },
-    {
       "precise": "s:16PKOllamaProvider12OllamaClientC20fetchAvailableModelsSaySSGSgyYaKF",
       "module": "PKOllamaProvider",
       "kind": "swift.method",
@@ -23544,16 +23060,6 @@
       "declaration": "func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
-      "precise": "s:19PKAnthropicProvider15AnthropicClientC11sendMessage_14responseFormat20generationParametersS2S_11PKContracts011LLMResponseH0OSgAG010GenerationJ0VSgtYaKF",
-      "module": "PKAnthropicProvider",
-      "kind": "swift.method",
-      "path": [
-        "AnthropicClient",
-        "sendMessage(_:responseFormat:generationParameters:)"
-      ],
-      "declaration": "func sendMessage(_ content: String, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil) async throws -> String"
-    },
-    {
       "precise": "s:19PKAnthropicProvider15AnthropicClientC16defaultMaxTokensSivpZ",
       "module": "PKAnthropicProvider",
       "kind": "swift.type.property",
@@ -23664,16 +23170,6 @@
         "applicationTitle"
       ],
       "declaration": "let applicationTitle: String?"
-    },
-    {
-      "precise": "s:20PKOpenRouterProvider04OpenB6ClientC11sendMessage_14responseFormat20generationParametersS2S_11PKContracts011LLMResponseI0OSgAG010GenerationK0VSgtYaKF",
-      "module": "PKOpenRouterProvider",
-      "kind": "swift.method",
-      "path": [
-        "OpenRouterClient",
-        "sendMessage(_:responseFormat:generationParameters:)"
-      ],
-      "declaration": "func sendMessage(_ content: String, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil) async throws -> String"
     },
     {
       "precise": "s:20PKOpenRouterProvider04OpenB6ClientC20fetchAvailableModelsSaySSGSgyYaKF",
@@ -30118,27 +29614,6 @@
     {
       "module": "PKContracts",
       "kind": "conformsTo",
-      "source": "s:11PKContracts18EndpointComponentsV",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts18EndpointComponentsV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts18EndpointComponentsV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
       "source": "s:11PKContracts18LLMProviderFactoryP",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
@@ -30546,55 +30021,6 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts19TurnContextSnapshotV13PromptMessageV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19WorkspaceTrustLevelO",
-      "target": "s:SE",
-      "targetFallback": "Swift.Encodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19WorkspaceTrustLevelO",
-      "target": "s:SH",
-      "targetFallback": "Swift.Hashable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19WorkspaceTrustLevelO",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19WorkspaceTrustLevelO",
-      "target": "s:SY",
-      "targetFallback": "Swift.RawRepresentable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19WorkspaceTrustLevelO",
-      "target": "s:Se",
-      "targetFallback": "Swift.Decodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19WorkspaceTrustLevelO",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19WorkspaceTrustLevelO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -34320,13 +33746,6 @@
       "module": "PKTestSupport",
       "kind": "conformsTo",
       "source": "s:13PKTestSupport14MockLLMServiceC",
-      "target": "s:13PositronicKit14LLMConfigStoreP",
-      "targetFallback": "PositronicKit.LLMConfigStore"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport14MockLLMServiceC",
       "target": "s:13PositronicKit15HealthCheckableP",
       "targetFallback": "PositronicKit.HealthCheckable"
     },
@@ -34578,27 +33997,6 @@
     {
       "module": "PKTestSupport",
       "kind": "conformsTo",
-      "source": "s:13PKTestSupport22MockAgentTemplateStoreC",
-      "target": "s:13PositronicKit26AgentTemplateStoreProtocolP",
-      "targetFallback": "PositronicKit.AgentTemplateStoreProtocol"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport22MockAgentTemplateStoreC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport22MockAgentTemplateStoreC",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
       "source": "s:13PKTestSupport22MockPersistenceServiceC",
       "target": "s:13PositronicKit14WorkspaceStoreP",
       "targetFallback": "PositronicKit.WorkspaceStore"
@@ -34637,13 +34035,6 @@
       "source": "s:13PKTestSupport22MockPersistenceServiceC",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP",
       "targetFallback": "PositronicKit.TimelineRuntimeRepository"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC",
-      "target": "s:13PositronicKit26AgentTemplateStoreProtocolP",
-      "targetFallback": "PositronicKit.AgentTemplateStoreProtocol"
     },
     {
       "module": "PKTestSupport",
@@ -35036,12 +34427,6 @@
       "source": "s:13PositronicKit10AgentErrorO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit10LLMServiceC",
-      "target": "s:13PositronicKit14LLMConfigStoreP"
     },
     {
       "module": "PositronicKit",
@@ -35591,20 +34976,6 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit13TurnLifecycleO",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit14LLMConfigStoreP",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit14LLMConfigStoreP",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -37911,20 +37282,6 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
-      "source": "s:13PositronicKit26AgentTemplateStoreProtocolP",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit26AgentTemplateStoreProtocolP",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
       "source": "s:13PositronicKit26IdentityAgentContextSourceV",
       "target": "s:13PositronicKit18AgentContextSourceP"
     },
@@ -37939,33 +37296,6 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit26IdentityAgentContextSourceV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit26InMemoryAgentTemplateStoreC",
-      "target": "s:13PositronicKit26AgentTemplateStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit26InMemoryAgentTemplateStoreC",
-      "target": "s:ScA",
-      "targetFallback": "_Concurrency.Actor"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit26InMemoryAgentTemplateStoreC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit26InMemoryAgentTemplateStoreC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -39246,16 +38576,6 @@
       "sourceOrigin": {
         "identifier": "s:11PKContracts17LLMClientProtocolP10chatStream8messages5tools10toolChoice14responseFormat20generationParametersScsyAA14LLMStreamChunkVs5Error_pGSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0rI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgtYaF",
         "displayName": "LLMClientProtocol.chatStream(messages:tools:toolChoice:responseFormat:generationParameters:)"
-      }
-    },
-    {
-      "module": "PKAnthropicProvider",
-      "kind": "memberOf",
-      "source": "s:19PKAnthropicProvider15AnthropicClientC11sendMessage_14responseFormat20generationParametersS2S_11PKContracts011LLMResponseH0OSgAG010GenerationJ0VSgtYaKF",
-      "target": "s:19PKAnthropicProvider15AnthropicClientC",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts17LLMClientProtocolP11sendMessage_14responseFormat20generationParametersS2S_AA011LLMResponseG0OSgAA010GenerationI0VSgtYaKF",
-        "displayName": "LLMClientProtocol.sendMessage(_:responseFormat:generationParameters:)"
       }
     },
     {
@@ -41883,30 +41203,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts18EndpointComponentsV4host4port6schemeACSS_SiSStcfc",
-      "target": "s:11PKContracts18EndpointComponentsV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts18EndpointComponentsV4hostSSvp",
-      "target": "s:11PKContracts18EndpointComponentsV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts18EndpointComponentsV4portSivp",
-      "target": "s:11PKContracts18EndpointComponentsV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts18EndpointComponentsV6schemeSSvp",
-      "target": "s:11PKContracts18EndpointComponentsV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts18LogRedactionPolicyV12logsPayloadsACSb_tcfc",
       "target": "s:11PKContracts18LogRedactionPolicyV"
     },
@@ -42097,12 +41393,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts18WorkspaceReferenceV10trustLevelAA0b5TrustE0Ovp",
-      "target": "s:11PKContracts18WorkspaceReferenceV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts18WorkspaceReferenceV11makePrimary11forTimeline8rootPathAC10Foundation4UUIDV_SStFZ",
       "target": "s:11PKContracts18WorkspaceReferenceV"
     },
@@ -42131,7 +41421,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts18WorkspaceReferenceV2id3uri8location8originID5tools8rootPath10trustLevel14lastModifiedBy6status16contextInjection9createdAtAC10Foundation4UUIDV_AA0B3URIVAC0B8LocationOAQSgSayAA04ToolC0OGSSSgAA0b5TrustM0OAvC0B6StatusOAzO4DateVtcfc",
+      "source": "s:11PKContracts18WorkspaceReferenceV2id3uri8location8originID5tools8rootPath14lastModifiedBy6status16contextInjection9createdAtAC10Foundation4UUIDV_AA0B3URIVAC0B8LocationOAPSgSayAA04ToolC0OGSSSgAuC0B6StatusOAyN4DateVtcfc",
       "target": "s:11PKContracts18WorkspaceReferenceV"
     },
     {
@@ -42385,34 +41675,6 @@
         "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
         "displayName": "Decodable.init(from:)"
       }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19WorkspaceTrustLevelO10restrictedyA2CmF",
-      "target": "s:11PKContracts19WorkspaceTrustLevelO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19WorkspaceTrustLevelO4fullyA2CmF",
-      "target": "s:11PKContracts19WorkspaceTrustLevelO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19WorkspaceTrustLevelO8rawValueACSgSS_tcfc",
-      "target": "s:11PKContracts19WorkspaceTrustLevelO",
-      "sourceOrigin": {
-        "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc",
-        "displayName": "RawRepresentable.init(rawValue:)"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19WorkspaceTrustLevelO8readOnlyyA2CmF",
-      "target": "s:11PKContracts19WorkspaceTrustLevelO"
     },
     {
       "module": "PKContracts",
@@ -45240,16 +44502,6 @@
     {
       "module": "PKOllamaProvider",
       "kind": "memberOf",
-      "source": "s:16PKOllamaProvider12OllamaClientC11sendMessage_14responseFormat20generationParametersS2S_11PKContracts011LLMResponseH0OSgAG010GenerationJ0VSgtYaKF",
-      "target": "s:16PKOllamaProvider12OllamaClientC",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts17LLMClientProtocolP11sendMessage_14responseFormat20generationParametersS2S_AA011LLMResponseG0OSgAA010GenerationI0VSgtYaKF",
-        "displayName": "LLMClientProtocol.sendMessage(_:responseFormat:generationParameters:)"
-      }
-    },
-    {
-      "module": "PKOllamaProvider",
-      "kind": "memberOf",
       "source": "s:16PKOllamaProvider12OllamaClientC20fetchAvailableModelsSaySSGSgyYaKF",
       "target": "s:16PKOllamaProvider12OllamaClientC",
       "sourceOrigin": {
@@ -45416,16 +44668,6 @@
       "kind": "memberOf",
       "source": "s:20PKOpenRouterProvider04OpenB6ClientC11AttributionV16applicationTitleSSSgvp",
       "target": "s:20PKOpenRouterProvider04OpenB6ClientC11AttributionV"
-    },
-    {
-      "module": "PKOpenRouterProvider",
-      "kind": "memberOf",
-      "source": "s:20PKOpenRouterProvider04OpenB6ClientC11sendMessage_14responseFormat20generationParametersS2S_11PKContracts011LLMResponseI0OSgAG010GenerationK0VSgtYaKF",
-      "target": "s:20PKOpenRouterProvider04OpenB6ClientC",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts17LLMClientProtocolP11sendMessage_14responseFormat20generationParametersS2S_AA011LLMResponseG0OSgAA010GenerationI0VSgtYaKF",
-        "displayName": "LLMClientProtocol.sendMessage(_:responseFormat:generationParameters:)"
-      }
     },
     {
       "module": "PKOpenRouterProvider",
@@ -47871,11 +47113,7 @@
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC17loadConfigurationyyYaF",
-      "target": "s:13PKTestSupport14MockLLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP17loadConfigurationyyYaF",
-        "displayName": "LLMConfigStore.loadConfiguration()"
-      }
+      "target": "s:13PKTestSupport14MockLLMServiceC"
     },
     {
       "module": "PKTestSupport",
@@ -47887,51 +47125,31 @@
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC17restoreFromBackupyyYaKF",
-      "target": "s:13PKTestSupport14MockLLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP17restoreFromBackupyyYaKF",
-        "displayName": "LLMConfigStore.restoreFromBackup()"
-      }
+      "target": "s:13PKTestSupport14MockLLMServiceC"
     },
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC18clearConfigurationyyYaF",
-      "target": "s:13PKTestSupport14MockLLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP18clearConfigurationyyYaF",
-        "displayName": "LLMConfigStore.clearConfiguration()"
-      }
+      "target": "s:13PKTestSupport14MockLLMServiceC"
     },
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC19exportConfiguration10Foundation4DataVyYaKF",
-      "target": "s:13PKTestSupport14MockLLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP19exportConfiguration10Foundation4DataVyYaKF",
-        "displayName": "LLMConfigStore.exportConfiguration()"
-      }
+      "target": "s:13PKTestSupport14MockLLMServiceC"
     },
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC19importConfiguration4fromy10Foundation4DataV_tYaKF",
-      "target": "s:13PKTestSupport14MockLLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP19importConfiguration4fromy10Foundation4DataV_tYaKF",
-        "displayName": "LLMConfigStore.importConfiguration(from:)"
-      }
+      "target": "s:13PKTestSupport14MockLLMServiceC"
     },
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC19updateConfigurationyy11PKContracts16LLMConfigurationVYaKF",
-      "target": "s:13PKTestSupport14MockLLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP19updateConfigurationyy11PKContracts16LLMConfigurationVYaKF",
-        "displayName": "LLMConfigStore.updateConfiguration(_:)"
-      }
+      "target": "s:13PKTestSupport14MockLLMServiceC"
     },
     {
       "module": "PKTestSupport",
@@ -48486,68 +47704,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockAgentTemplateStoreC03hasdE02idSbSS_tYaF",
-      "target": "s:13PKTestSupport22MockAgentTemplateStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP03hascD02idSbSS_tYaF",
-        "displayName": "AgentTemplateStoreProtocol.hasAgentTemplate(id:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockAgentTemplateStoreC04savedE0yy11PKContracts0dE0VYaKF",
-      "target": "s:13PKTestSupport22MockAgentTemplateStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP04savecD0yy11PKContracts0cD0VYaKF",
-        "displayName": "AgentTemplateStoreProtocol.saveAgentTemplate(_:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockAgentTemplateStoreC05fetchdE02id11PKContracts0dE0VSg10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport22MockAgentTemplateStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP05fetchcD02id11PKContracts0cD0VSg10Foundation4UUIDV_tYaKF",
-        "displayName": "AgentTemplateStoreProtocol.fetchAgentTemplate(id:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockAgentTemplateStoreC05fetchdE03key11PKContracts0dE0VSgSS_tYaKF",
-      "target": "s:13PKTestSupport22MockAgentTemplateStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP05fetchcD03key11PKContracts0cD0VSgSS_tYaKF",
-        "displayName": "AgentTemplateStoreProtocol.fetchAgentTemplate(key:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockAgentTemplateStoreC08fetchAllD9TemplatesSay11PKContracts0dE0VGyYaKF",
-      "target": "s:13PKTestSupport22MockAgentTemplateStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP08fetchAllC9TemplatesSay11PKContracts0cD0VGyYaKF",
-        "displayName": "AgentTemplateStoreProtocol.fetchAllAgentTemplates()"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockAgentTemplateStoreC14agentTemplatesSay11PKContracts0dE0VGvp",
-      "target": "s:13PKTestSupport22MockAgentTemplateStoreC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockAgentTemplateStoreCACycfc",
-      "target": "s:13PKTestSupport22MockAgentTemplateStoreC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC010saveOriginC0y11PKContracts07RequestG8IdentityVYaYbKYCcSgvp",
       "target": "s:13PKTestSupport22MockPersistenceServiceC"
     },
@@ -48780,12 +47936,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC14agentTemplatesSay11PKContracts13AgentTemplateVGvp",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -48926,16 +48076,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC16hasAgentTemplate2idSbSS_tYaF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP03hascD02idSbSS_tYaF",
-        "displayName": "AgentTemplateStoreProtocol.hasAgentTemplate(id:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC16mockHealthStatus11PKContracts0gH0Ovp",
       "target": "s:13PKTestSupport22MockPersistenceServiceC"
     },
@@ -49024,38 +48164,8 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC17saveAgentTemplateyy11PKContracts0gH0VYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP04savecD0yy11PKContracts0cD0VYaKF",
-        "displayName": "AgentTemplateStoreProtocol.saveAgentTemplate(_:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC18addToolToWorkspace11workspaceID4tooly10Foundation4UUIDV_11PKContracts0G9ReferenceOtYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC18fetchAgentTemplate2id11PKContracts0gH0VSg10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP05fetchcD02id11PKContracts0cD0VSg10Foundation4UUIDV_tYaKF",
-        "displayName": "AgentTemplateStoreProtocol.fetchAgentTemplate(id:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC18fetchAgentTemplate3key11PKContracts0gH0VSgSS_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP05fetchcD03key11PKContracts0cD0VSgSS_tYaKF",
-        "displayName": "AgentTemplateStoreProtocol.fetchAgentTemplate(key:)"
-      }
     },
     {
       "module": "PKTestSupport",
@@ -49087,16 +48197,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP21recordProviderRequest6turnID15modelRoundIndex11correlation3nowy10Foundation4UUIDV_SiAA15TurnCorrelationVSgAI4DateVtYaKF",
         "displayName": "TimelineRuntimeRepository.recordProviderRequest(turnID:modelRoundIndex:correlation:now:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC22fetchAllAgentTemplatesSay11PKContracts0H8TemplateVGyYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP08fetchAllC9TemplatesSay11PKContracts0cD0VGyYaKF",
-        "displayName": "AgentTemplateStoreProtocol.fetchAllAgentTemplates()"
       }
     },
     {
@@ -49995,61 +49095,37 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10LLMServiceC17loadConfigurationyyYaF",
-      "target": "s:13PositronicKit10LLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP17loadConfigurationyyYaF",
-        "displayName": "LLMConfigStore.loadConfiguration()"
-      }
+      "target": "s:13PositronicKit10LLMServiceC"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10LLMServiceC17restoreFromBackupyyYaKF",
-      "target": "s:13PositronicKit10LLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP17restoreFromBackupyyYaKF",
-        "displayName": "LLMConfigStore.restoreFromBackup()"
-      }
+      "target": "s:13PositronicKit10LLMServiceC"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10LLMServiceC18clearConfigurationyyYaF",
-      "target": "s:13PositronicKit10LLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP18clearConfigurationyyYaF",
-        "displayName": "LLMConfigStore.clearConfiguration()"
-      }
+      "target": "s:13PositronicKit10LLMServiceC"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10LLMServiceC19exportConfiguration10Foundation4DataVyYaKF",
-      "target": "s:13PositronicKit10LLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP19exportConfiguration10Foundation4DataVyYaKF",
-        "displayName": "LLMConfigStore.exportConfiguration()"
-      }
+      "target": "s:13PositronicKit10LLMServiceC"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10LLMServiceC19importConfiguration4fromy10Foundation4DataV_tYaKF",
-      "target": "s:13PositronicKit10LLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP19importConfiguration4fromy10Foundation4DataV_tYaKF",
-        "displayName": "LLMConfigStore.importConfiguration(from:)"
-      }
+      "target": "s:13PositronicKit10LLMServiceC"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10LLMServiceC19updateConfigurationyy11PKContracts16LLMConfigurationVYaKF",
-      "target": "s:13PositronicKit10LLMServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit14LLMConfigStoreP19updateConfigurationyy11PKContracts16LLMConfigurationVYaKF",
-        "displayName": "LLMConfigStore.updateConfiguration(_:)"
-      }
+      "target": "s:13PositronicKit10LLMServiceC"
     },
     {
       "module": "PositronicKit",
@@ -53411,7 +52487,7 @@
       "source": "s:13PositronicKit22UnconfiguredLLMServiceV27generationStreamWithContextyAA15LLMStreamResultVAA20LLMGenerationRequestVYaKF",
       "target": "s:13PositronicKit22UnconfiguredLLMServiceV",
       "sourceOrigin": {
-        "identifier": "s:13PositronicKit15LLMStreamClientPAAE27generationStreamWithContextyAA0C6ResultVAA20LLMGenerationRequestVYaKF",
+        "identifier": "s:13PositronicKit15LLMStreamClientP27generationStreamWithContextyAA0C6ResultVAA20LLMGenerationRequestVYaKF",
         "displayName": "LLMStreamClient.generationStreamWithContext(_:)"
       }
     },
@@ -53533,21 +52609,13 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit24DefaultWorkspaceResolverC05closeD02idy10Foundation4UUIDV_tYaF",
-      "target": "s:13PositronicKit24DefaultWorkspaceResolverC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit17WorkspaceResolverP05closeC02idy10Foundation4UUIDV_tYaF",
-        "displayName": "WorkspaceResolver.closeWorkspace(id:)"
-      }
+      "target": "s:13PositronicKit24DefaultWorkspaceResolverC"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit24DefaultWorkspaceResolverC06activeD5CountSivp",
-      "target": "s:13PositronicKit24DefaultWorkspaceResolverC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit17WorkspaceResolverP06activeC5CountSivp",
-        "displayName": "WorkspaceResolver.activeWorkspaceCount"
-      }
+      "target": "s:13PositronicKit24DefaultWorkspaceResolverC"
     },
     {
       "module": "PositronicKit",
@@ -53559,11 +52627,7 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit24DefaultWorkspaceResolverC14healthCheckAllSDy10Foundation4UUIDVSbGyYaF",
-      "target": "s:13PositronicKit24DefaultWorkspaceResolverC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit17WorkspaceResolverP14healthCheckAllSDy10Foundation4UUIDVSbGyYaF",
-        "displayName": "WorkspaceResolver.healthCheckAll()"
-      }
+      "target": "s:13PositronicKit24DefaultWorkspaceResolverC"
     },
     {
       "module": "PositronicKit",
@@ -53752,62 +52816,6 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit26IdentityAgentContextSourceVACycfc",
       "target": "s:13PositronicKit26IdentityAgentContextSourceV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit26InMemoryAgentTemplateStoreC03haseF02idSbSS_tYaF",
-      "target": "s:13PositronicKit26InMemoryAgentTemplateStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP03hascD02idSbSS_tYaF",
-        "displayName": "AgentTemplateStoreProtocol.hasAgentTemplate(id:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit26InMemoryAgentTemplateStoreC04saveeF0yy11PKContracts0eF0VYaKF",
-      "target": "s:13PositronicKit26InMemoryAgentTemplateStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP04savecD0yy11PKContracts0cD0VYaKF",
-        "displayName": "AgentTemplateStoreProtocol.saveAgentTemplate(_:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit26InMemoryAgentTemplateStoreC05fetcheF02id11PKContracts0eF0VSg10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit26InMemoryAgentTemplateStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP05fetchcD02id11PKContracts0cD0VSg10Foundation4UUIDV_tYaKF",
-        "displayName": "AgentTemplateStoreProtocol.fetchAgentTemplate(id:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit26InMemoryAgentTemplateStoreC05fetcheF03key11PKContracts0eF0VSgSS_tYaKF",
-      "target": "s:13PositronicKit26InMemoryAgentTemplateStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP05fetchcD03key11PKContracts0cD0VSgSS_tYaKF",
-        "displayName": "AgentTemplateStoreProtocol.fetchAgentTemplate(key:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit26InMemoryAgentTemplateStoreC08fetchAllE9TemplatesSay11PKContracts0eF0VGyYaKF",
-      "target": "s:13PositronicKit26InMemoryAgentTemplateStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit26AgentTemplateStoreProtocolP08fetchAllC9TemplatesSay11PKContracts0cD0VGyYaKF",
-        "displayName": "AgentTemplateStoreProtocol.fetchAllAgentTemplates()"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit26InMemoryAgentTemplateStoreCACycfc",
-      "target": "s:13PositronicKit26InMemoryAgentTemplateStoreC"
     },
     {
       "module": "PositronicKit",
@@ -55614,42 +54622,6 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit14LLMConfigStoreP17loadConfigurationyyYaF",
-      "target": "s:13PositronicKit14LLMConfigStoreP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit14LLMConfigStoreP17restoreFromBackupyyYaKF",
-      "target": "s:13PositronicKit14LLMConfigStoreP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit14LLMConfigStoreP18clearConfigurationyyYaF",
-      "target": "s:13PositronicKit14LLMConfigStoreP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit14LLMConfigStoreP19exportConfiguration10Foundation4DataVyYaKF",
-      "target": "s:13PositronicKit14LLMConfigStoreP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit14LLMConfigStoreP19importConfiguration4fromy10Foundation4DataV_tYaKF",
-      "target": "s:13PositronicKit14LLMConfigStoreP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit14LLMConfigStoreP19updateConfigurationyy11PKContracts16LLMConfigurationVYaKF",
-      "target": "s:13PositronicKit14LLMConfigStoreP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
       "source": "s:13PositronicKit14WorkspaceStoreP04saveC0yy11PKContracts0C9ReferenceVYaKF",
       "target": "s:13PositronicKit14WorkspaceStoreP"
     },
@@ -55717,11 +54689,7 @@
       "module": "PositronicKit",
       "kind": "requirementOf",
       "source": "s:13PositronicKit15LLMStreamClientP27generationStreamWithContextyAA0C6ResultVAA20LLMGenerationRequestVYaKF",
-      "target": "s:13PositronicKit15LLMStreamClientP",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit15LLMStreamClientPAAE27generationStreamWithContextyAA0C6ResultVAA20LLMGenerationRequestVYaKF",
-        "displayName": "LLMStreamClient.generationStreamWithContext(_:)"
-      }
+      "target": "s:13PositronicKit15LLMStreamClientP"
     },
     {
       "module": "PositronicKit",
@@ -55806,24 +54774,6 @@
       "kind": "requirementOf",
       "source": "s:13PositronicKit17WorkspaceProviderP9reference11PKContracts0C9ReferenceVvp",
       "target": "s:13PositronicKit17WorkspaceProviderP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit17WorkspaceResolverP05closeC02idy10Foundation4UUIDV_tYaF",
-      "target": "s:13PositronicKit17WorkspaceResolverP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit17WorkspaceResolverP06activeC5CountSivp",
-      "target": "s:13PositronicKit17WorkspaceResolverP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit17WorkspaceResolverP14healthCheckAllSDy10Foundation4UUIDVSbGyYaF",
-      "target": "s:13PositronicKit17WorkspaceResolverP"
     },
     {
       "module": "PositronicKit",
@@ -56028,36 +54978,6 @@
       "kind": "requirementOf",
       "source": "s:13PositronicKit25TimelineRuntimeRepositoryP9fetchTurn2idAA0G6RecordVSg10Foundation4UUIDV_tYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit26AgentTemplateStoreProtocolP03hascD02idSbSS_tYaF",
-      "target": "s:13PositronicKit26AgentTemplateStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit26AgentTemplateStoreProtocolP04savecD0yy11PKContracts0cD0VYaKF",
-      "target": "s:13PositronicKit26AgentTemplateStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit26AgentTemplateStoreProtocolP05fetchcD02id11PKContracts0cD0VSg10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit26AgentTemplateStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit26AgentTemplateStoreProtocolP05fetchcD03key11PKContracts0cD0VSgSS_tYaKF",
-      "target": "s:13PositronicKit26AgentTemplateStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit26AgentTemplateStoreProtocolP08fetchAllC9TemplatesSay11PKContracts0cD0VGyYaKF",
-      "target": "s:13PositronicKit26AgentTemplateStoreProtocolP"
     },
     {
       "module": "PositronicKit",

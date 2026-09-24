@@ -59,8 +59,7 @@ extension TimelineManager {
         let workspace = WorkspaceReference(
             uri: .timelineWorkspace(timelineID),
             location: .runtime,
-            rootPath: timelineWorkspaceURL.path,
-            trustLevel: .full
+            rootPath: timelineWorkspaceURL.path
         )
 
         var timeline = TimelineRecord(

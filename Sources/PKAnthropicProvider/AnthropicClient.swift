@@ -267,25 +267,6 @@ public actor AnthropicClient: LLMClientProtocol {
 
     // MARK: - Convenience
 
-    /// Sends a single user message and returns the full accumulated text response.
-    ///
-    /// Buffers the entire streamed response before returning; use ``chatStream(messages:tools:toolChoice:responseFormat:generationParameters:)``
-    /// directly for incremental output.
-    public func sendMessage(
-        _ content: String,
-        responseFormat: LLMResponseFormat? = nil,
-        generationParameters: GenerationParameters? = nil
-    ) async throws -> String {
-        let stream = await self.chatStream(
-            messages: [LLMMessage(role: .user, content: content)],
-            tools: nil,
-            toolChoice: nil,
-            responseFormat: responseFormat,
-            generationParameters: generationParameters
-        )
-        return try await accumulateStreamContent(from: stream)
-    }
-
     /// Fetches the model IDs available from the Anthropic models API, sorted alphabetically.
     ///
     /// Retries transient transport failures up to `maxRetries` times.

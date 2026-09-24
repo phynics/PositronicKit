@@ -32,7 +32,6 @@ import PositronicKit
                 originID: originID,
                 tools: tools,
                 rootPath: rootPath,
-                trustLevel: .full,
                 status: status
             )
         }

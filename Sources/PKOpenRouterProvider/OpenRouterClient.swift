@@ -428,26 +428,6 @@ public actor OpenRouterClient: LLMClientProtocol {
         )
     }
 
-    /// Sends a single user message and returns the full accumulated text response.
-    ///
-    /// Buffers the entire streamed response before returning; use one of the `chatStream`
-    /// overloads directly for incremental output.
-    public func sendMessage(
-        _ content: String,
-        responseFormat: LLMResponseFormat? = nil,
-        generationParameters: GenerationParameters? = nil
-    ) async throws -> String {
-        // `chatStream` owns transient-error retries; retrying here too would multiply attempts.
-        let stream = await chatStream(
-            messages: [LLMMessage(role: .user, content: content)],
-            tools: nil,
-            toolChoice: nil,
-            responseFormat: responseFormat,
-            generationParameters: generationParameters
-        )
-        return try await accumulateStreamContent(from: stream)
-    }
-
     /// Fetches the model IDs available from the OpenRouter models API.
     ///
     /// Retries transient transport failures up to `maxRetries` times.

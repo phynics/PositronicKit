@@ -143,7 +143,6 @@ public enum WorkspaceStoreConformanceSuite {
         try #require(actual.originID == expected.originID, "\(scenario).origin")
         try #require(actual.tools == expected.tools, "\(scenario).tools")
         try #require(actual.rootPath == expected.rootPath, "\(scenario).root-path")
-        try #require(actual.trustLevel == expected.trustLevel, "\(scenario).trust")
         try #require(actual.lastModifiedBy == expected.lastModifiedBy, "\(scenario).last-modified-by")
         try #require(actual.status == expected.status, "\(scenario).status")
         try #require(actual.contextInjection == expected.contextInjection, "\(scenario).context")

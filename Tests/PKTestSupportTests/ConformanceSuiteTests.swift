@@ -151,7 +151,6 @@ struct ConformanceSuiteTests {
             originID: UUID(),
             tools: [.known("echo")],
             rootPath: "/tmp/conformance",
-            trustLevel: .restricted,
             lastModifiedBy: UUID(),
             status: .active,
             contextInjection: "context",

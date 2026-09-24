@@ -10,6 +10,23 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Unenforced `WorkspaceReference.trustLevel` removed:** nothing read `WorkspaceTrustLevel`, so
+  `.restricted` and `.readOnly` promised restrictions that were never applied. Drop the
+  `trustLevel:` argument. Stored workspaces that carry the key still decode; it is no longer
+  encoded.
+
+- **Unwired store and seam protocols removed:** `AgentTemplateStoreProtocol` and
+  `InMemoryAgentTemplateStore` were never connected to the runtime (`createAgent(from:)` takes an
+  `AgentTemplate` value), and `LLMConfigStore` had one conformer and no use as a type;
+  `LLMService` keeps its configuration methods. PKTestSupport drops `MockAgentTemplateStore` and
+  the matching `MockPersistenceService` conformance.
+
+- **`WorkspaceResolver` requires only `workspace(id:)`:** the runtime never called
+  `activeWorkspaceCount`, `closeWorkspace(id:)`, or `healthCheckAll()`, so custom resolvers no
+  longer implement them. `DefaultWorkspaceResolver` keeps them as its own API.
+
+- **Unused `EndpointComponents` removed.**
+
 - **`ToolPersistenceProtocol` removed:** hosts had to supply a tool store in
   `PKRuntime.PersistenceConfiguration`, but the runtime never wrote to it and read it only through
   internal test-only paths; Workspace tools come from `WorkspaceReference.tools`. Removed with it:
@@ -29,6 +46,11 @@ for tagged releases beginning with `1.0.0`.
   `AnyCodable.toAny()` (use `value`), and
   `TurnEvent.sidecarsCompleted(results:)`, which fabricated a random Turn identity. Build a
   `SidecarCompletion` with the real identity and use `TurnEvent.sidecarsCompleted(_:)`.
+
+- **Redundant provider `sendMessage` overrides removed:** `OpenRouterClient`, `OllamaClient`, and
+  `AnthropicClient` declared a `sendMessage(_:responseFormat:generationParameters:)` identical to
+  the `LLMClientProtocol` default. Calls resolve to the default with the same behavior; only the
+  concrete-type symbols are gone.
 
 - **Tool-loop result types collapse:** `ToolExecutionOutcome` is no longer public, and the internal
   `ToolHandlingResult`/`ToolTurnResult` pair is now a single internal `ToolTurnResult`. No

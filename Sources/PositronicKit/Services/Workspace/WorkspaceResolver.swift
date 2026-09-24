@@ -2,17 +2,11 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Protocol for managing the lifecycle of active workspace providers.
+/// Resolves a Workspace ID to its active provider for the runtime.
+///
+/// This is the only operation the runtime needs. Cache lifecycle (eviction, health checks) belongs
+/// to the concrete resolver; ``DefaultWorkspaceResolver`` exposes its own.
 public protocol WorkspaceResolver: Sendable {
-    /// Returns the number of currently active/cached workspaces.
-    var activeWorkspaceCount: Int { get async }
-
     /// Retrieves an active workspace provider by its ID, creating and caching it if necessary.
     func workspace(id: UUID) async throws -> any WorkspaceProvider?
-
-    /// Closes and removes a workspace from the active cache.
-    func closeWorkspace(id: UUID) async
-
-    /// Performs a health check on all active workspaces, evicting any that are unhealthy.
-    func healthCheckAll() async -> [UUID: Bool]
 }

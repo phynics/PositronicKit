@@ -209,8 +209,7 @@ struct WorkspaceReferenceHelperTests {
         let original = WorkspaceReference(
             uri: .timelineWorkspace(UUID()),
             location: .runtime,
-            rootPath: "/tmp",
-            trustLevel: .full
+            rootPath: "/tmp"
         )
         let tools: [ToolReference] = [.known("read_file"), .known("list_dir")]
         let copy = original.withTools(tools)
@@ -223,7 +222,7 @@ struct WorkspaceReferenceHelperTests {
         #expect(copy.tools.map(\.toolID) == ["read_file", "list_dir"])
     }
 
-    @Test("primaryForTimeline creates a runtime workspace with full trust")
+    @Test("primaryForTimeline creates a runtime workspace")
     func primaryForTimeline() {
         let timelineID = UUID()
         let ws = WorkspaceReference.makePrimary(forTimeline: timelineID, rootPath: "/projects/x")
@@ -231,7 +230,23 @@ struct WorkspaceReferenceHelperTests {
         #expect(ws.uri == .timelineWorkspace(timelineID))
         #expect(ws.location == .runtime)
         #expect(ws.rootPath == "/projects/x")
-        #expect(ws.trustLevel == .full)
+    }
+
+    @Test("A stored workspace that still carries the removed trustLevel key decodes (#234)")
+    func legacyTrustLevelKeyDecodes() throws {
+        let original = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime, rootPath: "/tmp")
+        var object = try #require(
+            try JSONSerialization.jsonObject(with: JSONEncoder().encode(original)) as? [String: Any]
+        )
+        #expect(object["trustLevel"] == nil)
+        object["trustLevel"] = "readOnly"
+
+        let decoded = try JSONDecoder().decode(
+            WorkspaceReference.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+        #expect(decoded.id == original.id)
+        #expect(decoded.rootPath == "/tmp")
     }
 
     @Test("WorkspaceLocation decodes all known cases")
