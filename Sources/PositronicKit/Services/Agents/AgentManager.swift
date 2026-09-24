@@ -193,14 +193,7 @@ actor AgentManager {
             guard let agent = try await agentStore.fetchAgent(id: agentID) else {
                 throw AgentError.agentNotFound(agentID)
             }
-            switch agent.lifecycle {
-            case .active:
-                break
-            case .retiring:
-                throw AgentError.agentRetiring(agentID)
-            case .retired:
-                throw AgentError.agentRetired(agentID)
-            }
+            try agent.requireActive()
 
             let timeline = try await timelineManager.createTimeline(
                 title: title,
@@ -230,14 +223,7 @@ actor AgentManager {
         guard let agent = try await agentStore.fetchAgent(id: agentID) else {
             throw AgentError.agentNotFound(agentID)
         }
-        switch agent.lifecycle {
-        case .active:
-            break
-        case .retiring:
-            throw AgentError.agentRetiring(agentID)
-        case .retired:
-            throw AgentError.agentRetired(agentID)
-        }
+        try agent.requireActive()
 
         let result: (timeline: TimelineRecord, didAttach: Bool) = try await timelineAuthorityCoordinator.withTimeline(timelineID) { [self] in
             try await self.requireExecutionContextMutable(for: timelineID)
@@ -368,14 +354,7 @@ actor AgentManager {
             guard let current = try await agentStore.fetchAgent(id: agent.id) else {
                 throw AgentError.agentNotFound(agent.id)
             }
-            switch current.lifecycle {
-            case .active:
-                break
-            case .retiring:
-                throw AgentError.agentRetiring(agent.id)
-            case .retired:
-                throw AgentError.agentRetired(agent.id)
-            }
+            try current.requireActive()
             var updated = current
             updated.name = agent.name
             updated.description = agent.description

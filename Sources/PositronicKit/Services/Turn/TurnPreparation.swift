@@ -78,10 +78,10 @@ struct TurnPreparation: Sendable {
         do {
             instance = try await dependencies.agentStore.fetchAgent(id: agentId)
         } catch {
-            let diagnostic = diagnostic(
-                for: .agent,
+            let diagnostic = TurnDiagnostic(
+                dependency: .agent,
                 operation: "fetchAgent",
-                entityId: agentId.uuidString,
+                entityID: agentId.uuidString,
                 error: error
             )
             try enforceRequired([diagnostic])
@@ -95,22 +95,15 @@ struct TurnPreparation: Sendable {
             }
             return AgentPreflight(
                 instance: nil,
-                diagnostics: [diagnostic(
-                    for: .agent,
+                diagnostics: [TurnDiagnostic(
+                    dependency: .agent,
                     operation: "fetchAgent",
-                    entityId: agentId.uuidString,
+                    entityID: agentId.uuidString,
                     error: error
                 )]
             )
         }
-        switch instance.lifecycle {
-        case .active:
-            break
-        case .retiring:
-            throw AgentError.agentRetiring(agentId)
-        case .retired:
-            throw AgentError.agentRetired(agentId)
-        }
+        try instance.requireActive()
         let timeline: TimelineRecord?
         do {
             timeline = try await dependencies.timelineManager.timelineStore.fetchTimeline(id: timelineID)
@@ -266,10 +259,10 @@ struct TurnPreparation: Sendable {
                     try validateTurnContextContributions(contributions)
                     resolvedContributions = contributions
                 } catch {
-                    let diagnostic = diagnostic(
-                        for: .context,
+                    let diagnostic = TurnDiagnostic(
+                        dependency: .context,
                         operation: "turnContextContributions",
-                        entityId: turnID.uuidString,
+                        entityID: turnID.uuidString,
                         error: error
                     )
                     let sourceRequiresContext = turnContextSource.failureRequirement == .required
@@ -375,7 +368,7 @@ struct TurnPreparation: Sendable {
                 do {
                     requestOriginName = try await dependencies.requestOriginStore.fetchOrigin(id: originId)?.displayName
                 } catch {
-                    turnDiagnostics.append(diagnostic(for: .origin, operation: "fetchOrigin", entityId: originId.uuidString, error: error))
+                    turnDiagnostics.append(TurnDiagnostic(dependency: .origin, operation: "fetchOrigin", entityID: originId.uuidString, error: error))
                 }
             }
 
@@ -731,14 +724,8 @@ struct TurnPreparation: Sendable {
             guard let agent = try await dependencies.agentStore.fetchAgent(id: agentID) else {
                 throw AgentError.agentNotFound(agentID)
             }
-            switch agent.lifecycle {
-            case .active:
-                return ExecutionAuthority(timeline: timeline, agent: agent)
-            case .retiring:
-                throw AgentError.agentRetiring(agentID)
-            case .retired:
-                throw AgentError.agentRetired(agentID)
-            }
+            try agent.requireActive()
+            return ExecutionAuthority(timeline: timeline, agent: agent)
         case .direct:
             guard timeline.attachedAgentID == nil else {
                 throw TurnError.directExecutionRequiresDetachedTimeline(timelineID)
@@ -880,16 +867,6 @@ private extension TurnPreparation {
         return try await dependencies.timelineAuthorityCoordinator.withTimeline(
             timelineID,
             operation: operation
-        )
-    }
-
-    private func diagnostic(for dependency: TurnDependency, operation: String, entityId: String, error: Error) -> TurnDiagnostic {
-        TurnDiagnostic(
-            dependency: dependency,
-            operation: operation,
-            entityID: entityId,
-            errorIdentity: TurnEvent.ErrorIdentity.extracting(from: error),
-            message: ErrorKit.userFriendlyMessage(for: error)
         )
     }
 

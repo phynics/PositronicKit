@@ -134,24 +134,9 @@ actor ToolRouter {
         let toolCallsParam = sortedCalls.map { _, value in
             LLMToolCall(id: value.callId, name: value.name, arguments: value.args)
         }
-        let fullResponse = await outputs.fullResponse
-        let audioData = await outputs.audioData
-        let audioFormat = await outputs.audioFormat
-        let audioTranscript = await outputs.audioTranscript
-        let audioContinuation = await outputs.audioContinuation
-        var contentParts: [MessageContentPart] = []
-        if !fullResponse.isEmpty { contentParts.append(.text(fullResponse)) }
-        if !audioData.isEmpty, let audioFormat {
-            contentParts.append(.audio(AudioContent(
-                data: audioData,
-                format: audioFormat,
-                transcript: audioTranscript.isEmpty ? nil : audioTranscript,
-                continuation: audioContinuation
-            )))
-        }
         let assistantParam = LLMMessage(
             role: .assistant,
-            content: MessageContent(parts: contentParts),
+            content: await outputs.assistantContent,
             toolCalls: toolCallsParam
         )
 
@@ -253,14 +238,12 @@ actor ToolRouter {
                     )
                 } else {
                     if let turnID {
-                        try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
+                        try await runtimeRepository.recordToolIntent(routeNeutralIntent(
+                            for: call,
                             turnID: turnID,
                             timelineID: timelineId,
-                            toolCallID: call.callId,
-                            name: call.name,
-                            arguments: call.argumentsJSON,
                             modelRoundIndex: modelRoundIndex,
-                            sideEffects: availableTools.first(where: { $0.callName == call.name })?.sideEffects ?? .mutating
+                            availableTools: availableTools
                         ))
                         intentRecorded = true
                     }
@@ -298,14 +281,12 @@ actor ToolRouter {
                 // undurable tool result.
                 if !intentRecorded, let turnID {
                     do {
-                        try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
+                        try await runtimeRepository.recordToolIntent(routeNeutralIntent(
+                            for: call,
                             turnID: turnID,
                             timelineID: timelineId,
-                            toolCallID: call.callId,
-                            name: call.name,
-                            arguments: call.argumentsJSON,
                             modelRoundIndex: modelRoundIndex,
-                            sideEffects: availableTools.first(where: { $0.callName == call.name })?.sideEffects ?? .mutating
+                            availableTools: availableTools
                         ))
                         intentRecorded = true
                     } catch {
@@ -535,51 +516,20 @@ actor ToolRouter {
         switch outcome {
         case let .completed(output):
             logger.info("Tool \(toolDisplayName) succeeded")
-            let message = TimelineMessage(
-                timelineID: timelineId, role: .tool, content: output, toolCallID: call.callId
-            )
-            do {
-                if let turnID {
-                    try await runtimeRepository.recordToolResult(RuntimeToolResult(
-                        turnID: turnID,
-                        timelineID: timelineId,
-                        toolCallID: call.callId,
-                        output: output,
-                        workspaceID: workspaceRoute?.workspaceID,
-                        workspaceRouting: workspaceRoute?.routing
-                    ), message: message)
-                } else {
-                    try await runtimeRepository.saveMessage(message)
-                }
-                continuation.yield(.toolCompleted(
-                    toolCallID: call.callId,
-                    status: .success(ToolResult.success(
-                        output,
-                        workspaceID: workspaceRoute?.workspaceID,
-                        workspaceRouting: workspaceRoute?.routing
-                    ))
-                ))
-            } catch {
-                logger.error("Tool persistence failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
-                continuation.yield(.toolCompleted(
-                    toolCallID: call.callId,
-                    status: workspaceRoute.map {
-                        .workspacePersistenceFailed(
-                            reference: toolRef,
-                            error: safeErrorMessage(error),
-                            workspaceID: $0.workspaceID,
-                            routing: $0.routing
-                        )
-                    } ?? .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
-                ))
-                return ToolProjection(
-                    message: nil,
-                    persistenceFailed: true
-                )
-            }
-            return ToolProjection(
-                message: LLMMessage(role: .tool, content: output, toolCallID: call.callId),
-                persistenceFailed: false
+            return await persistToolResult(
+                output: output,
+                isSuccessful: true,
+                status: .success(ToolResult.success(
+                    output,
+                    workspaceID: workspaceRoute?.workspaceID,
+                    workspaceRouting: workspaceRoute?.routing
+                )),
+                call: call,
+                toolRef: toolRef,
+                workspaceRoute: workspaceRoute,
+                timelineId: timelineId,
+                turnID: turnID,
+                continuation: continuation
             )
 
         case .deferredExternally:
@@ -613,8 +563,63 @@ actor ToolRouter {
         if let remediation = (error as? any PKError)?.remediation, !remediation.isEmpty {
             errorOutput += "\nHow to fix: \(remediation)"
         }
+        return await persistToolResult(
+            output: errorOutput,
+            isSuccessful: false,
+            status: workspaceRoute.map {
+                .workspaceFailed(
+                    reference: toolRef,
+                    error: safeErrorMessage(error),
+                    workspaceID: $0.workspaceID,
+                    routing: $0.routing
+                )
+            } ?? .failed(reference: toolRef, error: safeErrorMessage(error)),
+            call: call,
+            toolRef: toolRef,
+            workspaceRoute: workspaceRoute,
+            timelineId: timelineId,
+            turnID: turnID,
+            continuation: continuation
+        )
+    }
+
+    /// The durable intent for a call that is not (or not yet) routed to a Workspace. Its side
+    /// effects come from the matching tool's declaration, defaulting to `.mutating`.
+    private func routeNeutralIntent(
+        for call: ParsedToolCall,
+        turnID: UUID,
+        timelineID: UUID,
+        modelRoundIndex: Int,
+        availableTools: [AnyTool]
+    ) -> RuntimeToolIntent {
+        RuntimeToolIntent(
+            turnID: turnID,
+            timelineID: timelineID,
+            toolCallID: call.callId,
+            name: call.name,
+            arguments: call.argumentsJSON,
+            modelRoundIndex: modelRoundIndex,
+            sideEffects: availableTools.first(where: { $0.callName == call.name })?.sideEffects ?? .mutating
+        )
+    }
+
+    /// Persists a tool result, then yields `status`. The result is recorded against the Turn
+    /// when there is one and saved as a plain message otherwise. If the write fails, a
+    /// persistence-failure status is yielded instead and no follow-up message is returned, so
+    /// a consumer never observes a result that is not durable.
+    private func persistToolResult(
+        output: String,
+        isSuccessful: Bool,
+        status: ToolExecutionStatus,
+        call: ParsedToolCall,
+        toolRef: ToolReference,
+        workspaceRoute: WorkspaceToolRoute?,
+        timelineId: UUID,
+        turnID: UUID?,
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
+    ) async -> ToolProjection {
         let message = TimelineMessage(
-            timelineID: timelineId, role: .tool, content: errorOutput, toolCallID: call.callId
+            timelineID: timelineId, role: .tool, content: output, toolCallID: call.callId
         )
         do {
             if let turnID {
@@ -622,27 +627,16 @@ actor ToolRouter {
                     turnID: turnID,
                     timelineID: timelineId,
                     toolCallID: call.callId,
-                    output: errorOutput,
-                    isSuccessful: false,
+                    output: output,
+                    isSuccessful: isSuccessful,
                     workspaceID: workspaceRoute?.workspaceID,
                     workspaceRouting: workspaceRoute?.routing
                 ), message: message)
             } else {
                 try await runtimeRepository.saveMessage(message)
             }
-            continuation.yield(.toolCompleted(
-                toolCallID: call.callId,
-                status: workspaceRoute.map {
-                    .workspaceFailed(
-                        reference: toolRef,
-                        error: safeErrorMessage(error),
-                        workspaceID: $0.workspaceID,
-                        routing: $0.routing
-                    )
-                } ?? .failed(reference: toolRef, error: safeErrorMessage(error))
-            ))
         } catch {
-            logger.error("Tool error persistence failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
+            logger.error("Tool result persistence failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
             continuation.yield(.toolCompleted(
                 toolCallID: call.callId,
                 status: workspaceRoute.map {
@@ -654,13 +648,11 @@ actor ToolRouter {
                     )
                 } ?? .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
             ))
-            return ToolProjection(
-                message: nil,
-                persistenceFailed: true
-            )
+            return ToolProjection(message: nil, persistenceFailed: true)
         }
+        continuation.yield(.toolCompleted(toolCallID: call.callId, status: status))
         return ToolProjection(
-            message: LLMMessage(role: .tool, content: errorOutput, toolCallID: call.callId),
+            message: LLMMessage(role: .tool, content: output, toolCallID: call.callId),
             persistenceFailed: false
         )
     }

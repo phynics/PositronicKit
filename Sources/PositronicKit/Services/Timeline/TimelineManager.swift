@@ -310,11 +310,39 @@ extension TimelineManager {
         timelines[id] = timeline
     }
 
-    /// Keeps the coordinator's compatibility cache aligned after Agent attachment mutations
-    /// commit through the shared Timeline store.
+    /// Keeps the Timeline cache aligned after a mutation commits through the shared Timeline
+    /// store. Timelines that are not cached stay uncached.
     func replaceCachedTimelineIfPresent(_ timeline: TimelineRecord) {
         guard timelines[timeline.id] != nil else { return }
         timelines[timeline.id] = timeline
+    }
+
+    /// Returns the cached Timeline, or reads it through ``storedTimeline(_:operation:)``.
+    func cachedOrStoredTimeline(_ timelineID: UUID, operation: String) async throws -> TimelineRecord {
+        if let cached = timelines[timelineID] {
+            return cached
+        }
+        return try await storedTimeline(timelineID, operation: operation)
+    }
+
+    /// Reads a Timeline from the store, bypassing the cache. A missing Timeline throws
+    /// `TimelineError.timelineNotFound`; any other store failure is logged under `operation` and
+    /// surfaces as `TimelineError.unavailable`.
+    func storedTimeline(_ timelineID: UUID, operation: String) async throws -> TimelineRecord {
+        do {
+            guard let timeline = try await timelineStore.fetchTimeline(id: timelineID) else {
+                throw TimelineError.timelineNotFound
+            }
+            return timeline
+        } catch let error as TimelineError {
+            throw error
+        } catch {
+            logger.error("""
+            \(operation) fetch failed — timeline: \(timelineID.uuidString.prefix(8)), \
+            operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
+            throw TimelineError.unavailable
+        }
     }
 
     /// Fetches the message history for a specific timeline from persistence.

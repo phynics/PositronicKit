@@ -43,6 +43,22 @@ actor TurnOutputs {
 
     init() {}
 
+    /// The assistant's visible reply: the response text, then any generated audio. Read in one
+    /// hop so the text and audio come from the same point in the stream.
+    var assistantContent: MessageContent {
+        var parts: [MessageContentPart] = []
+        if !fullResponse.isEmpty { parts.append(.text(fullResponse)) }
+        if !audioData.isEmpty, let audioFormat {
+            parts.append(.audio(AudioContent(
+                data: audioData,
+                format: audioFormat,
+                transcript: audioTranscript.isEmpty ? nil : audioTranscript,
+                continuation: audioContinuation
+            )))
+        }
+        return MessageContent(parts: parts)
+    }
+
     // MARK: - Mutation Methods (internal — only built-in stages should mutate)
 
     func setStreamUsage(_ usage: LLMTokenUsage) {
