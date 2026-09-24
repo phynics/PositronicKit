@@ -5027,7 +5027,7 @@
         "WorkspaceReference",
         "init(id:uri:location:originID:tools:rootPath:lastModifiedBy:status:contextInjection:createdAt:)"
       ],
-      "declaration": "init(id: UUID = UUID(), uri: WorkspaceURI, location: WorkspaceLocation, originID: UUID? = nil, tools: [ToolReference] = [], rootPath: String? = nil, lastModifiedBy: UUID? = nil, status: WorkspaceStatus = .active, contextInjection: String? = nil, createdAt: Date = Date())"
+      "declaration": "init(id: UUID = UUID(), uri: WorkspaceURI, location: WorkspaceReference.WorkspaceLocation, originID: UUID? = nil, tools: [ToolReference] = [], rootPath: String? = nil, lastModifiedBy: UUID? = nil, status: WorkspaceReference.WorkspaceStatus = .active, contextInjection: String? = nil, createdAt: Date = Date())"
     },
     {
       "precise": "s:11PKContracts18WorkspaceReferenceV3uriAA0B3URIVvp",
