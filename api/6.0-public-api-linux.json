@@ -45,16 +45,6 @@
       "declaration": "enum AnyCodable"
     },
     {
-      "precise": "s:11PKContracts10AnyCodableO02toB0ypyF",
-      "module": "PKContracts",
-      "kind": "swift.method",
-      "path": [
-        "AnyCodable",
-        "toAny()"
-      ],
-      "declaration": "func toAny() -> Any"
-    },
-    {
       "precise": "s:11PKContracts10AnyCodableO10dictionaryyACSDySSACGcACmF",
       "module": "PKContracts",
       "kind": "swift.enum.case",
@@ -2934,55 +2924,6 @@
       "declaration": "case ready"
     },
     {
-      "precise": "s:11PKContracts14ToolCallFormatO",
-      "module": "PKContracts",
-      "kind": "swift.enum",
-      "path": [
-        "ToolCallFormat"
-      ],
-      "declaration": "enum ToolCallFormat"
-    },
-    {
-      "precise": "s:11PKContracts14ToolCallFormatO2idSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "ToolCallFormat",
-        "id"
-      ],
-      "declaration": "var id: String { get }"
-    },
-    {
-      "precise": "s:11PKContracts14ToolCallFormatO4fromACs7Decoder_p_tKcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "ToolCallFormat",
-        "init(from:)"
-      ],
-      "declaration": "init(from decoder: Decoder) throws"
-    },
-    {
-      "precise": "s:11PKContracts14ToolCallFormatO6openAIyA2CmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "ToolCallFormat",
-        "openAI"
-      ],
-      "declaration": "case openAI"
-    },
-    {
-      "precise": "s:11PKContracts14ToolCallFormatO8rawValueACSgSS_tcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "ToolCallFormat",
-        "init(rawValue:)"
-      ],
-      "declaration": "init?(rawValue: String)"
-    },
-    {
       "precise": "s:11PKContracts14ToolCallRecordV",
       "module": "PKContracts",
       "kind": "swift.struct",
@@ -3504,14 +3445,14 @@
       "declaration": "static var openRouter: LLMConfiguration { get }"
     },
     {
-      "precise": "s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider10toolFormat18memoryContextLimit08documentsT015timeoutInterval10maxRetries11temperature0X6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4yA11LLMProviderOAA08ToolCallQ0OSgS2iSdSgSiSgA3_A4_A3_A3_A3_A4_A2YtFZ",
+      "precise": "s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider18memoryContextLimit08documentqR015timeoutInterval10maxRetries11temperature0V6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4xA11LLMProviderOS2iSdSgSiSgA_A0_A_A_A_A0_A2XtFZ",
       "module": "PKTestSupport",
       "kind": "swift.type.method",
       "path": [
         "LLMConfiguration",
-        "fixture(endpoint:modelName:utilityModel:fastModel:apiKey:activeProvider:toolFormat:memoryContextLimit:documentContextLimit:timeoutInterval:maxRetries:temperature:maxTokens:topP:frequencyPenalty:presencePenalty:seed:applicationURL:applicationTitle:)"
+        "fixture(endpoint:modelName:utilityModel:fastModel:apiKey:activeProvider:memoryContextLimit:documentContextLimit:timeoutInterval:maxRetries:temperature:maxTokens:topP:frequencyPenalty:presencePenalty:seed:applicationURL:applicationTitle:)"
       ],
-      "declaration": "static func fixture(endpoint: String? = nil, modelName: String? = nil, utilityModel: String? = nil, fastModel: String? = nil, apiKey: String? = nil, activeProvider: LLMProvider = .openAI, toolFormat: ToolCallFormat? = nil, memoryContextLimit: Int = 5, documentContextLimit: Int = 5, timeoutInterval: TimeInterval? = nil, maxRetries: Int? = nil, temperature: Double? = nil, maxTokens: Int? = nil, topP: Double? = nil, frequencyPenalty: Double? = nil, presencePenalty: Double? = nil, seed: Int? = nil, applicationURL: String? = nil, applicationTitle: String? = nil) -> LLMConfiguration"
+      "declaration": "static func fixture(endpoint: String? = nil, modelName: String? = nil, utilityModel: String? = nil, fastModel: String? = nil, apiKey: String? = nil, activeProvider: LLMProvider = .openAI, memoryContextLimit: Int = 5, documentContextLimit: Int = 5, timeoutInterval: TimeInterval? = nil, maxRetries: Int? = nil, temperature: Double? = nil, maxTokens: Int? = nil, topP: Double? = nil, frequencyPenalty: Double? = nil, presencePenalty: Double? = nil, seed: Int? = nil, applicationURL: String? = nil, applicationTitle: String? = nil) -> LLMConfiguration"
     },
     {
       "precise": "s:11PKContracts16LLMConfigurationV14activeProvider9providers18memoryContextLimit08documentgH07versionAcA11LLMProviderO_SDyAjA0D13ConfigurationVGSgS3itcfc",
@@ -5979,16 +5920,6 @@
       "declaration": "var maxRetries: Int"
     },
     {
-      "precise": "s:11PKContracts21ProviderConfigurationV10toolFormatAA08ToolCallE0Ovp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "ProviderConfiguration",
-        "toolFormat"
-      ],
-      "declaration": "var toolFormat: ToolCallFormat"
-    },
-    {
       "precise": "s:11PKContracts21ProviderConfigurationV11makeDefault3forAcA11LLMProviderO_tFZ",
       "module": "PKContracts",
       "kind": "swift.type.method",
@@ -6139,14 +6070,14 @@
       "declaration": "var apiKey: String"
     },
     {
-      "precise": "s:11PKContracts21ProviderConfigurationV8endpoint6apiKey9modelName12utilityModel04fastJ010toolFormat15timeoutInterval10maxRetries19contextWindowTokens12capabilities11temperature0pT04topP16frequencyPenalty08presenceY04seed14applicationURL16applicationTitleACSS_S4SAA08ToolCallM0OSdS2iShyAA0J10CapabilityOGSdSgSiSgA_A_A_A0_SSSgA1_tcfc",
+      "precise": "s:11PKContracts21ProviderConfigurationV8endpoint6apiKey9modelName12utilityModel04fastJ015timeoutInterval10maxRetries19contextWindowTokens12capabilities11temperature0nR04topP16frequencyPenalty08presenceW04seed14applicationURL0Z5TitleACSS_S4SSdS2iShyAA0J10CapabilityOGSdSgSiSgA3xYSSSgAZtcfc",
       "module": "PKContracts",
       "kind": "swift.init",
       "path": [
         "ProviderConfiguration",
-        "init(endpoint:apiKey:modelName:utilityModel:fastModel:toolFormat:timeoutInterval:maxRetries:contextWindowTokens:capabilities:temperature:maxTokens:topP:frequencyPenalty:presencePenalty:seed:applicationURL:applicationTitle:)"
+        "init(endpoint:apiKey:modelName:utilityModel:fastModel:timeoutInterval:maxRetries:contextWindowTokens:capabilities:temperature:maxTokens:topP:frequencyPenalty:presencePenalty:seed:applicationURL:applicationTitle:)"
       ],
-      "declaration": "init(endpoint: String, apiKey: String, modelName: String, utilityModel: String, fastModel: String, toolFormat: ToolCallFormat, timeoutInterval: TimeInterval = 60.0, maxRetries: Int = 3, contextWindowTokens: Int = 8_192, capabilities: Set<ModelCapability> = [], temperature: Double? = nil, maxTokens: Int? = nil, topP: Double? = nil, frequencyPenalty: Double? = nil, presencePenalty: Double? = nil, seed: Int? = nil, applicationURL: String? = nil, applicationTitle: String? = nil)"
+      "declaration": "init(endpoint: String, apiKey: String, modelName: String, utilityModel: String, fastModel: String, timeoutInterval: TimeInterval = 60.0, maxRetries: Int = 3, contextWindowTokens: Int = 8_192, capabilities: Set<ModelCapability> = [], temperature: Double? = nil, maxTokens: Int? = nil, topP: Double? = nil, frequencyPenalty: Double? = nil, presencePenalty: Double? = nil, seed: Int? = nil, applicationURL: String? = nil, applicationTitle: String? = nil)"
     },
     {
       "precise": "s:11PKContracts21ProviderConfigurationV8endpointSSvp",
@@ -9794,16 +9725,6 @@
         "sidecarCompletion"
       ],
       "declaration": "var sidecarCompletion: SidecarCompletion? { get }"
-    },
-    {
-      "precise": "s:11PKContracts9TurnEventO17sidecarsCompleted7resultsACSayAA13SidecarResultVG_tFZ",
-      "module": "PKContracts",
-      "kind": "swift.type.method",
-      "path": [
-        "TurnEvent",
-        "sidecarsCompleted(results:)"
-      ],
-      "declaration": "static func sidecarsCompleted(results: [SidecarResult]) -> TurnEvent"
     },
     {
       "precise": "s:11PKContracts9TurnEventO17sidecarsCompletedyAcA17SidecarCompletionVFZ",
@@ -25393,16 +25314,6 @@
       "declaration": "var shouldCompact: Bool { get }"
     },
     {
-      "precise": "s:8PKPrompt13PromptJournalV15ValidationErrora",
-      "module": "PKPrompt",
-      "kind": "swift.typealias",
-      "path": [
-        "PromptJournal",
-        "ValidationError"
-      ],
-      "declaration": "typealias ValidationError = PromptJournalValidationError"
-    },
-    {
       "precise": "s:8PKPrompt13PromptJournalV26resetKeepingCommittedStateyyF",
       "module": "PKPrompt",
       "kind": "swift.method",
@@ -26214,16 +26125,6 @@
         "AssembledPrompt"
       ],
       "declaration": "struct AssembledPrompt"
-    },
-    {
-      "precise": "s:8PKPrompt15AssembledPromptV15ValidationErrora",
-      "module": "PKPrompt",
-      "kind": "swift.typealias",
-      "path": [
-        "AssembledPrompt",
-        "ValidationError"
-      ],
-      "declaration": "typealias ValidationError = PromptAssemblyError"
     },
     {
       "precise": "s:8PKPrompt15AssembledPromptV15estimatedTokensSivp",
@@ -28169,7 +28070,7 @@
       "declaration": "extension LLMToolChoice"
     },
     {
-      "precise": "s:e:s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider10toolFormat18memoryContextLimit08documentsT015timeoutInterval10maxRetries11temperature0X6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4yA11LLMProviderOAA08ToolCallQ0OSgS2iSdSgSiSgA3_A4_A3_A3_A3_A4_A2YtFZ",
+      "precise": "s:e:s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider18memoryContextLimit08documentqR015timeoutInterval10maxRetries11temperature0V6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4xA11LLMProviderOS2iSdSgSiSgA_A0_A_A_A_A0_A2XtFZ",
       "module": "PKTestSupport",
       "kind": "swift.extension",
       "path": [
@@ -29634,83 +29535,6 @@
       "source": "s:11PKContracts14ModelReadinessO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts14ToolCallFormatO",
-      "target": "s:SE",
-      "targetFallback": "Swift.Encodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts14ToolCallFormatO",
-      "target": "s:SH",
-      "targetFallback": "Swift.Hashable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts14ToolCallFormatO",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts14ToolCallFormatO",
-      "target": "s:SY",
-      "targetFallback": "Swift.RawRepresentable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts14ToolCallFormatO",
-      "target": "s:Se",
-      "targetFallback": "Swift.Decodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts14ToolCallFormatO",
-      "target": "s:s12CaseIterableP",
-      "targetFallback": "Swift.CaseIterable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts14ToolCallFormatO",
-      "target": "s:s12IdentifiableP",
-      "targetFallback": "Swift.Identifiable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts14ToolCallFormatO",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts14ToolCallFormatO",
-      "target": "s:s8CopyableP",
-      "targetFallback": "Swift.Copyable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts14ToolCallFormatO",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts14ToolCallFormatO",
-      "target": "s:s9EscapableP",
-      "targetFallback": "Swift.Escapable"
     },
     {
       "module": "PKContracts",
@@ -39644,7 +39468,7 @@
     {
       "module": "PKTestSupport",
       "kind": "extensionTo",
-      "source": "s:e:s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider10toolFormat18memoryContextLimit08documentsT015timeoutInterval10maxRetries11temperature0X6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4yA11LLMProviderOAA08ToolCallQ0OSgS2iSdSgSiSgA3_A4_A3_A3_A3_A4_A2YtFZ",
+      "source": "s:e:s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider18memoryContextLimit08documentqR015timeoutInterval10maxRetries11temperature0V6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4xA11LLMProviderOS2iSdSgSiSgA_A0_A_A_A_A0_A2XtFZ",
       "target": "s:11PKContracts16LLMConfigurationV",
       "targetFallback": "PKContracts.LLMConfiguration"
     },
@@ -39813,12 +39637,6 @@
       "source": "s:10JSONSchema6SchemaV11PKContractsEyACSDySSAD10AnyCodableOGcfc",
       "target": "s:e:s:10JSONSchema6SchemaV11PKContractsE12asDictionarySDySSAD10AnyCodableOGvp",
       "targetFallback": "JSONSchema.Schema"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts10AnyCodableO02toB0ypyF",
-      "target": "s:11PKContracts10AnyCodableO"
     },
     {
       "module": "PKContracts",
@@ -41491,42 +41309,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts14ToolCallFormatO2idSSvp",
-      "target": "s:11PKContracts14ToolCallFormatO",
-      "sourceOrigin": {
-        "identifier": "s:s12IdentifiableP2id2IDQzvp",
-        "displayName": "Identifiable.id"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts14ToolCallFormatO4fromACs7Decoder_p_tKcfc",
-      "target": "s:11PKContracts14ToolCallFormatO",
-      "sourceOrigin": {
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
-        "displayName": "Decodable.init(from:)"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts14ToolCallFormatO6openAIyA2CmF",
-      "target": "s:11PKContracts14ToolCallFormatO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts14ToolCallFormatO8rawValueACSgSS_tcfc",
-      "target": "s:11PKContracts14ToolCallFormatO",
-      "sourceOrigin": {
-        "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc",
-        "displayName": "RawRepresentable.init(rawValue:)"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts14ToolCallRecordV4fromACs7Decoder_p_tKcfc",
       "target": "s:11PKContracts14ToolCallRecordV",
       "sourceOrigin": {
@@ -43149,12 +42931,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts21ProviderConfigurationV10toolFormatAA08ToolCallE0Ovp",
-      "target": "s:11PKContracts21ProviderConfigurationV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts21ProviderConfigurationV11makeDefault3forAcA11LLMProviderO_tFZ",
       "target": "s:11PKContracts21ProviderConfigurationV"
     },
@@ -43249,7 +43025,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts21ProviderConfigurationV8endpoint6apiKey9modelName12utilityModel04fastJ010toolFormat15timeoutInterval10maxRetries19contextWindowTokens12capabilities11temperature0pT04topP16frequencyPenalty08presenceY04seed14applicationURL16applicationTitleACSS_S4SAA08ToolCallM0OSdS2iShyAA0J10CapabilityOGSdSgSiSgA_A_A_A0_SSSgA1_tcfc",
+      "source": "s:11PKContracts21ProviderConfigurationV8endpoint6apiKey9modelName12utilityModel04fastJ015timeoutInterval10maxRetries19contextWindowTokens12capabilities11temperature0nR04topP16frequencyPenalty08presenceW04seed14applicationURL0Z5TitleACSS_S4SSdS2iShyAA0J10CapabilityOGSdSgSiSgA3xYSSSgAZtcfc",
       "target": "s:11PKContracts21ProviderConfigurationV"
     },
     {
@@ -45323,12 +45099,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO17sidecarsCompleted7resultsACSayAA13SidecarResultVG_tFZ",
-      "target": "s:11PKContracts9TurnEventO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts9TurnEventO17sidecarsCompletedyAcA17SidecarCompletionVFZ",
       "target": "s:11PKContracts9TurnEventO"
     },
@@ -46432,12 +46202,6 @@
     {
       "module": "PKPrompt",
       "kind": "memberOf",
-      "source": "s:8PKPrompt13PromptJournalV15ValidationErrora",
-      "target": "s:8PKPrompt13PromptJournalV"
-    },
-    {
-      "module": "PKPrompt",
-      "kind": "memberOf",
       "source": "s:8PKPrompt13PromptJournalV26resetKeepingCommittedStateyyF",
       "target": "s:8PKPrompt13PromptJournalV"
     },
@@ -46878,12 +46642,6 @@
       "kind": "memberOf",
       "source": "s:8PKPrompt14SummaryRequestV6reasonAA17CompressionReasonOvp",
       "target": "s:8PKPrompt14SummaryRequestV"
-    },
-    {
-      "module": "PKPrompt",
-      "kind": "memberOf",
-      "source": "s:8PKPrompt15AssembledPromptV15ValidationErrora",
-      "target": "s:8PKPrompt15AssembledPromptV"
     },
     {
       "module": "PKPrompt",
@@ -47923,8 +47681,8 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider10toolFormat18memoryContextLimit08documentsT015timeoutInterval10maxRetries11temperature0X6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4yA11LLMProviderOAA08ToolCallQ0OSgS2iSdSgSiSgA3_A4_A3_A3_A3_A4_A2YtFZ",
-      "target": "s:e:s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider10toolFormat18memoryContextLimit08documentsT015timeoutInterval10maxRetries11temperature0X6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4yA11LLMProviderOAA08ToolCallQ0OSgS2iSdSgSiSgA3_A4_A3_A3_A3_A4_A2YtFZ",
+      "source": "s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider18memoryContextLimit08documentqR015timeoutInterval10maxRetries11temperature0V6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4xA11LLMProviderOS2iSdSgSiSgA_A0_A_A_A_A0_A2XtFZ",
+      "target": "s:e:s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider18memoryContextLimit08documentqR015timeoutInterval10maxRetries11temperature0V6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4xA11LLMProviderOS2iSdSgSiSgA_A0_A_A_A_A0_A2XtFZ",
       "targetFallback": "PKContracts.LLMConfiguration"
     },
     {
