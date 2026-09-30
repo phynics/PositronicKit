@@ -50,6 +50,60 @@ def run_validator(script: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
+def make_release_candidate_fixture(root: Path, *, has_release_entry: bool) -> Path:
+    scripts = root / "Scripts"
+    scripts.mkdir(parents=True)
+    shutil.copyfile(SCRIPT, scripts / SCRIPT.name)
+    docs = root / "docs"
+    docs.mkdir()
+    (docs / "catalog.json").write_text(
+        json.dumps(
+            {
+                "repository": "phynics/PositronicKit",
+                "stable": {"version": "6.1.0", "ref": "6.1.0", "guides": []},
+                "next": {"label": "Next", "version": "6.1.0", "ref": "main"},
+                "guides": [],
+                "products": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (docs / "index.html").write_text("", encoding="utf-8")
+    next_docs = docs / "next"
+    next_docs.mkdir()
+    (next_docs / "index.html").write_text("", encoding="utf-8")
+    changelog = "# Changelog\n\n"
+    if has_release_entry:
+        changelog += "## [6.1.0] - 2026-09-30\n"
+    (root / "CHANGELOG.md").write_text(changelog, encoding="utf-8")
+    (root / "README.md").write_text(
+        'Latest stable: `6.1.0`\nNext\n'
+        '.package(url: "https://example.invalid/Package.git", from: "6.1.0")\n',
+        encoding="utf-8",
+    )
+    (root / "AGENTS.md").write_text("docs/catalog.json\n", encoding="utf-8")
+    (root / "CONTEXT-MAP.md").write_text("", encoding="utf-8")
+    template = root / ".github/pull_request_template.md"
+    template.parent.mkdir(parents=True)
+    template.write_text("## Docs / ADR impact\n", encoding="utf-8")
+    (root / "Package.swift").write_text(
+        'let package = Package(\n'
+        '  targets: [\n'
+        '    .executableTarget(\n'
+        '      name: "PublicProductConsumer",\n'
+        '      dependencies: []\n'
+        '    ),\n'
+        '  ]\n'
+        ')\n',
+        encoding="utf-8",
+    )
+    consumer = root / "Tests/PublicProductConsumer/main.swift"
+    consumer.parent.mkdir(parents=True)
+    consumer.write_text("", encoding="utf-8")
+    subprocess.run(["git", "init", "--quiet"], cwd=root, check=True)
+    return scripts / SCRIPT.name
+
+
 def test_missing_guide_path_is_rejected() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
@@ -87,10 +141,26 @@ def test_missing_product_docs_are_rejected() -> None:
         )
 
 
+def test_release_candidate_without_tag_needs_dated_changelog_entry() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = make_release_candidate_fixture(root, has_release_entry=True)
+        result = run_validator(script)
+        assert result.returncode == 0, result.stdout + result.stderr
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = make_release_candidate_fixture(root, has_release_entry=False)
+        result = run_validator(script)
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "stable documentation ref is not a local Git tag: 6.1.0" in result.stderr
+
+
 if __name__ == "__main__":
     tests = [
         test_missing_guide_path_is_rejected,
         test_missing_product_docs_are_rejected,
+        test_release_candidate_without_tag_needs_dated_changelog_entry,
     ]
     for test in tests:
         test()

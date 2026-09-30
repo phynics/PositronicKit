@@ -20,6 +20,14 @@ def error(message: str) -> None:
     ERRORS.append(message)
 
 
+def has_dated_release_section(changelog: str, version: str) -> bool:
+    heading = re.compile(
+        rf"^## \[{re.escape(version)}\] - \d{{4}}-\d{{2}}-\d{{2}}$",
+        flags=re.MULTILINE,
+    )
+    return heading.search(changelog) is not None
+
+
 def github_slug(heading: str) -> str:
     value = heading.strip().lower()
     value = re.sub(r"<[^>]+>", "", value)
@@ -87,7 +95,13 @@ def validate_release_channels() -> None:
             text=True,
         ).stdout.strip()
         if tag != CATALOG["stable"]["ref"]:
-            error(f"stable documentation ref is not a local Git tag: {CATALOG['stable']['ref']}")
+            changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+            release_candidate = (
+                CATALOG["stable"]["ref"] == stable
+                and has_dated_release_section(changelog, stable)
+            )
+            if not release_candidate:
+                error(f"stable documentation ref is not a local Git tag: {CATALOG['stable']['ref']}")
         else:
             for guide in CATALOG["stable"]["guides"]:
                 tagged_path = f"{tag}:{guide['path'].rstrip('/')}"

@@ -8,6 +8,8 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [6.1.0] - 2026-09-30
+
 ### Breaking
 
 - **Truncation states the retained end:** `CompressionStrategy.truncate(tail:)` and
