@@ -312,6 +312,7 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/generate_doc_navigation_test.py
 	@python3 -B Tests/Scripts/validate_release_readiness_test.py
 	@python3 -B Tests/Scripts/generate_sbom_test.py
+	@python3 -B Tests/Scripts/promote_public_api_baselines_test.py
 	@python3 -B Tests/Scripts/check_domain_vocabulary_test.py
 	@python3 -B Tests/Scripts/check_pr_docs_impact_test.py
 	@python3 -B Tests/Scripts/check_story_coverage_test.py

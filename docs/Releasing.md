@@ -31,6 +31,16 @@ The tagged version applies to the public products documented in
 3. Generate the macOS baseline on macOS. A Linux host cannot extract the Apple-only graph, so a
    release prepared on Linux is not ready to tag until a macOS host has run
    `make verify-public-api` (or `make update-public-api-baseline`) against the same commit.
+   When both platform checks pass against the current baselines and the symbol graphs stay
+   unchanged, run this command to update only the release metadata in both baseline files:
+
+   ```sh
+   python3 Scripts/promote-public-api-baselines.py \
+     --from <current-version> \
+     --to <release-version>
+   ```
+
+   The script refuses to replace a different target baseline.
 4. Update `docs/catalog.json` when the stable tag, product graph, or navigation changes; regenerate
    navigation with `python3 Scripts/generate-doc-navigation.py`.
 5. Confirm the stable landing remains the default and all Next links target `main`.
@@ -69,6 +79,10 @@ do not fall back to host Swift or compose an ad hoc container command.
 6. Read back the tag, GitHub release, stable landing, and changelog links, and confirm the tag is
    reachable from `main` (`git branch -r --contains <version>`). After those artifacts agree,
    downstream consumers may bump their pins to the new release.
+
+During the release pull request, `make verify-documentation` accepts a stable ref without a local
+tag only when `CHANGELOG.md` has a dated section for that version. `make verify-release` requires
+the annotated tag after the release commit reaches `main`.
 
 Use an annotated tag. Do not tag unreleased work or skip the changelog entry. A pushed tag is
 immutable in practice: if one has to move, do it before any GitHub release or downstream pin
