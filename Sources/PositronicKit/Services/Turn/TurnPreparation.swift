@@ -474,6 +474,7 @@ struct TurnPreparation: Sendable {
             try await dependencies.submissionGate.commit(
                 validatedToolOutputs,
                 timelineID: timelineID,
+                turnID: turnID,
                 runtimeRepository: dependencies.runtimeRepository
             )
 

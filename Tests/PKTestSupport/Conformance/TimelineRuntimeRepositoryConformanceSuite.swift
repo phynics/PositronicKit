@@ -52,6 +52,9 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
         try await runScenario("timeline.tool-result.atomicity") {
             try await commitsToolResultAndMessage(makeRepository: makeRepository)
         }
+        try await runScenario("timeline.turn.membership") {
+            try await recordsExactTurnMembership(makeRepository: makeRepository)
+        }
         try await runScenario("timeline.history.append-only") {
             try await preservesAppendOnlyHistory(
                 makeRepository: makeRepository,
@@ -452,6 +455,48 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
         try #require(messages.map(\.id) == [message.id], "timeline.tool-result.message")
         try #require(messages.first?.content == message.content, "timeline.tool-result.message-content")
         try #require(try await repository.fetchToolResults(turnID: turnID).count == 1, "timeline.tool-result.result")
+    }
+
+    private static func recordsExactTurnMembership(
+        makeRepository: () async throws -> any TimelineRuntimeRepository
+    ) async throws {
+        let repository = try await makeRepository()
+        let timelineID = UUID()
+        try await repository.saveTimeline(TimelineRecord(id: timelineID))
+        let input = TimelineMessage(timelineID: timelineID, role: .user, content: "input")
+        let admitted = try await repository.admitTurn(
+            timelineID: timelineID,
+            requestID: input.id,
+            callerIntentFingerprint: "input",
+            inputMessage: input,
+            now: fixedDate(10)
+        )
+        let turnID = admitted.turn.identity.turnID
+        let intermediate = TimelineMessage(timelineID: timelineID, role: .assistant, content: "tool call")
+        try await repository.recordTurnMessage(intermediate, turnID: turnID)
+        let unrelated = TimelineMessage(timelineID: timelineID, role: .user, content: "unrelated")
+        try await repository.saveMessage(unrelated)
+        try await repository.recordToolIntent(RuntimeToolIntent(
+            turnID: turnID, timelineID: timelineID, toolCallID: "call-1", name: "lookup",
+            arguments: "{}", modelRoundIndex: 0
+        ))
+        let tool = TimelineMessage(timelineID: timelineID, role: .tool, content: "result", toolCallID: "call-1")
+        try await repository.recordToolResult(RuntimeToolResult(
+            turnID: turnID, timelineID: timelineID, toolCallID: "call-1", output: "result"
+        ), message: tool)
+        let final = TimelineMessage(timelineID: timelineID, role: .assistant, content: "final")
+        _ = try await repository.completeTurn(
+            turnID: turnID,
+            outcome: .failed(message: "tool execution required"),
+            finalMessage: final
+        )
+
+        let memberIDs = try #require(
+            try await repository.fetchTurnMessages(turnID: turnID)?.map(\.id),
+            "timeline.turn.membership.known"
+        )
+        try #require(memberIDs == [input.id, intermediate.id, tool.id, final.id], "timeline.turn.membership.exact-order")
+        try #require(try await repository.fetchTurn(id: turnID)?.memberMessageIDs == memberIDs, "timeline.turn.membership.durable")
     }
 
     private static func preservesAppendOnlyHistory(

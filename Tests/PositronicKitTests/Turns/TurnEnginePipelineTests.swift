@@ -54,6 +54,20 @@ private func makeContext(
     )
 }
 
+private func admitTestTurn(_ context: TurnContext, into store: MockPersistenceService) async throws {
+    try await store.saveTimeline(TimelineRecord(id: context.timelineID))
+    _ = try await store.admitTurn(
+        timelineID: context.timelineID,
+        requestID: context.requestId,
+        callerIntentFingerprint: "pipeline-test",
+        inputMessage: nil,
+        executionKind: context.executionKind,
+        capturedAgentID: context.agentId,
+        turnID: context.turnID,
+        now: Date()
+    )
+}
+
 private func drain(_ stream: AsyncThrowingStream<TurnEvent, Error>) async throws -> [TurnEvent] {
     var events: [TurnEvent] = []
     for try await event in stream {
@@ -122,6 +136,7 @@ final class MessagePersistenceStageBehavior {
         let context = await makeContext(
             toolCallAccumulators: [0: (id: "call-1", name: "my_tool", args: "{}")]
         )
+        try await admitTestTurn(context, into: store)
 
         let events = try await drain(await stage.process(context))
 
@@ -210,6 +225,7 @@ final class MessagePersistenceStageBehavior {
                 ),
             ]
         )
+        try await admitTestTurn(context, into: store)
 
         _ = try await drain(await stage.process(context))
 
@@ -237,6 +253,7 @@ final class MessagePersistenceStageBehavior {
                 0: (id: "call-bad", name: "broken_tool", args: "{'oops': true}"),
             ]
         )
+        try await admitTestTurn(context, into: store)
 
         _ = try await drain(await stage.process(context))
 
