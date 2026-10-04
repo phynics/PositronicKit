@@ -198,20 +198,6 @@ jobs:
           path: .build/macos-verify.log
           if-no-files-found: ignore
 
-      - name: TEMP Generate macOS public API baseline
-        if: always()
-        run: |
-          mkdir -p .build
-          make update-public-api-baseline 2>&1 | tee .build/macos-baseline.log || true
-
-      - name: TEMP Upload macOS public API baseline
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: macos-public-api-baseline
-          path: api/6.1-public-api-macos.json
-          if-no-files-found: warn
-
   ios-verify:
     name: "iOS Simulator — PKFoundationModelsProvider (xcode-27)"
     needs: preflight

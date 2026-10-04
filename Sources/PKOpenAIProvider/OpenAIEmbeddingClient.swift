@@ -43,7 +43,7 @@ struct OpenAIEmbeddingResponseBody: Decodable {
 /// `EmbeddingClientProtocol` adapter over OpenAI's `/v1/embeddings` endpoint.
 ///
 /// The adapter validates the request budget before any network I/O, sorts the response by the
-/// provider's `index` field, and stamps every embedding with an ``EmbeddingSpace`` whose
+/// provider's `index` field, and stamps every embedding with an `EmbeddingSpace` whose
 /// provider is `"openai"`, whose model is the requested model, and whose dimensions come from
 /// the returned vector.
 public actor OpenAIEmbeddingClient: EmbeddingClientProtocol {

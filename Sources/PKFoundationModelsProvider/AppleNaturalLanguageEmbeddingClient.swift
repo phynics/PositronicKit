@@ -7,7 +7,7 @@ import PKContracts
 ///
 /// `NLEmbedding.sentenceEmbedding(for:)` is an on-device model. There is no network transport and
 /// no retry: a missing model or an unvectorizable input is a typed, non-transient failure. The
-/// adapter ignores ``EmbeddingPurpose`` because sentence embeddings are symmetric.
+/// adapter ignores `EmbeddingPurpose` because sentence embeddings are symmetric.
 ///
 /// The whole file is guarded by `#if canImport(NaturalLanguage)` so non-Apple hosts compile
 /// without the type.
