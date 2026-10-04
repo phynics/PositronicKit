@@ -33,9 +33,8 @@ public actor AppleNaturalLanguageEmbeddingClient: EmbeddingClientProtocol {
     public func embed(_ request: EmbeddingRequest) async throws -> EmbeddingResponse {
         try inputBudget.validate(request.inputs)
 
-        guard let language = NLLanguage(rawValue: languageCode),
-              let sentenceEmbedding = NLEmbedding.sentenceEmbedding(for: language)
-        else {
+        let language = NLLanguage(rawValue: languageCode)
+        guard let sentenceEmbedding = NLEmbedding.sentenceEmbedding(for: language) else {
             throw EmbeddingError.modelUnavailable
         }
 
