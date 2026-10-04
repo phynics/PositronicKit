@@ -451,6 +451,9 @@ public final class MockLLMService: LLMStreamClient, HealthCheckable {
         var modelTierHistory: [ModelTier] = []
         var lastGenerationCapture: MockLLMGenerationCapture?
         var generationCaptureHistory: [MockLLMGenerationCapture] = []
+        var stubbedCompletion: LLMStreamChunk?
+        var lastCompletionCapture: MockLLMGenerationCapture?
+        var completionCaptureHistory: [MockLLMGenerationCapture] = []
     }
 
     private let state = Mutex(State())
@@ -506,6 +509,13 @@ public final class MockLLMService: LLMStreamClient, HealthCheckable {
         set { state.withLock { $0.stubbedStream = newValue } }
     }
 
+    /// Overrides the chunk returned by `generationCompletion`. When `nil`, the completion
+    /// delegates to the mock client's non-streaming fold.
+    public var stubbedCompletion: LLMStreamChunk? {
+        get { state.withLock { $0.stubbedCompletion } }
+        set { state.withLock { $0.stubbedCompletion = newValue } }
+    }
+
     public var lastGenerationRequest: LLMGenerationRequest? {
         state.withLock { $0.lastGenerationRequest }
     }
@@ -531,6 +541,16 @@ public final class MockLLMService: LLMStreamClient, HealthCheckable {
     /// Complete service-level generation captures, including calls returning `stubbedStream`.
     public var generationCaptureHistory: [MockLLMGenerationCapture] {
         state.withLock { $0.generationCaptureHistory }
+    }
+
+    /// The most recent non-streaming completion request, including calls that fail.
+    public var lastCompletionCapture: MockLLMGenerationCapture? {
+        state.withLock { $0.lastCompletionCapture }
+    }
+
+    /// Complete service-level completion captures in atomic admission order.
+    public var completionCaptureHistory: [MockLLMGenerationCapture] {
+        state.withLock { $0.completionCaptureHistory }
     }
 
     public init() {}
@@ -620,6 +640,50 @@ public final class MockLLMService: LLMStreamClient, HealthCheckable {
             toolChoice: toolChoice,
             responseFormat: responseFormat,
             generationParameters: generationParameters
+        )
+    }
+
+    public func generationCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async throws -> LLMStreamChunk {
+        let target = state.withLock { state -> (
+            stubbed: LLMStreamChunk?,
+            client: MockLLMClient,
+            error: any Error?
+        ) in
+            let capture = MockLLMGenerationCapture(
+                messages: messages,
+                tools: tools,
+                toolChoice: toolChoice,
+                responseFormat: responseFormat,
+                generationParameters: generationParameters,
+                modelTier: modelTier
+            )
+            state.lastModelTier = modelTier
+            state.modelTierHistory.append(modelTier)
+            state.lastCompletionCapture = capture
+            state.completionCaptureHistory.append(capture)
+            let error: any Error? = state.mockClient.shouldThrowError ? state.mockClient.errorToThrow : nil
+            return (state.stubbedCompletion, state.mockClient, error)
+        }
+
+        if let error = target.error { throw error }
+        if let stubbed = target.stubbed { return stubbed }
+        return try await target.client.chatCompletion(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
         )
     }
 

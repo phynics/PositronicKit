@@ -64,6 +64,7 @@ struct TurnExecutionRequest: Sendable {
             String(request.includeSidecarMechanismPreamble),
             canonicalFingerprint(request.responseModalities.map(\.rawValue).sorted()),
             canonicalFingerprint(request.audioOutput),
+            String(describing: request.transport),
         ].joined(separator: "\u{1F}")
     }
 

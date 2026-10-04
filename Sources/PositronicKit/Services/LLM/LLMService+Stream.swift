@@ -80,4 +80,28 @@ public extension LLMService {
             audioOutput: audioOutput
         )
     }
+
+    func generationCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async throws -> LLMStreamChunk {
+        await prepareIfNeeded()
+        let resolved = try resolve(tier: modelTier)
+        let parameters = generationParameters ?? resolved.generationParameters
+        return try await resolved.client.chatCompletion(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: parameters,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
+        )
+    }
 }

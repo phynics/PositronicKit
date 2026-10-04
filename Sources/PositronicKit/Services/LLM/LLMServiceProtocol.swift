@@ -182,6 +182,23 @@ public protocol LLMStreamClient: Sendable {
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
+
+    /// Performs one non-streamed generation and returns the whole response as one terminal
+    /// chunk. See `LLMStreamChunk.folding(_:)` for the response shape.
+    ///
+    /// This is a requirement rather than only an extension method so a service that owns a
+    /// native completion path dispatches through `any LLMStreamClient`. The default
+    /// implementation collects `generationStream(...)` and folds the chunks.
+    func generationCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async throws -> LLMStreamChunk
 }
 
 public extension LLMStreamClient {
@@ -215,5 +232,40 @@ public extension LLMStreamClient {
             responseModalities: [.text],
             audioOutput: nil
         )
+    }
+
+    /// Completes a generation by folding the low-level stream into one terminal chunk.
+    ///
+    /// A conformer's native `generationCompletion(...)` override is reached through
+    /// `any LLMStreamClient`; conformers that only stream use this default.
+    func generationCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async throws -> LLMStreamChunk {
+        let stream = await generationStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
+        )
+        var chunks: [LLMStreamChunk] = []
+        for try await chunk in stream {
+            chunks.append(chunk)
+        }
+        guard let response = LLMStreamChunk.folding(chunks) else {
+            let provider = await configuration.activeProvider
+            throw LLMServiceError.emptyResponse(provider: provider.rawValue)
+        }
+        return response
     }
 }

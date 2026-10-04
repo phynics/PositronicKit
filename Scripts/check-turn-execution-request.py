@@ -62,6 +62,7 @@ REQUEST_LABELS = {
     "assemblyLogger": "promptAssemblyLogger",
     "responseModalities": "responseModalities",
     "audioOutput": "audioOutput",
+    "transport": "transport",
 }
 CONTEXT_LABELS = {
     "agentId": "agentID",

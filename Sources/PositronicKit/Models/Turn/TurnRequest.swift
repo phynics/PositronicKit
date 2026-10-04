@@ -27,6 +27,7 @@ struct TurnRequest: Sendable, CustomStringConvertible {
     let promptAssemblyLogger: Logger?
     let responseModalities: Set<ResponseModality>
     let audioOutput: AudioOutputOptions?
+    let transport: GenerationTransport
 
     init(
         timelineID: UUID,
@@ -43,7 +44,8 @@ struct TurnRequest: Sendable, CustomStringConvertible {
         includeSidecarMechanismPreamble: Bool = false,
         promptAssemblyLogger: Logger? = nil,
         responseModalities: Set<ResponseModality> = [.text],
-        audioOutput: AudioOutputOptions? = nil
+        audioOutput: AudioOutputOptions? = nil,
+        transport: GenerationTransport = .streaming
     ) {
         self.timelineID = timelineID
         self.requestID = requestID
@@ -60,6 +62,7 @@ struct TurnRequest: Sendable, CustomStringConvertible {
         self.promptAssemblyLogger = promptAssemblyLogger
         self.responseModalities = responseModalities
         self.audioOutput = audioOutput
+        self.transport = transport
     }
 
     /// Creates a turn with ordered multimodal user content.
@@ -78,7 +81,8 @@ struct TurnRequest: Sendable, CustomStringConvertible {
         includeSidecarMechanismPreamble: Bool = false,
         promptAssemblyLogger: Logger? = nil,
         responseModalities: Set<ResponseModality> = [.text],
-        audioOutput: AudioOutputOptions? = nil
+        audioOutput: AudioOutputOptions? = nil,
+        transport: GenerationTransport = .streaming
     ) {
         self.timelineID = timelineID
         self.requestID = requestID
@@ -95,6 +99,7 @@ struct TurnRequest: Sendable, CustomStringConvertible {
         self.promptAssemblyLogger = promptAssemblyLogger
         self.responseModalities = responseModalities
         self.audioOutput = audioOutput
+        self.transport = transport
     }
 
     var description: String {

@@ -8,7 +8,8 @@ public extension LLMStreamClient {
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60,
-        modelTier: ModelTier = .primary
+        modelTier: ModelTier = .primary,
+        transport: GenerationTransport = .streaming
     ) async throws -> String {
         try await sendStructuredMessage(
             content,
@@ -16,7 +17,8 @@ public extension LLMStreamClient {
             generationParameters: generationParameters,
             idleTimeout: idleTimeout,
             clock: ContinuousRuntimeClock(),
-            modelTier: modelTier
+            modelTier: modelTier,
+            transport: transport
         )
     }
 
@@ -25,7 +27,8 @@ public extension LLMStreamClient {
         tools: [LLMToolDefinition]? = nil,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
-        modelTier: ModelTier = .primary
+        modelTier: ModelTier = .primary,
+        transport: GenerationTransport = .streaming
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let prepared = StructuredOutputExecution.prepareRequest(
             messages: messages,
@@ -34,13 +37,16 @@ public extension LLMStreamClient {
             output: structuredOutput
         )
 
-        let stream = await generationStream(
+        let stream = await generation(
+            transport: transport,
             messages: prepared.messages,
             tools: prepared.tools,
             toolChoice: prepared.toolChoice,
             responseFormat: prepared.responseFormat,
             generationParameters: generationParameters,
-            modelTier: modelTier
+            modelTier: modelTier,
+            responseModalities: [.text],
+            audioOutput: nil
         )
 
         guard let syntheticToolName = prepared.syntheticToolName else {
@@ -57,7 +63,8 @@ public extension LLMStreamClient {
         generationParameters: GenerationParameters? = nil,
         modelTier: ModelTier = .primary,
         responseModalities: Set<ResponseModality>,
-        audioOutput: AudioOutputOptions?
+        audioOutput: AudioOutputOptions?,
+        transport: GenerationTransport = .streaming
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let prepared = StructuredOutputExecution.prepareRequest(
             messages: messages,
@@ -65,7 +72,8 @@ public extension LLMStreamClient {
             adapter: await structuredOutputAdapter(for: modelTier),
             output: structuredOutput
         )
-        let stream = await generationStream(
+        let stream = await generation(
+            transport: transport,
             messages: prepared.messages,
             tools: prepared.tools,
             toolChoice: prepared.toolChoice,
@@ -85,13 +93,15 @@ public extension LLMStreamClient {
         as type: T.Type = T.self,
         decoder: JSONDecoder = SerializationUtils.jsonDecoder,
         generationParameters: GenerationParameters? = nil,
-        modelTier: ModelTier = .primary
+        modelTier: ModelTier = .primary,
+        transport: GenerationTransport = .streaming
     ) async throws -> T {
         let response = try await sendStructuredMessage(
             content,
             structuredOutput: structuredOutput,
             generationParameters: generationParameters,
-            modelTier: modelTier
+            modelTier: modelTier,
+            transport: transport
         )
 
         return try StructuredOutputDecoder.decode(type, from: response, decoder: decoder)
@@ -108,14 +118,16 @@ package extension LLMStreamClient {
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60,
         clock: any RuntimeClock,
-        modelTier: ModelTier = .primary
+        modelTier: ModelTier = .primary,
+        transport: GenerationTransport = .streaming
     ) async throws -> String {
         let stream = await generationStream(
             messages: [LLMMessage(role: .user, content: content)],
             tools: nil,
             structuredOutput: structuredOutput,
             generationParameters: generationParameters,
-            modelTier: modelTier
+            modelTier: modelTier,
+            transport: transport
         )
 
         let provider = await configuration.activeProvider

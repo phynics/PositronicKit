@@ -44,6 +44,10 @@ public struct TurnOptions: Sendable {
     /// Optional audio output configuration.
     public let audioOutput: AudioOutputOptions?
 
+    /// The provider transport this Turn uses. Streaming remains the default; `.requestResponse`
+    /// asks the provider for one complete response and delivers it as a single terminal chunk.
+    public let transport: GenerationTransport
+
     /// Creates per-Turn options without repeating the destination TimelineRecord identity.
     public init(
         requestID: UUID? = nil,
@@ -57,7 +61,8 @@ public struct TurnOptions: Sendable {
         includeSidecarMechanismPreamble: Bool = false,
         promptAssemblyLogger: Logger? = nil,
         responseModalities: Set<ResponseModality> = [.text],
-        audioOutput: AudioOutputOptions? = nil
+        audioOutput: AudioOutputOptions? = nil,
+        transport: GenerationTransport = .streaming
     ) {
         self.requestID = requestID
         self.tools = tools.map { AnyTool($0) }
@@ -71,6 +76,7 @@ public struct TurnOptions: Sendable {
         self.promptAssemblyLogger = promptAssemblyLogger
         self.responseModalities = responseModalities
         self.audioOutput = audioOutput
+        self.transport = transport
     }
 
     func makeRequest(
@@ -93,7 +99,8 @@ public struct TurnOptions: Sendable {
             includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
             promptAssemblyLogger: promptAssemblyLogger,
             responseModalities: responseModalities,
-            audioOutput: audioOutput
+            audioOutput: audioOutput,
+            transport: transport
         )
     }
 }
