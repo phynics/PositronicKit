@@ -13,7 +13,7 @@ struct OpenRouterChatResponse: Codable {
     struct Choice: Codable {
         let index: Int
         let message: OpenRouterMessage
-        let finishReason: String
+        let finishReason: String?
 
         enum CodingKeys: String, CodingKey {
             case index, message
@@ -25,17 +25,73 @@ struct OpenRouterChatResponse: Codable {
     let model: String
     let choices: [Choice]
     let usage: OpenRouterUsage?
+
+    func toLLMStreamChunk(audioFormat: AudioFormat? = nil) -> LLMStreamChunk {
+        LLMStreamChunk(
+            id: id,
+            model: model,
+            choices: choices.map { choice in
+                let calls = choice.message.toolCalls?.enumerated().map { index, call in
+                    LLMToolCallDelta(
+                        index: index,
+                        id: call.id,
+                        function: LLMToolCallDeltaFunction(name: call.function.name, arguments: call.function.arguments)
+                    )
+                }
+                return LLMStreamChoice(
+                    index: choice.index,
+                    delta: LLMStreamDelta(
+                        role: .assistant,
+                        content: choice.message.content?.text,
+                        reasoning: choice.message.reasoning,
+                        audio: choice.message.audio.flatMap { audio in
+                            guard let audioFormat else { return nil }
+                            let continuation: AudioContinuationReference? = audio.expiresAt.map {
+                                .init(provider: .openRouter, id: audio.id, expiresAt: Date(timeIntervalSince1970: TimeInterval($0)))
+                            }
+                            return LLMAudioDelta(
+                                data: audio.data.flatMap { Data(base64Encoded: $0) } ?? Data(),
+                                format: audioFormat,
+                                transcript: audio.transcript,
+                                continuation: continuation
+                            )
+                        },
+                        toolCalls: calls
+                    ),
+                    finishReason: choice.finishReason.map { FinishReason(wireValue: $0).wireValue }
+                )
+            },
+            usage: usage.map {
+                LLMTokenUsage(
+                    promptTokens: $0.promptTokens,
+                    completionTokens: $0.completionTokens,
+                    totalTokens: $0.totalTokens,
+                    promptTokensDetails: .init(cachedTokens: $0.promptTokensDetails?.cachedTokens)
+                )
+            }
+        )
+    }
 }
 
 struct OpenRouterUsage: Codable {
     let promptTokens: Int?
     let completionTokens: Int?
     let totalTokens: Int?
+    let promptTokensDetails: PromptTokensDetails?
+
+    struct PromptTokensDetails: Codable {
+        let cachedTokens: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case cachedTokens = "cached_tokens"
+        }
+    }
 
     enum CodingKeys: String, CodingKey {
         case promptTokens = "prompt_tokens"
         case completionTokens = "completion_tokens"
         case totalTokens = "total_tokens"
+        case promptTokensDetails = "prompt_tokens_details"
     }
 }
 
@@ -70,7 +126,7 @@ struct OpenRouterChatRequest: Codable {
 
 struct OpenRouterMessage: Codable {
     let role: String
-    let content: OpenRouterMessageContent
+    let content: OpenRouterMessageContent?
     let name: String?
     let toolCallID: String?
     let toolCalls: [OpenRouterToolCall]?
@@ -125,6 +181,14 @@ struct OpenRouterMessage: Codable {
 
 struct OpenRouterAssistantAudio: Codable {
     let id: String
+    var data: String? = nil
+    var transcript: String? = nil
+    var expiresAt: Int? = nil
+
+    enum CodingKeys: String, CodingKey {
+        case id, data, transcript
+        case expiresAt = "expires_at"
+    }
 }
 
 enum OpenRouterMessageContent: Codable {

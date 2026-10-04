@@ -148,12 +148,48 @@ public actor OllamaClient: LLMClientProtocol {
         }
     }
 
+    /// Sends a non-streaming chat completion to the Ollama server.
+    public func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality> = [.text],
+        audioOutput: AudioOutputOptions? = nil
+    ) async throws -> LLMStreamChunk {
+        guard !responseModalities.contains(.audio), audioOutput == nil else {
+            throw MultimodalContentError.missingCapability(.audioOutput)
+        }
+        let request = try buildRequest(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            stream: false
+        )
+        let response = try await RetryPolicy.retry(maxRetries: maxRetries) {
+            try await HTTPHelpers.fetchDecodable(
+                OllamaChatResponse.self,
+                for: request,
+                transport: self.transport,
+                provider: "Ollama"
+            )
+        }
+        guard let chunk = convertToChunk(response) else {
+            throw LLMServiceError.unexpectedResponse(provider: "Ollama", reason: "chat completion response contained no assistant output")
+        }
+        return chunk
+    }
+
     private func buildRequest(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
         toolChoice: LLMToolChoice?,
         responseFormat: LLMResponseFormat?,
-        generationParameters: GenerationParameters?
+        generationParameters: GenerationParameters?,
+        stream: Bool = true
     ) throws -> URLRequest {
         guard let chatURL = endpoint.chatURL else {
             throw LLMServiceError.invalidConfiguration
@@ -181,7 +217,7 @@ public actor OllamaClient: LLMClientProtocol {
         let payload = OllamaChatRequest(
             model: modelName,
             messages: try messages.map { try OllamaMessage(validating: $0, logger: logger) },
-            stream: true,
+            stream: stream,
             format: format,
             tools: toolChoice == .some(LLMToolChoice.none) ? nil : tools?.map { OllamaTool(from: $0) },
             options: OllamaOptions(from: generationParameters)

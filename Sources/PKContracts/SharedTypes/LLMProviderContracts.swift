@@ -397,6 +397,18 @@ public protocol LLMClientProtocol: Sendable {
         generationParameters: GenerationParameters?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
 
+    /// Performs one non-streamed chat completion and returns the whole response as one
+    /// terminal chunk. See `LLMStreamChunk.folding(_:)` for the response shape.
+    func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async throws -> LLMStreamChunk
+
     /// Streams a chat completion with explicit output modalities.
     func chatStream(
         messages: [LLMMessage],
@@ -452,23 +464,79 @@ public extension LLMClientProtocol {
         nil
     }
 
+    /// Completes a chat request with text-only output.
+    ///
+    /// This convenience forwards to the seven-argument `chatCompletion(...)` requirement, so a
+    /// provider's native implementation still dispatches when callers hold `any LLMClientProtocol`.
+    /// Default arguments on an extension method are statically dispatched and would otherwise
+    /// bypass the witness table.
+    func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?
+    ) async throws -> LLMStreamChunk {
+        try await chatCompletion(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: [.text],
+            audioOutput: nil
+        )
+    }
+
+    /// Completes a chat request by folding the client's stream into one response chunk.
+    /// Providers can override this requirement to use a native non-streaming endpoint.
+    func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async throws -> LLMStreamChunk {
+        let stream = await chatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
+        )
+        var chunks: [LLMStreamChunk] = []
+        for try await chunk in stream {
+            chunks.append(chunk)
+        }
+        guard let response = LLMStreamChunk.folding(chunks) else {
+            throw LLMServiceError.emptyResponse(provider: "LLM")
+        }
+        return response
+    }
+
     /// Sends a single user message and returns the full accumulated text response.
     ///
-    /// Transient-error retries belong to `chatStream`; an override must not add a second
+    /// Transient-error retries belong to `chatCompletion`; an override must not add a second
     /// retry loop around it.
     func sendMessage(
         _ content: String,
         responseFormat: LLMResponseFormat? = nil,
         generationParameters: GenerationParameters? = nil
     ) async throws -> String {
-        let stream = await chatStream(
+        let chunk = try await chatCompletion(
             messages: [LLMMessage(role: .user, content: content)],
             tools: nil,
             toolChoice: nil,
             responseFormat: responseFormat,
-            generationParameters: generationParameters
+            generationParameters: generationParameters,
+            responseModalities: [.text],
+            audioOutput: nil
         )
-        return try await accumulateStreamContent(from: stream)
+        return chunk.choices.first?.delta.content ?? ""
     }
 }
 

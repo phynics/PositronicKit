@@ -57,6 +57,17 @@ struct ToolCallRegressionTests {
             modelRoundIndex: 1,
             outputs: TurnOutputs()
         )
+        try await persistence.saveTimeline(TimelineRecord(id: context.timelineID))
+        _ = try await persistence.admitTurn(
+            timelineID: context.timelineID,
+            requestID: context.requestId,
+            callerIntentFingerprint: "tool-call-regression",
+            inputMessage: nil,
+            executionKind: context.executionKind,
+            capturedAgentID: context.agentId,
+            turnID: context.turnID,
+            now: Date()
+        )
 
         // Chunk 1: PKTool call start
         let chunk1 = ToolCallDelta(

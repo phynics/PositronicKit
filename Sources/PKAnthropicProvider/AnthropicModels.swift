@@ -27,6 +27,40 @@ struct AnthropicChatRequest: Encodable {
     }
 }
 
+struct AnthropicChatResponse: Decodable {
+    struct ContentBlock: Decodable {
+        let type: String
+        let text: String?
+        let thinking: String?
+        let id: String?
+        let name: String?
+        let input: AnyCodable?
+    }
+
+    struct Usage: Decodable {
+        let inputTokens: Int?
+        let outputTokens: Int?
+        let cacheReadInputTokens: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case inputTokens = "input_tokens"
+            case outputTokens = "output_tokens"
+            case cacheReadInputTokens = "cache_read_input_tokens"
+        }
+    }
+
+    let id: String
+    let model: String
+    let content: [ContentBlock]
+    let stopReason: String?
+    let usage: Usage?
+
+    enum CodingKeys: String, CodingKey {
+        case id, model, content, usage
+        case stopReason = "stop_reason"
+    }
+}
+
 struct AnthropicMessage: Encodable, Equatable {
     let role: String
     var content: [AnthropicContentBlock]
