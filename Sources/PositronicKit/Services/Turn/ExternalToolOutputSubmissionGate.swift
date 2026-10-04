@@ -94,14 +94,14 @@ actor ExternalToolOutputSubmissionGate {
     /// Persists validated tool output messages. Already-persisted outputs are skipped so a
     /// partially failed batch can be retried without duplication (resumable batch support).
     ///
-    /// External output is intentionally message-only. The source Turn has already become terminal
-    /// after external deferral, and `ToolOutputSubmission` does not carry its originating Turn ID;
-    /// recording a `RuntimeToolResult` here would either attach it to the wrong Turn or reopen the
-    /// terminal lifecycle. Runtime-local results use `TimelineRuntimeRepository`'s atomic result plus
-    /// message boundary in `ToolRouter` instead.
+    /// External output is a message accepted by the current Turn, without a RuntimeToolResult on
+    /// the originating (already-terminal) Turn. Record its membership on the current Turn; the
+    /// source Turn cannot be reopened. Runtime-local results use the atomic result-plus-message
+    /// boundary in `ToolRouter` instead.
     func commit(
         _ validatedOutputs: [ToolOutputSubmission],
         timelineID: UUID,
+        turnID: UUID,
         runtimeRepository: any TimelineRuntimeRepository
     ) async throws {
         guard !validatedOutputs.isEmpty else { return }
@@ -123,7 +123,7 @@ actor ExternalToolOutputSubmissionGate {
                 content: output.output,
                 toolCallID: output.toolCallID
             )
-            try await runtimeRepository.saveMessage(msg)
+            try await runtimeRepository.recordTurnMessage(msg, turnID: turnID)
         }
 
         // Release reservations for all validated outputs (persisted or already-present).

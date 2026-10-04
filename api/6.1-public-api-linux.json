@@ -11884,6 +11884,16 @@
       "declaration": "var mockHealthDetails: [String : String]? { get set }"
     },
     {
+      "precise": "s:13PKTestSupport22MockPersistenceServiceC17recordTurnMessage_6turnIDy13PositronicKit08TimelineH0V_20FoundationEssentials4UUIDVtYaKF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "MockPersistenceService",
+        "recordTurnMessage(_:turnID:)"
+      ],
+      "declaration": "func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws"
+    },
+    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC17releaseQuarantine10timelineID04turnI012confirmation3now13PositronicKit10TurnRecordV20FoundationEssentials4UUIDV_AnI0G19ReleaseConfirmationVAL4DateVtYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -13603,6 +13613,16 @@
       "declaration": "let capturedAgentID: UUID?"
     },
     {
+      "precise": "s:13PositronicKit10TurnRecordV16memberMessageIDsSay20FoundationEssentials4UUIDVGSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnRecord",
+        "memberMessageIDs"
+      ],
+      "declaration": "var memberMessageIDs: [UUID]?"
+    },
+    {
       "precise": "s:13PositronicKit10TurnRecordV17terminalMessageID20FoundationEssentials4UUIDVSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -13653,14 +13673,14 @@
       "declaration": "var outcome: TurnOutcome?"
     },
     {
-      "precise": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation10quarantine14terminalHandle0y7MessageG09createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAYSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgAA0C10QuarantineVSgAA0c8TerminalZ0VSgA2_AW4DateVA25_tcfc",
+      "precise": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation10quarantine14terminalHandle0y7MessageG016memberMessageIDs9createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAZSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgAA0C10QuarantineVSgAA0c8TerminalZ0VSgA3_SayAZGSgAX4DateVA28_tcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "TurnRecord",
-        "init(identity:timelineID:callerIntent:executionKind:capturedAgentID:lifecycle:currentModelRoundIndex:outcome:notices:correlations:retryRelation:quarantine:terminalHandle:terminalMessageID:createdAt:updatedAt:)"
+        "init(identity:timelineID:callerIntent:executionKind:capturedAgentID:lifecycle:currentModelRoundIndex:outcome:notices:correlations:retryRelation:quarantine:terminalHandle:terminalMessageID:memberMessageIDs:createdAt:updatedAt:)"
       ],
-      "declaration": "init(identity: TurnIdentity, timelineID: UUID, callerIntent: TurnCallerIntent, executionKind: TurnExecutionKind = .agentManaged, capturedAgentID: UUID? = nil, lifecycle: TurnLifecycle = .admitted, currentModelRoundIndex: Int? = nil, outcome: TurnOutcome? = nil, notices: [TurnNotice] = [], correlations: [TurnCorrelation] = [], retryRelation: TurnRetryRelation? = nil, quarantine: TurnQuarantine? = nil, terminalHandle: TurnTerminalHandle? = nil, terminalMessageID: UUID? = nil, createdAt: Date = Date(), updatedAt: Date = Date())"
+      "declaration": "init(identity: TurnIdentity, timelineID: UUID, callerIntent: TurnCallerIntent, executionKind: TurnExecutionKind = .agentManaged, capturedAgentID: UUID? = nil, lifecycle: TurnLifecycle = .admitted, currentModelRoundIndex: Int? = nil, outcome: TurnOutcome? = nil, notices: [TurnNotice] = [], correlations: [TurnCorrelation] = [], retryRelation: TurnRetryRelation? = nil, quarantine: TurnQuarantine? = nil, terminalHandle: TurnTerminalHandle? = nil, terminalMessageID: UUID? = nil, memberMessageIDs: [UUID]? = nil, createdAt: Date = Date(), updatedAt: Date = Date())"
     },
     {
       "precise": "s:13PositronicKit10TurnRecordV8identity11PKContracts0C8IdentityVvp",
@@ -20111,6 +20131,26 @@
       "declaration": "func fetchCorrelations(turnID: UUID) async throws -> [TurnCorrelation]"
     },
     {
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineRuntimeRepository",
+        "fetchTurnMessages(turnID:)"
+      ],
+      "declaration": "func fetchTurnMessages(turnID: UUID) async throws -> [TimelineMessage]?"
+    },
+    {
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP17recordTurnMessage_6turnIDyAA0cH0V_20FoundationEssentials4UUIDVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineRuntimeRepository",
+        "recordTurnMessage(_:turnID:)"
+      ],
+      "declaration": "func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws"
+    },
+    {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP17releaseQuarantine10timelineID04turnI012confirmation3nowAA10TurnRecordV20FoundationEssentials4UUIDV_AmA0G19ReleaseConfirmationVAK4DateVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -20179,6 +20219,16 @@
         "beginModelRound(turnID:modelRoundIndex:)"
       ],
       "declaration": "func beginModelRound(turnID: UUID, modelRoundIndex: Int) async throws"
+    },
+    {
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineRuntimeRepository",
+        "fetchTurnMessages(turnID:)"
+      ],
+      "declaration": "func fetchTurnMessages(turnID: UUID) async throws -> [TimelineMessage]?"
     },
     {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE21recordProviderRequest6turnID15modelRoundIndex11correlationy20FoundationEssentials4UUIDV_SiAA15TurnCorrelationVSgtYaKF",
@@ -21276,6 +21326,16 @@
       "declaration": "case confirmationRequired"
     },
     {
+      "precise": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO20memberMessageMissingyAC20FoundationEssentials4UUIDV_AGtcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TimelineRuntimeRepositoryError",
+        "memberMessageMissing(turnID:messageID:)"
+      ],
+      "declaration": "case memberMessageMissing(turnID: UUID, messageID: UUID)"
+    },
+    {
       "precise": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO20summarySourceMissingyAC20FoundationEssentials4UUIDV_tcACmF",
       "module": "PositronicKit",
       "kind": "swift.enum.case",
@@ -21672,6 +21732,16 @@
         "fetchCorrelations(turnID:)"
       ],
       "declaration": "func fetchCorrelations(turnID: UUID) async throws -> [TurnCorrelation]"
+    },
+    {
+      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC17recordTurnMessage_6turnIDyAA0eJ0V_20FoundationEssentials4UUIDVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "InMemoryTimelineRuntimeRepository",
+        "recordTurnMessage(_:turnID:)"
+      ],
+      "declaration": "func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws"
     },
     {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC17releaseQuarantine10timelineID04turnK012confirmation3nowAA10TurnRecordV20FoundationEssentials4UUIDV_AmA0I19ReleaseConfirmationVAK4DateVtYaKF",
@@ -38162,6 +38232,16 @@
       }
     },
     {
+      "module": "PositronicKit",
+      "kind": "defaultImplementationOf",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+        "displayName": "TimelineRuntimeRepository.fetchTurnMessages(turnID:)"
+      }
+    },
+    {
       "module": "PKContracts",
       "kind": "extensionTo",
       "source": "s:e:s:10JSONSchema6SchemaV11PKContractsE12asDictionarySDySSAD10AnyCodableOGvp",
@@ -47776,6 +47856,16 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC17recordTurnMessage_6turnIDy13PositronicKit08TimelineH0V_20FoundationEssentials4UUIDVtYaKF",
+      "target": "s:13PKTestSupport22MockPersistenceServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP17recordTurnMessage_6turnIDyAA0cH0V_20FoundationEssentials4UUIDVtYaKF",
+        "displayName": "TimelineRuntimeRepository.recordTurnMessage(_:turnID:)"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC17releaseQuarantine10timelineID04turnI012confirmation3now13PositronicKit10TurnRecordV20FoundationEssentials4UUIDV_AnI0G19ReleaseConfirmationVAL4DateVtYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -48936,6 +49026,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnRecordV16memberMessageIDsSay20FoundationEssentials4UUIDVGSgvp",
+      "target": "s:13PositronicKit10TurnRecordV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit10TurnRecordV17terminalMessageID20FoundationEssentials4UUIDVSgvp",
       "target": "s:13PositronicKit10TurnRecordV"
     },
@@ -48970,7 +49066,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation10quarantine14terminalHandle0y7MessageG09createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAYSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgAA0C10QuarantineVSgAA0c8TerminalZ0VSgA2_AW4DateVA25_tcfc",
+      "source": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation10quarantine14terminalHandle0y7MessageG016memberMessageIDs9createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAZSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgAA0C10QuarantineVSgAA0c8TerminalZ0VSgA3_SayAZGSgAX4DateVA28_tcfc",
       "target": "s:13PositronicKit10TurnRecordV"
     },
     {
@@ -52956,6 +53052,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO20memberMessageMissingyAC20FoundationEssentials4UUIDV_AGtcACmF",
+      "target": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO20summarySourceMissingyAC20FoundationEssentials4UUIDV_tcACmF",
       "target": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO"
     },
@@ -53307,6 +53409,16 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchCorrelations6turnIDSayAA15TurnCorrelationVG20FoundationEssentials4UUIDV_tYaKF",
         "displayName": "TimelineRuntimeRepository.fetchCorrelations(turnID:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC17recordTurnMessage_6turnIDyAA0eJ0V_20FoundationEssentials4UUIDVtYaKF",
+      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP17recordTurnMessage_6turnIDyAA0cH0V_20FoundationEssentials4UUIDVtYaKF",
+        "displayName": "TimelineRuntimeRepository.recordTurnMessage(_:turnID:)"
       }
     },
     {
@@ -54575,6 +54687,18 @@
       "module": "PositronicKit",
       "kind": "requirementOf",
       "source": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchCorrelations6turnIDSayAA15TurnCorrelationVG20FoundationEssentials4UUIDV_tYaKF",
+      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "requirementOf",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "requirementOf",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP17recordTurnMessage_6turnIDyAA0cH0V_20FoundationEssentials4UUIDVtYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
     {

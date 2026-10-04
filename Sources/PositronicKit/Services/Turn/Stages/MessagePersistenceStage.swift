@@ -60,7 +60,7 @@ struct MessagePersistenceStage: PipelineStage {
             )
             await context.outputs.setTerminalCompletionMetadata(metadata)
         } else {
-            try await runtimeRepository.saveMessage(assistantMsg)
+            try await runtimeRepository.recordTurnMessage(assistantMsg, turnID: context.turnID)
             await context.outputs.markAssistantResponseDurable()
         }
 
