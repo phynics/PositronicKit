@@ -129,6 +129,35 @@ data: [DONE]
         #expect(result == "")
     }
 
+    @Test("chatCompletion uses the native non-streaming endpoint and maps the response")
+    func nativeChatCompletionMapsResponse() async throws {
+        let body = #"{"id":"chatcmpl-2","object":"chat.completion","created":0,"model":"gpt-4o","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"hello"}}],"usage":{"prompt_tokens":2,"completion_tokens":3,"total_tokens":5}}"#
+        let server = try await makeJSONServer(body: body)
+        defer { server.stop() }
+        let client = OpenAIClient(
+            apiKey: "secret-key",
+            modelName: "gpt-4o",
+            host: "127.0.0.1",
+            port: Int(server.port),
+            scheme: "http",
+            timeoutInterval: 5.0,
+            maxRetries: 0
+        )
+
+        let response = try await client.chatCompletion(
+            messages: [LLMMessage(role: .user, content: "hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+
+        #expect(response.id == "chatcmpl-2")
+        #expect(response.choices.first?.delta.content == "hello")
+        #expect(response.choices.first?.finishReason == "stop")
+        #expect(response.usage?.totalTokens == 5)
+    }
+
     @Test("sendMessage propagates HTTP errors as LLMServiceError")
     func sendMessagePropagatesErrors() async throws {
         let server = try await makeJSONServer(

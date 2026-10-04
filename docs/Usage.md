@@ -3,6 +3,38 @@
 This guide documents the unreleased Next runtime. For production, start from the
 [stable tagged README](https://github.com/phynics/PositronicKit/blob/6.1.0/README.md).
 
+## Request-response transport
+
+To call a provider without streaming, use `LLMClientProtocol.chatCompletion(...)`. The result is
+one `LLMStreamChunk` containing the complete response, including reasoning, tool calls, generated
+audio, finish reasons, and token usage when the provider supplies them.
+
+```swift skip
+let response = try await client.chatCompletion(
+	messages: [LLMMessage(role: .user, content: "Summarize this report.")],
+	tools: nil,
+	toolChoice: nil,
+	responseFormat: nil,
+	generationParameters: nil,
+	responseModalities: [.text],
+	audioOutput: nil
+)
+let text = response.choices.first?.delta.content ?? ""
+```
+
+OpenAI, OpenRouter, Ollama, and Anthropic use native non-streaming endpoints. FoundationModels
+and clients without a native implementation use the default, which collects `chatStream` chunks
+and combines them with `LLMStreamChunk.folding(_:)`. A stream with no chunks throws
+`LLMServiceError.emptyResponse(provider:)`. OpenAI and OpenRouter support explicit audio output;
+Anthropic and Ollama reject audio-output requests.
+
+The default `sendMessage` calls `chatCompletion` and returns the first choice's text. OpenAI
+retains its streaming `sendMessage` override; call `chatCompletion` explicitly for a native
+non-streaming OpenAI request.
+
+Turns and `kit.model` continue to use streaming. The provider completion contract is the first
+phase of [issue #236](https://github.com/phynics/PositronicKit/issues/236).
+
 ## Manage Agents
 
 `Agent` is persistent identity, instructions, and continuity. Every Agent owns one primary Timeline

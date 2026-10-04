@@ -2697,6 +2697,16 @@
       "declaration": "let choices: [LLMStreamChoice]"
     },
     {
+      "precise": "s:11PKContracts14LLMStreamChunkV7foldingyACSgSayACGFZ",
+      "module": "PKContracts",
+      "kind": "swift.type.method",
+      "path": [
+        "LLMStreamChunk",
+        "folding(_:)"
+      ],
+      "declaration": "static func folding(_ chunks: [LLMStreamChunk]) -> LLMStreamChunk?"
+    },
+    {
       "precise": "s:11PKContracts14LLMStreamDeltaV",
       "module": "PKContracts",
       "kind": "swift.struct",
@@ -4019,6 +4029,26 @@
       "declaration": "func sendMessage(_ content: String, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async throws -> String"
     },
     {
+      "precise": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LLMClientProtocol",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
+      "precise": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParametersAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0qI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgtYaKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LLMClientProtocol",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async throws -> LLMStreamChunk"
+    },
+    {
       "precise": "s:11PKContracts17LLMClientProtocolP20fetchAvailableModelsSaySSGSgyYaKF",
       "module": "PKContracts",
       "kind": "swift.method",
@@ -4057,6 +4087,26 @@
         "sendMessage(_:responseFormat:generationParameters:)"
       ],
       "declaration": "func sendMessage(_ content: String, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil) async throws -> String"
+    },
+    {
+      "precise": "s:11PKContracts17LLMClientProtocolPAAE14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LLMClientProtocol",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
+      "precise": "s:11PKContracts17LLMClientProtocolPAAE14chatCompletion8messages5tools10toolChoice14responseFormat20generationParametersAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0qI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgtYaKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LLMClientProtocol",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async throws -> LLMStreamChunk"
     },
     {
       "precise": "s:11PKContracts17LLMClientProtocolPAAE20fetchAvailableModelsSaySSGSgyYaKF",
@@ -22864,6 +22914,16 @@
       "declaration": "func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
+      "precise": "s:16PKOllamaProvider12OllamaClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "module": "PKOllamaProvider",
+      "kind": "swift.method",
+      "path": [
+        "OllamaClient",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
       "precise": "s:16PKOllamaProvider12OllamaClientC20fetchAvailableModelsSaySSGSgyYaKF",
       "module": "PKOllamaProvider",
       "kind": "swift.method",
@@ -22962,6 +23022,16 @@
       "declaration": "func sendMessage(_ content: String, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil) async throws -> String"
     },
     {
+      "precise": "s:16PKOpenAIProvider12OpenAIClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.method",
+      "path": [
+        "OpenAIClient",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
       "precise": "s:16PKOpenAIProvider12OpenAIClientC20fetchAvailableModelsSaySSGSgyYaKF",
       "module": "PKOpenAIProvider",
       "kind": "swift.method",
@@ -23038,6 +23108,16 @@
         "chatStream(messages:tools:toolChoice:responseFormat:generationParameters:)"
       ],
       "declaration": "func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
+    },
+    {
+      "precise": "s:19PKAnthropicProvider15AnthropicClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "module": "PKAnthropicProvider",
+      "kind": "swift.method",
+      "path": [
+        "AnthropicClient",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
     },
     {
       "precise": "s:19PKAnthropicProvider15AnthropicClientC16defaultMaxTokensSivpZ",
@@ -23150,6 +23230,16 @@
         "applicationTitle"
       ],
       "declaration": "let applicationTitle: String?"
+    },
+    {
+      "precise": "s:20PKOpenRouterProvider04OpenB6ClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0L10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0wK0OSgAL011LLMResponseM0OSgAL010GenerationO0VSgShyAL16ResponseModalityOGAL05AudioR7OptionsVSgtYaKF",
+      "module": "PKOpenRouterProvider",
+      "kind": "swift.method",
+      "path": [
+        "OpenRouterClient",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
     },
     {
       "precise": "s:20PKOpenRouterProvider04OpenB6ClientC20fetchAvailableModelsSaySSGSgyYaKF",
@@ -37995,6 +38085,18 @@
     {
       "module": "PKContracts",
       "kind": "defaultImplementationOf",
+      "source": "s:11PKContracts17LLMClientProtocolPAAE14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+      "target": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "defaultImplementationOf",
+      "source": "s:11PKContracts17LLMClientProtocolPAAE14chatCompletion8messages5tools10toolChoice14responseFormat20generationParametersAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0qI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgtYaKF",
+      "target": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParametersAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0qI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgtYaKF"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "defaultImplementationOf",
       "source": "s:11PKContracts17LLMClientProtocolPAAE20fetchAvailableModelsSaySSGSgyYaKF",
       "target": "s:11PKContracts17LLMClientProtocolP20fetchAvailableModelsSaySSGSgyYaKF",
       "sourceOrigin": {
@@ -38332,6 +38434,16 @@
       "sourceOrigin": {
         "identifier": "s:11PKContracts17LLMClientProtocolP10chatStream8messages5tools10toolChoice14responseFormat20generationParametersScsyAA14LLMStreamChunkVs5Error_pGSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0rI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgtYaF",
         "displayName": "LLMClientProtocol.chatStream(messages:tools:toolChoice:responseFormat:generationParameters:)"
+      }
+    },
+    {
+      "module": "PKAnthropicProvider",
+      "kind": "memberOf",
+      "source": "s:19PKAnthropicProvider15AnthropicClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "target": "s:19PKAnthropicProvider15AnthropicClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+        "displayName": "LLMClientProtocol.chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
       }
     },
     {
@@ -39918,6 +40030,12 @@
       "module": "PKContracts",
       "kind": "memberOf",
       "source": "s:11PKContracts14LLMStreamChunkV7choicesSayAA0B6ChoiceVGvp",
+      "target": "s:11PKContracts14LLMStreamChunkV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14LLMStreamChunkV7foldingyACSgSayACGFZ",
       "target": "s:11PKContracts14LLMStreamChunkV"
     },
     {
@@ -44132,6 +44250,16 @@
     {
       "module": "PKOllamaProvider",
       "kind": "memberOf",
+      "source": "s:16PKOllamaProvider12OllamaClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "target": "s:16PKOllamaProvider12OllamaClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+        "displayName": "LLMClientProtocol.chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      }
+    },
+    {
+      "module": "PKOllamaProvider",
+      "kind": "memberOf",
       "source": "s:16PKOllamaProvider12OllamaClientC20fetchAvailableModelsSaySSGSgyYaKF",
       "target": "s:16PKOllamaProvider12OllamaClientC",
       "sourceOrigin": {
@@ -44232,6 +44360,16 @@
     {
       "module": "PKOpenAIProvider",
       "kind": "memberOf",
+      "source": "s:16PKOpenAIProvider12OpenAIClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "target": "s:16PKOpenAIProvider12OpenAIClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+        "displayName": "LLMClientProtocol.chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      }
+    },
+    {
+      "module": "PKOpenAIProvider",
+      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider12OpenAIClientC20fetchAvailableModelsSaySSGSgyYaKF",
       "target": "s:16PKOpenAIProvider12OpenAIClientC",
       "sourceOrigin": {
@@ -44298,6 +44436,16 @@
       "kind": "memberOf",
       "source": "s:20PKOpenRouterProvider04OpenB6ClientC11AttributionV16applicationTitleSSSgvp",
       "target": "s:20PKOpenRouterProvider04OpenB6ClientC11AttributionV"
+    },
+    {
+      "module": "PKOpenRouterProvider",
+      "kind": "memberOf",
+      "source": "s:20PKOpenRouterProvider04OpenB6ClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0L10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0wK0OSgAL011LLMResponseM0OSgAL010GenerationO0VSgShyAL16ResponseModalityOGAL05AudioR7OptionsVSgtYaKF",
+      "target": "s:20PKOpenRouterProvider04OpenB6ClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+        "displayName": "LLMClientProtocol.chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      }
     },
     {
       "module": "PKOpenRouterProvider",
@@ -54065,6 +54213,18 @@
       "module": "PKContracts",
       "kind": "requirementOf",
       "source": "s:11PKContracts17LLMClientProtocolP11sendMessage_14responseFormat20generationParametersS2S_AA011LLMResponseG0OSgAA010GenerationI0VSgtYaKF",
+      "target": "s:11PKContracts17LLMClientProtocolP"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "requirementOf",
+      "source": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+      "target": "s:11PKContracts17LLMClientProtocolP"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "requirementOf",
+      "source": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParametersAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0qI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgtYaKF",
       "target": "s:11PKContracts17LLMClientProtocolP"
     },
     {

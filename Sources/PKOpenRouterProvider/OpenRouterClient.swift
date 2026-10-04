@@ -395,37 +395,43 @@ public actor OpenRouterClient: LLMClientProtocol {
         guard choice.finishReason == "tool_calls" else { return nil }
         guard let toolCalls = choice.message.toolCalls, !toolCalls.isEmpty else { return nil }
 
-        let mappedToolCalls = toolCalls.enumerated().map { index, call in
-            LLMToolCallDelta(
-                index: index,
-                id: call.id,
-                function: LLMToolCallDeltaFunction(
-                    name: call.function.name,
-                    arguments: call.function.arguments
-                )
-            )
-        }
+        let chunk = response.toLLMStreamChunk()
+        return LLMStreamChunk(id: chunk.id, model: chunk.model, choices: Array(chunk.choices.prefix(1)), usage: chunk.usage)
+    }
 
-        return LLMStreamChunk(
-            id: response.id,
-            model: response.model,
-            choices: [LLMStreamChoice(
-                index: choice.index,
-                delta: LLMStreamDelta(
-                    role: .assistant,
-                    content: choice.message.content.text,
-                    toolCalls: mappedToolCalls
-                ),
-                finishReason: FinishReason(wireValue: choice.finishReason).wireValue
-            )],
-            usage: response.usage.map {
-                LLMTokenUsage(
-                    promptTokens: $0.promptTokens,
-                    completionTokens: $0.completionTokens,
-                    totalTokens: $0.totalTokens
-                )
-            }
+    /// Sends a non-streaming chat completion to the OpenRouter API.
+    public func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async throws -> LLMStreamChunk {
+        try validateLLMMessageHistory(messages)
+        let requestBody = OpenRouterChatRequest(
+            messages: messages.map { OpenRouterMessage($0, logger: logger) },
+            model: modelName,
+            frequencyPenalty: generationParameters?.frequencyPenalty,
+            maxCompletionTokens: generationParameters?.maxTokens,
+            presencePenalty: generationParameters?.presencePenalty,
+            responseFormat: mapResponseFormat(responseFormat),
+            seed: generationParameters?.seed,
+            temperature: generationParameters?.temperature,
+            toolChoice: mapToolChoice(toolChoice, tools: tools),
+            tools: tools?.map(OpenRouterTool.init),
+            topP: generationParameters?.topP,
+            stream: false,
+            streamOptions: nil,
+            modalities: responseModalities.contains(.audio) ? [.text, .audio] : nil,
+            audio: audioOutput
         )
+        let request = try buildChatRequest(query: requestBody)
+        let response = try await RetryPolicy.retry(maxRetries: maxRetries) {
+            try await self.fetchChatResponse(request: request)
+        }
+        return response.toLLMStreamChunk(audioFormat: audioOutput?.format)
     }
 
     /// Fetches the model IDs available from the OpenRouter models API.

@@ -8,6 +8,12 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- `LLMClientProtocol.chatCompletion(...)` and `LLMStreamChunk.folding(_:)` provide a provider-neutral
+  non-streaming completion path and preserve streamed text, reasoning, audio, tool calls, usage,
+  and parallel choices in one response.
+
 ## [6.1.0] - 2026-09-30
 
 ### Breaking

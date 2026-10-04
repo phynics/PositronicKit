@@ -166,35 +166,41 @@ extension ChatStreamResult {
 }
 
 extension ChatResult {
-    func toLLMToolCallRecoveryChunk() -> LLMStreamChunk? {
-        guard let choice = choices.first else { return nil }
-        guard choice.finishReason == ChatResult.Choice.FinishReason.toolCalls.rawValue else { return nil }
-        guard let toolCalls = choice.message.toolCalls, !toolCalls.isEmpty else { return nil }
-
-        let mappedToolCalls = toolCalls.enumerated().map { index, call in
-            LLMToolCallDelta(
-                index: index,
-                id: call.id,
-                function: LLMToolCallDeltaFunction(
-                    name: call.function.name,
-                    arguments: call.function.arguments
-                )
-            )
-        }
-
-        return LLMStreamChunk(
+    func toLLMStreamChunk(audioFormat: AudioFormat? = nil) -> LLMStreamChunk {
+        LLMStreamChunk(
             id: id,
             model: model,
-            choices: [LLMStreamChoice(
-                index: choice.index,
-                delta: LLMStreamDelta(
-                    role: .assistant,
-                    content: choice.message.content,
-                    reasoning: choice.message.reasoning,
-                    toolCalls: mappedToolCalls
-                ),
-                finishReason: FinishReason(wireValue: choice.finishReason).wireValue
-            )],
+            choices: choices.map { choice in
+                let toolCalls = choice.message.toolCalls?.enumerated().map { index, call in
+                    LLMToolCallDelta(
+                        index: index,
+                        id: call.id,
+                        function: LLMToolCallDeltaFunction(name: call.function.name, arguments: call.function.arguments)
+                    )
+                }
+                return LLMStreamChoice(
+                    index: choice.index,
+                    delta: LLMStreamDelta(
+                        role: .assistant,
+                        content: choice.message.content,
+                        reasoning: choice.message.reasoning,
+                        audio: choice.message.audio.flatMap { audio in
+                            guard let audioFormat else { return nil }
+                            return LLMAudioDelta(
+                                data: Data(base64Encoded: audio.data) ?? Data(),
+                                format: audioFormat,
+                                transcript: audio.transcript,
+                                continuation: .init(
+                                    provider: .openAI, id: audio.id,
+                                    expiresAt: Date(timeIntervalSince1970: TimeInterval(audio.expiresAt))
+                                )
+                            )
+                        },
+                        toolCalls: toolCalls
+                    ),
+                    finishReason: FinishReason(wireValue: choice.finishReason).wireValue
+                )
+            },
             usage: usage.map {
                 LLMTokenUsage(
                     promptTokens: $0.promptTokens,
@@ -204,6 +210,15 @@ extension ChatResult {
                 )
             }
         )
+    }
+
+    func toLLMToolCallRecoveryChunk() -> LLMStreamChunk? {
+        guard let choice = choices.first else { return nil }
+        guard choice.finishReason == ChatResult.Choice.FinishReason.toolCalls.rawValue else { return nil }
+        guard let toolCalls = choice.message.toolCalls, !toolCalls.isEmpty else { return nil }
+
+        let response = toLLMStreamChunk()
+        return LLMStreamChunk(id: response.id, model: response.model, choices: Array(response.choices.prefix(1)), usage: response.usage)
     }
 }
 

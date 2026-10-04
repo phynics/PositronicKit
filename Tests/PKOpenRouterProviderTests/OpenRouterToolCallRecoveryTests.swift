@@ -74,4 +74,16 @@ import Testing
 
         #expect(try client.makeToolCallRecoveryChunk(from: Data(json.utf8)) == nil)
     }
+
+    @Test("OpenRouter accepts null finish reason and tool-call content")
+    func nullableToolCallResponseDecodes() throws {
+        let json = #"{"id":"or-789","model":"openai/gpt-4o","choices":[{"index":0,"finish_reason":null,"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call_1","type":"function","function":{"name":"lookup","arguments":"{}"}}]}}]}"#
+
+        let response = try JSONDecoder().decode(OpenRouterChatResponse.self, from: Data(json.utf8))
+        let chunk = response.toLLMStreamChunk()
+
+        #expect(chunk.choices.first?.delta.content == nil)
+        #expect(chunk.choices.first?.finishReason == nil)
+        #expect(chunk.choices.first?.delta.toolCalls?.first?.function?.name == "lookup")
+    }
 }

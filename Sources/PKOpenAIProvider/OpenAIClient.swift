@@ -16,6 +16,7 @@ public actor OpenAIClient: LLMClientProtocol {
     private let client: OpenAI
     private let modelName: String
     private let maxRetries: Int
+    let transport: any ProviderHTTPTransport
     private let logger = Logger.module(named: "openai-client")
 
     /// Creates a client that talks to the given OpenAI-compatible endpoint over `URLSession`.
@@ -64,7 +65,8 @@ public actor OpenAIClient: LLMClientProtocol {
         maxRetries: Int = 3,
         session: URLSession,
         middlewares: [OpenAIMiddleware],
-        structuredOutputAdapter: any StructuredOutputAdapter = NativeJSONSchemaStructuredOutputAdapter()
+        structuredOutputAdapter: any StructuredOutputAdapter = NativeJSONSchemaStructuredOutputAdapter(),
+        transport: (any ProviderHTTPTransport)? = nil
     ) {
         let configuration = OpenAI.Configuration(
             token: apiKey,
@@ -77,6 +79,7 @@ public actor OpenAIClient: LLMClientProtocol {
         self.structuredOutputAdapter = structuredOutputAdapter
         self.modelName = modelName
         self.maxRetries = maxRetries
+        self.transport = transport ?? URLSessionProviderHTTPTransport(session: session)
     }
 
     /// Streams a chat completion from the OpenAI API with the default (text-only) output
@@ -116,36 +119,16 @@ public actor OpenAIClient: LLMClientProtocol {
         let client = self.client
         let logger = self.logger
         let maxRetries = self.maxRetries
-        let modelName = self.modelName
 
         return CancellableAsyncThrowingStream.make(of: LLMStreamChunk.self) { continuation in
             let recoveryState = Mutex(LLMToolCallRecoveryState())
 
             do {
                 try validateLLMMessageHistory(messages)
-                let mappedAudioOptions: ChatQuery.AudioOptions? = try audioOutput.map { options in
-                    guard let format = ChatQuery.AudioOptions.AudioOptionsResponseFormat(rawValue: options.format.rawValue),
-                          let voice = ChatQuery.AudioOptions.AudioOptionsSpeechVoice(rawValue: options.voice)
-                    else { throw MultimodalContentError.unsupportedAudioVoice(options.voice, provider: .openAI) }
-                    return .init(format: format, voice: voice)
-                }
-                let query = ChatQuery(
-                    messages: try messages.map { try $0.toOpenAIMessageParam() },
-                    model: modelName,
-                    modalities: responseModalities.contains(.audio) ? [.text, .audio] : nil,
-                    audioOptions: mappedAudioOptions,
-                    frequencyPenalty: generationParameters?.frequencyPenalty,
-                    maxCompletionTokens: generationParameters?.maxTokens,
-                    parallelToolCalls: tools != nil ? false : nil,
-                    presencePenalty: generationParameters?.presencePenalty,
-                    responseFormat: responseFormat?.toOpenAIResponseFormat(),
-                    seed: generationParameters?.seed,
-                    temperature: generationParameters?.temperature,
-                    toolChoice: toolChoice?.toOpenAIToolChoice() ?? (tools != nil ? .auto : nil),
-                    tools: tools?.map { $0.toOpenAIToolParam() },
-                    topP: generationParameters?.topP,
-                    stream: true,
-                    streamOptions: .init(includeUsage: true)
+                let query = try await self.makeChatQuery(
+                    messages: messages, tools: tools, toolChoice: toolChoice,
+                    responseFormat: responseFormat, generationParameters: generationParameters,
+                    responseModalities: responseModalities, audioOutput: audioOutput, stream: true
                 )
 
                 try await RetryPolicy.retry(
@@ -192,6 +175,112 @@ public actor OpenAIClient: LLMClientProtocol {
                 continuation.finish(throwing: error)
             }
         }
+    }
+
+    /// Sends a non-streaming chat completion to the OpenAI API.
+    public func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async throws -> LLMStreamChunk {
+        do {
+            try validateLLMMessageHistory(messages)
+            let query = try makeChatQuery(
+                messages: messages, tools: tools, toolChoice: toolChoice,
+                responseFormat: responseFormat, generationParameters: generationParameters,
+                responseModalities: responseModalities, audioOutput: audioOutput, stream: false
+            )
+            let result = try await RetryPolicy.retry(maxRetries: maxRetries) {
+                try await HTTPHelpers.fetchDecodable(
+                    ChatResult.self,
+                    for: self.makeChatCompletionRequest(query: query),
+                    transport: self.transport,
+                    provider: "OpenAI"
+                )
+            }
+            return result.toLLMStreamChunk(audioFormat: audioOutput?.format)
+        } catch {
+            throw mapProviderError(error, provider: "OpenAI")
+        }
+    }
+
+    /// Builds the non-streaming `/chat/completions` request without the SDK's transport.
+    ///
+    /// On Linux the SDK's `URLSession.data(for:)` path decodes error bodies as `ChatResult`,
+    /// which loses the HTTP status. Routing through `ProviderHTTPTransport` preserves the
+    /// typed `LLMServiceError.httpError` and the retry classification.
+    ///
+    /// - Important: Known asymmetry, marked for future review. Streaming calls run the SDK
+    ///   `OpenAIMiddleware` chain (`intercept(request:)`, `interceptStreamingData(...)`,
+    ///   `intercept(response:request:data:)`). This native non-streaming path bypasses that
+    ///   chain because it no longer uses the SDK's request builder or transport. The bearer
+    ///   token, organization identifier, and `Configuration.customHeaders` are re-applied here,
+    ///   but caller middleware is not invoked. Revisit when a consumer needs middleware on
+    ///   native completions, or thread the middleware chain through `ProviderHTTPTransport`.
+    private func makeChatCompletionRequest(query: ChatQuery) throws -> URLRequest {
+        let configuration = client.configuration
+        var components = URLComponents()
+        components.scheme = configuration.scheme
+        components.host = configuration.host
+        components.port = configuration.port
+        let basePath = configuration.basePath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        components.path = "/" + [basePath, "chat/completions"].filter { !$0.isEmpty }.joined(separator: "/")
+        guard let url = components.url else { throw LLMServiceError.invalidConfiguration }
+
+        var request = URLRequest(url: url, timeoutInterval: configuration.timeoutInterval)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = configuration.token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        if let organization = configuration.organizationIdentifier {
+            request.setValue(organization, forHTTPHeaderField: "OpenAI-Organization")
+        }
+        for (field, value) in configuration.customHeaders {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
+        request.httpBody = try JSONEncoder().encode(query)
+        return request
+    }
+
+    private func makeChatQuery(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        stream: Bool
+    ) throws -> ChatQuery {
+        let mappedAudioOptions: ChatQuery.AudioOptions? = try audioOutput.map { options in
+            guard let format = ChatQuery.AudioOptions.AudioOptionsResponseFormat(rawValue: options.format.rawValue),
+                  let voice = ChatQuery.AudioOptions.AudioOptionsSpeechVoice(rawValue: options.voice)
+            else { throw MultimodalContentError.unsupportedAudioVoice(options.voice, provider: .openAI) }
+            return .init(format: format, voice: voice)
+        }
+        return ChatQuery(
+            messages: try messages.map { try $0.toOpenAIMessageParam() },
+            model: modelName,
+            modalities: responseModalities.contains(.audio) ? [.text, .audio] : nil,
+            audioOptions: mappedAudioOptions,
+            frequencyPenalty: generationParameters?.frequencyPenalty,
+            maxCompletionTokens: generationParameters?.maxTokens,
+            parallelToolCalls: tools != nil ? false : nil,
+            presencePenalty: generationParameters?.presencePenalty,
+            responseFormat: responseFormat?.toOpenAIResponseFormat(),
+            seed: generationParameters?.seed,
+            temperature: generationParameters?.temperature,
+            toolChoice: toolChoice?.toOpenAIToolChoice() ?? (tools != nil ? .auto : nil),
+            tools: tools?.map { $0.toOpenAIToolParam() },
+            topP: generationParameters?.topP,
+            stream: stream,
+            streamOptions: stream ? .init(includeUsage: true) : nil
+        )
     }
 
     /// Sends a single user message and returns the full accumulated text response.

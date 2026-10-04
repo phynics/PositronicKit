@@ -46,7 +46,8 @@ struct OpenAITransportContractTests {
         port: UInt16,
         middleware: CapturingMiddleware,
         modelName: String = "gpt-4o",
-        maxRetries: Int = 3
+        maxRetries: Int = 3,
+        transport: (any ProviderHTTPTransport)? = nil
     ) -> OpenAIClient {
         OpenAIClient(
             apiKey: "secret-key",
@@ -56,7 +57,8 @@ struct OpenAITransportContractTests {
             scheme: "http",
             maxRetries: maxRetries,
             session: .shared,
-            middlewares: [middleware]
+            middlewares: [middleware],
+            transport: transport
         )
     }
 
@@ -280,5 +282,59 @@ data: {bad json
         }
 
         #expect(middleware.recordedRequests().count == 2)
+    }
+
+    @Test("Native completion maps content, reasoning, tools, audio, and usage through the protocol")
+    func nativeCompletionRequestAndResponse() async throws {
+        let transport = ScriptedProviderHTTPTransport(responses: [.dataResponse(Data(#"{"id":"id","object":"chat.completion","created":0,"model":"gpt-4o","choices":[{"index":0,"finish_reason":"tool_calls","message":{"role":"assistant","content":"hello","reasoning":"thinking","tool_calls":[{"id":"call-1","type":"function","function":{"name":"lookup","arguments":"{\"city\":\"Paris\"}"}}],"audio":{"id":"audio-1","data":"AQID","transcript":"hello","expires_at":2000000000}}}],"usage":{"prompt_tokens":2,"completion_tokens":3,"total_tokens":5,"prompt_tokens_details":{"audio_tokens":0,"cached_tokens":1}}}"#.utf8))])
+        let client: any LLMClientProtocol = makeClient(host: "127.0.0.1", port: 1, middleware: CapturingMiddleware(), maxRetries: 0, transport: transport)
+        let response = try await client.chatCompletion(
+            messages: [.init(role: .user, content: "hi")], tools: nil, toolChoice: nil,
+            responseFormat: nil, generationParameters: nil, responseModalities: [.text, .audio],
+            audioOutput: .init(format: .wav, voice: "alloy")
+        )
+        #expect(response.id == "id")
+        #expect(response.model == "gpt-4o")
+        #expect(response.choices.first?.delta.content == "hello")
+        #expect(response.choices.first?.delta.reasoning == "thinking")
+        #expect(response.choices.first?.delta.toolCalls == [.init(index: 0, id: "call-1", function: .init(name: "lookup", arguments: #"{"city":"Paris"}"#))])
+        #expect(response.choices.first?.delta.audio == .init(
+            data: Data([1, 2, 3]), format: .wav, transcript: "hello",
+            continuation: .init(provider: .openAI, id: "audio-1", expiresAt: Date(timeIntervalSince1970: 2_000_000_000))
+        ))
+        #expect(response.choices.first?.finishReason == "tool_calls")
+        #expect(response.usage?.totalTokens == 5)
+        #expect(response.usage?.promptTokensDetails?.cachedTokens == 1)
+        let body = try #require(await transport.lastRequestBody())
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["stream"] as? Bool == false)
+        #expect(json["stream_options"] == nil)
+        #expect(json["modalities"] as? [String] == ["text", "audio"])
+        #expect(json["audio"] as? [String: String] == ["format": "wav", "voice": "alloy"])
+        #expect(await transport.requestCount() == 1)
+    }
+
+    @Test("Native completion retries one transient HTTP error then returns success")
+    func nativeCompletionRetries() async throws {
+        let transport = ScriptedProviderHTTPTransport(responses: [
+            .dataResponse(Data(#"{"error":{"message":"unavailable"}}"#.utf8), statusCode: 503),
+            .dataResponse(Data(#"{"id":"id","object":"chat.completion","created":0,"model":"gpt-4o","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"success"}}]}"#.utf8)),
+        ])
+        let client: any LLMClientProtocol = makeClient(host: "127.0.0.1", port: 1, middleware: CapturingMiddleware(), maxRetries: 1, transport: transport)
+        let response = try await client.chatCompletion(messages: [.init(role: .user, content: "hi")], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil)
+        #expect(response.choices.first?.delta.content == "success")
+        #expect(await transport.requestCount() == 2)
+    }
+
+    @Test("Native completion maps non-2xx without retrying client errors")
+    func nativeCompletionHTTPError() async throws {
+        let transport = ScriptedProviderHTTPTransport(responses: [
+            .dataResponse(Data("denied".utf8), statusCode: 403),
+        ])
+        let client: any LLMClientProtocol = makeClient(host: "127.0.0.1", port: 1, middleware: CapturingMiddleware(), maxRetries: 1, transport: transport)
+        await #expect(throws: LLMServiceError.httpError(provider: "OpenAI", statusCode: 403, responseBody: "denied", retryAfter: nil)) {
+            _ = try await client.chatCompletion(messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil)
+        }
+        #expect(await transport.requestCount() == 1)
     }
 }
