@@ -211,11 +211,23 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
             lifecycle: .admitted,
             notices: [TurnNotice(kind: "turn-admitted", createdAt: now)],
             retryRelation: retryRelation,
+            memberMessageIDs: inputMessage.map { [$0.id] } ?? [],
             createdAt: now,
             updatedAt: now
         )
         if let inputMessage {
             if let existing = messages[timelineID]?.first(where: { $0.id == inputMessage.id }) {
+                // Reusing a durable input is only valid for a retry of the Turn that owns it.
+                // Otherwise admission would claim an unrelated writer's existing message.
+                guard let matching, retryRelation != nil else {
+                    throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: inputMessage.id)
+                }
+                // Older failed Turns predate membership tracking. Their membership is unknown,
+                // so preserve the legacy retry path and rely on the existing message equivalence
+                // check below rather than falsely treating unknown as unowned.
+                guard matching.memberMessageIDs == nil || matching.memberMessageIDs?.contains(inputMessage.id) == true else {
+                    throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: inputMessage.id)
+                }
                 guard messagesEquivalentIgnoringTimestamp(existing, inputMessage) else {
                     throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: inputMessage.id)
                 }
@@ -230,6 +242,20 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
 
     public func fetchTurn(id: UUID) async throws -> TurnRecord? {
         turns[id]
+    }
+
+    public func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws {
+        var turn = try openTurn(turnID, on: message.timelineID)
+        if messages[message.timelineID]?.contains(where: { $0.id == message.id }) == true,
+           turn.memberMessageIDs?.contains(message.id) != true
+        {
+            throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: message.id)
+        }
+        try appendMessage(message)
+        if turn.memberMessageIDs?.contains(message.id) == false {
+            turn.memberMessageIDs?.append(message.id)
+        }
+        turns[turnID] = turn
     }
 
     public func fetchActiveTurn(for timelineID: UUID) async throws -> TurnRecord? {
@@ -378,7 +404,16 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
                     actualTimelineID: finalMessage.timelineID
                 )
             }
+            // A pre-existing assistant message may be the current Turn's already-recorded
+            // intermediate row. Never claim an unrelated writer's row as a new member.
+            let alreadyPresent = messages[turn.timelineID]?.contains(where: { $0.id == finalMessage.id }) ?? false
+            if alreadyPresent, turn.memberMessageIDs?.contains(finalMessage.id) != true {
+                throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: finalMessage.id)
+            }
             try appendMessage(finalMessage)
+            if !alreadyPresent, turn.memberMessageIDs?.contains(finalMessage.id) == false {
+                turn.memberMessageIDs?.append(finalMessage.id)
+            }
         }
         turn.outcome = outcome
         turn.lifecycle = lifecycle(for: outcome)
@@ -546,7 +581,17 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
             throw TimelineRuntimeRepositoryError.duplicateToolResult(turnID: result.turnID, toolCallID: result.toolCallID)
         }
         // Validate the append before mutating either side of the transition.
-        if let message { try appendMessage(message) }
+        if let message {
+            if messages[message.timelineID]?.contains(where: { $0.id == message.id }) == true,
+               turn.memberMessageIDs?.contains(message.id) != true
+            {
+                throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: message.id)
+            }
+            try appendMessage(message)
+        }
+        if let message, turn.memberMessageIDs?.contains(message.id) == false {
+            turn.memberMessageIDs?.append(message.id)
+        }
         results[key] = result
         turn.lifecycle = .running
         turn.updatedAt = result.createdAt

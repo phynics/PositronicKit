@@ -276,6 +276,67 @@ struct AnthropicStreamDecodingTests {
         #expect(messages.count == 1)
         #expect(messages.first?["role"] as? String == "user")
     }
+
+    @Test("Native chat completion sends a non-streaming request and maps response data")
+    func nativeChatCompletionMapsResponse() async throws {
+        let transport = AnthropicTestTransport(responder: { request in
+            .data(Data(#"{"id":"msg_02","type":"message","role":"assistant","model":"claude-sonnet-4-5","content":[{"type":"thinking","thinking":"reasoned"},{"type":"text","text":"hello"},{"type":"tool_use","id":"call-1","name":"lookup","input":{"city":"Paris"}}],"stop_reason":"tool_use","usage":{"input_tokens":2,"output_tokens":3,"cache_read_input_tokens":1}}"#.utf8), HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil
+            )!)
+        })
+
+        let client: any LLMClientProtocol = makeClient(transport: transport)
+        let response = try await client.chatCompletion(
+            messages: [LLMMessage(role: .user, content: "hi")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+
+        #expect(response.id == "msg_02")
+        #expect(response.choices.first?.delta.content == "hello")
+        #expect(response.choices.first?.delta.reasoning == "reasoned")
+        #expect(response.choices.first?.finishReason == "tool_calls")
+        #expect(response.choices.first?.delta.toolCalls == [.init(index: 0, id: "call-1", function: .init(name: "lookup", arguments: #"{"city":"Paris"}"#))])
+        #expect(response.usage?.totalTokens == 5)
+        #expect(response.usage?.promptTokensDetails?.cachedTokens == 1)
+        let request = try #require(await transport.lastRequest())
+        let body = try #require(request.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["stream"] as? Bool == false)
+    }
+
+    @Test("Native completion retries a transient error once, then returns success")
+    func nativeCompletionRetries() async throws {
+        let transport = ScriptedProviderHTTPTransport(responses: [
+            .error(URLError(.timedOut)),
+            .dataResponse(Data(#"{"id":"id","model":"model","content":[{"type":"text","text":"success"}],"stop_reason":"end_turn"}"#.utf8)),
+        ])
+        let client: any LLMClientProtocol = makeClient(transport: transport, maxRetries: 1)
+        #expect(try await client.sendMessage("hi") == "success")
+        #expect(await transport.requestCount() == 2)
+    }
+
+    @Test("Native completion surfaces non-2xx without retrying client errors")
+    func nativeCompletionHTTPError() async throws {
+        let transport = ScriptedProviderHTTPTransport(responses: [.dataResponse(Data("denied".utf8), statusCode: 403)])
+        let client: any LLMClientProtocol = makeClient(transport: transport, maxRetries: 1)
+        await #expect(throws: LLMServiceError.httpError(provider: "Anthropic", statusCode: 403, responseBody: "denied", retryAfter: nil)) {
+            _ = try await client.chatCompletion(messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil)
+        }
+        #expect(await transport.requestCount() == 1)
+    }
+
+    @Test("Native completion rejects unsupported audio before transport")
+    func nativeCompletionRejectsAudio() async throws {
+        let transport = ScriptedProviderHTTPTransport()
+        let client: any LLMClientProtocol = makeClient(transport: transport)
+        await #expect(throws: MultimodalContentError.missingCapability(.audioOutput)) {
+            _ = try await client.chatCompletion(messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil, responseModalities: [.audio], audioOutput: nil)
+        }
+        #expect(await transport.requestCount() == 0)
+    }
 }
 
 @Suite("Anthropic stop reason mapping")

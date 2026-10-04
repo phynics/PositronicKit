@@ -407,6 +407,17 @@ extension MockPersistenceService {
     }
 
     public func fetchTurn(id: UUID) async throws -> TurnRecord? { recordPersistenceAccess(); return try await turnRuntime.fetchTurn(id: id) }
+    public func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws {
+        defer { recordPersistenceAccess() }
+        let shouldFail = state.withLock { state in
+            state.saveMessageCallCount += 1
+            guard let limit = state.saveMessageFailureAfter else { return false }
+            return state.saveMessageCallCount > limit
+        }
+        if shouldFail { throw FailingStoreError.saveFailed }
+        try await turnRuntime.recordTurnMessage(message, turnID: turnID)
+        try await messagesMock.saveMessage(message)
+    }
     public func fetchActiveTurn(for timelineID: UUID) async throws -> TurnRecord? { recordPersistenceAccess(); return try await turnRuntime.fetchActiveTurn(for: timelineID) }
     public func appendNotice(turnID: UUID, notice: TurnNotice) async throws { recordPersistenceAccess(); try await turnRuntime.appendNotice(turnID: turnID, notice: notice) }
     public func appendCorrelation(turnID: UUID, correlation: TurnCorrelation, now: Date) async throws { recordPersistenceAccess(); try await turnRuntime.appendCorrelation(turnID: turnID, correlation: correlation, now: now) }

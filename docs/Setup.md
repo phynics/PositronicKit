@@ -110,6 +110,14 @@ Turn execution always uses the configured `TimelineRuntimeRepository`. Independe
 and `timelinePersistence` values are not accepted by the facade or its Turn machinery; standalone
 managers that cannot execute a Turn may still use their narrower persistence seams.
 
+The repository also records ordered message IDs for each new Turn. Call
+`fetchTurnMessages(turnID:)` to read exactly the input, intermediate assistant and tool-result
+messages, and terminal message accepted by that Turn; unrelated Timeline writes are excluded.
+`nil` means the Turn is absent or its older stored record has unknown membership. An empty array
+means known-empty membership. Custom repositories must record IDs in the same transaction as
+admission, `recordTurnMessage(_:turnID:)`, tool results, and terminal completion. A retried Turn
+can refer to the same input ID without claiming the prior attempt's intermediate messages.
+
 Use `RuntimeCustomization` for the four bounded integration roles. Managed identity continuity is
 provided by `AgentContextSource`; additive, namespaced prompt context comes from
 `TurnContextSource`; `AgentActivitySink` receives best-effort lifecycle facts; and
@@ -249,7 +257,7 @@ Long-lived runtime services log through `Logger.module(...)` in the package-inte
 For package-defined errors, PositronicKit uses `ErrorKit` through `PKContracts.PKError`:
 
 - Package error types conform to `PKError`, with stable `PKErrorDomain` and `errorCode` values.
-- `TimelineRuntimeRepositoryError` uses `PKErrorDomain.timeline` codes `6101` through `6117`; `6118` is reserved.
+- `TimelineRuntimeRepositoryError` uses `PKErrorDomain.timeline` codes `6101` through `6119`.
 - `WorkspaceBindingRepositoryError` uses `PKErrorDomain.workspace` codes `3101` through `3103`.
 - `userFriendlyMessage` is the preferred surfaced message; when propagating nested failures, prefer `ErrorKit.userFriendlyMessage(for:)` over raw `localizedDescription`.
 - Durable `TurnOutcome.failed` values store the same user-facing message used to describe the original failure.

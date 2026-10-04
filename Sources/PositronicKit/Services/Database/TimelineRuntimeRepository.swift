@@ -154,6 +154,9 @@ public struct TurnRecord: Codable, Equatable, Sendable {
     public var terminalHandle: TurnTerminalHandle?
     /// The assistant message that represents a completed Turn, when one exists.
     public var terminalMessageID: UUID?
+    /// Message IDs produced or accepted by this Turn in repository write order. `nil` means
+    /// membership is unknown (for example, a record persisted before membership was tracked).
+    public var memberMessageIDs: [UUID]?
     public let createdAt: Date
     public var updatedAt: Date
 
@@ -162,7 +165,7 @@ public struct TurnRecord: Codable, Equatable, Sendable {
         case timelineID = "threadID"
         case callerIntent, executionKind, capturedAgentID, lifecycle, currentModelRoundIndex
         case outcome, notices, correlations, retryRelation, quarantine
-        case terminalHandle, terminalMessageID, createdAt, updatedAt
+        case terminalHandle, terminalMessageID, memberMessageIDs, createdAt, updatedAt
     }
 
     public init(
@@ -180,6 +183,7 @@ public struct TurnRecord: Codable, Equatable, Sendable {
         quarantine: TurnQuarantine? = nil,
         terminalHandle: TurnTerminalHandle? = nil,
         terminalMessageID: UUID? = nil,
+        memberMessageIDs: [UUID]? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -197,6 +201,7 @@ public struct TurnRecord: Codable, Equatable, Sendable {
         self.quarantine = quarantine
         self.terminalHandle = terminalHandle
         self.terminalMessageID = terminalMessageID
+        self.memberMessageIDs = memberMessageIDs
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -455,6 +460,7 @@ public enum TimelineRuntimeRepositoryError: Error, Equatable, Sendable, CustomSt
     case inputMessageTimelineMismatch(messageID: UUID, expectedTimelineID: UUID, actualTimelineID: UUID)
     case finalMessageTimelineMismatch(messageID: UUID, expectedTimelineID: UUID, actualTimelineID: UUID)
     case quarantineNotFound(timelineID: UUID, turnID: UUID)
+    case memberMessageMissing(turnID: UUID, messageID: UUID)
 
     private struct ErrorMetadata {
         let code: Int
@@ -508,6 +514,8 @@ public enum TimelineRuntimeRepositoryError: Error, Equatable, Sendable, CustomSt
                 code: 6118,
                 message: "Timeline \(timelineID) has no quarantined Turn \(turnID) to release."
             )
+        case let .memberMessageMissing(turnID, messageID):
+            return ErrorMetadata(code: 6119, message: "Turn \(turnID) references missing message \(messageID).")
         }
     }
 
@@ -587,6 +595,14 @@ public protocol TimelineRuntimeRepository: TimelinePersistenceProtocol, Timeline
     ) async throws -> TurnAdmission
 
     func fetchTurn(id: UUID) async throws -> TurnRecord?
+    /// Resolves exact Turn membership in write order. `nil` means the Turn is absent or its
+    /// membership was not recorded; an empty array means a known message-free Turn.
+    func fetchTurnMessages(turnID: UUID) async throws -> [TimelineMessage]?
+    /// Atomically appends a Turn-owned intermediate message and records its membership.
+    /// Conformers must update membership in this operation and in admission, tool-result, and
+    /// terminal transactions. The added requirement is a deliberate protocol break: a default
+    /// that only calls `saveMessage` would silently lose exact Turn membership.
+    func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws
     func fetchActiveTurn(for timelineID: UUID) async throws -> TurnRecord?
     /// Appends host-facing metadata without changing the Turn outcome. Notices may be recorded
     /// after terminal completion so best-effort customization failures remain observable.
@@ -653,6 +669,19 @@ public protocol TimelineSummaryStore: Sendable {
 }
 
 public extension TimelineRuntimeRepository {
+    func fetchTurnMessages(turnID: UUID) async throws -> [TimelineMessage]? {
+        guard let turn = try await fetchTurn(id: turnID), let ids = turn.memberMessageIDs else {
+            return nil
+        }
+        let byID = Dictionary(uniqueKeysWithValues: try await fetchMessages(for: turn.timelineID).map { ($0.id, $0) })
+        return try ids.map { id in
+            guard let message = byID[id] else {
+                throw TimelineRuntimeRepositoryError.memberMessageMissing(turnID: turnID, messageID: id)
+            }
+            return message
+        }
+    }
+
     func admitTurn(
         timelineID: UUID,
         requestID: UUID,

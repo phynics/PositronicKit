@@ -8,6 +8,21 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- `TurnRecord.memberMessageIDs` and `TimelineRuntimeRepository.fetchTurnMessages(turnID:)` expose
+  the exact ordered messages of a Turn, excluding unrelated Timeline writes. An absent list on
+  older records means unknown membership; a present empty list means no messages.
+- `LLMClientProtocol.chatCompletion(...)` and `LLMStreamChunk.folding(_:)` provide a provider-neutral
+  non-streaming completion path and preserve streamed text, reasoning, audio, tool calls, usage,
+  and parallel choices in one response.
+
+### Breaking
+
+- `TimelineRuntimeRepository` conformers must implement `recordTurnMessage(_:turnID:)` and record
+  membership atomically at admission, intermediate assistant/tool writes, and terminal commits.
+  `TimelineRuntimeRepositoryConformanceSuite` checks this invariant.
+
 ## [6.1.0] - 2026-09-30
 
 ### Breaking

@@ -134,6 +134,10 @@ actor FailingTerminalRepository: TimelineRuntimeRepository {
         try await base.fetchTurn(id: id)
     }
 
+    func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws {
+        try await base.recordTurnMessage(message, turnID: turnID)
+    }
+
     func fetchActiveTurn(for timelineID: UUID) async throws -> TurnRecord? {
         try await base.fetchActiveTurn(for: timelineID)
     }

@@ -222,4 +222,68 @@ struct OllamaClientTests {
         let messages = sink.all()
         #expect(messages.contains(where: { $0.contains("failed to decode as JSON at all") }))
     }
+
+    @Test("Native chat completion sends a non-streaming request and maps usage")
+    func nativeChatCompletionMapsResponse() async throws {
+        let transport = OllamaTestTransport(responder: { request in
+            .data(Data(#"{"model":"llama3","message":{"role":"assistant","content":"hello","thinking":"reasoned","tool_calls":[{"function":{"name":"lookup","arguments":{"city":"Paris"}}}]},"done":true,"done_reason":"stop","prompt_eval_count":2,"eval_count":3}"#.utf8), HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil
+            )!)
+        })
+        let client: any LLMClientProtocol = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3", maxRetries: 0, transport: transport)
+
+        let response = try await client.chatCompletion(
+            messages: [LLMMessage(role: .user, content: "hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+
+        #expect(response.choices.first?.delta.content == "hello")
+        #expect(response.choices.first?.delta.reasoning == "reasoned")
+        #expect(response.choices.first?.finishReason == "tool_calls")
+        let call = try #require(response.choices.first?.delta.toolCalls?.first)
+        #expect(call.index == 0)
+        #expect(call.id?.isEmpty == false)
+        #expect(call.function?.name == "lookup")
+        let arguments = try #require(call.function?.arguments)
+        #expect(try JSONSerialization.jsonObject(with: Data(arguments.utf8)) as? [String: String] == ["city": "Paris"])
+        #expect(response.usage?.totalTokens == 5)
+        let request = try #require(await transport.lastRequest())
+        let body = try #require(request.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["stream"] as? Bool == false)
+    }
+
+    @Test("Native completion retries a transient error once, then returns success")
+    func nativeCompletionRetries() async throws {
+        let transport = ScriptedProviderHTTPTransport(responses: [
+            .error(URLError(.timedOut)),
+            .dataResponse(Data(#"{"model":"llama3","message":{"role":"assistant","content":"success"},"done":true}"#.utf8)),
+        ])
+        let client: any LLMClientProtocol = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3", maxRetries: 1, transport: transport)
+        #expect(try await client.sendMessage("hi") == "success")
+        #expect(await transport.requestCount() == 2)
+    }
+
+    @Test("Native completion surfaces non-2xx without retrying client errors")
+    func nativeCompletionHTTPError() async throws {
+        let transport = ScriptedProviderHTTPTransport(responses: [.dataResponse(Data("denied".utf8), statusCode: 403)])
+        let client: any LLMClientProtocol = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3", maxRetries: 1, transport: transport)
+        await #expect(throws: LLMServiceError.httpError(provider: "Ollama", statusCode: 403, responseBody: "denied", retryAfter: nil)) {
+            _ = try await client.chatCompletion(messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil)
+        }
+        #expect(await transport.requestCount() == 1)
+    }
+
+    @Test("Native completion rejects unsupported audio before transport")
+    func nativeCompletionRejectsAudio() async throws {
+        let transport = ScriptedProviderHTTPTransport()
+        let client: any LLMClientProtocol = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3", transport: transport)
+        await #expect(throws: MultimodalContentError.missingCapability(.audioOutput)) {
+            _ = try await client.chatCompletion(messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil, responseModalities: [.audio], audioOutput: nil)
+        }
+        #expect(await transport.requestCount() == 0)
+    }
 }

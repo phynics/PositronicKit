@@ -210,7 +210,8 @@ public actor AnthropicClient: LLMClientProtocol {
         tools: [LLMToolDefinition]?,
         toolChoice: LLMToolChoice?,
         responseFormat: LLMResponseFormat?,
-        generationParameters: GenerationParameters?
+        generationParameters: GenerationParameters?,
+        stream: Bool = true
     ) throws -> URLRequest {
         switch responseFormat {
         case .jsonObject, .jsonSchema:
@@ -242,7 +243,7 @@ public actor AnthropicClient: LLMClientProtocol {
             toolChoice: mapToolChoice(toolChoice ?? (tools != nil ? .auto : nil)),
             temperature: generationParameters?.temperature,
             topP: generationParameters?.topP,
-            stream: true
+            stream: stream
         )
 
         var request = URLRequest(url: endpoint.appendingPathComponent("v1/messages"))
@@ -266,6 +267,72 @@ public actor AnthropicClient: LLMClientProtocol {
     }
 
     // MARK: - Convenience
+
+    /// Sends a non-streaming chat completion to the Anthropic Messages API.
+    public func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality> = [.text],
+        audioOutput: AudioOutputOptions? = nil
+    ) async throws -> LLMStreamChunk {
+        guard !responseModalities.contains(.audio), audioOutput == nil else {
+            throw MultimodalContentError.missingCapability(.audioOutput)
+        }
+        try validateLLMMessageHistory(messages)
+        let request = try buildChatRequest(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            stream: false
+        )
+        let response = try await RetryPolicy.retry(maxRetries: maxRetries) {
+            try await HTTPHelpers.fetchDecodable(
+                AnthropicChatResponse.self,
+                for: request,
+                transport: self.transport,
+                provider: "Anthropic"
+            )
+        }
+        let toolCalls = try response.content.filter { $0.type == "tool_use" }.enumerated().map { index, block in
+            let arguments = try block.input.map { String(decoding: try JSONEncoder().encode($0), as: UTF8.self) }
+            return LLMToolCallDelta(
+                index: index,
+                id: block.id,
+                function: LLMToolCallDeltaFunction(name: block.name, arguments: arguments)
+            )
+        }
+        let text = response.content.compactMap { $0.type == "text" ? $0.text : nil }.joined()
+        let reasoning = response.content.compactMap { $0.type == "thinking" ? $0.thinking : nil }.joined()
+        let usage = response.usage.map {
+            LLMTokenUsage(
+                promptTokens: $0.inputTokens,
+                completionTokens: $0.outputTokens,
+                totalTokens: ($0.inputTokens ?? 0) + ($0.outputTokens ?? 0),
+                promptTokensDetails: $0.cacheReadInputTokens.map { .init(cachedTokens: $0) }
+            )
+        }
+        let finishReason = response.stopReason.map { mapAnthropicStopReason($0).wireValue }
+        return LLMStreamChunk(
+            id: response.id,
+            model: response.model,
+            choices: [LLMStreamChoice(
+                index: 0,
+                delta: LLMStreamDelta(
+                    role: .assistant,
+                    content: text.isEmpty ? nil : text,
+                    reasoning: reasoning.isEmpty ? nil : reasoning,
+                    toolCalls: toolCalls.isEmpty ? nil : toolCalls
+                ),
+                finishReason: finishReason
+            )],
+            usage: usage
+        )
+    }
 
     /// Fetches the model IDs available from the Anthropic models API, sorted alphabetically.
     ///

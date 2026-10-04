@@ -2697,6 +2697,16 @@
       "declaration": "let choices: [LLMStreamChoice]"
     },
     {
+      "precise": "s:11PKContracts14LLMStreamChunkV7foldingyACSgSayACGFZ",
+      "module": "PKContracts",
+      "kind": "swift.type.method",
+      "path": [
+        "LLMStreamChunk",
+        "folding(_:)"
+      ],
+      "declaration": "static func folding(_ chunks: [LLMStreamChunk]) -> LLMStreamChunk?"
+    },
+    {
       "precise": "s:11PKContracts14LLMStreamDeltaV",
       "module": "PKContracts",
       "kind": "swift.struct",
@@ -4019,6 +4029,16 @@
       "declaration": "func sendMessage(_ content: String, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async throws -> String"
     },
     {
+      "precise": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LLMClientProtocol",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
       "precise": "s:11PKContracts17LLMClientProtocolP20fetchAvailableModelsSaySSGSgyYaKF",
       "module": "PKContracts",
       "kind": "swift.method",
@@ -4057,6 +4077,26 @@
         "sendMessage(_:responseFormat:generationParameters:)"
       ],
       "declaration": "func sendMessage(_ content: String, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil) async throws -> String"
+    },
+    {
+      "precise": "s:11PKContracts17LLMClientProtocolPAAE14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LLMClientProtocol",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
+      "precise": "s:11PKContracts17LLMClientProtocolPAAE14chatCompletion8messages5tools10toolChoice14responseFormat20generationParametersAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0qI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgtYaKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LLMClientProtocol",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async throws -> LLMStreamChunk"
     },
     {
       "precise": "s:11PKContracts17LLMClientProtocolPAAE20fetchAvailableModelsSaySSGSgyYaKF",
@@ -11884,6 +11924,16 @@
       "declaration": "var mockHealthDetails: [String : String]? { get set }"
     },
     {
+      "precise": "s:13PKTestSupport22MockPersistenceServiceC17recordTurnMessage_6turnIDy13PositronicKit08TimelineH0V_20FoundationEssentials4UUIDVtYaKF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "MockPersistenceService",
+        "recordTurnMessage(_:turnID:)"
+      ],
+      "declaration": "func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws"
+    },
+    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC17releaseQuarantine10timelineID04turnI012confirmation3now13PositronicKit10TurnRecordV20FoundationEssentials4UUIDV_AnI0G19ReleaseConfirmationVAL4DateVtYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -13603,6 +13653,16 @@
       "declaration": "let capturedAgentID: UUID?"
     },
     {
+      "precise": "s:13PositronicKit10TurnRecordV16memberMessageIDsSay20FoundationEssentials4UUIDVGSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnRecord",
+        "memberMessageIDs"
+      ],
+      "declaration": "var memberMessageIDs: [UUID]?"
+    },
+    {
       "precise": "s:13PositronicKit10TurnRecordV17terminalMessageID20FoundationEssentials4UUIDVSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -13653,14 +13713,14 @@
       "declaration": "var outcome: TurnOutcome?"
     },
     {
-      "precise": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation10quarantine14terminalHandle0y7MessageG09createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAYSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgAA0C10QuarantineVSgAA0c8TerminalZ0VSgA2_AW4DateVA25_tcfc",
+      "precise": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation10quarantine14terminalHandle0y7MessageG016memberMessageIDs9createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAZSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgAA0C10QuarantineVSgAA0c8TerminalZ0VSgA3_SayAZGSgAX4DateVA28_tcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "TurnRecord",
-        "init(identity:timelineID:callerIntent:executionKind:capturedAgentID:lifecycle:currentModelRoundIndex:outcome:notices:correlations:retryRelation:quarantine:terminalHandle:terminalMessageID:createdAt:updatedAt:)"
+        "init(identity:timelineID:callerIntent:executionKind:capturedAgentID:lifecycle:currentModelRoundIndex:outcome:notices:correlations:retryRelation:quarantine:terminalHandle:terminalMessageID:memberMessageIDs:createdAt:updatedAt:)"
       ],
-      "declaration": "init(identity: TurnIdentity, timelineID: UUID, callerIntent: TurnCallerIntent, executionKind: TurnExecutionKind = .agentManaged, capturedAgentID: UUID? = nil, lifecycle: TurnLifecycle = .admitted, currentModelRoundIndex: Int? = nil, outcome: TurnOutcome? = nil, notices: [TurnNotice] = [], correlations: [TurnCorrelation] = [], retryRelation: TurnRetryRelation? = nil, quarantine: TurnQuarantine? = nil, terminalHandle: TurnTerminalHandle? = nil, terminalMessageID: UUID? = nil, createdAt: Date = Date(), updatedAt: Date = Date())"
+      "declaration": "init(identity: TurnIdentity, timelineID: UUID, callerIntent: TurnCallerIntent, executionKind: TurnExecutionKind = .agentManaged, capturedAgentID: UUID? = nil, lifecycle: TurnLifecycle = .admitted, currentModelRoundIndex: Int? = nil, outcome: TurnOutcome? = nil, notices: [TurnNotice] = [], correlations: [TurnCorrelation] = [], retryRelation: TurnRetryRelation? = nil, quarantine: TurnQuarantine? = nil, terminalHandle: TurnTerminalHandle? = nil, terminalMessageID: UUID? = nil, memberMessageIDs: [UUID]? = nil, createdAt: Date = Date(), updatedAt: Date = Date())"
     },
     {
       "precise": "s:13PositronicKit10TurnRecordV8identity11PKContracts0C8IdentityVvp",
@@ -20111,6 +20171,26 @@
       "declaration": "func fetchCorrelations(turnID: UUID) async throws -> [TurnCorrelation]"
     },
     {
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineRuntimeRepository",
+        "fetchTurnMessages(turnID:)"
+      ],
+      "declaration": "func fetchTurnMessages(turnID: UUID) async throws -> [TimelineMessage]?"
+    },
+    {
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP17recordTurnMessage_6turnIDyAA0cH0V_20FoundationEssentials4UUIDVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineRuntimeRepository",
+        "recordTurnMessage(_:turnID:)"
+      ],
+      "declaration": "func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws"
+    },
+    {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP17releaseQuarantine10timelineID04turnI012confirmation3nowAA10TurnRecordV20FoundationEssentials4UUIDV_AmA0G19ReleaseConfirmationVAK4DateVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -20179,6 +20259,16 @@
         "beginModelRound(turnID:modelRoundIndex:)"
       ],
       "declaration": "func beginModelRound(turnID: UUID, modelRoundIndex: Int) async throws"
+    },
+    {
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineRuntimeRepository",
+        "fetchTurnMessages(turnID:)"
+      ],
+      "declaration": "func fetchTurnMessages(turnID: UUID) async throws -> [TimelineMessage]?"
     },
     {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE21recordProviderRequest6turnID15modelRoundIndex11correlationy20FoundationEssentials4UUIDV_SiAA15TurnCorrelationVSgtYaKF",
@@ -21276,6 +21366,16 @@
       "declaration": "case confirmationRequired"
     },
     {
+      "precise": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO20memberMessageMissingyAC20FoundationEssentials4UUIDV_AGtcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TimelineRuntimeRepositoryError",
+        "memberMessageMissing(turnID:messageID:)"
+      ],
+      "declaration": "case memberMessageMissing(turnID: UUID, messageID: UUID)"
+    },
+    {
       "precise": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO20summarySourceMissingyAC20FoundationEssentials4UUIDV_tcACmF",
       "module": "PositronicKit",
       "kind": "swift.enum.case",
@@ -21672,6 +21772,16 @@
         "fetchCorrelations(turnID:)"
       ],
       "declaration": "func fetchCorrelations(turnID: UUID) async throws -> [TurnCorrelation]"
+    },
+    {
+      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC17recordTurnMessage_6turnIDyAA0eJ0V_20FoundationEssentials4UUIDVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "InMemoryTimelineRuntimeRepository",
+        "recordTurnMessage(_:turnID:)"
+      ],
+      "declaration": "func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws"
     },
     {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC17releaseQuarantine10timelineID04turnK012confirmation3nowAA10TurnRecordV20FoundationEssentials4UUIDV_AmA0I19ReleaseConfirmationVAK4DateVtYaKF",
@@ -22864,6 +22974,16 @@
       "declaration": "func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
+      "precise": "s:16PKOllamaProvider12OllamaClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "module": "PKOllamaProvider",
+      "kind": "swift.method",
+      "path": [
+        "OllamaClient",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality> = [.text], audioOutput: AudioOutputOptions? = nil) async throws -> LLMStreamChunk"
+    },
+    {
       "precise": "s:16PKOllamaProvider12OllamaClientC20fetchAvailableModelsSaySSGSgyYaKF",
       "module": "PKOllamaProvider",
       "kind": "swift.method",
@@ -22962,6 +23082,16 @@
       "declaration": "func sendMessage(_ content: String, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil) async throws -> String"
     },
     {
+      "precise": "s:16PKOpenAIProvider12OpenAIClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.method",
+      "path": [
+        "OpenAIClient",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality> = [.text], audioOutput: AudioOutputOptions? = nil) async throws -> LLMStreamChunk"
+    },
+    {
       "precise": "s:16PKOpenAIProvider12OpenAIClientC20fetchAvailableModelsSaySSGSgyYaKF",
       "module": "PKOpenAIProvider",
       "kind": "swift.method",
@@ -23038,6 +23168,16 @@
         "chatStream(messages:tools:toolChoice:responseFormat:generationParameters:)"
       ],
       "declaration": "func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
+    },
+    {
+      "precise": "s:19PKAnthropicProvider15AnthropicClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "module": "PKAnthropicProvider",
+      "kind": "swift.method",
+      "path": [
+        "AnthropicClient",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality> = [.text], audioOutput: AudioOutputOptions? = nil) async throws -> LLMStreamChunk"
     },
     {
       "precise": "s:19PKAnthropicProvider15AnthropicClientC16defaultMaxTokensSivpZ",
@@ -23150,6 +23290,16 @@
         "applicationTitle"
       ],
       "declaration": "let applicationTitle: String?"
+    },
+    {
+      "precise": "s:20PKOpenRouterProvider04OpenB6ClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0L10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0wK0OSgAL011LLMResponseM0OSgAL010GenerationO0VSgShyAL16ResponseModalityOGAL05AudioR7OptionsVSgtYaKF",
+      "module": "PKOpenRouterProvider",
+      "kind": "swift.method",
+      "path": [
+        "OpenRouterClient",
+        "chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality> = [.text], audioOutput: AudioOutputOptions? = nil) async throws -> LLMStreamChunk"
     },
     {
       "precise": "s:20PKOpenRouterProvider04OpenB6ClientC20fetchAvailableModelsSaySSGSgyYaKF",
@@ -37995,6 +38145,12 @@
     {
       "module": "PKContracts",
       "kind": "defaultImplementationOf",
+      "source": "s:11PKContracts17LLMClientProtocolPAAE14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+      "target": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "defaultImplementationOf",
       "source": "s:11PKContracts17LLMClientProtocolPAAE20fetchAvailableModelsSaySSGSgyYaKF",
       "target": "s:11PKContracts17LLMClientProtocolP20fetchAvailableModelsSaySSGSgyYaKF",
       "sourceOrigin": {
@@ -38159,6 +38315,16 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit17TurnContextSourceP18failureRequirementAA0cd12ContributionG0Ovp",
         "displayName": "TurnContextSource.failureRequirement"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "defaultImplementationOf",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryPAAE17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+        "displayName": "TimelineRuntimeRepository.fetchTurnMessages(turnID:)"
       }
     },
     {
@@ -38332,6 +38498,16 @@
       "sourceOrigin": {
         "identifier": "s:11PKContracts17LLMClientProtocolP10chatStream8messages5tools10toolChoice14responseFormat20generationParametersScsyAA14LLMStreamChunkVs5Error_pGSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0rI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgtYaF",
         "displayName": "LLMClientProtocol.chatStream(messages:tools:toolChoice:responseFormat:generationParameters:)"
+      }
+    },
+    {
+      "module": "PKAnthropicProvider",
+      "kind": "memberOf",
+      "source": "s:19PKAnthropicProvider15AnthropicClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "target": "s:19PKAnthropicProvider15AnthropicClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+        "displayName": "LLMClientProtocol.chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
       }
     },
     {
@@ -39923,6 +40099,12 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
+      "source": "s:11PKContracts14LLMStreamChunkV7foldingyACSgSayACGFZ",
+      "target": "s:11PKContracts14LLMStreamChunkV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14LLMStreamDeltaV4fromACs7Decoder_p_tKcfc",
       "target": "s:11PKContracts14LLMStreamDeltaV",
       "sourceOrigin": {
@@ -40667,6 +40849,12 @@
       "kind": "memberOf",
       "source": "s:11PKContracts16ToolResultRecordV6outputSSvp",
       "target": "s:11PKContracts16ToolResultRecordV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts17LLMClientProtocolPAAE14chatCompletion8messages5tools10toolChoice14responseFormat20generationParametersAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0qI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgtYaKF",
+      "target": "s:11PKContracts17LLMClientProtocolP"
     },
     {
       "module": "PKContracts",
@@ -44132,6 +44320,16 @@
     {
       "module": "PKOllamaProvider",
       "kind": "memberOf",
+      "source": "s:16PKOllamaProvider12OllamaClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "target": "s:16PKOllamaProvider12OllamaClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+        "displayName": "LLMClientProtocol.chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      }
+    },
+    {
+      "module": "PKOllamaProvider",
+      "kind": "memberOf",
       "source": "s:16PKOllamaProvider12OllamaClientC20fetchAvailableModelsSaySSGSgyYaKF",
       "target": "s:16PKOllamaProvider12OllamaClientC",
       "sourceOrigin": {
@@ -44232,6 +44430,16 @@
     {
       "module": "PKOpenAIProvider",
       "kind": "memberOf",
+      "source": "s:16PKOpenAIProvider12OpenAIClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0vJ0OSgAL011LLMResponseL0OSgAL010GenerationN0VSgShyAL16ResponseModalityOGAL05AudioQ7OptionsVSgtYaKF",
+      "target": "s:16PKOpenAIProvider12OpenAIClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+        "displayName": "LLMClientProtocol.chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      }
+    },
+    {
+      "module": "PKOpenAIProvider",
+      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider12OpenAIClientC20fetchAvailableModelsSaySSGSgyYaKF",
       "target": "s:16PKOpenAIProvider12OpenAIClientC",
       "sourceOrigin": {
@@ -44298,6 +44506,16 @@
       "kind": "memberOf",
       "source": "s:20PKOpenRouterProvider04OpenB6ClientC11AttributionV16applicationTitleSSSgvp",
       "target": "s:20PKOpenRouterProvider04OpenB6ClientC11AttributionV"
+    },
+    {
+      "module": "PKOpenRouterProvider",
+      "kind": "memberOf",
+      "source": "s:20PKOpenRouterProvider04OpenB6ClientC14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0L10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0wK0OSgAL011LLMResponseM0OSgAL010GenerationO0VSgShyAL16ResponseModalityOGAL05AudioR7OptionsVSgtYaKF",
+      "target": "s:20PKOpenRouterProvider04OpenB6ClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+        "displayName": "LLMClientProtocol.chatCompletion(messages:tools:toolChoice:responseFormat:generationParameters:responseModalities:audioOutput:)"
+      }
     },
     {
       "module": "PKOpenRouterProvider",
@@ -47776,6 +47994,16 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC17recordTurnMessage_6turnIDy13PositronicKit08TimelineH0V_20FoundationEssentials4UUIDVtYaKF",
+      "target": "s:13PKTestSupport22MockPersistenceServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP17recordTurnMessage_6turnIDyAA0cH0V_20FoundationEssentials4UUIDVtYaKF",
+        "displayName": "TimelineRuntimeRepository.recordTurnMessage(_:turnID:)"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC17releaseQuarantine10timelineID04turnI012confirmation3now13PositronicKit10TurnRecordV20FoundationEssentials4UUIDV_AnI0G19ReleaseConfirmationVAL4DateVtYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -48936,6 +49164,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnRecordV16memberMessageIDsSay20FoundationEssentials4UUIDVGSgvp",
+      "target": "s:13PositronicKit10TurnRecordV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit10TurnRecordV17terminalMessageID20FoundationEssentials4UUIDVSgvp",
       "target": "s:13PositronicKit10TurnRecordV"
     },
@@ -48970,7 +49204,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation10quarantine14terminalHandle0y7MessageG09createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAYSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgAA0C10QuarantineVSgAA0c8TerminalZ0VSgA2_AW4DateVA25_tcfc",
+      "source": "s:13PositronicKit10TurnRecordV8identity10timelineID12callerIntent13executionKind013capturedAgentG09lifecycle22currentModelRoundIndex7outcome7notices12correlations13retryRelation10quarantine14terminalHandle0y7MessageG016memberMessageIDs9createdAt9updatedAtAC11PKContracts0C8IdentityV_20FoundationEssentials4UUIDVAA0c6CallerI0VAA0c9ExecutionK0OAZSgAA0C9LifecycleOSiSgAA0C7OutcomeOSgSayAA0C6NoticeVGSayAA0C11CorrelationVGAA0c5RetryW0VSgAA0C10QuarantineVSgAA0c8TerminalZ0VSgA3_SayAZGSgAX4DateVA28_tcfc",
       "target": "s:13PositronicKit10TurnRecordV"
     },
     {
@@ -52956,6 +53190,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO20memberMessageMissingyAC20FoundationEssentials4UUIDV_AGtcACmF",
+      "target": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO20summarySourceMissingyAC20FoundationEssentials4UUIDV_tcACmF",
       "target": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO"
     },
@@ -53307,6 +53547,16 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchCorrelations6turnIDSayAA15TurnCorrelationVG20FoundationEssentials4UUIDV_tYaKF",
         "displayName": "TimelineRuntimeRepository.fetchCorrelations(turnID:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC17recordTurnMessage_6turnIDyAA0eJ0V_20FoundationEssentials4UUIDVtYaKF",
+      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP17recordTurnMessage_6turnIDyAA0cH0V_20FoundationEssentials4UUIDVtYaKF",
+        "displayName": "TimelineRuntimeRepository.recordTurnMessage(_:turnID:)"
       }
     },
     {
@@ -54070,6 +54320,12 @@
     {
       "module": "PKContracts",
       "kind": "requirementOf",
+      "source": "s:11PKContracts17LLMClientProtocolP14chatCompletion8messages5tools10toolChoice14responseFormat20generationParameters0J10Modalities11audioOutputAA14LLMStreamChunkVSayAA10LLMMessageVG_SayAA17LLMToolDefinitionVGSgAA0tI0OSgAA011LLMResponseK0OSgAA010GenerationM0VSgShyAA16ResponseModalityOGAA05AudioP7OptionsVSgtYaKF",
+      "target": "s:11PKContracts17LLMClientProtocolP"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "requirementOf",
       "source": "s:11PKContracts17LLMClientProtocolP20fetchAvailableModelsSaySSGSgyYaKF",
       "target": "s:11PKContracts17LLMClientProtocolP"
     },
@@ -54575,6 +54831,18 @@
       "module": "PositronicKit",
       "kind": "requirementOf",
       "source": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchCorrelations6turnIDSayAA15TurnCorrelationVG20FoundationEssentials4UUIDV_tYaKF",
+      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "requirementOf",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP17fetchTurnMessages6turnIDSayAA0C7MessageVGSg20FoundationEssentials4UUIDV_tYaKF",
+      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "requirementOf",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP17recordTurnMessage_6turnIDyAA0cH0V_20FoundationEssentials4UUIDVtYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
     {
