@@ -230,6 +230,26 @@ The module's public types are annotated `@available(anyAppleOS 26, *)`, so an ap
 below Apple OS 26 gates the call with `#available(anyAppleOS 26.0, *)`. Linux and other non-Apple
 hosts stay available through the `*` clause and keep the `unsupportedPlatform` error path.
 
+### Embedding clients
+
+Embedding is separate from chat. Provider modules expose embedding factories that return an
+`EmbeddingClientProtocol`; the runtime never constructs or calls one. Import the module for the
+provider you use and keep the client in the host component that performs retrieval:
+
+```swift
+import PKOpenAIProvider
+
+let embeddingClient = PKOpenAI.makeEmbeddingClient(
+    apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "",
+    model: "text-embedding-3-small"
+)
+```
+
+`PKOllama.makeEmbeddingClient(model:endpoint:)` targets a local Ollama server, and
+`AppleNaturalLanguageEmbeddingClient` in `PKFoundationModelsProvider` wraps Apple's on-device
+sentence embeddings behind `#if canImport(NaturalLanguage)`. In tests, `MockEmbeddingClient` from
+`PKTestSupport` returns deterministic vectors and records every admitted request.
+
 ## 3. Logging And Errors
 
 PositronicKit uses `swift-log` as its only logging API. Library code never calls `LoggingSystem.bootstrap(...)` — the downstream app, CLI, or test owns bootstrap and log-level selection:

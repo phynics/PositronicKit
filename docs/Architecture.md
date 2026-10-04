@@ -173,8 +173,13 @@ the downstream audit and migration boundary.
 - `PKTestSupport` provides ordinary-import fixtures for downstream test targets.
 - `PKUtilities` supports package implementation but is not a public product.
 
-Embedding generation and vector retrieval are intentionally outside the current package surface.
-They remain a future direction and require a separately owned contract and consumer story.
+Embedding generation is a runtime-neutral capability in `PKContracts`. `EmbeddingClientProtocol`
+turns text into `Embedding` values, and each embedding carries its `EmbeddingSpace` so a
+cross-model comparison throws instead of returning a meaningless score. Provider products supply
+OpenAI, Ollama, and Apple Natural Language clients; the runtime never calls them. Automatic vector
+retrieval, a vector store, and embedding persistence remain outside the package. A host ranks its
+own data and contributes results through `AgentContextSource` or `TurnContextSource`
+(see [ADR 0014](adr/0014-embeddings-runtime-neutral-capability.md)).
 
 The package manifest, public-product consumer, DocC modules, generated navigation, and CI catalog
 check must agree on this graph.

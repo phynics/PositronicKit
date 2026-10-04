@@ -444,6 +444,45 @@ with that reserved name. PKTool intent/result records and successful tool events
 Workspace ID and whether routing was explicit or implicit, including failed and persistence-failed
 events. Ambiguous matches also append a durable `ambiguousWorkspaceTool` TurnNotice for hosts.
 
+## Embeddings and host-owned retrieval
+
+Embedding is a runtime-neutral capability in `PKContracts`, not a runtime feature. The runtime
+exposes no embedding client, no vector store, and no automatic retrieval stage. A host embeds text
+with any `EmbeddingClientProtocol`, ranks its own data, and contributes the result through
+`AgentContextSource` or `TurnContextSource` (ADR 0014).
+
+Each `Embedding` carries the `EmbeddingSpace` it belongs to. Comparing embeddings from different
+providers or models throws `EmbeddingError.incompatibleSpaces` instead of returning a meaningless
+score. Every client declares an `EmbeddingInputBudget` and rejects an oversized request before any
+network or local-model work; `embedDocuments(_:)` splits a large set into admitted batches.
+
+Provider products ship adapters: `PKOpenAI.makeEmbeddingClient(apiKey:model:)`,
+`PKOllama.makeEmbeddingClient(model:endpoint:)`, and, on Apple platforms,
+`PKFoundationModelsProvider.AppleNaturalLanguageEmbeddingClient`. The following host-side ranking
+uses the deterministic test double so it runs without a provider:
+
+```swift
+import PKContracts
+import PKTestSupport
+
+let embeddingClient = MockEmbeddingClient()
+let query = try await embeddingClient.embedQuery("swift concurrency")
+
+var memories: [AgentContextMemory] = []
+for content in ["Swift actors serialize state.", "Tomatoes need full sun."] {
+    let embedding = try await embeddingClient.embedQuery(content)
+    let score = try query.cosineSimilarity(to: embedding)
+    memories.append(
+        AgentContextMemory(content: content, source: "notes", relevance: Double(score))
+    )
+}
+memories.sort { ($0.relevance ?? 0) > ($1.relevance ?? 0) }
+```
+
+`EmbeddingClientConformanceSuite` in `PKTestSupport` checks order preservation, budget rejection
+before I/O, response-count checking, and batch boundaries. Provider and host adapters run it so
+the contract stays uniform across backends.
+
 ## Name collisions
 
 PositronicKit's public names resolve under an ordinary import, with no disambiguation required for

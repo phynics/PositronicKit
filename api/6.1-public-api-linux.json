@@ -2337,6 +2337,16 @@
       "declaration": "static let timeline: String"
     },
     {
+      "precise": "s:11PKContracts13PKErrorDomainO9embeddingSSvpZ",
+      "module": "PKContracts",
+      "kind": "swift.type.property",
+      "path": [
+        "PKErrorDomain",
+        "embedding"
+      ],
+      "declaration": "static let embedding: String"
+    },
+    {
       "precise": "s:11PKContracts13PKErrorDomainO9utilitiesSSvpZ",
       "module": "PKContracts",
       "kind": "swift.type.property",
@@ -2626,6 +2636,223 @@
         "toolID"
       ],
       "declaration": "var toolID: String { get }"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingErrorO",
+      "module": "PKContracts",
+      "kind": "swift.enum",
+      "path": [
+        "EmbeddingError"
+      ],
+      "declaration": "enum EmbeddingError"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingErrorO11errorDomainSSvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingError",
+        "errorDomain"
+      ],
+      "declaration": "var errorDomain: String { get }"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingErrorO16generationFailedyA2CmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "EmbeddingError",
+        "generationFailed"
+      ],
+      "declaration": "case generationFailed"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingErrorO16modelUnavailableyA2CmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "EmbeddingError",
+        "modelUnavailable"
+      ],
+      "declaration": "case modelUnavailable"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingErrorO18incompatibleSpacesyAcA0B5SpaceV_AFtcACmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "EmbeddingError",
+        "incompatibleSpaces(_:_:)"
+      ],
+      "declaration": "case incompatibleSpaces(EmbeddingSpace, EmbeddingSpace)"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingErrorO19userFriendlyMessageSSvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingError",
+        "userFriendlyMessage"
+      ],
+      "declaration": "var userFriendlyMessage: String { get }"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingErrorO21responseCountMismatchyACSi_SitcACmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "EmbeddingError",
+        "responseCountMismatch(expected:actual:)"
+      ],
+      "declaration": "case responseCountMismatch(expected: Int, actual: Int)"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingErrorO24perTextByteLimitExceededyACSi_SitcACmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "EmbeddingError",
+        "perTextByteLimitExceeded(max:actual:)"
+      ],
+      "declaration": "case perTextByteLimitExceeded(max: Int, actual: Int)"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingErrorO27batchTextCountLimitExceededyACSi_SitcACmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "EmbeddingError",
+        "batchTextCountLimitExceeded(max:actual:)"
+      ],
+      "declaration": "case batchTextCountLimitExceeded(max: Int, actual: Int)"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingErrorO27totalBatchByteLimitExceededyACSi_SitcACmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "EmbeddingError",
+        "totalBatchByteLimitExceeded(max:actual:)"
+      ],
+      "declaration": "case totalBatchByteLimitExceeded(max: Int, actual: Int)"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingErrorO9errorCodeSivp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingError",
+        "errorCode"
+      ],
+      "declaration": "var errorCode: Int { get }"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingSpaceV",
+      "module": "PKContracts",
+      "kind": "swift.struct",
+      "path": [
+        "EmbeddingSpace"
+      ],
+      "declaration": "struct EmbeddingSpace"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingSpaceV10dimensionsSivp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingSpace",
+        "dimensions"
+      ],
+      "declaration": "let dimensions: Int"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingSpaceV12isNormalizedSbvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingSpace",
+        "isNormalized"
+      ],
+      "declaration": "let isNormalized: Bool"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingSpaceV4fromACs7Decoder_p_tKcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "EmbeddingSpace",
+        "init(from:)"
+      ],
+      "declaration": "init(from decoder: any Decoder) throws"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingSpaceV5modelSSvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingSpace",
+        "model"
+      ],
+      "declaration": "let model: String"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingSpaceV8provider5model10dimensions12isNormalizedACSS_SSSiSbtcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "EmbeddingSpace",
+        "init(provider:model:dimensions:isNormalized:)"
+      ],
+      "declaration": "init(provider: String, model: String, dimensions: Int, isNormalized: Bool)"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingSpaceV8providerSSvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingSpace",
+        "provider"
+      ],
+      "declaration": "let provider: String"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingUsageV",
+      "module": "PKContracts",
+      "kind": "swift.struct",
+      "path": [
+        "EmbeddingUsage"
+      ],
+      "declaration": "struct EmbeddingUsage"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingUsageV11inputTokensACSi_tcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "EmbeddingUsage",
+        "init(inputTokens:)"
+      ],
+      "declaration": "init(inputTokens: Int)"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingUsageV11inputTokensSivp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingUsage",
+        "inputTokens"
+      ],
+      "declaration": "let inputTokens: Int"
+    },
+    {
+      "precise": "s:11PKContracts14EmbeddingUsageV4fromACs7Decoder_p_tKcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "EmbeddingUsage",
+        "init(from:)"
+      ],
+      "declaration": "init(from decoder: any Decoder) throws"
     },
     {
       "precise": "s:11PKContracts14LLMStreamChunkV",
@@ -3416,6 +3643,94 @@
       "declaration": "init?(rawValue: String)"
     },
     {
+      "precise": "s:11PKContracts16EmbeddingPurposeO",
+      "module": "PKContracts",
+      "kind": "swift.enum",
+      "path": [
+        "EmbeddingPurpose"
+      ],
+      "declaration": "enum EmbeddingPurpose"
+    },
+    {
+      "precise": "s:11PKContracts16EmbeddingPurposeO5queryyA2CmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "EmbeddingPurpose",
+        "query"
+      ],
+      "declaration": "case query"
+    },
+    {
+      "precise": "s:11PKContracts16EmbeddingPurposeO8documentyA2CmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "EmbeddingPurpose",
+        "document"
+      ],
+      "declaration": "case document"
+    },
+    {
+      "precise": "s:11PKContracts16EmbeddingPurposeO8rawValueACSgSS_tcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "EmbeddingPurpose",
+        "init(rawValue:)"
+      ],
+      "declaration": "init?(rawValue: String)"
+    },
+    {
+      "precise": "s:11PKContracts16EmbeddingRequestV",
+      "module": "PKContracts",
+      "kind": "swift.struct",
+      "path": [
+        "EmbeddingRequest"
+      ],
+      "declaration": "struct EmbeddingRequest"
+    },
+    {
+      "precise": "s:11PKContracts16EmbeddingRequestV10dimensionsSiSgvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingRequest",
+        "dimensions"
+      ],
+      "declaration": "var dimensions: Int?"
+    },
+    {
+      "precise": "s:11PKContracts16EmbeddingRequestV6inputs7purpose10dimensionsACSaySSG_AA0B7PurposeOSiSgtcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "EmbeddingRequest",
+        "init(inputs:purpose:dimensions:)"
+      ],
+      "declaration": "init(inputs: [String], purpose: EmbeddingPurpose, dimensions: Int? = nil)"
+    },
+    {
+      "precise": "s:11PKContracts16EmbeddingRequestV6inputsSaySSGvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingRequest",
+        "inputs"
+      ],
+      "declaration": "var inputs: [String]"
+    },
+    {
+      "precise": "s:11PKContracts16EmbeddingRequestV7purposeAA0B7PurposeOvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingRequest",
+        "purpose"
+      ],
+      "declaration": "var purpose: EmbeddingPurpose"
+    },
+    {
       "precise": "s:11PKContracts16LLMConfigurationV",
       "module": "PKContracts",
       "kind": "swift.struct",
@@ -3988,6 +4303,45 @@
         "output"
       ],
       "declaration": "let output: String"
+    },
+    {
+      "precise": "s:11PKContracts17EmbeddingResponseV",
+      "module": "PKContracts",
+      "kind": "swift.struct",
+      "path": [
+        "EmbeddingResponse"
+      ],
+      "declaration": "struct EmbeddingResponse"
+    },
+    {
+      "precise": "s:11PKContracts17EmbeddingResponseV10embeddings5usageACSayAA0B0VG_AA0B5UsageVSgtcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "EmbeddingResponse",
+        "init(embeddings:usage:)"
+      ],
+      "declaration": "init(embeddings: [Embedding], usage: EmbeddingUsage? = nil)"
+    },
+    {
+      "precise": "s:11PKContracts17EmbeddingResponseV10embeddingsSayAA0B0VGvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingResponse",
+        "embeddings"
+      ],
+      "declaration": "let embeddings: [Embedding]"
+    },
+    {
+      "precise": "s:11PKContracts17EmbeddingResponseV5usageAA0B5UsageVSgvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingResponse",
+        "usage"
+      ],
+      "declaration": "let usage: EmbeddingUsage?"
     },
     {
       "precise": "s:11PKContracts17LLMClientProtocolP",
@@ -5480,6 +5834,95 @@
       "declaration": "init(from decoder: any Decoder) throws"
     },
     {
+      "precise": "s:11PKContracts20EmbeddingInputBudgetV",
+      "module": "PKContracts",
+      "kind": "swift.struct",
+      "path": [
+        "EmbeddingInputBudget"
+      ],
+      "declaration": "struct EmbeddingInputBudget"
+    },
+    {
+      "precise": "s:11PKContracts20EmbeddingInputBudgetV12maxTextCount0e8BytesPerF00e5TotalH0ACSi_S2itcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "EmbeddingInputBudget",
+        "init(maxTextCount:maxBytesPerText:maxTotalBytes:)"
+      ],
+      "declaration": "init(maxTextCount: Int, maxBytesPerText: Int, maxTotalBytes: Int)"
+    },
+    {
+      "precise": "s:11PKContracts20EmbeddingInputBudgetV12maxTextCountSivp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingInputBudget",
+        "maxTextCount"
+      ],
+      "declaration": "let maxTextCount: Int"
+    },
+    {
+      "precise": "s:11PKContracts20EmbeddingInputBudgetV13maxTotalBytesSivp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingInputBudget",
+        "maxTotalBytes"
+      ],
+      "declaration": "let maxTotalBytes: Int"
+    },
+    {
+      "precise": "s:11PKContracts20EmbeddingInputBudgetV15maxBytesPerTextSivp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingInputBudget",
+        "maxBytesPerText"
+      ],
+      "declaration": "let maxBytesPerText: Int"
+    },
+    {
+      "precise": "s:11PKContracts20EmbeddingInputBudgetV7batchesySaySaySSGGAEKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "EmbeddingInputBudget",
+        "batches(_:)"
+      ],
+      "declaration": "func batches(_ texts: [String]) throws -> [[String]]"
+    },
+    {
+      "precise": "s:11PKContracts20EmbeddingInputBudgetV7defaultACvpZ",
+      "module": "PKContracts",
+      "kind": "swift.type.property",
+      "path": [
+        "EmbeddingInputBudget",
+        "default"
+      ],
+      "declaration": "static let `default`: EmbeddingInputBudget"
+    },
+    {
+      "precise": "s:11PKContracts20EmbeddingInputBudgetV8validateyySSKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "EmbeddingInputBudget",
+        "validate(_:)"
+      ],
+      "declaration": "func validate(_ text: String) throws"
+    },
+    {
+      "precise": "s:11PKContracts20EmbeddingInputBudgetV8validateyySaySSGKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "EmbeddingInputBudget",
+        "validate(_:)"
+      ],
+      "declaration": "func validate(_ texts: [String]) throws"
+    },
+    {
       "precise": "s:11PKContracts20GenerationParametersV",
       "module": "PKContracts",
       "kind": "swift.struct",
@@ -6484,6 +6927,55 @@
         "isPrimary"
       ],
       "declaration": "let isPrimary: Bool"
+    },
+    {
+      "precise": "s:11PKContracts23EmbeddingClientProtocolP",
+      "module": "PKContracts",
+      "kind": "swift.protocol",
+      "path": [
+        "EmbeddingClientProtocol"
+      ],
+      "declaration": "protocol EmbeddingClientProtocol : Sendable"
+    },
+    {
+      "precise": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "EmbeddingClientProtocol",
+        "inputBudget"
+      ],
+      "declaration": "var inputBudget: EmbeddingInputBudget { get }"
+    },
+    {
+      "precise": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "EmbeddingClientProtocol",
+        "embed(_:)"
+      ],
+      "declaration": "func embed(_ request: EmbeddingRequest) async throws -> EmbeddingResponse"
+    },
+    {
+      "precise": "s:11PKContracts23EmbeddingClientProtocolPAAE10embedQueryyAA0B0VSSYaKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "EmbeddingClientProtocol",
+        "embedQuery(_:)"
+      ],
+      "declaration": "func embedQuery(_ text: String) async throws -> Embedding"
+    },
+    {
+      "precise": "s:11PKContracts23EmbeddingClientProtocolPAAE14embedDocumentsySayAA0B0VGSaySSGYaKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "EmbeddingClientProtocol",
+        "embedDocuments(_:)"
+      ],
+      "declaration": "func embedDocuments(_ texts: [String]) async throws -> [Embedding]"
     },
     {
       "precise": "s:11PKContracts23LenientJSONParsingErrorO",
@@ -8903,6 +9395,65 @@
       "declaration": "let arguments: [String : AnyCodable]"
     },
     {
+      "precise": "s:11PKContracts9EmbeddingV",
+      "module": "PKContracts",
+      "kind": "swift.struct",
+      "path": [
+        "Embedding"
+      ],
+      "declaration": "struct Embedding"
+    },
+    {
+      "precise": "s:11PKContracts9EmbeddingV16cosineSimilarity2toSfAC_tKF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "Embedding",
+        "cosineSimilarity(to:)"
+      ],
+      "declaration": "func cosineSimilarity(to other: Embedding) throws -> Float"
+    },
+    {
+      "precise": "s:11PKContracts9EmbeddingV4fromACs7Decoder_p_tKcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "Embedding",
+        "init(from:)"
+      ],
+      "declaration": "init(from decoder: any Decoder) throws"
+    },
+    {
+      "precise": "s:11PKContracts9EmbeddingV5spaceAA0B5SpaceVvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "Embedding",
+        "space"
+      ],
+      "declaration": "let space: EmbeddingSpace"
+    },
+    {
+      "precise": "s:11PKContracts9EmbeddingV6vector5spaceACSaySfG_AA0B5SpaceVtcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "Embedding",
+        "init(vector:space:)"
+      ],
+      "declaration": "init(vector: [Float], space: EmbeddingSpace)"
+    },
+    {
+      "precise": "s:11PKContracts9EmbeddingV6vectorSaySfGvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "Embedding",
+        "vector"
+      ],
+      "declaration": "let vector: [Float]"
+    },
+    {
       "precise": "s:11PKContracts9ToolErrorO",
       "module": "PKContracts",
       "kind": "swift.enum",
@@ -11249,6 +11800,85 @@
       "declaration": "init()"
     },
     {
+      "precise": "s:13PKTestSupport19MockEmbeddingClientC",
+      "module": "PKTestSupport",
+      "kind": "swift.class",
+      "path": [
+        "MockEmbeddingClient"
+      ],
+      "declaration": "final class MockEmbeddingClient"
+    },
+    {
+      "precise": "s:13PKTestSupport19MockEmbeddingClientC11inputBudget11PKContracts0d5InputG0Vvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockEmbeddingClient",
+        "inputBudget"
+      ],
+      "declaration": "let inputBudget: EmbeddingInputBudget"
+    },
+    {
+      "precise": "s:13PKTestSupport19MockEmbeddingClientC12errorToThrow11PKContracts0D5ErrorOSgvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockEmbeddingClient",
+        "errorToThrow"
+      ],
+      "declaration": "var errorToThrow: EmbeddingError? { get set }"
+    },
+    {
+      "precise": "s:13PKTestSupport19MockEmbeddingClientC16recordedRequestsSay11PKContracts0D7RequestVGvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockEmbeddingClient",
+        "recordedRequests"
+      ],
+      "declaration": "var recordedRequests: [EmbeddingRequest] { get }"
+    },
+    {
+      "precise": "s:13PKTestSupport19MockEmbeddingClientC21responseCountOverrideSiSgvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockEmbeddingClient",
+        "responseCountOverride"
+      ],
+      "declaration": "var responseCountOverride: Int? { get set }"
+    },
+    {
+      "precise": "s:13PKTestSupport19MockEmbeddingClientC5embedy11PKContracts0D8ResponseVAE0D7RequestVYaKF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "MockEmbeddingClient",
+        "embed(_:)"
+      ],
+      "declaration": "func embed(_ request: EmbeddingRequest) async throws -> EmbeddingResponse"
+    },
+    {
+      "precise": "s:13PKTestSupport19MockEmbeddingClientC5space11PKContracts0D5SpaceVvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockEmbeddingClient",
+        "space"
+      ],
+      "declaration": "var space: EmbeddingSpace { get set }"
+    },
+    {
+      "precise": "s:13PKTestSupport19MockEmbeddingClientC5space11inputBudgetAC11PKContracts0D5SpaceV_AF0d5InputH0Vtcfc",
+      "module": "PKTestSupport",
+      "kind": "swift.init",
+      "path": [
+        "MockEmbeddingClient",
+        "init(space:inputBudget:)"
+      ],
+      "declaration": "init(space: EmbeddingSpace = EmbeddingSpace(\n            provider: \"mock\",\n            model: \"mock-embedding\",\n            dimensions: 8,\n            isNormalized: true\n        ), inputBudget: EmbeddingInputBudget = .default)"
+    },
+    {
       "precise": "s:13PKTestSupport20MockWorkspaceCreatorV",
       "module": "PKTestSupport",
       "kind": "swift.struct",
@@ -12918,6 +13548,35 @@
         "run(makeStore:)"
       ],
       "declaration": "static func run(makeStore: () async throws -> any WorkspaceStore) async throws"
+    },
+    {
+      "precise": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO",
+      "module": "PKTestSupport",
+      "kind": "swift.enum",
+      "path": [
+        "EmbeddingClientConformanceSuite"
+      ],
+      "declaration": "enum EmbeddingClientConformanceSuite"
+    },
+    {
+      "precise": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO3run6client6inputs15expectedVectorsy11PKContracts0cD8Protocol_p_SaySSGSaySaySfGGtYaKFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "EmbeddingClientConformanceSuite",
+        "run(client:inputs:expectedVectors:)"
+      ],
+      "declaration": "static func run(client: any EmbeddingClientProtocol, inputs: [String], expectedVectors: [[Float]]) async throws"
+    },
+    {
+      "precise": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO3run6client6inputsy11PKContracts0cD8Protocol_p_SaySSGtYaKFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "EmbeddingClientConformanceSuite",
+        "run(client:inputs:)"
+      ],
+      "declaration": "static func run(client: any EmbeddingClientProtocol, inputs: [String]) async throws"
     },
     {
       "precise": "s:13PKTestSupport32WorkspaceFactoryConformanceSuiteO",
@@ -22955,6 +23614,16 @@
       "declaration": "static func makeClient(configuration: LLMConfiguration) -> OllamaClient"
     },
     {
+      "precise": "s:16PKOllamaProvider0A0O19makeEmbeddingClient5model8endpoint15timeoutInterval10maxRetriesAA06OllamadE0CSS_SSSdSitFZ",
+      "module": "PKOllamaProvider",
+      "kind": "swift.type.method",
+      "path": [
+        "PKOllama",
+        "makeEmbeddingClient(model:endpoint:timeoutInterval:maxRetries:)"
+      ],
+      "declaration": "static func makeEmbeddingClient(model: String = \"nomic-embed-text\", endpoint: String = \"http://localhost:11434\", timeoutInterval: TimeInterval = 120.0, maxRetries: Int = 3) -> OllamaEmbeddingClient"
+    },
+    {
       "precise": "s:16PKOllamaProvider12OllamaClientC",
       "module": "PKOllamaProvider",
       "kind": "swift.class",
@@ -23014,6 +23683,45 @@
       "declaration": "convenience init(endpoint: String, modelName: String, timeoutInterval: TimeInterval = 120.0, maxRetries: Int = 3)"
     },
     {
+      "precise": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
+      "module": "PKOllamaProvider",
+      "kind": "swift.class",
+      "path": [
+        "OllamaEmbeddingClient"
+      ],
+      "declaration": "actor OllamaEmbeddingClient"
+    },
+    {
+      "precise": "s:16PKOllamaProvider21OllamaEmbeddingClientC11inputBudget11PKContracts0d5InputG0Vvp",
+      "module": "PKOllamaProvider",
+      "kind": "swift.property",
+      "path": [
+        "OllamaEmbeddingClient",
+        "inputBudget"
+      ],
+      "declaration": "nonisolated let inputBudget: EmbeddingInputBudget"
+    },
+    {
+      "precise": "s:16PKOllamaProvider21OllamaEmbeddingClientC5embedy11PKContracts0D8ResponseVAE0D7RequestVYaKF",
+      "module": "PKOllamaProvider",
+      "kind": "swift.method",
+      "path": [
+        "OllamaEmbeddingClient",
+        "embed(_:)"
+      ],
+      "declaration": "func embed(_ request: EmbeddingRequest) async throws -> EmbeddingResponse"
+    },
+    {
+      "precise": "s:16PKOllamaProvider21OllamaEmbeddingClientC8endpoint9modelName15timeoutInterval10maxRetries11inputBudgetACSS_SSSdSi11PKContracts0d5InputN0Vtcfc",
+      "module": "PKOllamaProvider",
+      "kind": "swift.init",
+      "path": [
+        "OllamaEmbeddingClient",
+        "init(endpoint:modelName:timeoutInterval:maxRetries:inputBudget:)"
+      ],
+      "declaration": "convenience init(endpoint: String = \"http://localhost:11434\", modelName: String, timeoutInterval: TimeInterval = 120.0, maxRetries: Int = 3, inputBudget: EmbeddingInputBudget = .default)"
+    },
+    {
       "precise": "s:16PKOpenAIProvider0A2AIO",
       "module": "PKOpenAIProvider",
       "kind": "swift.enum",
@@ -23031,6 +23739,16 @@
         "makeClient(configuration:)"
       ],
       "declaration": "static func makeClient(configuration: LLMConfiguration) -> OpenAIClient"
+    },
+    {
+      "precise": "s:16PKOpenAIProvider0A2AIO19makeEmbeddingClient6apiKey5model4host4port6scheme15timeoutInterval10maxRetriesAA015OpenAIEmbeddingF0CSS_S2SSiSSSdSitFZ",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.type.method",
+      "path": [
+        "PKOpenAI",
+        "makeEmbeddingClient(apiKey:model:host:port:scheme:timeoutInterval:maxRetries:)"
+      ],
+      "declaration": "static func makeEmbeddingClient(apiKey: String, model: String = \"text-embedding-3-small\", host: String = \"api.openai.com\", port: Int = 443, scheme: String = \"https\", timeoutInterval: TimeInterval = 60.0, maxRetries: Int = 3) -> OpenAIEmbeddingClient"
     },
     {
       "precise": "s:16PKOpenAIProvider0A2AIO22makeConfiguredProvider6apiKey5model8endpoint11PKContracts0E11LLMProviderVSS_S2SSgtFZ",
@@ -23120,6 +23838,55 @@
         "init(apiKey:modelName:host:port:scheme:timeoutInterval:maxRetries:structuredOutputAdapter:)"
       ],
       "declaration": "convenience init(apiKey: String, modelName: String = \"gpt-4o\", host: String = \"api.openai.com\", port: Int = 443, scheme: String = \"https\", timeoutInterval: TimeInterval = 60.0, maxRetries: Int = 3, structuredOutputAdapter: any StructuredOutputAdapter = NativeJSONSchemaStructuredOutputAdapter())"
+    },
+    {
+      "precise": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.class",
+      "path": [
+        "OpenAIEmbeddingClient"
+      ],
+      "declaration": "actor OpenAIEmbeddingClient"
+    },
+    {
+      "precise": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC11inputBudget11PKContracts014EmbeddingInputG0Vvp",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.property",
+      "path": [
+        "OpenAIEmbeddingClient",
+        "inputBudget"
+      ],
+      "declaration": "nonisolated let inputBudget: EmbeddingInputBudget"
+    },
+    {
+      "precise": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC18defaultInputBudget11PKContracts09EmbeddinggH0VvpZ",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.type.property",
+      "path": [
+        "OpenAIEmbeddingClient",
+        "defaultInputBudget"
+      ],
+      "declaration": "static let defaultInputBudget: EmbeddingInputBudget"
+    },
+    {
+      "precise": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC5embedy11PKContracts17EmbeddingResponseVAE0H7RequestVYaKF",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.method",
+      "path": [
+        "OpenAIEmbeddingClient",
+        "embed(_:)"
+      ],
+      "declaration": "func embed(_ request: EmbeddingRequest) async throws -> EmbeddingResponse"
+    },
+    {
+      "precise": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC6apiKey9modelName4host4port6scheme15timeoutInterval10maxRetries11inputBudgetACSS_S2SSiSSSdSi11PKContracts014EmbeddingInputR0Vtcfc",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.init",
+      "path": [
+        "OpenAIEmbeddingClient",
+        "init(apiKey:modelName:host:port:scheme:timeoutInterval:maxRetries:inputBudget:)"
+      ],
+      "declaration": "convenience init(apiKey: String, modelName: String = \"text-embedding-3-small\", host: String = \"api.openai.com\", port: Int = 443, scheme: String = \"https\", timeoutInterval: TimeInterval = 60.0, maxRetries: Int = 3, inputBudget: EmbeddingInputBudget = OpenAIEmbeddingClient.defaultInputBudget)"
     },
     {
       "precise": "s:19PKAnthropicProvider0A0O",
@@ -28590,6 +29357,131 @@
     {
       "module": "PKContracts",
       "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingErrorO",
+      "target": "s:11PKContracts7PKErrorP"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingErrorO",
+      "target": "s:20FoundationEssentials14LocalizedErrorP",
+      "targetFallback": "FoundationEssentials.LocalizedError"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingErrorO",
+      "target": "s:8ErrorKit9ThrowableP",
+      "targetFallback": "ErrorKit.Throwable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingErrorO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingErrorO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingErrorO",
+      "target": "s:s5ErrorP",
+      "targetFallback": "Swift.Error"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingErrorO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingSpaceV",
+      "target": "s:SE",
+      "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingSpaceV",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingSpaceV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingSpaceV",
+      "target": "s:Se",
+      "targetFallback": "Swift.Decodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingSpaceV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingSpaceV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingUsageV",
+      "target": "s:SE",
+      "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingUsageV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingUsageV",
+      "target": "s:Se",
+      "targetFallback": "Swift.Decodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingUsageV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14EmbeddingUsageV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14LLMStreamChunkV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
@@ -29037,6 +29929,76 @@
     {
       "module": "PKContracts",
       "kind": "conformsTo",
+      "source": "s:11PKContracts16EmbeddingPurposeO",
+      "target": "s:SE",
+      "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts16EmbeddingPurposeO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts16EmbeddingPurposeO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts16EmbeddingPurposeO",
+      "target": "s:SY",
+      "targetFallback": "Swift.RawRepresentable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts16EmbeddingPurposeO",
+      "target": "s:Se",
+      "targetFallback": "Swift.Decodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts16EmbeddingPurposeO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts16EmbeddingPurposeO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts16EmbeddingRequestV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts16EmbeddingRequestV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts16EmbeddingRequestV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts16LLMConfigurationV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
@@ -29304,6 +30266,27 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts16ToolResultRecordV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts17EmbeddingResponseV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts17EmbeddingResponseV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts17EmbeddingResponseV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -29969,6 +30952,27 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts19TurnContextSnapshotV13PromptMessageV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts20EmbeddingInputBudgetV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts20EmbeddingInputBudgetV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts20EmbeddingInputBudgetV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -30409,6 +31413,20 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts22WorkspaceToolCandidateV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts23EmbeddingClientProtocolP",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts23EmbeddingClientProtocolP",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -31551,6 +32569,41 @@
     {
       "module": "PKContracts",
       "kind": "conformsTo",
+      "source": "s:11PKContracts9EmbeddingV",
+      "target": "s:SE",
+      "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts9EmbeddingV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts9EmbeddingV",
+      "target": "s:Se",
+      "targetFallback": "Swift.Decodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts9EmbeddingV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts9EmbeddingV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts9ToolErrorO",
       "target": "s:11PKContracts7PKErrorP"
     },
@@ -32017,6 +33070,34 @@
       "targetFallback": "Swift.Sendable"
     },
     {
+      "module": "PKOllamaProvider",
+      "kind": "conformsTo",
+      "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
+      "target": "s:11PKContracts23EmbeddingClientProtocolP",
+      "targetFallback": "PKContracts.EmbeddingClientProtocol"
+    },
+    {
+      "module": "PKOllamaProvider",
+      "kind": "conformsTo",
+      "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
+      "target": "s:ScA",
+      "targetFallback": "_Concurrency.Actor"
+    },
+    {
+      "module": "PKOllamaProvider",
+      "kind": "conformsTo",
+      "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKOllamaProvider",
+      "kind": "conformsTo",
+      "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
       "module": "PKOpenAIProvider",
       "kind": "conformsTo",
       "source": "s:16PKOpenAIProvider0A2AIO",
@@ -32062,6 +33143,34 @@
       "module": "PKOpenAIProvider",
       "kind": "conformsTo",
       "source": "s:16PKOpenAIProvider12OpenAIClientC",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
+      "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
+      "target": "s:11PKContracts23EmbeddingClientProtocolP",
+      "targetFallback": "PKContracts.EmbeddingClientProtocol"
+    },
+    {
+      "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
+      "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
+      "target": "s:ScA",
+      "targetFallback": "_Concurrency.Actor"
+    },
+    {
+      "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
+      "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
+      "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -33827,6 +34936,27 @@
       "module": "PKTestSupport",
       "kind": "conformsTo",
       "source": "s:13PKTestSupport19FailingMessageStoreC",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport19MockEmbeddingClientC",
+      "target": "s:11PKContracts23EmbeddingClientProtocolP",
+      "targetFallback": "PKContracts.EmbeddingClientProtocol"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport19MockEmbeddingClientC",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport19MockEmbeddingClientC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -39883,6 +41013,12 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
+      "source": "s:11PKContracts13PKErrorDomainO9embeddingSSvpZ",
+      "target": "s:11PKContracts13PKErrorDomainO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts13PKErrorDomainO9utilitiesSSvpZ",
       "target": "s:11PKContracts13PKErrorDomainO"
     },
@@ -40055,6 +41191,140 @@
       "kind": "memberOf",
       "source": "s:11PKContracts13ToolReferenceO6toolIDSSvp",
       "target": "s:11PKContracts13ToolReferenceO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingErrorO11errorDomainSSvp",
+      "target": "s:11PKContracts14EmbeddingErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP11errorDomainSSvp",
+        "displayName": "PKError.errorDomain"
+      }
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingErrorO16generationFailedyA2CmF",
+      "target": "s:11PKContracts14EmbeddingErrorO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingErrorO16modelUnavailableyA2CmF",
+      "target": "s:11PKContracts14EmbeddingErrorO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingErrorO18incompatibleSpacesyAcA0B5SpaceV_AFtcACmF",
+      "target": "s:11PKContracts14EmbeddingErrorO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingErrorO19userFriendlyMessageSSvp",
+      "target": "s:11PKContracts14EmbeddingErrorO",
+      "sourceOrigin": {
+        "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp",
+        "displayName": "Throwable.userFriendlyMessage"
+      }
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingErrorO21responseCountMismatchyACSi_SitcACmF",
+      "target": "s:11PKContracts14EmbeddingErrorO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingErrorO24perTextByteLimitExceededyACSi_SitcACmF",
+      "target": "s:11PKContracts14EmbeddingErrorO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingErrorO27batchTextCountLimitExceededyACSi_SitcACmF",
+      "target": "s:11PKContracts14EmbeddingErrorO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingErrorO27totalBatchByteLimitExceededyACSi_SitcACmF",
+      "target": "s:11PKContracts14EmbeddingErrorO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingErrorO9errorCodeSivp",
+      "target": "s:11PKContracts14EmbeddingErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp",
+        "displayName": "PKError.errorCode"
+      }
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingSpaceV10dimensionsSivp",
+      "target": "s:11PKContracts14EmbeddingSpaceV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingSpaceV12isNormalizedSbvp",
+      "target": "s:11PKContracts14EmbeddingSpaceV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingSpaceV4fromACs7Decoder_p_tKcfc",
+      "target": "s:11PKContracts14EmbeddingSpaceV",
+      "sourceOrigin": {
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingSpaceV5modelSSvp",
+      "target": "s:11PKContracts14EmbeddingSpaceV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingSpaceV8provider5model10dimensions12isNormalizedACSS_SSSiSbtcfc",
+      "target": "s:11PKContracts14EmbeddingSpaceV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingSpaceV8providerSSvp",
+      "target": "s:11PKContracts14EmbeddingSpaceV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingUsageV11inputTokensACSi_tcfc",
+      "target": "s:11PKContracts14EmbeddingUsageV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingUsageV11inputTokensSivp",
+      "target": "s:11PKContracts14EmbeddingUsageV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14EmbeddingUsageV4fromACs7Decoder_p_tKcfc",
+      "target": "s:11PKContracts14EmbeddingUsageV",
+      "sourceOrigin": {
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
     },
     {
       "module": "PKContracts",
@@ -40515,6 +41785,52 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
+      "source": "s:11PKContracts16EmbeddingPurposeO5queryyA2CmF",
+      "target": "s:11PKContracts16EmbeddingPurposeO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts16EmbeddingPurposeO8documentyA2CmF",
+      "target": "s:11PKContracts16EmbeddingPurposeO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts16EmbeddingPurposeO8rawValueACSgSS_tcfc",
+      "target": "s:11PKContracts16EmbeddingPurposeO",
+      "sourceOrigin": {
+        "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc",
+        "displayName": "RawRepresentable.init(rawValue:)"
+      }
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts16EmbeddingRequestV10dimensionsSiSgvp",
+      "target": "s:11PKContracts16EmbeddingRequestV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts16EmbeddingRequestV6inputs7purpose10dimensionsACSaySSG_AA0B7PurposeOSiSgtcfc",
+      "target": "s:11PKContracts16EmbeddingRequestV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts16EmbeddingRequestV6inputsSaySSGvp",
+      "target": "s:11PKContracts16EmbeddingRequestV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts16EmbeddingRequestV7purposeAA0B7PurposeOvp",
+      "target": "s:11PKContracts16EmbeddingRequestV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts16LLMConfigurationV10openRouterACvpZ",
       "target": "s:11PKContracts16LLMConfigurationV"
     },
@@ -40849,6 +42165,24 @@
       "kind": "memberOf",
       "source": "s:11PKContracts16ToolResultRecordV6outputSSvp",
       "target": "s:11PKContracts16ToolResultRecordV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts17EmbeddingResponseV10embeddings5usageACSayAA0B0VG_AA0B5UsageVSgtcfc",
+      "target": "s:11PKContracts17EmbeddingResponseV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts17EmbeddingResponseV10embeddingsSayAA0B0VGvp",
+      "target": "s:11PKContracts17EmbeddingResponseV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts17EmbeddingResponseV5usageAA0B5UsageVSgvp",
+      "target": "s:11PKContracts17EmbeddingResponseV"
     },
     {
       "module": "PKContracts",
@@ -41611,6 +42945,54 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
+      "source": "s:11PKContracts20EmbeddingInputBudgetV12maxTextCount0e8BytesPerF00e5TotalH0ACSi_S2itcfc",
+      "target": "s:11PKContracts20EmbeddingInputBudgetV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20EmbeddingInputBudgetV12maxTextCountSivp",
+      "target": "s:11PKContracts20EmbeddingInputBudgetV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20EmbeddingInputBudgetV13maxTotalBytesSivp",
+      "target": "s:11PKContracts20EmbeddingInputBudgetV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20EmbeddingInputBudgetV15maxBytesPerTextSivp",
+      "target": "s:11PKContracts20EmbeddingInputBudgetV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20EmbeddingInputBudgetV7batchesySaySaySSGGAEKF",
+      "target": "s:11PKContracts20EmbeddingInputBudgetV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20EmbeddingInputBudgetV7defaultACvpZ",
+      "target": "s:11PKContracts20EmbeddingInputBudgetV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20EmbeddingInputBudgetV8validateyySSKF",
+      "target": "s:11PKContracts20EmbeddingInputBudgetV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20EmbeddingInputBudgetV8validateyySaySSGKF",
+      "target": "s:11PKContracts20EmbeddingInputBudgetV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts20GenerationParametersV11temperature9maxTokens4topP16frequencyPenalty08presenceI04seedACSdSg_SiSgA3jKtcfc",
       "target": "s:11PKContracts20GenerationParametersV"
     },
@@ -42183,6 +43565,18 @@
       "kind": "memberOf",
       "source": "s:11PKContracts22WorkspaceToolCandidateV9isPrimarySbvp",
       "target": "s:11PKContracts22WorkspaceToolCandidateV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts23EmbeddingClientProtocolPAAE10embedQueryyAA0B0VSSYaKF",
+      "target": "s:11PKContracts23EmbeddingClientProtocolP"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts23EmbeddingClientProtocolPAAE14embedDocumentsySayAA0B0VGSaySSGYaKF",
+      "target": "s:11PKContracts23EmbeddingClientProtocolP"
     },
     {
       "module": "PKContracts",
@@ -43503,6 +44897,40 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
+      "source": "s:11PKContracts9EmbeddingV16cosineSimilarity2toSfAC_tKF",
+      "target": "s:11PKContracts9EmbeddingV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts9EmbeddingV4fromACs7Decoder_p_tKcfc",
+      "target": "s:11PKContracts9EmbeddingV",
+      "sourceOrigin": {
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts9EmbeddingV5spaceAA0B5SpaceVvp",
+      "target": "s:11PKContracts9EmbeddingV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts9EmbeddingV6vector5spaceACSaySfG_AA0B5SpaceVtcfc",
+      "target": "s:11PKContracts9EmbeddingV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts9EmbeddingV6vectorSaySfGvp",
+      "target": "s:11PKContracts9EmbeddingV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts9ToolErrorO018ambiguousWorkspaceB0yACSS_SayAA0eB9CandidateVGtcACmF",
       "target": "s:11PKContracts9ToolErrorO"
     },
@@ -44310,6 +45738,12 @@
     {
       "module": "PKOllamaProvider",
       "kind": "memberOf",
+      "source": "s:16PKOllamaProvider0A0O19makeEmbeddingClient5model8endpoint15timeoutInterval10maxRetriesAA06OllamadE0CSS_SSSdSitFZ",
+      "target": "s:16PKOllamaProvider0A0O"
+    },
+    {
+      "module": "PKOllamaProvider",
+      "kind": "memberOf",
       "source": "s:16PKOllamaProvider12OllamaClientC10chatStream8messages5tools10toolChoice14responseFormat20generationParametersScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAJ10LLMMessageVG_SayAJ17LLMToolDefinitionVGSgAJ0tJ0OSgAJ011LLMResponseL0OSgAJ010GenerationN0VSgtYaF",
       "target": "s:16PKOllamaProvider12OllamaClientC",
       "sourceOrigin": {
@@ -44354,6 +45788,32 @@
       "target": "s:16PKOllamaProvider12OllamaClientC"
     },
     {
+      "module": "PKOllamaProvider",
+      "kind": "memberOf",
+      "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC11inputBudget11PKContracts0d5InputG0Vvp",
+      "target": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp",
+        "displayName": "EmbeddingClientProtocol.inputBudget"
+      }
+    },
+    {
+      "module": "PKOllamaProvider",
+      "kind": "memberOf",
+      "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC5embedy11PKContracts0D8ResponseVAE0D7RequestVYaKF",
+      "target": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF",
+        "displayName": "EmbeddingClientProtocol.embed(_:)"
+      }
+    },
+    {
+      "module": "PKOllamaProvider",
+      "kind": "memberOf",
+      "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC8endpoint9modelName15timeoutInterval10maxRetries11inputBudgetACSS_SSSdSi11PKContracts0d5InputN0Vtcfc",
+      "target": "s:16PKOllamaProvider21OllamaEmbeddingClientC"
+    },
+    {
       "module": "PKOpenAIProvider",
       "kind": "memberOf",
       "source": "s:11PKContracts10LLMMessageV16PKOpenAIProviderE20toOpenAIMessageParam0F2AI9ChatQueryV0j17CompletionMessageH0OyKF",
@@ -44390,6 +45850,12 @@
         "identifier": "s:11PKContracts18LLMProviderFactoryP10makeClient13configuration0E0QzAA16LLMConfigurationV_tFZ",
         "displayName": "LLMProviderFactory.makeClient(configuration:)"
       }
+    },
+    {
+      "module": "PKOpenAIProvider",
+      "kind": "memberOf",
+      "source": "s:16PKOpenAIProvider0A2AIO19makeEmbeddingClient6apiKey5model4host4port6scheme15timeoutInterval10maxRetriesAA015OpenAIEmbeddingF0CSS_S2SSiSSSdSitFZ",
+      "target": "s:16PKOpenAIProvider0A2AIO"
     },
     {
       "module": "PKOpenAIProvider",
@@ -44462,6 +45928,38 @@
       "kind": "memberOf",
       "source": "s:16PKOpenAIProvider12OpenAIClientC6apiKey9modelName4host4port6scheme15timeoutInterval10maxRetries23structuredOutputAdapterACSS_S2SSiSSSdSi11PKContracts010StructuredqR0_ptcfc",
       "target": "s:16PKOpenAIProvider12OpenAIClientC"
+    },
+    {
+      "module": "PKOpenAIProvider",
+      "kind": "memberOf",
+      "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC11inputBudget11PKContracts014EmbeddingInputG0Vvp",
+      "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp",
+        "displayName": "EmbeddingClientProtocol.inputBudget"
+      }
+    },
+    {
+      "module": "PKOpenAIProvider",
+      "kind": "memberOf",
+      "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC18defaultInputBudget11PKContracts09EmbeddinggH0VvpZ",
+      "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC"
+    },
+    {
+      "module": "PKOpenAIProvider",
+      "kind": "memberOf",
+      "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC5embedy11PKContracts17EmbeddingResponseVAE0H7RequestVYaKF",
+      "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF",
+        "displayName": "EmbeddingClientProtocol.embed(_:)"
+      }
+    },
+    {
+      "module": "PKOpenAIProvider",
+      "kind": "memberOf",
+      "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC6apiKey9modelName4host4port6scheme15timeoutInterval10maxRetries11inputBudgetACSS_S2SSiSSSdSi11PKContracts014EmbeddingInputR0Vtcfc",
+      "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC"
     },
     {
       "module": "PKOpenRouterProvider",
@@ -47440,6 +48938,56 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport19MockEmbeddingClientC11inputBudget11PKContracts0d5InputG0Vvp",
+      "target": "s:13PKTestSupport19MockEmbeddingClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp",
+        "displayName": "EmbeddingClientProtocol.inputBudget"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport19MockEmbeddingClientC12errorToThrow11PKContracts0D5ErrorOSgvp",
+      "target": "s:13PKTestSupport19MockEmbeddingClientC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport19MockEmbeddingClientC16recordedRequestsSay11PKContracts0D7RequestVGvp",
+      "target": "s:13PKTestSupport19MockEmbeddingClientC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport19MockEmbeddingClientC21responseCountOverrideSiSgvp",
+      "target": "s:13PKTestSupport19MockEmbeddingClientC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport19MockEmbeddingClientC5embedy11PKContracts0D8ResponseVAE0D7RequestVYaKF",
+      "target": "s:13PKTestSupport19MockEmbeddingClientC",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF",
+        "displayName": "EmbeddingClientProtocol.embed(_:)"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport19MockEmbeddingClientC5space11PKContracts0D5SpaceVvp",
+      "target": "s:13PKTestSupport19MockEmbeddingClientC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport19MockEmbeddingClientC5space11inputBudgetAC11PKContracts0D5SpaceV_AF0d5InputH0Vtcfc",
+      "target": "s:13PKTestSupport19MockEmbeddingClientC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport20MockWorkspaceCreatorV6create4from13PositronicKit0D8Provider_p11PKContracts0D9ReferenceV_tKF",
       "target": "s:13PKTestSupport20MockWorkspaceCreatorV",
       "sourceOrigin": {
@@ -48668,6 +50216,18 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport30WorkspaceStoreConformanceSuiteO3run04makeD0y13PositronicKit0cD0_pyYaKYCXE_tYaKFZ",
       "target": "s:13PKTestSupport30WorkspaceStoreConformanceSuiteO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO3run6client6inputs15expectedVectorsy11PKContracts0cD8Protocol_p_SaySSGSaySaySfGGtYaKFZ",
+      "target": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO3run6client6inputsy11PKContracts0cD8Protocol_p_SaySSGtYaKFZ",
+      "target": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO"
     },
     {
       "module": "PKTestSupport",
@@ -54358,6 +55918,18 @@
       "kind": "requirementOf",
       "source": "s:11PKContracts18ToolApprovalPolicyP07requestC04tool9argumentsAA0bC8DecisionOAA03AnyB0V_SDySSAA0I7CodableOGtYaF",
       "target": "s:11PKContracts18ToolApprovalPolicyP"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "requirementOf",
+      "source": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp",
+      "target": "s:11PKContracts23EmbeddingClientProtocolP"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "requirementOf",
+      "source": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF",
+      "target": "s:11PKContracts23EmbeddingClientProtocolP"
     },
     {
       "module": "PKContracts",

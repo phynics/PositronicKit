@@ -303,6 +303,10 @@ struct OllamaEndpoint {
         url?.appendingPathComponent("api/chat")
     }
 
+    var embedURL: URL? {
+        url?.appendingPathComponent("api/embed")
+    }
+
     var tagsURL: URL? {
         url?.appendingPathComponent("api/tags")
     }

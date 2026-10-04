@@ -21,6 +21,25 @@ _Avoid_: Turn engine, TurnEngine
 Caller-selected model options that are part of an inference request.
 _Avoid_: runtime policy
 
+## Embeddings
+
+**Embedding**:
+A vector together with the `EmbeddingSpace` it belongs to. Two embeddings are comparable only when
+their spaces are equal.
+_Avoid_: anonymous vector, raw `[Float]`
+
+**Embedding Space**:
+The provider, model, dimension count, and normalization that make an embedding comparable.
+_Avoid_: model name string, vector store
+
+**Embedding Client**:
+A runtime-neutral capability that turns text into embeddings and declares its input budget.
+_Avoid_: retrieval service, memory store
+
+**Embedding Input Budget**:
+The text-count, per-text byte, and total-byte limits an Embedding Client admits before I/O.
+_Avoid_: tokenizer
+
 ## Tools and structured output
 
 **Tool Definition**:

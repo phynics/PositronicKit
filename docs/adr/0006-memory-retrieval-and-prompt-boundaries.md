@@ -70,3 +70,11 @@ Downstream consumers that need continuity should migrate to `AgentContextSource`
 Turn-scoped, or model-directed. A future retrieval product must define its own result value,
 ranking and budget policy, durability boundary, and consumer before it can become a PositronicKit
 contract. No compatibility alias is warranted by the current Gnostic or Yakamoz audit.
+
+## Amendment (ADR 0014)
+
+[ADR 0014](0014-embeddings-runtime-neutral-capability.md) returns a runtime-neutral
+`EmbeddingClientProtocol` with provider clients and a bounded request shape. It amends decision 1
+above: the separately owned contract and its consumer now exist. The automatic global memory
+pipeline stays rejected, and the runtime still performs no retrieval. Hosts rank their own data
+and contribute results through `AgentContextSource` or `TurnContextSource`.
