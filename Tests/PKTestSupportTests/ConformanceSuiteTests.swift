@@ -52,6 +52,14 @@ struct ConformanceSuiteTests {
         )
     }
 
+    @Test("EmbeddingClientProtocol runs against the in-tree mock")
+    func embeddingClientConformer() async throws {
+        try await EmbeddingClientConformanceSuite.run(
+            client: MockEmbeddingClient(),
+            inputs: ["alpha", "beta", "gamma"]
+        )
+    }
+
     @Test("broken TimelineRuntimeRepository is reported at terminal completion")
     func brokenTimelineRuntimeRepository() async throws {
         try await withKnownIssue(

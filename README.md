@@ -34,9 +34,11 @@ The package also includes:
 - `PKPrompt` for prompt composition, compression, rendering, and prompt journaling.
 - Structured output and sidecar directives on provider-neutral Turn contracts.
 - Separate adapters for OpenAI, OpenRouter, Ollama, Anthropic, and Apple's Foundation Models.
+- A runtime-neutral `EmbeddingClientProtocol` in `PKContracts`, with OpenAI, Ollama, and Apple Natural Language clients in the provider products.
 - `PKObservable` for UI-facing Timeline state and `PKTestSupport` for downstream tests.
 
-Embedding generation, vector retrieval, provider discovery, and a public plugin bus are outside the
+Embedding generation is available to hosts; the runtime performs no retrieval. Automatic vector
+stores, embedding persistence, provider discovery, and a public plugin bus stay outside the
 current package.
 
 ## Stable package dependency

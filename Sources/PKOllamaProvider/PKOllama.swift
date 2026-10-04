@@ -1,3 +1,4 @@
+import Foundation
 import PKContracts
 
 /// Entry point for configuring PKRuntime against a local or remote Ollama server.
@@ -33,6 +34,24 @@ public enum PKOllama: LLMProviderFactory {
             modelName: providerConfig.modelName,
             timeoutInterval: providerConfig.timeoutInterval,
             maxRetries: providerConfig.maxRetries
+        )
+    }
+
+    /// Creates an embedding client for the Ollama `/api/embed` endpoint.
+    ///
+    /// Embedding is a separate capability from chat. The runtime never calls this client; a host
+    /// uses it inside its own `AgentContextSource` or `TurnContextSource`.
+    public static func makeEmbeddingClient(
+        model: String = "nomic-embed-text",
+        endpoint: String = "http://localhost:11434",
+        timeoutInterval: TimeInterval = 120.0,
+        maxRetries: Int = 3
+    ) -> OllamaEmbeddingClient {
+        OllamaEmbeddingClient(
+            endpoint: endpoint,
+            modelName: model,
+            timeoutInterval: timeoutInterval,
+            maxRetries: maxRetries
         )
     }
 }

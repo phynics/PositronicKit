@@ -10,6 +10,20 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Runtime-neutral embeddings:** `PKContracts` gains `EmbeddingClientProtocol`,
+  `EmbeddingRequest`, `EmbeddingResponse`, `Embedding`, `EmbeddingSpace`, `EmbeddingPurpose`,
+  `EmbeddingInputBudget`, and `EmbeddingError` (ADR 0014). `Embedding` carries its
+  `EmbeddingSpace`, and `cosineSimilarity(to:)` throws `EmbeddingError.incompatibleSpaces` when two
+  vectors come from different providers or models. The runtime performs no retrieval; hosts rank
+  their own data and contribute through `AgentContextSource` or `TurnContextSource`.
+- `OpenAIEmbeddingClient` (via `PKOpenAI.makeEmbeddingClient`) and `OllamaEmbeddingClient` (via
+  `PKOllama.makeEmbeddingClient`) adapt the OpenAI and Ollama embedding endpoints.
+  `AppleNaturalLanguageEmbeddingClient` wraps Apple's on-device sentence embeddings in
+  `PKFoundationModelsProvider` under a `#if canImport(NaturalLanguage)` guard.
+- `PKTestSupport` gains `MockEmbeddingClient` and `EmbeddingClientConformanceSuite` for host and
+  provider embedding tests.
+- `PositronicKitExamples` gains `EmbeddingRetrievalContextSource`, the documented host-side
+  semantic retrieval pattern.
 - `TurnRecord.memberMessageIDs` and `TimelineRuntimeRepository.fetchTurnMessages(turnID:)` expose
   the exact ordered messages of a Turn, excluding unrelated Timeline writes. An absent list on
   older records means unknown membership; a present empty list means no messages.

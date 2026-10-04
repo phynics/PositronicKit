@@ -87,6 +87,8 @@ public enum PKErrorDomain {
     public static let timeline = "com.positronickit.core.thread"
     public static let turn = "com.positronickit.core.turn"
     public static let tool = "com.positronickit.core.tool"
+    /// Stable error domain for embedding client failures. The raw value is frozen wire identity.
+    public static let embedding = "com.positronickit.core.embedding"
     public static let persistence = "com.positronickit.core.persistence"
     public static let rpc = "com.positronickit.core.rpc"
     public static let filesystem = "com.positronickit.core.filesystem"

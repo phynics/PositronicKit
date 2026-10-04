@@ -41,4 +41,28 @@ public enum PKOpenAI: LLMProviderFactory {
                 : PromptAugmentedJSONSchemaAdapter()
         )
     }
+
+    /// Creates an embedding client for the OpenAI `/v1/embeddings` endpoint.
+    ///
+    /// Embedding is a separate capability from chat. The runtime never calls this client; a host
+    /// uses it inside its own `AgentContextSource` or `TurnContextSource`.
+    public static func makeEmbeddingClient(
+        apiKey: String,
+        model: String = "text-embedding-3-small",
+        host: String = "api.openai.com",
+        port: Int = 443,
+        scheme: String = "https",
+        timeoutInterval: TimeInterval = 60.0,
+        maxRetries: Int = 3
+    ) -> OpenAIEmbeddingClient {
+        OpenAIEmbeddingClient(
+            apiKey: apiKey,
+            modelName: model,
+            host: host,
+            port: port,
+            scheme: scheme,
+            timeoutInterval: timeoutInterval,
+            maxRetries: maxRetries
+        )
+    }
 }

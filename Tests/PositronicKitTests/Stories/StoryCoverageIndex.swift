@@ -47,6 +47,8 @@
 /// - introductory prompt journaling flow → `IntroductoryStoriesTests`
 /// - provider convenience initialization (OpenAI / Ollama) → `ExampleUsageStoriesTests`
 /// - README/setup/usage examples stay buildable → `ExampleUsageStoriesTests`
+/// - host-owned embedding retrieval with cosine ranking →
+///   `EmbeddingRetrievalExampleTests`
 ///
 /// Internal mechanism stories
 /// - direct timeline tool-registry mutation for an introductory round-trip →
