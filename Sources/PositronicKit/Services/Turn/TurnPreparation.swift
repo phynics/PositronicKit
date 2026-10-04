@@ -158,6 +158,7 @@ struct TurnPreparation: Sendable {
         let assemblyLogger = request.promptAssemblyLogger
         let responseModalities = request.responseModalities
         let audioOutput = request.audioOutput
+        let transport = request.transport
 
         // Sidecar directives steer generation only through prompt text (SDC-7). The per-turn
         // directive list is volatile (consumer-scheduled, changes turn-to-turn), so it rides
@@ -534,6 +535,7 @@ struct TurnPreparation: Sendable {
                 modelRoundIndex: 0,
                 responseModalities: responseModalities,
                 audioOutput: audioOutput,
+                transport: transport,
                 outputs: TurnOutputs()
             ))
         } catch let preparationError {

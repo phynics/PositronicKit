@@ -161,6 +161,8 @@ struct TurnContext {
     let diagnostics: [TurnDiagnostic]
     let responseModalities: Set<ResponseModality>
     let audioOutput: AudioOutputOptions?
+    /// The provider transport selected at Turn admission. Constant across model rounds.
+    let transport: GenerationTransport
 
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
     /// Created once per `prepareTurn()` call and carried through all model rounds in the loop.
@@ -203,6 +205,7 @@ struct TurnContext {
         modelRoundIndex: Int,
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil,
+        transport: GenerationTransport = .streaming,
         outputs: TurnOutputs = TurnOutputs()
     ) {
         self.timelineID = timelineID
@@ -227,6 +230,7 @@ struct TurnContext {
         self.diagnostics = diagnostics
         self.responseModalities = responseModalities
         self.audioOutput = audioOutput
+        self.transport = transport
         self.promptHistory = promptHistory
         self.renderedPrompt = renderedPrompt
         self.promptHistoryUpdate = promptHistoryUpdate
@@ -275,6 +279,7 @@ struct TurnContext {
             modelRoundIndex: modelRoundIndex,
             responseModalities: responseModalities,
             audioOutput: audioOutput,
+            transport: transport,
             outputs: TurnOutputs()
         )
     }

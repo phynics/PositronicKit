@@ -75,16 +75,21 @@ public struct ModelInferenceCapability: Sendable {
     ///     a default argument is baked in at the call site, so honouring the configured value
     ///     here would change this method's public signature. Pass the value explicitly to match
     ///     a non-default runtime configuration.
+    ///   - transport: Which provider transport to use. Streaming is the default. With
+    ///     `.requestResponse`, `idleTimeout` bounds the whole request because the provider
+    ///     returns one terminal chunk.
     /// - Returns: The assembled content plus the provider's terminal metadata.
     public func generate(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval = 60
+        idleTimeout: TimeInterval = 60,
+        transport: GenerationTransport = .streaming
     ) async throws -> LLMResponse {
         try await completeResult(
             prompt,
             generationParameters: generationParameters,
-            idleTimeout: idleTimeout
+            idleTimeout: idleTimeout,
+            transport: transport
         )
     }
 
@@ -101,7 +106,9 @@ public struct ModelInferenceCapability: Sendable {
     ///   - generationParameters: Per-call generation parameters. Defaults to the facade's
     ///     configured parameters when `nil`.
     ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. This defaults to
-    ///     60 seconds and is applied by the existing one-shot structured-output path.
+    ///     60 seconds and is applied by the existing one-shot structured-output path. With
+    ///     `.requestResponse`, it bounds the whole request.
+    ///   - transport: Which provider transport to use. Streaming is the default.
     ///   - decoder: The decoder used to turn the model's JSON payload into `Output`.
     /// - Returns: The decoded structured response.
     /// - Throws: `PKContracts.StructuredGenerationError.schemaConstructionFailed(typeName:reason:)` when
@@ -112,6 +119,7 @@ public struct ModelInferenceCapability: Sendable {
         from prompt: String,
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60,
+        transport: GenerationTransport = .streaming,
         decoder: JSONDecoder = SerializationUtils.jsonDecoder
     ) async throws -> Output
     where
@@ -139,7 +147,8 @@ public struct ModelInferenceCapability: Sendable {
             prompt,
             structuredOutput: request,
             generationParameters: generationParameters,
-            idleTimeout: idleTimeout
+            idleTimeout: idleTimeout,
+            transport: transport
         )
 
         return try StructuredOutputDecoder.decode(Output.self, from: payload, decoder: decoder)
@@ -155,18 +164,22 @@ public struct ModelInferenceCapability: Sendable {
     ///     60 seconds rather than the runtime's configured `RuntimeConfiguration.streamTimeout`:
     ///     a default argument is baked in at the call site, so honouring the configured value
     ///     here would change this method's public signature. Pass the value explicitly to match
-    ///     a non-default runtime configuration.
+    ///     a non-default runtime configuration. With `.requestResponse`, it bounds the whole
+    ///     request.
+    ///   - transport: Which provider transport to use. Streaming is the default.
     /// - Returns: The provider's raw chunk stream. Cancelling the consuming task cancels the
     ///   underlying provider request.
     public func stream(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval = 60
+        idleTimeout: TimeInterval = 60,
+        transport: GenerationTransport = .streaming
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         streamChunks(
             prompt,
             generationParameters: generationParameters,
-            idleTimeout: idleTimeout
+            idleTimeout: idleTimeout,
+            transport: transport
         )
     }
 
@@ -174,7 +187,7 @@ public struct ModelInferenceCapability: Sendable {
     /// updating a Timeline.
     ///
     /// This is the raw-payload companion to
-    /// ``generate(_:from:generationParameters:idleTimeout:decoder:)``: it returns the
+    /// ``generate(_:from:generationParameters:idleTimeout:transport:decoder:)``: it returns the
     /// provider's JSON string instead of decoding it into a value. Use it when the caller needs
     /// the raw payload, a hand-built schema, or plain JSON-object mode.
     ///
@@ -187,19 +200,23 @@ public struct ModelInferenceCapability: Sendable {
     ///     60 seconds rather than the runtime's configured `RuntimeConfiguration.streamTimeout`:
     ///     a default argument is baked in at the call site, so honouring the configured value
     ///     here would change this method's public signature. Pass the value explicitly to match
-    ///     a non-default runtime configuration.
+    ///     a non-default runtime configuration. With `.requestResponse`, it bounds the whole
+    ///     request.
+    ///   - transport: Which provider transport to use. Streaming is the default.
     /// - Returns: The raw structured payload (JSON), decodable via `StructuredOutputDecoder`.
     public func generate(
         _ prompt: String,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval = 60
+        idleTimeout: TimeInterval = 60,
+        transport: GenerationTransport = .streaming
     ) async throws -> String {
         try await complete(
             prompt,
             structuredOutput: structuredOutput,
             generationParameters: generationParameters,
-            idleTimeout: idleTimeout
+            idleTimeout: idleTimeout,
+            transport: transport
         )
     }
 }
@@ -208,8 +225,8 @@ public struct ModelInferenceCapability: Sendable {
 
 extension ModelInferenceCapability {
     /// Generates a response for a single prompt without creating or updating a timeline.
-    func complete(_ prompt: String) async throws -> String {
-        let response = try await completeResult(prompt)
+    func complete(_ prompt: String, transport: GenerationTransport = .streaming) async throws -> String {
+        let response = try await completeResult(prompt, transport: transport)
         return response.content ?? ""
     }
 
@@ -224,14 +241,16 @@ extension ModelInferenceCapability {
     func completeResult(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval? = nil
+        idleTimeout: TimeInterval? = nil,
+        transport: GenerationTransport = .streaming
     ) async throws -> LLMResponse {
         var chunks: [LLMStreamChunk] = []
         do {
             let stream = streamChunks(
                 prompt,
                 generationParameters: generationParameters,
-                idleTimeout: idleTimeout ?? configuredStreamTimeout
+                idleTimeout: idleTimeout ?? configuredStreamTimeout,
+                transport: transport
             )
             for try await chunk in stream {
                 chunks.append(chunk)
@@ -273,7 +292,8 @@ extension ModelInferenceCapability {
         _ prompt: String,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval? = nil
+        idleTimeout: TimeInterval? = nil,
+        transport: GenerationTransport = .streaming
     ) async throws -> String {
         try await languageModelClient.sendStructuredMessage(
             prompt,
@@ -281,7 +301,8 @@ extension ModelInferenceCapability {
             generationParameters: generationParameters ?? self.generationParameters,
             idleTimeout: idleTimeout ?? configuredStreamTimeout,
             clock: clock,
-            modelTier: .primary
+            modelTier: .primary,
+            transport: transport
         )
     }
 
@@ -289,7 +310,8 @@ extension ModelInferenceCapability {
     private func streamChunks(
         _ prompt: String,
         generationParameters: GenerationParameters?,
-        idleTimeout: TimeInterval
+        idleTimeout: TimeInterval,
+        transport: GenerationTransport
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let client = languageModelClient
         let defaultGenerationParameters = self.generationParameters
@@ -297,13 +319,16 @@ extension ModelInferenceCapability {
         return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let stream = await client.generationStream(
+                    let stream = await client.generation(
+                        transport: transport,
                         messages: [LLMMessage(role: .user, content: prompt)],
                         tools: nil,
                         toolChoice: nil,
                         responseFormat: nil,
                         generationParameters: generationParameters ?? defaultGenerationParameters,
-                        modelTier: .primary
+                        modelTier: .primary,
+                        responseModalities: [.text],
+                        audioOutput: nil
                     )
                     try await StreamIdleTimeout.run(timeout: idleTimeout, clock: clock) { deadline in
                         for try await chunk in stream {

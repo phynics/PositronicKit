@@ -67,10 +67,12 @@ struct LLMStreamingStage: PipelineStage {
                 generationParameters: context.generationParameters,
                 modelTier: .primary,
                 responseModalities: context.responseModalities,
-                audioOutput: context.audioOutput
+                audioOutput: context.audioOutput,
+                transport: context.transport
             )
         } else {
-            streamData = await llmService.generationStream(
+            streamData = await llmService.generation(
+                transport: context.transport,
                 messages: context.currentMessages,
                 tools: context.toolParams.isEmpty ? nil : context.toolParams,
                 toolChoice: nil,

@@ -10531,6 +10531,16 @@
       "declaration": "func restoreFromBackup() async throws"
     },
     {
+      "precise": "s:13PKTestSupport14MockLLMServiceC17stubbedCompletion11PKContracts14LLMStreamChunkVSgvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockLLMService",
+        "stubbedCompletion"
+      ],
+      "declaration": "var stubbedCompletion: LLMStreamChunk? { get set }"
+    },
+    {
       "precise": "s:13PKTestSupport14MockLLMServiceC18clearConfigurationyyYaF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -10581,6 +10591,26 @@
       "declaration": "func fetchAvailableModels() async throws -> [String]?"
     },
     {
+      "precise": "s:13PKTestSupport14MockLLMServiceC20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSg13PositronicKit05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "MockLLMService",
+        "generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func generationCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
+      "precise": "s:13PKTestSupport14MockLLMServiceC21lastCompletionCaptureAA0c13LLMGenerationG0VSgvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockLLMService",
+        "lastCompletionCapture"
+      ],
+      "declaration": "var lastCompletionCapture: MockLLMGenerationCapture? { get }"
+    },
+    {
       "precise": "s:13PKTestSupport14MockLLMServiceC21lastGenerationCaptureAA0c13LLMGenerationG0VSgvp",
       "module": "PKTestSupport",
       "kind": "swift.property",
@@ -10609,6 +10639,16 @@
         "structuredOutputAdapter(for:)"
       ],
       "declaration": "func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter"
+    },
+    {
+      "precise": "s:13PKTestSupport14MockLLMServiceC24completionCaptureHistorySayAA0c13LLMGenerationF0VGvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockLLMService",
+        "completionCaptureHistory"
+      ],
+      "declaration": "var completionCaptureHistory: [MockLLMGenerationCapture] { get }"
     },
     {
       "precise": "s:13PKTestSupport14MockLLMServiceC24generationCaptureHistorySayAA0c13LLMGenerationF0VGvp",
@@ -13356,6 +13396,16 @@
       "declaration": "func fetchAvailableModels() async throws -> [String]?"
     },
     {
+      "precise": "s:13PositronicKit10LLMServiceC20generationCompletion8messages5tools10toolChoice14responseFormat0D10Parameters9modelTier0J10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0vI0OSgAM011LLMResponseK0OSgAM010GenerationL0VSgAA05ModelN0OShyAM16ResponseModalityOGAM05AudioQ7OptionsVSgtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "LLMService",
+        "generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func generationCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
       "precise": "s:13PositronicKit10LLMServiceC23structuredOutputAdapter3for11PKContracts010StructuredeF0_pAA9ModelTierO_tYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -14010,14 +14060,24 @@
       "declaration": "let requestID: UUID?"
     },
     {
-      "precise": "s:13PositronicKit11TurnOptionsV9requestID5tools11toolOutputs14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioP0AC10Foundation4UUIDVSg_Say11PKContracts6PKTool_pGSayAT04ToolP10SubmissionVGSgSiAT010GenerationN0VSgAT010StructuredP7RequestOSgSayAT0V9DirectiveVGAA0vsT0OSb7Logging6LoggerVSgShyAT16ResponseModalityOGAT05AudiopD0VSgtcfc",
+      "precise": "s:13PositronicKit11TurnOptionsV9requestID5tools11toolOutputs14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioP09transportAC10Foundation4UUIDVSg_Say11PKContracts6PKTool_pGSayAU04ToolP10SubmissionVGSgSiAU010GenerationN0VSgAU010StructuredP7RequestOSgSayAU0V9DirectiveVGAA0vsT0OSb7Logging6LoggerVSgShyAU16ResponseModalityOGAU05AudiopD0VSgAA19GenerationTransportOtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "TurnOptions",
-        "init(requestID:tools:toolOutputs:maxModelRounds:generationParameters:structuredOutput:sidecars:sidecarCommitPolicy:includeSidecarMechanismPreamble:promptAssemblyLogger:responseModalities:audioOutput:)"
+        "init(requestID:tools:toolOutputs:maxModelRounds:generationParameters:structuredOutput:sidecars:sidecarCommitPolicy:includeSidecarMechanismPreamble:promptAssemblyLogger:responseModalities:audioOutput:transport:)"
       ],
-      "declaration": "init(requestID: UUID? = nil, tools: [any PKTool] = [], toolOutputs: [ToolOutputSubmission]? = nil, maxModelRounds: Int = 5, generationParameters: GenerationParameters? = nil, structuredOutput: StructuredOutputRequest? = nil, sidecars: [SidecarDirective] = [], sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound, includeSidecarMechanismPreamble: Bool = false, promptAssemblyLogger: Logger? = nil, responseModalities: Set<ResponseModality> = [.text], audioOutput: AudioOutputOptions? = nil)"
+      "declaration": "init(requestID: UUID? = nil, tools: [any PKTool] = [], toolOutputs: [ToolOutputSubmission]? = nil, maxModelRounds: Int = 5, generationParameters: GenerationParameters? = nil, structuredOutput: StructuredOutputRequest? = nil, sidecars: [SidecarDirective] = [], sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound, includeSidecarMechanismPreamble: Bool = false, promptAssemblyLogger: Logger? = nil, responseModalities: Set<ResponseModality> = [.text], audioOutput: AudioOutputOptions? = nil, transport: GenerationTransport = .streaming)"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV9transportAA19GenerationTransportOvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "transport"
+      ],
+      "declaration": "let transport: GenerationTransport"
     },
     {
       "precise": "s:13PositronicKit11TurnOutcomeO",
@@ -15337,6 +15397,16 @@
       "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
+      "precise": "s:13PositronicKit15LLMStreamClientP20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts0C5ChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0vJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "LLMStreamClient",
+        "generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func generationCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
       "precise": "s:13PositronicKit15LLMStreamClientP23structuredOutputAdapter3for11PKContracts010StructuredfG0_pAA9ModelTierO_tYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -15367,14 +15437,14 @@
       "declaration": "var readiness: ModelReadiness { get async }"
     },
     {
-      "precise": "s:13PositronicKit15LLMStreamClientPAAE14sendStructured_16structuredOutput2as7decoder20generationParameters9modelTierqd__SS_11PKContracts0fH7RequestOqd__m10Foundation11JSONDecoderCAJ010GenerationL0VSgAA05ModelN0OtYaKSeRd__s8SendableRd__lF",
+      "precise": "s:13PositronicKit15LLMStreamClientPAAE14sendStructured_16structuredOutput2as7decoder20generationParameters9modelTier9transportqd__SS_11PKContracts0fH7RequestOqd__m10Foundation11JSONDecoderCAK010GenerationL0VSgAA05ModelN0OAA0T9TransportOtYaKSeRd__s8SendableRd__lF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "LLMStreamClient",
-        "sendStructured(_:structuredOutput:as:decoder:generationParameters:modelTier:)"
+        "sendStructured(_:structuredOutput:as:decoder:generationParameters:modelTier:transport:)"
       ],
-      "declaration": "func sendStructured<T>(_ content: String, structuredOutput: StructuredOutputRequest, as type: T.Type = T.self, decoder: JSONDecoder = SerializationUtils.jsonDecoder, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary) async throws -> T where T : Decodable, T : Sendable"
+      "declaration": "func sendStructured<T>(_ content: String, structuredOutput: StructuredOutputRequest, as type: T.Type = T.self, decoder: JSONDecoder = SerializationUtils.jsonDecoder, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary, transport: GenerationTransport = .streaming) async throws -> T where T : Decodable, T : Sendable"
     },
     {
       "precise": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tJ0OSgAK011LLMResponseL0OSgAK010GenerationM0VSgAA05ModelO0OtYaF",
@@ -15387,34 +15457,44 @@
       "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]? = nil, toolChoice: LLMToolChoice? = nil, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
-      "precise": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools16structuredOutput0E10Parameters9modelTier18responseModalities05audioJ0Scsy11PKContracts0C5ChunkVs5Error_pGSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL010StructuredJ7RequestOAL010GenerationK0VSgAA05ModelM0OShyAL16ResponseModalityOGAL05AudioJ7OptionsVSgtYaF",
+      "precise": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools16structuredOutput0E10Parameters9modelTier18responseModalities05audioJ09transportScsy11PKContracts0C5ChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM010StructuredJ7RequestOAM010GenerationK0VSgAA05ModelM0OShyAM16ResponseModalityOGAM05AudioJ7OptionsVSgAA0Z9TransportOtYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "LLMStreamClient",
-        "generationStream(messages:tools:structuredOutput:generationParameters:modelTier:responseModalities:audioOutput:)"
+        "generationStream(messages:tools:structuredOutput:generationParameters:modelTier:responseModalities:audioOutput:transport:)"
       ],
-      "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]? = nil, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
+      "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]? = nil, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?, transport: GenerationTransport = .streaming) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
-      "precise": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools16structuredOutput0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAJ10LLMMessageVG_SayAJ17LLMToolDefinitionVGSgAJ010StructuredJ7RequestOAJ010GenerationK0VSgAA05ModelM0OtYaF",
+      "precise": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools16structuredOutput0E10Parameters9modelTier9transportScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK010StructuredJ7RequestOAK010GenerationK0VSgAA05ModelM0OAA0W9TransportOtYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "LLMStreamClient",
-        "generationStream(messages:tools:structuredOutput:generationParameters:modelTier:)"
+        "generationStream(messages:tools:structuredOutput:generationParameters:modelTier:transport:)"
       ],
-      "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]? = nil, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
+      "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]? = nil, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary, transport: GenerationTransport = .streaming) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
-      "precise": "s:13PositronicKit15LLMStreamClientPAAE21sendStructuredMessage_16structuredOutput20generationParameters11idleTimeout9modelTierS2S_11PKContracts0fI7RequestOAI010GenerationK0VSgSdAA05ModelO0OtYaKF",
+      "precise": "s:13PositronicKit15LLMStreamClientPAAE20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts0C5ChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0vJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "LLMStreamClient",
-        "sendStructuredMessage(_:structuredOutput:generationParameters:idleTimeout:modelTier:)"
+        "generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
       ],
-      "declaration": "func sendStructuredMessage(_ content: String, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, modelTier: ModelTier = .primary) async throws -> String"
+      "declaration": "func generationCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
+      "precise": "s:13PositronicKit15LLMStreamClientPAAE21sendStructuredMessage_16structuredOutput20generationParameters11idleTimeout9modelTier9transportS2S_11PKContracts0fI7RequestOAJ010GenerationK0VSgSdAA05ModelO0OAA0S9TransportOtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "LLMStreamClient",
+        "sendStructuredMessage(_:structuredOutput:generationParameters:idleTimeout:modelTier:transport:)"
+      ],
+      "declaration": "func sendStructuredMessage(_ content: String, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, modelTier: ModelTier = .primary, transport: GenerationTransport = .streaming) async throws -> String"
     },
     {
       "precise": "s:13PositronicKit15LLMStreamClientPAAE23structuredOutputAdapter3for11PKContracts010StructuredfG0_pAA9ModelTierO_tYaF",
@@ -18353,6 +18433,35 @@
       "declaration": "static func system() -> String"
     },
     {
+      "precise": "s:13PositronicKit19GenerationTransportO",
+      "module": "PositronicKit",
+      "kind": "swift.enum",
+      "path": [
+        "GenerationTransport"
+      ],
+      "declaration": "enum GenerationTransport"
+    },
+    {
+      "precise": "s:13PositronicKit19GenerationTransportO15requestResponseyA2CmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "GenerationTransport",
+        "requestResponse"
+      ],
+      "declaration": "case requestResponse"
+    },
+    {
+      "precise": "s:13PositronicKit19GenerationTransportO9streamingyA2CmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "GenerationTransport",
+        "streaming"
+      ],
+      "declaration": "case streaming"
+    },
+    {
       "precise": "s:13PositronicKit19LLMUtilityGeneratorV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -19521,6 +19630,16 @@
       "declaration": "func generationStream(messages _: [LLMMessage], tools _: [LLMToolDefinition]?, toolChoice _: LLMToolChoice?, responseFormat _: LLMResponseFormat?, generationParameters _: GenerationParameters?, modelTier _: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, any Error>"
     },
     {
+      "precise": "s:13PositronicKit22UnconfiguredLLMServiceV20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "UnconfiguredLLMService",
+        "generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
+      ],
+      "declaration": "func generationCompletion(messages _: [LLMMessage], tools _: [LLMToolDefinition]?, toolChoice _: LLMToolChoice?, responseFormat _: LLMResponseFormat?, generationParameters _: GenerationParameters?, modelTier _: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
       "precise": "s:13PositronicKit22UnconfiguredLLMServiceV27generationStreamWithContextyAA15LLMStreamResultVAA20LLMGenerationRequestVYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -19807,44 +19926,44 @@
       "declaration": "var isConfigured: Bool { get async }"
     },
     {
-      "precise": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeoutScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AG010GenerationH0VSgSdtF",
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeout9transportScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AH010GenerationH0VSgSdAA0P9TransportOtF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ModelInferenceCapability",
-        "stream(_:generationParameters:idleTimeout:)"
+        "stream(_:generationParameters:idleTimeout:transport:)"
       ],
-      "declaration": "func stream(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60) -> AsyncThrowingStream<LLMStreamChunk, Error>"
+      "declaration": "func stream(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, transport: GenerationTransport = .streaming) -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
-      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_16structuredOutput20generationParameters11idleTimeoutS2S_11PKContracts010StructuredH7RequestOAH010GenerationJ0VSgSdtYaKF",
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_16structuredOutput20generationParameters11idleTimeout9transportS2S_11PKContracts010StructuredH7RequestOAI010GenerationJ0VSgSdAA0Q9TransportOtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ModelInferenceCapability",
-        "generate(_:structuredOutput:generationParameters:idleTimeout:)"
+        "generate(_:structuredOutput:generationParameters:idleTimeout:transport:)"
       ],
-      "declaration": "func generate(_ prompt: String, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60) async throws -> String"
+      "declaration": "func generate(_ prompt: String, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, transport: GenerationTransport = .streaming) async throws -> String"
     },
     {
-      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_20generationParameters11idleTimeout11PKContracts11LLMResponseVSS_AG010GenerationH0VSgSdtYaKF",
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_20generationParameters11idleTimeout9transport11PKContracts11LLMResponseVSS_AH010GenerationH0VSgSdAA0N9TransportOtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ModelInferenceCapability",
-        "generate(_:generationParameters:idleTimeout:)"
+        "generate(_:generationParameters:idleTimeout:transport:)"
       ],
-      "declaration": "func generate(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60) async throws -> LLMResponse"
+      "declaration": "func generate(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, transport: GenerationTransport = .streaming) async throws -> LLMResponse"
     },
     {
-      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_4from20generationParameters11idleTimeout7decoderxxm_SS11PKContracts010GenerationI0VSgSd10Foundation11JSONDecoderCtYaK17JSONSchemaBuilder9SchemableRzSeRzs8SendableRz6SchemaApQP_6OutputQZRszlF",
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_4from20generationParameters11idleTimeout9transport7decoderxxm_SS11PKContracts010GenerationI0VSgSdAA0O9TransportO10Foundation11JSONDecoderCtYaK17JSONSchemaBuilder9SchemableRzSeRzs8SendableRz6SchemaAsTP_6OutputQZRszlF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ModelInferenceCapability",
-        "generate(_:from:generationParameters:idleTimeout:decoder:)"
+        "generate(_:from:generationParameters:idleTimeout:transport:decoder:)"
       ],
-      "declaration": "func generate<Output>(_ type: Output.Type, from prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, decoder: JSONDecoder = SerializationUtils.jsonDecoder) async throws -> Output where Output : Schemable, Output : Decodable, Output : Sendable, Output == Output.Schema.Output"
+      "declaration": "func generate<Output>(_ type: Output.Type, from prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, transport: GenerationTransport = .streaming, decoder: JSONDecoder = SerializationUtils.jsonDecoder) async throws -> Output where Output : Schemable, Output : Decodable, Output : Sendable, Output == Output.Schema.Output"
     },
     {
       "precise": "s:13PositronicKit24ModelInferenceCapabilityV9readiness11PKContracts0C9ReadinessOyYaF",
@@ -36635,6 +36754,34 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
+      "source": "s:13PositronicKit19GenerationTransportO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit19GenerationTransportO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit19GenerationTransportO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit19GenerationTransportO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit19SidecarCommitPolicyO",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
@@ -38480,6 +38627,12 @@
         "identifier": "s:13PositronicKit15DurabilityAwareP9isDurableSbvp",
         "displayName": "DurabilityAware.isDurable"
       }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "defaultImplementationOf",
+      "source": "s:13PositronicKit15LLMStreamClientPAAE20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts0C5ChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0vJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
+      "target": "s:13PositronicKit15LLMStreamClientP20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts0C5ChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0vJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF"
     },
     {
       "module": "PositronicKit",
@@ -47291,6 +47444,12 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport14MockLLMServiceC17stubbedCompletion11PKContracts14LLMStreamChunkVSgvp",
+      "target": "s:13PKTestSupport14MockLLMServiceC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC18clearConfigurationyyYaF",
       "target": "s:13PKTestSupport14MockLLMServiceC"
     },
@@ -47321,6 +47480,22 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport14MockLLMServiceC20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSg13PositronicKit05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
+      "target": "s:13PKTestSupport14MockLLMServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit15LLMStreamClientP20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts0C5ChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0vJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
+        "displayName": "LLMStreamClient.generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport14MockLLMServiceC21lastCompletionCaptureAA0c13LLMGenerationG0VSgvp",
+      "target": "s:13PKTestSupport14MockLLMServiceC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC21lastGenerationCaptureAA0c13LLMGenerationG0VSgvp",
       "target": "s:13PKTestSupport14MockLLMServiceC"
     },
@@ -47339,6 +47514,12 @@
         "identifier": "s:13PositronicKit15LLMStreamClientP23structuredOutputAdapter3for11PKContracts010StructuredfG0_pAA9ModelTierO_tYaF",
         "displayName": "LLMStreamClient.structuredOutputAdapter(for:)"
       }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport14MockLLMServiceC24completionCaptureHistorySayAA0c13LLMGenerationF0VGvp",
+      "target": "s:13PKTestSupport14MockLLMServiceC"
     },
     {
       "module": "PKTestSupport",
@@ -49307,6 +49488,16 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit10LLMServiceC20generationCompletion8messages5tools10toolChoice14responseFormat0D10Parameters9modelTier0J10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0vI0OSgAM011LLMResponseK0OSgAM010GenerationL0VSgAA05ModelN0OShyAM16ResponseModalityOGAM05AudioQ7OptionsVSgtYaKF",
+      "target": "s:13PositronicKit10LLMServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit15LLMStreamClientP20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts0C5ChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0vJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
+        "displayName": "LLMStreamClient.generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit10LLMServiceC23structuredOutputAdapter3for11PKContracts010StructuredeF0_pAA9ModelTierO_tYaF",
       "target": "s:13PositronicKit10LLMServiceC",
       "sourceOrigin": {
@@ -49691,7 +49882,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnOptionsV9requestID5tools11toolOutputs14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioP0AC10Foundation4UUIDVSg_Say11PKContracts6PKTool_pGSayAT04ToolP10SubmissionVGSgSiAT010GenerationN0VSgAT010StructuredP7RequestOSgSayAT0V9DirectiveVGAA0vsT0OSb7Logging6LoggerVSgShyAT16ResponseModalityOGAT05AudiopD0VSgtcfc",
+      "source": "s:13PositronicKit11TurnOptionsV9requestID5tools11toolOutputs14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioP09transportAC10Foundation4UUIDVSg_Say11PKContracts6PKTool_pGSayAU04ToolP10SubmissionVGSgSiAU010GenerationN0VSgAU010StructuredP7RequestOSgSayAU0V9DirectiveVGAA0vsT0OSb7Logging6LoggerVSgShyAU16ResponseModalityOGAU05AudiopD0VSgAA19GenerationTransportOtcfc",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV9transportAA19GenerationTransportOvp",
       "target": "s:13PositronicKit11TurnOptionsV"
     },
     {
@@ -50411,7 +50608,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit15LLMStreamClientPAAE14sendStructured_16structuredOutput2as7decoder20generationParameters9modelTierqd__SS_11PKContracts0fH7RequestOqd__m10Foundation11JSONDecoderCAJ010GenerationL0VSgAA05ModelN0OtYaKSeRd__s8SendableRd__lF",
+      "source": "s:13PositronicKit15LLMStreamClientPAAE14sendStructured_16structuredOutput2as7decoder20generationParameters9modelTier9transportqd__SS_11PKContracts0fH7RequestOqd__m10Foundation11JSONDecoderCAK010GenerationL0VSgAA05ModelN0OAA0T9TransportOtYaKSeRd__s8SendableRd__lF",
       "target": "s:13PositronicKit15LLMStreamClientP"
     },
     {
@@ -50423,19 +50620,19 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools16structuredOutput0E10Parameters9modelTier18responseModalities05audioJ0Scsy11PKContracts0C5ChunkVs5Error_pGSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL010StructuredJ7RequestOAL010GenerationK0VSgAA05ModelM0OShyAL16ResponseModalityOGAL05AudioJ7OptionsVSgtYaF",
+      "source": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools16structuredOutput0E10Parameters9modelTier18responseModalities05audioJ09transportScsy11PKContracts0C5ChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM010StructuredJ7RequestOAM010GenerationK0VSgAA05ModelM0OShyAM16ResponseModalityOGAM05AudioJ7OptionsVSgAA0Z9TransportOtYaF",
       "target": "s:13PositronicKit15LLMStreamClientP"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools16structuredOutput0E10Parameters9modelTierScsy11PKContracts0C5ChunkVs5Error_pGSayAJ10LLMMessageVG_SayAJ17LLMToolDefinitionVGSgAJ010StructuredJ7RequestOAJ010GenerationK0VSgAA05ModelM0OtYaF",
+      "source": "s:13PositronicKit15LLMStreamClientPAAE16generationStream8messages5tools16structuredOutput0E10Parameters9modelTier9transportScsy11PKContracts0C5ChunkVs5Error_pGSayAK10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK010StructuredJ7RequestOAK010GenerationK0VSgAA05ModelM0OAA0W9TransportOtYaF",
       "target": "s:13PositronicKit15LLMStreamClientP"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit15LLMStreamClientPAAE21sendStructuredMessage_16structuredOutput20generationParameters11idleTimeout9modelTierS2S_11PKContracts0fI7RequestOAI010GenerationK0VSgSdAA05ModelO0OtYaKF",
+      "source": "s:13PositronicKit15LLMStreamClientPAAE21sendStructuredMessage_16structuredOutput20generationParameters11idleTimeout9modelTier9transportS2S_11PKContracts0fI7RequestOAJ010GenerationK0VSgSdAA05ModelO0OAA0S9TransportOtYaKF",
       "target": "s:13PositronicKit15LLMStreamClientP"
     },
     {
@@ -52015,6 +52212,18 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit19GenerationTransportO15requestResponseyA2CmF",
+      "target": "s:13PositronicKit19GenerationTransportO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit19GenerationTransportO9streamingyA2CmF",
+      "target": "s:13PositronicKit19GenerationTransportO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit19LLMUtilityGeneratorV12generateTags3forSaySSGSS_tYaKF",
       "target": "s:13PositronicKit19LLMUtilityGeneratorV"
     },
@@ -52661,6 +52870,16 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit22UnconfiguredLLMServiceV20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts14LLMStreamChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
+      "target": "s:13PositronicKit22UnconfiguredLLMServiceV",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit15LLMStreamClientP20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts0C5ChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0vJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
+        "displayName": "LLMStreamClient.generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit22UnconfiguredLLMServiceV27generationStreamWithContextyAA15LLMStreamResultVAA20LLMGenerationRequestVYaKF",
       "target": "s:13PositronicKit22UnconfiguredLLMServiceV",
       "sourceOrigin": {
@@ -52831,25 +53050,25 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeoutScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AG010GenerationH0VSgSdtF",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeout9transportScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AH010GenerationH0VSgSdAA0P9TransportOtF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_16structuredOutput20generationParameters11idleTimeoutS2S_11PKContracts010StructuredH7RequestOAH010GenerationJ0VSgSdtYaKF",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_16structuredOutput20generationParameters11idleTimeout9transportS2S_11PKContracts010StructuredH7RequestOAI010GenerationJ0VSgSdAA0Q9TransportOtYaKF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_20generationParameters11idleTimeout11PKContracts11LLMResponseVSS_AG010GenerationH0VSgSdtYaKF",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_20generationParameters11idleTimeout9transport11PKContracts11LLMResponseVSS_AH010GenerationH0VSgSdAA0N9TransportOtYaKF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_4from20generationParameters11idleTimeout7decoderxxm_SS11PKContracts010GenerationI0VSgSd10Foundation11JSONDecoderCtYaK17JSONSchemaBuilder9SchemableRzSeRzs8SendableRz6SchemaApQP_6OutputQZRszlF",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_4from20generationParameters11idleTimeout9transport7decoderxxm_SS11PKContracts010GenerationI0VSgSdAA0O9TransportO10Foundation11JSONDecoderCtYaK17JSONSchemaBuilder9SchemableRzSeRzs8SendableRz6SchemaAsTP_6OutputQZRszlF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
@@ -54876,6 +55095,12 @@
       "module": "PositronicKit",
       "kind": "requirementOf",
       "source": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts0C5ChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF",
+      "target": "s:13PositronicKit15LLMStreamClientP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "requirementOf",
+      "source": "s:13PositronicKit15LLMStreamClientP20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts0C5ChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0vJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
       "target": "s:13PositronicKit15LLMStreamClientP"
     },
     {

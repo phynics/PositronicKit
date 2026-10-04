@@ -16,6 +16,12 @@ for tagged releases beginning with `1.0.0`.
 - `LLMClientProtocol.chatCompletion(...)` and `LLMStreamChunk.folding(_:)` provide a provider-neutral
   non-streaming completion path and preserve streamed text, reasoning, audio, tool calls, usage,
   and parallel choices in one response.
+- `GenerationTransport` selects the runtime provider transport. `TurnOptions(transport:)` and the
+  `kit.model` generation entry points accept `.streaming` (the default) or `.requestResponse`;
+  a request-response Turn receives one complete response as a single terminal chunk through the
+  existing stream seam, so structured output, tool calls, and terminal durability are unchanged.
+  `LLMStreamClient.generationCompletion(...)` is a new requirement with a folding default, so
+  existing stream-only conformers keep compiling.
 
 ### Breaking
 

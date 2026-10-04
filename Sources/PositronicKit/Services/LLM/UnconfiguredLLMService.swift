@@ -66,4 +66,20 @@ public struct UnconfiguredLLMService: LLMStreamClient, HealthCheckable {
         return failingStream()
     }
 
+    public func generationCompletion(
+        messages _: [LLMMessage],
+        tools _: [LLMToolDefinition]?,
+        toolChoice _: LLMToolChoice?,
+        responseFormat _: LLMResponseFormat?,
+        generationParameters _: GenerationParameters?,
+        modelTier _: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async throws -> LLMStreamChunk {
+        guard !responseModalities.contains(.audio), audioOutput == nil else {
+            throw MultimodalContentError.missingCapability(.audioOutput)
+        }
+        throw error
+    }
+
 }

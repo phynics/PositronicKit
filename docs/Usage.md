@@ -28,8 +28,31 @@ and combines them with `LLMStreamChunk.folding(_:)`. A stream with no chunks thr
 `LLMServiceError.emptyResponse(provider:)`. OpenAI and OpenRouter support explicit audio output;
 Anthropic and Ollama reject audio-output requests.
 
-Turns and `kit.model` continue to use streaming. The provider completion contract is the first
-phase of [issue #236](https://github.com/phynics/PositronicKit/issues/236).
+### Select the runtime transport
+
+`GenerationTransport` chooses which provider path the runtime uses. `.streaming` is the default
+and keeps the existing chunk-by-chunk behavior. `.requestResponse` asks the service for one
+complete response and delivers it through the same stream seam as a single terminal chunk, so
+Turn stages, structured-output preparation, and tool-call assembly are unchanged.
+
+Pass the transport per Turn with `TurnOptions(transport:)`, or per one-shot call.
+
+```swift
+let turn = try await timeline.startTurn(
+    "Summarize this report.",
+    options: TurnOptions(transport: .requestResponse)
+)
+
+let response = try await kit.model.generate(
+    "Summarize this report.",
+    transport: .requestResponse
+)
+```
+
+A detached Timeline uses `.direct` execution; the transport is independent of the execution path.
+Cancelling a `.requestResponse` Turn cancels the in-flight provider request exactly like a
+streaming Turn. The provider completion contract and the runtime transport selection are the two
+phases of [issue #236](https://github.com/phynics/PositronicKit/issues/236).
 
 ## Manage Agents
 
