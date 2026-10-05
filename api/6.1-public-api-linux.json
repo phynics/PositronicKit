@@ -15015,6 +15015,65 @@
       "declaration": "var errorCode: Int { get }"
     },
     {
+      "precise": "s:13PositronicKit12TimelineForkC",
+      "module": "PositronicKit",
+      "kind": "swift.class",
+      "path": [
+        "TimelineFork"
+      ],
+      "declaration": "final class TimelineFork"
+    },
+    {
+      "precise": "s:13PositronicKit12TimelineForkC10timelineID20FoundationEssentials4UUIDVvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TimelineFork",
+        "timelineID"
+      ],
+      "declaration": "let timelineID: UUID"
+    },
+    {
+      "precise": "s:13PositronicKit12TimelineForkC6cancelyyYaF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineFork",
+        "cancel()"
+      ],
+      "declaration": "func cancel() async"
+    },
+    {
+      "precise": "s:13PositronicKit12TimelineForkC8messagesSayAA0C7MessageVGyYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineFork",
+        "messages()"
+      ],
+      "declaration": "func messages() async throws -> [TimelineMessage]"
+    },
+    {
+      "precise": "s:13PositronicKit12TimelineForkC9startTurn_7optionsAA0F6HandleV11PKContracts14MessageContentV_AA0F7OptionsVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineFork",
+        "startTurn(_:options:)"
+      ],
+      "declaration": "func startTurn(_ content: MessageContent, options: TurnOptions = .init()) async throws -> TurnHandle"
+    },
+    {
+      "precise": "s:13PositronicKit12TimelineForkC9startTurn_7optionsAA0F6HandleVSS_AA0F7OptionsVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineFork",
+        "startTurn(_:options:)"
+      ],
+      "declaration": "func startTurn(_ message: String, options: TurnOptions = .init()) async throws -> TurnHandle"
+    },
+    {
       "precise": "s:13PositronicKit13AgentActivityV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -18814,6 +18873,16 @@
         "get(_:)"
       ],
       "declaration": "func get(_ timelineID: UUID) async throws -> TimelineRecord?"
+    },
+    {
+      "precise": "s:13PositronicKit18TimelineCapabilityV4fork4from7contextAA0C4ForkC20FoundationEssentials4UUIDV_AA17DirectTurnContextVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineCapability",
+        "fork(from:context:)"
+      ],
+      "declaration": "func fork(from timelineID: UUID, context: DirectTurnContext) async throws -> TimelineFork"
     },
     {
       "precise": "s:13PositronicKit18TimelineCapabilityV4list15includeArchivedSayAA0C6RecordVGSb_tYaKF",
@@ -23494,6 +23563,16 @@
         "inMemory()"
       ],
       "declaration": "static func inMemory() -> PersistenceConfiguration"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC4fork4from7contextAA12TimelineForkC20FoundationEssentials4UUIDV_AA17DirectTurnContextVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "PKRuntime",
+        "fork(from:context:)"
+      ],
+      "declaration": "func fork(from timelineID: UUID, context: DirectTurnContext) async throws -> TimelineFork"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC5modelAA24ModelInferenceCapabilityVvp",
@@ -35888,6 +35967,20 @@
       "source": "s:13PositronicKit12SidecarErrorO",
       "target": "s:s9EscapableP",
       "targetFallback": "Swift.Escapable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit12TimelineForkC",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit12TimelineForkC",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
     },
     {
       "module": "PositronicKit",
@@ -51295,6 +51388,36 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit12TimelineForkC10timelineID20FoundationEssentials4UUIDVvp",
+      "target": "s:13PositronicKit12TimelineForkC"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit12TimelineForkC6cancelyyYaF",
+      "target": "s:13PositronicKit12TimelineForkC"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit12TimelineForkC8messagesSayAA0C7MessageVGyYaKF",
+      "target": "s:13PositronicKit12TimelineForkC"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit12TimelineForkC9startTurn_7optionsAA0F6HandleV11PKContracts14MessageContentV_AA0F7OptionsVtYaKF",
+      "target": "s:13PositronicKit12TimelineForkC"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit12TimelineForkC9startTurn_7optionsAA0F6HandleVSS_AA0F7OptionsVtYaKF",
+      "target": "s:13PositronicKit12TimelineForkC"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit13AgentActivityV10timelineID20FoundationEssentials4UUIDVvp",
       "target": "s:13PositronicKit13AgentActivityV"
     },
@@ -53294,6 +53417,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit18TimelineCapabilityV3getyAA0C6RecordVSg20FoundationEssentials4UUIDVYaKF",
+      "target": "s:13PositronicKit18TimelineCapabilityV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit18TimelineCapabilityV4fork4from7contextAA0C4ForkC20FoundationEssentials4UUIDV_AA17DirectTurnContextVtYaKF",
       "target": "s:13PositronicKit18TimelineCapabilityV"
     },
     {
@@ -55901,6 +56030,12 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV8inMemoryAEyFZ",
       "target": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC4fork4from7contextAA12TimelineForkC20FoundationEssentials4UUIDV_AA17DirectTurnContextVtYaKF",
+      "target": "s:13PositronicKit9PKRuntimeC"
     },
     {
       "module": "PositronicKit",
