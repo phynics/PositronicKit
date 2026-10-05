@@ -54,6 +54,32 @@ Cancelling a `.requestResponse` Turn cancels the in-flight provider request exac
 streaming Turn. The provider completion contract and the runtime transport selection are the two
 phases of [issue #236](https://github.com/phynics/PositronicKit/issues/236).
 
+## Fork a Timeline session
+
+A host can clone a Timeline's session to run auxiliary work — including a whole tool loop —
+without touching the original Timeline. `timelines.fork(from:context:)` copies the source
+Timeline's durable history into a detached, ephemeral `TimelineFork` that owns its own in-memory
+runtime: a separate repository, Turn ledger, tool intents and results, and Request-ID space. The
+source Timeline is unreachable from fork writes.
+
+```swift skip
+let fork = try await kit.timelines.fork(
+    from: timeline.id,
+    context: DirectTurnContext(systemInstructions: "You re-check the previous answer.")
+)
+let turn = try await fork.startTurn("Audit the last answer for contradictions.")
+_ = await turn.events().collect()
+
+// The fork's own history; the source Timeline is unchanged.
+let forkedMessages = try await fork.messages()
+```
+
+A fork runs direct Turns with read-only tool access: the filesystem read tools rooted at the
+cloned working directory, plus the Timeline observation tools. The Timeline-send tool and the
+Workspace write path are absent. A fork is never durable and its runtime is released when the
+handle is released. A fork is a semantic session clone: it re-assembles its own prompt, so it
+does not byte-match the source provider request.
+
 ## Manage Agents
 
 `Agent` is persistent identity, instructions, and continuity. Every Agent owns one primary Timeline

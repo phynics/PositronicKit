@@ -36,6 +36,11 @@ for tagged releases beginning with `1.0.0`.
   existing stream seam, so structured output, tool calls, and terminal durability are unchanged.
   `LLMStreamClient.generationCompletion(...)` is a new requirement with a folding default, so
   existing stream-only conformers keep compiling.
+- `PKRuntime.timelines.fork(from:context:)` (also on `PKRuntime`) clones a Timeline's session into
+  a detached, ephemeral `TimelineFork`. The fork runs ordinary direct Turns with read-only tool
+  access against an in-memory runtime that shares the language model, Agent store, and Workspace
+  stores but keeps its own repository and prompt-journal state, so fork writes never reach the
+  source Timeline. The fork's runtime is released when its handle is released.
 
 ### Breaking
 

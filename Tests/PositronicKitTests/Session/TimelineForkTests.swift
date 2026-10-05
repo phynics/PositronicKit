@@ -19,7 +19,7 @@ struct TimelineForkTests {
         let sourceBefore = try await kit.timelines.messages(for: timeline.id)
         #expect(sourceBefore.map(\.content) == ["hello", "assistant reply"])
 
-        let fork = try await kit.fork(from: timeline.id, context: context)
+        let fork = try await kit.timelines.fork(from: timeline.id, context: context)
         #expect(fork.timelineID != timeline.id)
 
         // Cloned history matches the source, remapped to the fork's Timeline identity.
@@ -50,7 +50,7 @@ struct TimelineForkTests {
     func forkReleasesOnDeinit() async throws {
         let kit = PKRuntime(languageModel: MockLLMService())
         let timeline = try await kit.timelines.create(title: "Source")
-        var fork: TimelineFork? = try await kit.fork(
+        var fork: TimelineFork? = try await kit.timelines.fork(
             from: timeline.id,
             context: DirectTurnContext(systemInstructions: "")
         )
@@ -63,7 +63,7 @@ struct TimelineForkTests {
     func forkingUnknownTimelineThrows() async throws {
         let kit = PKRuntime(languageModel: MockLLMService())
         await #expect(throws: TimelineError.self) {
-            _ = try await kit.fork(
+            _ = try await kit.timelines.fork(
                 from: UUID(),
                 context: DirectTurnContext(systemInstructions: "")
             )
