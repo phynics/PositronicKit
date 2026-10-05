@@ -33,6 +33,14 @@ struct TimelineForkTests {
         let forkAfter = try await fork.messages()
         #expect(forkAfter.map(\.content) == ["hello", "assistant reply", "do auxiliary work", "assistant reply"])
 
+        // Fork Turns offer the read-only tool set: filesystem reads and Timeline observation, but
+        // never the Timeline-send tool or a file-writing tool.
+        let forkToolNames = (llm.mockClient.lastTools ?? []).map(\.name)
+        #expect(forkToolNames.contains("cat"))
+        #expect(forkToolNames.contains("thread_list"))
+        #expect(!forkToolNames.contains("thread_send"))
+        #expect(!forkToolNames.contains { $0.localizedCaseInsensitiveContains("write") })
+
         // The source Timeline is unchanged.
         let sourceAfter = try await kit.timelines.messages(for: timeline.id)
         #expect(sourceAfter.map(\.content) == sourceBefore.map(\.content))

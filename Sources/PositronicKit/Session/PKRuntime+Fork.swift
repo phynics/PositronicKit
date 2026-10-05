@@ -58,6 +58,17 @@ public extension PKRuntime {
             try await forkRepository.saveMessage(clone)
         }
 
-        return TimelineFork(timelineID: forkTimelineID, runtime: forkRuntime, context: context)
+        // Direct Turns take their tools only from `TurnOptions.tools`, so the fork must read its
+        // own read-only tool set from the fork runtime's registry and inject it on every Turn.
+        // Hydration installs the set from the fork's read-only `RuntimeToolPolicy`.
+        try await forkRuntime.timelineManager.ensureTimelineExists(id: forkTimelineID)
+        let forkTools = await forkRuntime.timelineManager.enabledTools(for: forkTimelineID)
+
+        return TimelineFork(
+            timelineID: forkTimelineID,
+            runtime: forkRuntime,
+            context: context,
+            tools: forkTools
+        )
     }
 }

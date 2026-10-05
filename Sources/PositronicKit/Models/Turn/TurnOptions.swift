@@ -104,3 +104,30 @@ public struct TurnOptions: Sendable {
         )
     }
 }
+
+extension TurnOptions {
+    /// Returns a copy with `extra` tools prepended to this Turn's tools.
+    ///
+    /// A session fork always offers its own read-only tools first, ahead of any tools the caller
+    /// added. The copy initializer is private to this file so the stored properties stay the only
+    /// source of truth for ``TurnOptions``.
+    func prependingTools(_ extra: [AnyTool]) -> TurnOptions {
+        TurnOptions(copying: self, tools: extra + tools)
+    }
+
+    private init(copying options: TurnOptions, tools: [AnyTool]) {
+        requestID = options.requestID
+        self.tools = tools
+        toolOutputs = options.toolOutputs
+        maxModelRounds = options.maxModelRounds
+        generationParameters = options.generationParameters
+        structuredOutput = options.structuredOutput
+        sidecars = options.sidecars
+        sidecarCommitPolicy = options.sidecarCommitPolicy
+        includeSidecarMechanismPreamble = options.includeSidecarMechanismPreamble
+        promptAssemblyLogger = options.promptAssemblyLogger
+        responseModalities = options.responseModalities
+        audioOutput = options.audioOutput
+        transport = options.transport
+    }
+}

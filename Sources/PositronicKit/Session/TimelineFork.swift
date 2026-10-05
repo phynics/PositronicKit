@@ -26,11 +26,13 @@ public final class TimelineFork: Sendable {
 
     private let runtime: PKRuntime
     private let context: DirectTurnContext
+    private let tools: [AnyTool]
 
-    init(timelineID: UUID, runtime: PKRuntime, context: DirectTurnContext) {
+    init(timelineID: UUID, runtime: PKRuntime, context: DirectTurnContext, tools: [AnyTool]) {
         self.timelineID = timelineID
         self.runtime = runtime
         self.context = context
+        self.tools = tools
     }
 
     /// Starts a direct Turn on the fork from a plain-text user message.
@@ -58,7 +60,7 @@ public final class TimelineFork: Sendable {
     ) async throws -> TurnHandle {
         try await runtime.timelines
             .open(timelineID)
-            .startDirectTurn(content, context: context, options: options)
+            .startDirectTurn(content, context: context, options: options.prependingTools(tools))
     }
 
     /// Reads the fork's own durable history in oldest-first order.
