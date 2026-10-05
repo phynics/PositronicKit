@@ -126,6 +126,7 @@ struct TurnEngine: Sendable {
         let llmService: any LLMStreamClient
         let toolRouter: ToolRouter
         let turnContextSource: any TurnContextSource?
+        let turnHistoryProjectionSource: any TurnHistoryProjectionSource?
         let agentActivitySink: any AgentActivitySink?
         let turnOutcomeSink: any TurnOutcomeSink?
         let promptHistoryRegistry: TimelinePromptJournals
@@ -149,6 +150,7 @@ struct TurnEngine: Sendable {
             llmService: any LLMStreamClient,
             toolRouter: ToolRouter,
             turnContextSource: any TurnContextSource? = nil,
+            turnHistoryProjectionSource: any TurnHistoryProjectionSource? = nil,
             agentActivitySink: any AgentActivitySink? = nil,
             turnOutcomeSink: any TurnOutcomeSink? = nil,
             promptHistoryRegistry: TimelinePromptJournals? = nil,
@@ -167,6 +169,7 @@ struct TurnEngine: Sendable {
             self.llmService = llmService
             self.toolRouter = toolRouter
             self.turnContextSource = turnContextSource
+            self.turnHistoryProjectionSource = turnHistoryProjectionSource
             self.agentActivitySink = agentActivitySink
             self.turnOutcomeSink = turnOutcomeSink
             self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptJournals()

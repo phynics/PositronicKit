@@ -241,7 +241,7 @@ public extension PKRuntime {
         }
     }
 
-    /// Groups the non-store runtime knobs and the four bounded customization roles.
+    /// Groups the non-store runtime knobs and the bounded customization roles.
     struct RuntimeConfiguration: Sendable {
         /// How the per-timeline filesystem workspace is provisioned.
         public let workspaceProfile: WorkspaceProfile

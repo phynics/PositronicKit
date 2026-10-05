@@ -41,6 +41,15 @@ for tagged releases beginning with `1.0.0`.
   access against an in-memory runtime that shares the language model, Agent store, and Workspace
   stores but keeps its own repository and prompt-journal state, so fork writes never reach the
   source Timeline. The fork's runtime is released when its handle is released.
+- `TurnHistoryProjectionSource` lets a host supply a bounded, provider-facing replacement for a
+  covered historical prefix on one Turn. `RuntimeCustomization(turnHistoryProjectionSource:)`
+  receives ordered `TurnHistoryMessageDescriptor`s and budget metadata, and returns a
+  `TurnHistoryProjection` that names the covered prefix, one bounded replacement, and the first
+  retained raw message. Projection runs before PKPrompt structured budget compression, requires
+  coverage to end at a tool-transaction boundary, and never rewrites durable history. A source
+  that returns `nil` leaves history unchanged; a source that throws follows its
+  `failureRequirement` (default `.optional`, recorded as `TurnNoticeCode.historyProjectionFailed`).
+  Invalid coverage is rejected with `TurnHistoryProjectionError`.
 
 ### Breaking
 
