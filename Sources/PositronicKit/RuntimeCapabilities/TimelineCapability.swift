@@ -7,17 +7,20 @@ public struct TimelineCapability: Sendable {
     private let agentManager: AgentManager
     private let messageStore: any TimelineMessageStoreProtocol
     private let turnEngine: TurnEngine
+    private let runtime: PKRuntime
 
     init(
         timelineManager: TimelineManager,
         agentManager: AgentManager,
         messageStore: any TimelineMessageStoreProtocol,
-        turnEngine: TurnEngine
+        turnEngine: TurnEngine,
+        runtime: PKRuntime
     ) {
         self.timelineManager = timelineManager
         self.agentManager = agentManager
         self.messageStore = messageStore
         self.turnEngine = turnEngine
+        self.runtime = runtime
     }
 
     /// Creates and persists a Timeline, returning its stable handle.
@@ -45,6 +48,24 @@ public struct TimelineCapability: Sendable {
     /// Opens a handle without performing persistence I/O.
     public func open(_ timelineID: UUID) -> TimelineHandle {
         TimelineHandle(timelineID: timelineID, engine: turnEngine)
+    }
+
+    /// Clones a Timeline's session into a detached, ephemeral fork.
+    ///
+    /// The fork copies the source Timeline's durable history into its own in-memory runtime and
+    /// runs direct Turns with read-only tool access. Writing to the fork never touches the source
+    /// Timeline. The fork's runtime is released when the returned handle is released.
+    ///
+    /// - Parameters:
+    ///   - timelineID: The source Timeline to clone.
+    ///   - context: The explicit direct-Turn authority the fork's Turns run with.
+    /// - Returns: A fork handle owning the cloned session.
+    /// - Throws: ``TimelineError/timelineNotFound`` when no Timeline has `timelineID`.
+    public func fork(
+        from timelineID: UUID,
+        context: DirectTurnContext
+    ) async throws -> TimelineFork {
+        try await runtime.fork(from: timelineID, context: context)
     }
 
     /// Lists persisted Timelines.

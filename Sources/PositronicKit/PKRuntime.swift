@@ -85,7 +85,8 @@ public final class PKRuntime: Sendable {
             timelineManager: timelineManager,
             agentManager: agentManager,
             messageStore: messageStore,
-            turnEngine: turnEngine
+            turnEngine: turnEngine,
+            runtime: self
         )
     }
     public var agents: AgentCapability { AgentCapability(agentManager: agentManager) }

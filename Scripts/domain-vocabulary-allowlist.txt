@@ -24,6 +24,7 @@ docs/adr/0008-timeline-naming-hard-cut.md|parallel Thread entry
 Tests/PKUtilitiesTests/Utilities/ProviderHTTPTransportTests.swift|Thread\.sleep
 Tests/PKTestSupport/TestHTTPServer.swift|Thread\.sleep
 Tests/PositronicKitTests/Services/RuntimeToolPolicyFactoryTests.swift|thread_(list|peek|send)
+Tests/PositronicKitTests/Session/TimelineForkTests.swift|thread_(list|send)
 Tests/PositronicKitTests/Turns/TurnEnginePipelineTests.swift|threadID
 Tests/PositronicKitTests/Timelines/TimelineObservationToolsTests.swift|thread_(list|peek|send|id)
 Tests/PositronicKitTests/Timelines/TimelineSendToolTests.swift|thread_(send|id)
