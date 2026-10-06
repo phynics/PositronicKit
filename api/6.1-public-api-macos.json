@@ -39437,7 +39437,7 @@
       "module": "PositronicKit",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "FoundationEssentials.LocalizedError"
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "kind": "conformsTo",
@@ -55822,7 +55822,7 @@
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO16errorDescriptionSSSgvp",
       "sourceOrigin": {
         "displayName": "LocalizedError.errorDescription",
-        "identifier": "s:20FoundationEssentials14LocalizedErrorP16errorDescriptionSSSgvp"
+        "identifier": "s:10Foundation14LocalizedErrorP16errorDescriptionSSSgvp"
       },
       "target": "s:13PositronicKit26TurnHistoryProjectionErrorO"
     },
