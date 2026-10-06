@@ -95,6 +95,7 @@ internal extension PKRuntime {
                 llmService: dependencies.languageModel,
                 toolRouter: toolRouter,
                 turnContextSource: dependencies.customization.turnContextSource,
+                turnHistoryProjectionSource: dependencies.customization.turnHistoryProjectionSource,
                 agentActivitySink: activitySink,
                 turnOutcomeSink: dependencies.customization.turnOutcomeSink,
                 promptHistoryRegistry: state.promptHistoryRegistry,

@@ -293,21 +293,24 @@ public protocol TurnOutcomeSink: Sendable {
     func record(_ outcome: TurnOutcomeRecord) async throws
 }
 
-/// The four bounded runtime customization roles accepted by the facade.
+/// The bounded runtime customization roles accepted by the facade.
 public struct RuntimeCustomization: Sendable {
     public let agentContextSource: any AgentContextSource?
     public let turnContextSource: any TurnContextSource?
+    public let turnHistoryProjectionSource: any TurnHistoryProjectionSource?
     public let agentActivitySink: any AgentActivitySink?
     public let turnOutcomeSink: any TurnOutcomeSink?
 
     public init(
         agentContextSource: any AgentContextSource? = nil,
         turnContextSource: any TurnContextSource? = nil,
+        turnHistoryProjectionSource: any TurnHistoryProjectionSource? = nil,
         agentActivitySink: any AgentActivitySink? = nil,
         turnOutcomeSink: any TurnOutcomeSink? = nil
     ) {
         self.agentContextSource = agentContextSource
         self.turnContextSource = turnContextSource
+        self.turnHistoryProjectionSource = turnHistoryProjectionSource
         self.agentActivitySink = agentActivitySink
         self.turnOutcomeSink = turnOutcomeSink
     }
@@ -318,6 +321,7 @@ public struct RuntimeCustomization: Sendable {
 /// Stable host-facing codes for nonfatal runtime customization notices.
 public enum TurnNoticeCode: String, Codable, Equatable, Hashable, Sendable {
     case contextContributionFailed = "runtime.context-contribution-failed"
+    case historyProjectionFailed = "runtime.history-projection-failed"
     case agentActivitySinkFailed = "runtime.agent-activity-sink-failed"
     case turnOutcomeSinkFailed = "runtime.turn-outcome-sink-failed"
 }

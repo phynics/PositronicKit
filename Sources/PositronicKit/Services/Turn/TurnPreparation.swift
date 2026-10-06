@@ -314,7 +314,28 @@ struct TurnPreparation: Sendable {
                 .map { $0.toMessage() }
             let currentRemoteDepth = timelineMessages.map(\.remoteDepth).max() ?? 0
 
-            // 5. Build an in-memory augmented history that includes new tool outputs.
+            // 5. Resolve an optional host-provided historical projection before prompt work.
+            //    The projection sees only the durable history preceding this Turn's input and
+            //    runs before PKPrompt structured budget compression. Durable history is never
+            //    rewritten; a covered prefix is replaced only in the provider-facing prompt.
+            let providerConfig = await dependencies.llmService.configuration.activeProviderConfiguration
+            let budget = try TurnEngine.makeTokenBudget(
+                contextWindowTokens: providerConfig.contextWindowTokens,
+                maxOutputTokens: generationParameters?.maxTokens
+            )
+            let projectionResult = try await resolveHistoryProjection(
+                timelineID: timelineID,
+                turnID: turnID,
+                requestID: requestId,
+                agentID: agentId,
+                executionKind: executionKind,
+                inputMessageID: inputMessage?.id,
+                history: history,
+                budget: budget
+            )
+            history = projectionResult.retainedHistory
+
+            // 6. Build an in-memory augmented history that includes new tool outputs.
             for output in validatedToolOutputs {
                 history.append(Message(content: output.output, role: .tool, toolCallID: output.toolCallID))
             }
@@ -389,11 +410,6 @@ struct TurnPreparation: Sendable {
 
             let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineID)
             let structuredDiff = await promptHistory.structuredDiffHint()
-            let providerConfig = await dependencies.llmService.configuration.activeProviderConfiguration
-            let budget = try TurnEngine.makeTokenBudget(
-                contextWindowTokens: providerConfig.contextWindowTokens,
-                maxOutputTokens: generationParameters?.maxTokens
-            )
 
             let renderedPrompt = try await PromptAssembler.assemble(
                 promptRequest,
@@ -403,7 +419,8 @@ struct TurnPreparation: Sendable {
                 options: PromptAssemblyOptions(
                     tokenBudget: budget,
                     logger: assemblyLogger,
-                    structuredDiff: structuredDiff
+                    structuredDiff: structuredDiff,
+                    historyProjectionReplacement: projectionResult.replacement
                 )
             )
 
@@ -895,6 +912,82 @@ private extension TurnPreparation {
             diagnostic,
             NSError(domain: diagnostic.errorIdentity?.domain ?? PKErrorDomain.turn, code: diagnostic.errorIdentity?.code ?? 9010)
         )
+    }
+
+    /// Resolves and applies an optional host-provided historical projection.
+    ///
+    /// Returns the bounded replacement (when a projection applies) and the retained history. A
+    /// source that throws follows its declared ``TurnHistoryProjectionSource/failureRequirement``:
+    /// `.required` fails preparation, `.optional` records a notice and falls back to raw history.
+    /// A returned projection with invalid coverage is always rejected structurally.
+    private func resolveHistoryProjection(
+        timelineID: UUID,
+        turnID: UUID,
+        requestID: UUID,
+        agentID: UUID?,
+        executionKind: TurnExecutionKind,
+        inputMessageID: UUID?,
+        history: [Message],
+        budget: TokenBudget
+    ) async throws -> (replacement: String?, retainedHistory: [Message]) {
+        guard let source = dependencies.turnHistoryProjectionSource else {
+            return (nil, history)
+        }
+
+        let descriptors = history.map { message in
+            TurnHistoryMessageDescriptor(
+                id: message.id,
+                role: message.role,
+                content: message.content,
+                estimatedTokens: TokenEstimator.estimate(text: message.content),
+                toolCallIDs: (message.toolCalls ?? []).map(\.id),
+                toolResultCallID: message.toolCallID
+            )
+        }
+        let request = TurnHistoryProjectionRequest(
+            timelineID: timelineID,
+            turnID: turnID,
+            requestID: requestID,
+            agentID: agentID,
+            executionKind: executionKind,
+            messages: descriptors,
+            budget: TurnHistoryProjectionBudget(
+                contextWindowTokens: budget.maxTokens,
+                reserveForResponse: budget.reserveForResponse,
+                availableTokens: budget.availableTokens,
+                historyTokens: descriptors.reduce(0) { $0 + $1.estimatedTokens }
+            )
+        )
+
+        let projection: TurnHistoryProjection?
+        do {
+            projection = try await source.projection(for: request)
+        } catch {
+            let diagnostic = TurnDiagnostic(
+                dependency: .context,
+                operation: "turnHistoryProjection",
+                entityID: turnID.uuidString,
+                error: error
+            )
+            if source.failureRequirement == .required {
+                throw TurnDegradationError.required(diagnostic, error)
+            }
+            await appendCustomizationNotice(
+                code: .historyProjectionFailed,
+                turnID: turnID,
+                message: diagnostic.message
+            )
+            return (nil, history)
+        }
+
+        guard let projection else { return (nil, history) }
+
+        let applied = try TurnHistoryProjectionValidator.apply(
+            projection,
+            to: history,
+            currentInputID: inputMessageID
+        )
+        return (applied.replacement, applied.retainedHistory)
     }
 
     private func validateToolHistory(_ history: [Message]) throws {

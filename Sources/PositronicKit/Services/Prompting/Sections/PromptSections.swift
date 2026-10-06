@@ -87,6 +87,28 @@ public struct ChatHistory: Prompt {
     }
 }
 
+/// A bounded replacement for a covered historical prefix.
+///
+/// Rendered as one semi-stable history section with a stable identity so prompt-history
+/// diffing treats a projection change as a deliberate prefix reset rather than an
+/// inconsistency. The retained tail stays in the ordinary `chat_history` section.
+struct HistoryProjectionSection: Prompt {
+    let replacement: String
+
+    init(replacement: String) {
+        self.replacement = replacement
+    }
+
+    var body: some Prompt {
+        HistoryPrompt(
+            [Message(content: replacement, role: .summary, isSummary: true)],
+            id: "runtime.history-projection",
+            priority: 71,
+            cachePolicy: .semiStable
+        )
+    }
+}
+
 /// Bounded host-provided values captured for one Turn.
 public struct TurnContextContributions: Prompt {
     public let contributions: [TurnContextContribution]

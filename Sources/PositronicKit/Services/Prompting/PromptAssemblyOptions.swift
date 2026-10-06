@@ -23,6 +23,9 @@ struct PromptAssemblyOptions: Sendable {
     var compressor: SectionCompressor?
     /// Optional diff hint that helps the structured planner prioritize changed nodes.
     var structuredDiff: StructuredDiffHint?
+    /// Optional bounded replacement for a covered historical prefix. When present, prompt
+    /// assembly renders it as a semi-stable section ahead of the retained `chat_history` tail.
+    var historyProjectionReplacement: String?
     /// Executor used for the structured compression pass that runs before fallback budgeting
     /// whenever prompt assembly applies a token budget.
     var structuredExecutor: StructuredCompressionExecutor
@@ -33,6 +36,7 @@ struct PromptAssemblyOptions: Sendable {
         logger: Logger? = nil,
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
+        historyProjectionReplacement: String? = nil,
         structuredExecutor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) {
         self.customSections = customSections
@@ -40,6 +44,7 @@ struct PromptAssemblyOptions: Sendable {
         self.logger = logger
         self.compressor = compressor
         self.structuredDiff = structuredDiff
+        self.historyProjectionReplacement = historyProjectionReplacement
         self.structuredExecutor = structuredExecutor
     }
 }

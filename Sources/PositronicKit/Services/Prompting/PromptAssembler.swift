@@ -57,6 +57,7 @@ enum PromptAssembler {
             agentContext: agentContext,
             timeline: timeline,
             customSections: options.customSections,
+            historyProjectionReplacement: options.historyProjectionReplacement,
             logger: options.logger
         )
         let resolvedSections = resolveSections(from: sections)
@@ -98,6 +99,7 @@ enum PromptAssembler {
         agentContext: AgentContextSnapshot?,
         timeline: TimelineRecord?,
         customSections: (@Sendable () async -> [any Prompt])?,
+        historyProjectionReplacement: String?,
         logger: Logger?
     ) async throws -> [any Prompt] {
         if let customSections {
@@ -153,6 +155,11 @@ enum PromptAssembler {
         })
         if let timeline {
             try sections.append(withLogging("TimelineContext", logger: logger) { TimelineContext(timeline) })
+        }
+        if let historyProjectionReplacement {
+            try sections.append(withLogging("HistoryProjection", logger: logger) {
+                HistoryProjectionSection(replacement: historyProjectionReplacement)
+            })
         }
         try sections.append(withLogging("ChatHistory", logger: logger) {
             ChatHistory(PromptHistoryOptimizer.optimizeForDefaultBudget(request.chatHistory))
