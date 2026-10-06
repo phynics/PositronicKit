@@ -55,15 +55,32 @@ refresh it with `make linux-image`. Compile in it with `make linux-build`.
 The supported lane uses one Swift 6.4.0 build state; remove `.build` after changing build options
 or dependencies so stale modules cannot survive a rebuild.
 
+The supported toolchain is the version declared by `swift-tools-version` in `Package.swift`, which
+`make doctor` reads. CI keeps one lane per platform at that version, and
+[ADR 0011](adr/0011-swift-6-4-toolchain-floor.md) governs when the floor moves and why guarded
+`#if compiler` fallbacks are not used.
+
+## Public API baselines
+
 The `api/` public-symbol baselines are keyed by release and platform and are generated with the
 supported Swift 6.4 toolchain. `make verify-public-api` compares against the primary
 `<release>-public-api-<platform>.json` baseline.
 `make update-public-api-baseline` records an intentional change for the running toolchain.
 
-The supported toolchain is the version declared by `swift-tools-version` in `Package.swift`, which
-`make doctor` reads. CI keeps one lane per platform at that version, and
-[ADR 0011](adr/0011-swift-6-4-toolchain-floor.md) governs when the floor moves and why guarded
-`#if compiler` fallbacks are not used.
+The macOS baseline must be generated on macOS; a Linux host cannot extract the Apple-only symbol
+graph. When `make verify-public-api` fails in the macOS CI lane, that lane regenerates the baseline
+and publishes it as the `macos-public-api-baseline` artifact. A Linux contributor retrieves the
+exact file macOS would produce instead of hand-editing the baseline:
+
+```bash
+gh run download <run-id> -n macos-public-api-baseline
+cp macos-public-api-baseline/<release>-public-api-macos.json api/
+```
+
+The macOS lane publishes the artifact only when `make verify-public-api` is the failing step.
+Another macOS gate failure publishes no baseline. The workflow keeps
+`permissions: contents: read` and never pushes a commit, so the contributor reviews and commits
+the downloaded file.
 
 ## Focused checks
 

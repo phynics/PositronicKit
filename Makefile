@@ -3,7 +3,7 @@
 	verify-linux-agent verify-linux-filter verify-linux-repeat verify-linux-coverage \
 	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-domain-vocabulary verify-doc-snippets detect-flakes \
 	verify-public-api update-public-api-baseline verify-release sbom \
-	verify-static verify-documentation-static verify-docc verify-macos-ci \
+	verify-static verify-documentation-static verify-docc verify-macos-ci verify-macos-ci-gates \
 	agent-verify agent-test agent-test-repeat linux-image linux-build linux-coverage require-container-runtime
 
 # Swift toolchain baked into the supported Linux development image.
@@ -163,7 +163,12 @@ verify-static: verify-diagnose-scan verify-runtime-architecture verify-dependenc
 # The platform-neutral ones (lint, doc snippets, the release-mode PKTestSupport
 # and public-consumer builds) run in the Linux lane, so the two CI lanes together
 # cover `make verify`. Run `make verify` locally for the full macOS gate.
-verify-macos-ci: verify-agent-harness verify-docc verify-products verify-public-api verify-examples test-fast test
+verify-macos-ci: verify-macos-ci-gates verify-public-api
+
+# The macOS lane without the public API check. CI runs this target as one step
+# and `verify-public-api` as its own step, so a baseline mismatch can publish a
+# regenerated macOS baseline without an unrelated gate failure doing the same.
+verify-macos-ci-gates: verify-agent-harness verify-docc verify-products verify-examples test-fast test
 
 verify-linux-coverage:
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
@@ -294,6 +299,7 @@ verify-agent-harness:
 	@bash Tests/Scripts/doctor_test.sh
 	@bash Tests/Scripts/run_linux_container_test.sh
 	@bash Tests/Scripts/public_api_baseline_test.sh
+	@python3 -B Tests/Scripts/check_ci_workflow_test.py
 	@bash Tests/Scripts/check_dependency_direction_test.sh
 	@bash Tests/Scripts/check_diagnose_usage_test.sh
 	@bash Tests/Scripts/check_test_layout_test.sh
