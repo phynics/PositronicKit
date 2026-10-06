@@ -174,10 +174,42 @@ jobs:
       # snippets, and the release-mode PKTestSupport and public-consumer builds
       # are platform-neutral and run in linux-verify, so the two lanes together
       # still cover `make verify`.
-      - name: Verify macOS platform gates (make verify-macos-ci)
+      - name: Verify macOS platform gates (make verify-macos-ci-gates)
         run: |
           mkdir -p .build
-          make verify-macos-ci 2>&1 | tee .build/macos-verify.log
+          make verify-macos-ci-gates 2>&1 | tee .build/macos-verify.log
+
+      # The public API baseline check is its own step so a mismatch here can
+      # regenerate the macOS baseline, while a failure in the gates above
+      # publishes nothing.
+      - name: Verify the macOS public API baseline (make verify-public-api)
+        id: public-api
+        run: |
+          make verify-public-api 2>&1 | tee -a .build/macos-verify.log
+
+      # A Linux host cannot extract the Apple-only symbol graph, so a failing
+      # `verify-public-api` here publishes the exact baseline macOS produces for
+      # a Linux contributor to commit instead of hand-editing the file.
+      - name: Regenerate the macOS public API baseline
+        if: failure() && steps.public-api.outcome == 'failure'
+        id: baseline
+        run: |
+          make update-public-api-baseline
+          baseline="$(git diff --name-only -- 'api/*-public-api-macos.json')"
+          count="$(printf '%s\n' "$baseline" | grep -c .)"
+          if [ "$count" -ne 1 ]; then
+            echo "expected exactly one regenerated macOS baseline, found $count" >&2
+            exit 1
+          fi
+          printf 'baseline=%s\n' "$baseline" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the regenerated macOS public API baseline
+        if: failure() && steps.public-api.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: macos-public-api-baseline
+          path: ${{ steps.baseline.outputs.baseline }}
+          if-no-files-found: error
 
       # Only main seeds the cache: pull-request caches are scoped to their own ref,
       # so saving them would spend the repository quota without helping other PRs.

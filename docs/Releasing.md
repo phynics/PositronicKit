@@ -31,6 +31,16 @@ The tagged version applies to the public products documented in
 3. Generate the macOS baseline on macOS. A Linux host cannot extract the Apple-only graph, so a
    release prepared on Linux is not ready to tag until a macOS host has run
    `make verify-public-api` (or `make update-public-api-baseline`) against the same commit.
+   When the macOS CI lane fails `make verify-public-api`, it publishes the regenerated file as the
+   `macos-public-api-baseline` artifact. Retrieve and commit it from a Linux host:
+
+   ```bash
+   gh run download <run-id> -n macos-public-api-baseline
+   cp macos-public-api-baseline/<release>-public-api-macos.json api/
+   ```
+
+   The lane publishes the artifact only for a public-API failure and never pushes the change
+   itself.
    When both platform checks pass against the current baselines and the symbol graphs stay
    unchanged, run this command to update only the release metadata in both baseline files:
 
