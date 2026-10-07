@@ -23,6 +23,8 @@ The current runtime has four consumer-facing capability values: `model`, `timeli
 `workspaces`. A managed Turn captures its Agent and Workspace authority at admission. A direct Turn
 runs on a detached Timeline with caller-supplied context. Both paths persist admission, history,
 tool audit records, and the terminal outcome through one required `TimelineRuntimeRepository`.
+The package ships in-memory implementations of that repository and the other stores; durable
+storage is supplied by the host and checked with the `PKTestSupport` conformance suites.
 
 Workspace-specific tools are exposed through the reserved `call_tool` dispatcher. Generic file
 tools for an Agent's primary Workspace remain direct model tools. The runtime resolves dispatched
@@ -49,7 +51,9 @@ Add PositronicKit as a Swift Package dependency:
 .package(url: "https://github.com/phynics/PositronicKit.git", from: "6.1.0")
 ```
 
-Public products follow semver. Continue with the tagged README for stable API examples. The
+Public products follow semver, with one recorded exception: `6.1.0` removed public API that the
+runtime never read and should have been a major release. Review the `6.1.0` breaking entries in
+[CHANGELOG.md](CHANGELOG.md) before upgrading from `6.0.x`. Continue with the tagged README for stable API examples. The
 examples below describe the current Next public story and may advance beyond `6.1.0`.
 
 ## Next quick start
@@ -117,7 +121,6 @@ prompt reuse.
 The capability values are the supported consumer entry points. `kit.model` is timeline-free
 inference; `kit.timelines` returns a stateful `TimelineHandle`; `kit.agents` manages identities and
 their Timeline attachments; and `kit.workspaces` owns the workspace catalog. Concrete managers,
-
 registries, and the Turn pipeline are implementation details.
 
 Managed Turns capture typed Agent continuity at admission through `AgentContextSource`. The
@@ -224,7 +227,7 @@ Errors arrive at the boundary where the work occurs:
 
 Cancelling a task that consumes a facade run cancels its provider work and releases the timeline's
 active-task registration. Abandoning a facade `stream` iterator likewise cancels the provider;
-cancelling `complete` or `completeResult` surfaces `CancellationError` without foreign-error
+cancelling a `kit.model.generate` call surfaces `CancellationError` without foreign-error
 wrapping.
 
 In an application, hold `kit` in an app-owned `Service` class and pass the capability values or
@@ -274,6 +277,10 @@ let rendered = await assembled.render()
 print(rendered.sections.map(\.id))
 ```
 
+Compression applies only when assembly runs against a token budget. `.summarize` needs a
+`SectionCompressor`; without one, an over-budget summarize section is dropped. Runtime Turns do
+not supply a compressor today.
+
 ### Sidecar directives
 
 Get a timeline title, tone marker, or summary from the same request as the user-visible response.
@@ -290,13 +297,12 @@ let title = SidecarDirective(
     streaming: .buffered
 )
 
-let stream = try await kit.timelines.open(timelineID).run(.init(
-    timelineID: timelineID,
-    message: "What's the deal with actors in Swift 6?",
-    sidecars: [title]
-))
+let turn = try await kit.timelines.open(timelineID).startTurn(
+    "What's the deal with actors in Swift 6?",
+    options: TurnOptions(sidecars: [title])
+)
 
-for try await event in stream {
+for await event in turn.events() {
     if let text = event.textContent {
         print(text, terminator: "")
     }
@@ -312,7 +318,7 @@ for try await event in stream {
 
 ### Prompt journaling across snapshots
 
-Stable sections persist across turns; semi-stable changes become overlays; volatile sections are replaced each turn. This lets providers reuse a long prefix while only paying for the updated slices.
+Stable sections persist across turns; semi-stable changes become overlays; volatile sections are replaced each turn. This keeps the provider-facing prefix stable, so providers that cache prompt prefixes automatically (such as OpenAI and OpenRouter) can reuse it. No provider adapter sends explicit cache hints yet, so providers that require them (such as Anthropic) do not cache this prefix.
 
 ```swift
 import PKPrompt
