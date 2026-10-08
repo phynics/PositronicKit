@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 import PKContracts
 import PositronicKit
@@ -14,9 +15,10 @@ public struct TimelineControllerError: Error, Sendable {
 
 /// A SwiftUI-friendly controller for a PKRuntime timeline handle.
 ///
-/// Create a controller with ``init(_:messages:)`` for an Agent-attached Timeline (managed Turns) or
-/// with ``init(_:context:messages:)`` for a detached Timeline (direct Turns). The initializer
-/// selects the admission path; `send(_:)` behavior is identical on both.
+/// Create a controller from a `TimelineHandle` for an Agent-attached Timeline (managed Turns),
+/// from a `TimelineHandle` plus `DirectTurnContext` for a detached Timeline (direct Turns), or
+/// from a `TimelineFork` for a fork session. The initializer selects the admission path; `send(_:)`
+/// behavior is identical on all three.
 ///
 /// Issuing a new `send(_:)` while one is already in flight cancels/supersedes it: the prior
 /// task is cancelled, the driver's underlying generation is cancelled, and the new send starts
@@ -33,6 +35,14 @@ public final class TimelineController {
 
     /// The underlying handle this controller mirrors.
     public let driver: TimelineHandle
+    /// The admitted Turn most recently consumed by `send(_:)`; nil before the first send.
+    public private(set) var lastTurnID: UUID?
+    /// The durable terminal outcome of the most recently completed send; nil while streaming
+    /// or before the first send. Read from the repository via `TurnHandle.outcome()`, so it
+    /// matches what every joiner observes.
+    public private(set) var lastOutcome: TurnOutcome?
+    /// The controller error thrown by the most recent failed send; nil on success or before sends.
+    public private(set) var lastError: TimelineControllerError?
     private let directContext: DirectTurnContext?
     private var activeSendTask: Task<Void, Error>? // swiftlint:disable:this concurrency_stored_task -- owned by actor/@MainActor (see docs/Concurrency/exception-manifest.md)
     private var activeSendGeneration = 0
@@ -56,6 +66,20 @@ public final class TimelineController {
         self.driver = driver
         self.directContext = context
         self.messages = messages
+    }
+
+    /// Creates a controller bound to a fork's ephemeral Timeline. `send(_:)` admits direct
+    /// Turns through the fork with its bound context.
+    public init(_ fork: TimelineFork, messages: [Message] = []) {
+        self.driver = fork.handle
+        self.directContext = fork.directContext
+        self.messages = messages
+    }
+
+    /// Cancels the in-flight send, if any, and the driver's underlying generation.
+    public func cancel() async {
+        activeSendTask?.cancel()
+        await driver.cancel()
     }
 
     /// Sends a message and mirrors its driver events into the observable state. Supersedes any
@@ -99,22 +123,34 @@ public final class TimelineController {
         } else {
             try await driver.startTurn(content)
         }
-        for await event in turn.events() {
-            try Task.checkCancellation()
-            guard activeSendGeneration == generation else { return }
-            if case let .error(errorEvent) = event {
-                if case .generationCancelled = errorEvent {
-                    throw CancellationError()
+        lastTurnID = turn.id
+        do {
+            for await event in turn.events() {
+                try Task.checkCancellation()
+                guard activeSendGeneration == generation else { return }
+                if case let .error(errorEvent) = event {
+                    if case .generationCancelled = errorEvent {
+                        throw CancellationError()
+                    }
+                    throw TimelineControllerError(event: errorEvent)
                 }
-                throw TimelineControllerError(event: errorEvent)
+                if let text = event.textContent {
+                    streamingText += text
+                }
+                if let completed = event.completedMessage?.message {
+                    messages.append(completed)
+                    streamingText = ""
+                }
             }
-            if let text = event.textContent {
-                streamingText += text
-            }
-            if let completed = event.completedMessage?.message {
-                messages.append(completed)
-                streamingText = ""
-            }
+            lastOutcome = try await turn.outcome()
+            lastError = nil
+        } catch is CancellationError {
+            lastOutcome = try? await turn.outcome()
+            throw CancellationError()
+        } catch let controllerError as TimelineControllerError {
+            lastError = controllerError
+            lastOutcome = try? await turn.outcome()
+            throw controllerError
         }
     }
 

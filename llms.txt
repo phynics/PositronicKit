@@ -17,6 +17,7 @@
 - [Overview and quick start](README.md): Release selection, runtime contracts, Timeline history, provider setup, typed structured generation, conformance suites, runnable examples, products, and verification.
 - [Setup](docs/Setup.md): Provider-neutral configuration, readiness and health, stream timing, offline examples, persistence, customization, logging, and stable error identity.
 - [Usage](docs/Usage.md): Managed and direct Turns, durable Timeline history, typed and raw one-shot structured generation, cancellation, SOUL/Notes Agent memory, lifecycle, and Workspace routing.
+- [SwiftUI](docs/SwiftUI.md): App-owned runtime service, TimelineController binding, outcome joins, and fork sessions.
 - [Architecture](docs/Architecture.md): Domain boundaries, capability values, durability, execution authority, and the runtime adapter tier.
 - [Prompt composition](docs/PKPromptComposition.md): Prompt IR, assembly, rendering, compression, and PromptJournal.
 - [Sidecar directives](docs/SidecarDirectives.md): Auxiliary structured results carried by the same Turn.
@@ -31,7 +32,7 @@
 - `PKContracts` (library): [docs/Architecture.md](docs/Architecture.md)
 - `PKPrompt` (library): [docs/PKPromptComposition.md](docs/PKPromptComposition.md)
 - `PositronicKit` (library): [docs/Usage.md](docs/Usage.md)
-- `PKObservable` (library): [docs/Usage.md](docs/Usage.md)
+- `PKObservable` (library): [docs/SwiftUI.md](docs/SwiftUI.md)
 - `PKOpenAIProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)
 - `PKOpenRouterProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)
 - `PKOllamaProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)

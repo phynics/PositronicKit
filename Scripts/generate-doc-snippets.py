@@ -43,6 +43,7 @@ DEFAULT_IMPORTS = [
     "import JSONSchemaBuilder",
     "import Logging",
     "import PKContracts",
+    "import PKObservable",
     "import PKOpenAIProvider",
     "import PKOllamaProvider",
     "import PKAnthropicProvider",

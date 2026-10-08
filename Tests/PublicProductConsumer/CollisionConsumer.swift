@@ -4,10 +4,10 @@ import FoundationModels
 import PKPrompt
 import PKContracts
 
-/// macOS-only import coverage for the deliberately overlapping DSL names in SwiftUI,
+/// Apple-platform import coverage for the deliberately overlapping DSL names in SwiftUI,
 /// Foundation Models, and PKPrompt. This file is compiled as part of the ordinary consumer
 /// target; it does not run any framework code.
-@available(macOS 26.0, *)
+@available(anyAppleOS 26.0, *)
 private struct WeatherTool: PKTool {
     let callName = "weather"
     let name = "Weather"
@@ -22,7 +22,7 @@ private struct WeatherTool: PKTool {
     }
 }
 
-@available(macOS 26.0, *)
+@available(anyAppleOS 26.0, *)
 private struct SwiftUIForEachConsumer: View {
     let values = ["one", "two"]
 
@@ -35,7 +35,7 @@ private struct SwiftUIForEachConsumer: View {
     }
 }
 
-@available(macOS 26.0, *)
+@available(anyAppleOS 26.0, *)
 private let promptForEachConsumer: any PKPrompt.Prompt = PKPrompt.AnyPrompt.build {
     // The result-builder context resolves this unqualified ForEach to PKPrompt.ForEach.
     ForEach(["one", "two"]) { value in
@@ -46,25 +46,25 @@ private let promptForEachConsumer: any PKPrompt.Prompt = PKPrompt.AnyPrompt.buil
 // Outside a result-builder context the unqualified name is genuinely ambiguous under
 // `import SwiftUI`, so ADR 0009 documents `PKPrompt.ForEach` as the explicit spelling.
 // Compiling it here keeps that escape hatch verified rather than asserted in prose.
-@available(macOS 26.0, *)
+@available(anyAppleOS 26.0, *)
 private let qualifiedForEachConsumer = PKPrompt.ForEach(["one", "two"]) { value in
     PKPrompt.TextPrompt(value, id: value)
 }
 
-@available(macOS 26.0, *)
+@available(anyAppleOS 26.0, *)
 private let qualifiedPromptBuilder: PKPrompt.PromptBuilder.Type = PKPrompt.PromptBuilder.self
 
-@available(macOS 26.0, *)
+@available(anyAppleOS 26.0, *)
 private let qualifiedPromptType: any PKPrompt.Prompt.Type = PKPrompt.TextPrompt.self
 
-@available(macOS 26.0, *)
+@available(anyAppleOS 26.0, *)
 private let pkToolType: any PKTool.Type = WeatherTool.self
 
-@available(macOS 26.0, *)
+@available(anyAppleOS 26.0, *)
 // Swift 6 requires an explicit existential when naming the Foundation Models protocol type.
 private let foundationModelsToolType: Any.Type = (any FoundationModels.Tool).self
 
-@available(macOS 26.0, *)
+@available(anyAppleOS 26.0, *)
 @MainActor private let collisionViewType: any View.Type = SwiftUIForEachConsumer.self
 
 #endif

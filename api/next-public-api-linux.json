@@ -10309,6 +10309,16 @@
       "declaration": "@MainActor final class TimelineController"
     },
     {
+      "precise": "s:12PKObservable18TimelineControllerC10lastTurnID20FoundationEssentials4UUIDVSgvp",
+      "module": "PKObservable",
+      "kind": "swift.property",
+      "path": [
+        "TimelineController",
+        "lastTurnID"
+      ],
+      "declaration": "@MainActor var lastTurnID: UUID? { get set }"
+    },
+    {
       "precise": "s:12PKObservable18TimelineControllerC11isStreamingSbvp",
       "module": "PKObservable",
       "kind": "swift.property",
@@ -10317,6 +10327,16 @@
         "isStreaming"
       ],
       "declaration": "@MainActor var isStreaming: Bool { get set }"
+    },
+    {
+      "precise": "s:12PKObservable18TimelineControllerC11lastOutcome13PositronicKit04TurnE0OSgvp",
+      "module": "PKObservable",
+      "kind": "swift.property",
+      "path": [
+        "TimelineController",
+        "lastOutcome"
+      ],
+      "declaration": "@MainActor var lastOutcome: TurnOutcome? { get set }"
     },
     {
       "precise": "s:12PKObservable18TimelineControllerC13streamingTextSSvp",
@@ -10339,6 +10359,16 @@
       "declaration": "@MainActor func send(_ message: String) async throws"
     },
     {
+      "precise": "s:12PKObservable18TimelineControllerC6cancelyyYaF",
+      "module": "PKObservable",
+      "kind": "swift.method",
+      "path": [
+        "TimelineController",
+        "cancel()"
+      ],
+      "declaration": "@MainActor func cancel() async"
+    },
+    {
       "precise": "s:12PKObservable18TimelineControllerC6driver13PositronicKit0B6HandleVvp",
       "module": "PKObservable",
       "kind": "swift.property",
@@ -10359,6 +10389,16 @@
       "declaration": "@MainActor var messages: [Message] { get set }"
     },
     {
+      "precise": "s:12PKObservable18TimelineControllerC9lastErrorAA0bcE0VSgvp",
+      "module": "PKObservable",
+      "kind": "swift.property",
+      "path": [
+        "TimelineController",
+        "lastError"
+      ],
+      "declaration": "@MainActor var lastError: TimelineControllerError? { get set }"
+    },
+    {
       "precise": "s:12PKObservable18TimelineControllerC_7context8messagesAC13PositronicKit0B6HandleV_AF17DirectTurnContextVSay11PKContracts7MessageVGtcfc",
       "module": "PKObservable",
       "kind": "swift.init",
@@ -10367,6 +10407,16 @@
         "init(_:context:messages:)"
       ],
       "declaration": "@MainActor init(_ driver: TimelineHandle, context: DirectTurnContext, messages: [Message] = [])"
+    },
+    {
+      "precise": "s:12PKObservable18TimelineControllerC_8messagesAC13PositronicKit0B4ForkC_Say11PKContracts7MessageVGtcfc",
+      "module": "PKObservable",
+      "kind": "swift.init",
+      "path": [
+        "TimelineController",
+        "init(_:messages:)"
+      ],
+      "declaration": "@MainActor init(_ fork: TimelineFork, messages: [Message] = [])"
     },
     {
       "precise": "s:12PKObservable18TimelineControllerC_8messagesAC13PositronicKit0B6HandleV_Say11PKContracts7MessageVGtcfc",
@@ -14942,6 +14992,16 @@
       "declaration": "let timelineID: UUID"
     },
     {
+      "precise": "s:13PositronicKit12TimelineForkC13directContextAA010DirectTurnF0Vvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TimelineFork",
+        "directContext"
+      ],
+      "declaration": "var directContext: DirectTurnContext { get }"
+    },
+    {
       "precise": "s:13PositronicKit12TimelineForkC6cancelyyYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -14950,6 +15010,16 @@
         "cancel()"
       ],
       "declaration": "func cancel() async"
+    },
+    {
+      "precise": "s:13PositronicKit12TimelineForkC6handleAA0C6HandleVvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TimelineFork",
+        "handle"
+      ],
+      "declaration": "var handle: TimelineHandle { get }"
     },
     {
       "precise": "s:13PositronicKit12TimelineForkC8messagesSayAA0C7MessageVGyYaKF",
@@ -46412,7 +46482,19 @@
     {
       "module": "PKObservable",
       "kind": "memberOf",
+      "source": "s:12PKObservable18TimelineControllerC10lastTurnID20FoundationEssentials4UUIDVSgvp",
+      "target": "s:12PKObservable18TimelineControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
       "source": "s:12PKObservable18TimelineControllerC11isStreamingSbvp",
+      "target": "s:12PKObservable18TimelineControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
+      "source": "s:12PKObservable18TimelineControllerC11lastOutcome13PositronicKit04TurnE0OSgvp",
       "target": "s:12PKObservable18TimelineControllerC"
     },
     {
@@ -46430,6 +46512,12 @@
     {
       "module": "PKObservable",
       "kind": "memberOf",
+      "source": "s:12PKObservable18TimelineControllerC6cancelyyYaF",
+      "target": "s:12PKObservable18TimelineControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
       "source": "s:12PKObservable18TimelineControllerC6driver13PositronicKit0B6HandleVvp",
       "target": "s:12PKObservable18TimelineControllerC"
     },
@@ -46442,7 +46530,19 @@
     {
       "module": "PKObservable",
       "kind": "memberOf",
+      "source": "s:12PKObservable18TimelineControllerC9lastErrorAA0bcE0VSgvp",
+      "target": "s:12PKObservable18TimelineControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
       "source": "s:12PKObservable18TimelineControllerC_7context8messagesAC13PositronicKit0B6HandleV_AF17DirectTurnContextVSay11PKContracts7MessageVGtcfc",
+      "target": "s:12PKObservable18TimelineControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
+      "source": "s:12PKObservable18TimelineControllerC_8messagesAC13PositronicKit0B4ForkC_Say11PKContracts7MessageVGtcfc",
       "target": "s:12PKObservable18TimelineControllerC"
     },
     {
@@ -51844,7 +51944,19 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit12TimelineForkC13directContextAA010DirectTurnF0Vvp",
+      "target": "s:13PositronicKit12TimelineForkC"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit12TimelineForkC6cancelyyYaF",
+      "target": "s:13PositronicKit12TimelineForkC"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit12TimelineForkC6handleAA0C6HandleVvp",
       "target": "s:13PositronicKit12TimelineForkC"
     },
     {

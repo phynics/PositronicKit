@@ -68,6 +68,16 @@ public final class TimelineFork: Sendable {
         try await runtime.timelines.messages(for: timelineID)
     }
 
+    /// The Timeline handle this fork sends through, opened on the fork's runtime.
+    public var handle: TimelineHandle {
+        runtime.timelines.open(timelineID)
+    }
+
+    /// The direct-Turn authority this fork's Turns run with.
+    public var directContext: DirectTurnContext {
+        context
+    }
+
     /// Cancels any in-flight generation on the fork.
     public func cancel() async {
         await runtime.timelines.open(timelineID).cancel()

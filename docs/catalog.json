@@ -64,6 +64,11 @@
         "summary": "Managed and direct Turns, durable Timeline history, typed and raw one-shot structured generation, cancellation, SOUL/Notes Agent memory, lifecycle, and Workspace routing."
     },
     {
+      "title": "SwiftUI",
+      "path": "docs/SwiftUI.md",
+      "summary": "App-owned runtime service, TimelineController binding, outcome joins, and fork sessions."
+    },
+    {
       "title": "Architecture",
       "path": "docs/Architecture.md",
         "summary": "Domain boundaries, capability values, durability, execution authority, and the runtime adapter tier."
@@ -108,7 +113,7 @@
     {"name": "PKContracts", "kind": "library", "module": "PKContracts", "docs": "docs/Architecture.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "Message.self"},
     {"name": "PKPrompt", "kind": "library", "module": "PKPrompt", "docs": "docs/PKPromptComposition.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "(any Prompt).self"},
     {"name": "PositronicKit", "kind": "library", "module": "PositronicKit", "docs": "docs/Usage.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKRuntime.self"},
-    {"name": "PKObservable", "kind": "library", "module": "PKObservable", "docs": "docs/Usage.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "TimelineController.self"},
+    {"name": "PKObservable", "kind": "library", "module": "PKObservable", "docs": "docs/SwiftUI.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "TimelineController.self"},
     {"name": "PKOpenAIProvider", "kind": "library", "module": "PKOpenAIProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOpenAI.self"},
     {"name": "PKOpenRouterProvider", "kind": "library", "module": "PKOpenRouterProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOpenRouter.self"},
     {"name": "PKOllamaProvider", "kind": "library", "module": "PKOllamaProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOllama.self"},

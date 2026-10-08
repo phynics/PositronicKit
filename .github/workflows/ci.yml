@@ -107,9 +107,35 @@ jobs:
         run: swiftlint lint --strict
 
       - name: Verify agent/CI Linux contract
+        id: linux-verify
         run: |
           mkdir -p .build
           make verify-linux-agent 2>&1 | tee .build/linux-verify.log
+
+      # A Linux host cannot be asked to hand-edit its own symbol graph, so a failing
+      # public API check here publishes the exact baseline Linux produces for
+      # a contributor to commit instead of hand-editing the file. Mirrors the
+      # macOS baseline publication below.
+      - name: Regenerate the Linux public API baseline
+        if: failure() && steps.linux-verify.outcome == 'failure'
+        id: baseline
+        run: |
+          make update-public-api-baseline
+          baseline="$(git diff --name-only -- 'api/*-public-api-linux.json')"
+          count="$(printf '%s\n' "$baseline" | grep -c .)"
+          if [ "$count" -ne 1 ]; then
+            echo "expected exactly one regenerated Linux baseline, found $count" >&2
+            exit 1
+          fi
+          printf 'baseline=%s\n' "$baseline" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the regenerated Linux public API baseline
+        if: failure() && steps.linux-verify.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-public-api-baseline
+          path: ${{ steps.baseline.outputs.baseline }}
+          if-no-files-found: error
 
       # Only main seeds the cache: pull-request caches are scoped to their own ref,
       # so saving them would spend the repository quota without helping other PRs.
@@ -227,7 +253,7 @@ jobs:
           if-no-files-found: ignore
 
   ios-verify:
-    name: "iOS Simulator — PKFoundationModelsProvider (xcode-27)"
+    name: "iOS Simulator (xcode-27)"
     needs: preflight
     runs-on: xcode-27
     steps:
@@ -256,6 +282,43 @@ jobs:
       # the vendored `JSONSchemaMacro` from `swift-json-schema` until a human approves it in the
       # Xcode UI. The macro is already pinned through `Package.resolved`, so this trusts the
       # resolved dependency rather than an arbitrary remote one.
+      - name: Build PKObservable for the iOS Simulator
+        run: |
+          mkdir -p .build
+          xcodebuild build \
+            -skipMacroValidation \
+            -scheme PKObservable \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath .build/ios-simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee -a .build/ios-verify.log
+
+      # The runner image installs a different iPhone generation with each Xcode
+      # release, so a hard-coded device name breaks on image updates (#298). Pick
+      # an available iOS Simulator by its UDID, which is unique across runtimes.
+      - name: Resolve an available iOS Simulator
+        id: simulator
+        run: |
+          udid="$(xcrun simctl list devices available \
+            | sed -nE 's/^ *iPhone[^(]*\(([0-9A-Fa-f-]+)\).*/\1/p' \
+            | head -n 1)"
+          if [ -z "$udid" ]; then
+            echo "No available iPhone simulator found on this runner." >&2
+            xcrun simctl list devices available >&2
+            exit 1
+          fi
+          echo "Using iOS Simulator UDID: $udid"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      - name: Test PKObservable on the iOS Simulator
+        run: |
+          xcodebuild test \
+            -skipMacroValidation \
+            -scheme PKObservableTests \
+            -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}' \
+            -derivedDataPath .build/ios-simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee -a .build/ios-verify.log
       - name: Build PKFoundationModelsProvider for the iOS Simulator
         run: |
           mkdir -p .build
