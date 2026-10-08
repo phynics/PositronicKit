@@ -38,4 +38,4 @@ docs/Usage.md|privateThreadId
 docs/Usage.md|Foundation::Thread
 docs/adr/0012-*.md|the original .Thread. collision
 docs/adr/0012-*.md|Foundation::Thread
-docs/PublicIDParameterInventory.md|threadId
+docs/adr/0015-repo-hygiene-activity-and-id-spelling.md|threadId
