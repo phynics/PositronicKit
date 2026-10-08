@@ -269,6 +269,13 @@ package struct ChatCompletionsToolDefinition: Codable, Sendable {
     package let description: String?
     package let parameters: Schema?
     package let strict: Bool?
+
+    package init(name: String, description: String? = nil, parameters: Schema? = nil, strict: Bool? = nil) {
+        self.name = name
+        self.description = description
+        self.parameters = parameters
+        self.strict = strict
+    }
 }
 
 package enum ChatCompletionsToolChoice: Codable, Sendable {
@@ -330,6 +337,10 @@ package struct ChatCompletionsResponseSchema: Codable, Sendable {
 package struct ChatCompletionsStreamOptions: Codable, Sendable {
     package let includeUsage: Bool
     package enum CodingKeys: String, CodingKey { case includeUsage = "include_usage" }
+
+    package init(includeUsage: Bool) {
+        self.includeUsage = includeUsage
+    }
 }
 
 package struct ChatCompletionsChatResponse: Codable, Sendable {
@@ -480,10 +491,14 @@ package struct ChatCompletionsStreamChunk: Codable, Sendable {
 // MARK: - Shared helpers
 
 package enum ChatCompletionsWire {
+    /// Decoder for Chat Completions/OpenRouter SSE chunks.
+    ///
+    /// The shared wire types carry explicit snake_case `CodingKeys`, so this applies no key
+    /// strategy. Pairing `.convertFromSnakeCase` with explicit snake_case keys silently drops
+    /// those fields (the transformed incoming key no longer matches the key's raw value), which
+    /// broke streamed `finish_reason` and `tool_calls` decoding and defeated tool-call recovery.
     package static var streamChunkDecoder: JSONDecoder {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return decoder
+        JSONDecoder()
     }
 
     package static func sortedEncoder() -> JSONEncoder {

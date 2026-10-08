@@ -46,11 +46,7 @@ struct ProviderHTTPFailureTests {
 
         let mapped = ProviderHTTPFailure.makeError(provider: "OpenAI", response: response, responseBody: "")
 
-        guard let error = mapped as? LLMServiceError else {
-            Issue.record("Expected LLMServiceError, got \(type(of: mapped))")
-            return
-        }
-        #expect(error == .httpError(provider: "OpenAI", statusCode: 429, responseBody: "", retryAfter: 3))
+        #expect(mapped == .httpError(provider: "OpenAI", statusCode: 429, responseBody: "", retryAfter: 3))
         #expect(RetryPolicy.isTransient(error: mapped))
     }
 }

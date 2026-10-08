@@ -39,9 +39,9 @@ struct OpenAIWireGoldenTests {
     @Test("API routing: automatic uses Responses for api.openai.com")
     func routing() async throws {
         let openai = OpenAIClient(apiKey: "k", host: "api.openai.com", api: .automatic)
-        #expect(await openai.resolvedAPI(hasAudioOutput: false) == .responses)
-        #expect(await openai.resolvedAPI(hasAudioOutput: true) == .chatCompletions)
+        #expect(openai.resolvedAPI(hasAudioOutput: false) == .responses)
+        #expect(openai.resolvedAPI(hasAudioOutput: true) == .chatCompletions)
         let other = OpenAIClient(apiKey: "k", host: "example.com", api: .automatic)
-        #expect(await other.resolvedAPI(hasAudioOutput: false) == .chatCompletions)
+        #expect(other.resolvedAPI(hasAudioOutput: false) == .chatCompletions)
     }
 }

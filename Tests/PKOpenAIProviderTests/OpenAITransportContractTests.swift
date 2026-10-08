@@ -255,7 +255,7 @@ data: {bad json
             for try await _ in stream {}
             Issue.record("Expected OpenAIClient.chatStream() to throw")
         } catch let error as LLMServiceError {
-            #expect(error == .httpError(provider: "OpenAI", statusCode: 429, responseBody: "", retryAfter: nil))
+            #expect(error == .httpError(provider: "OpenAI", statusCode: 429, responseBody: #"{"error":{"message":"rate limited"}}"#, retryAfter: nil))
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
@@ -341,7 +341,7 @@ data: {bad json
         defer { server.stop() }
         let middleware = CapturingMiddleware()
         let client: any LLMClientProtocol = makeClient(host: "127.0.0.1", port: server.port, middleware: middleware, maxRetries: 1)
-        await #expect(throws: LLMServiceError.httpError(provider: "OpenAI", statusCode: 403, responseBody: "", retryAfter: nil)) {
+        await #expect(throws: LLMServiceError.httpError(provider: "OpenAI", statusCode: 403, responseBody: #"{"error":{"message":"denied"}}"#, retryAfter: nil)) {
             _ = try await client.chatCompletion(messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil)
         }
         #expect(middleware.recordedRequests().count == 1)

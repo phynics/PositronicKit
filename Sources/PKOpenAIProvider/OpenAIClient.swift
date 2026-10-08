@@ -61,7 +61,7 @@ public actor OpenAIClient: LLMClientProtocol {
         self.structuredOutputAdapter = structuredOutputAdapter; self.api = api
     }
 
-    package func resolvedAPI(hasAudioOutput: Bool) -> OpenAIAPI {
+    package nonisolated func resolvedAPI(hasAudioOutput: Bool) -> OpenAIAPI {
         switch api {
         case .chatCompletions: return .chatCompletions
         case .responses: return hasAudioOutput ? .chatCompletions : .responses
@@ -71,7 +71,7 @@ public actor OpenAIClient: LLMClientProtocol {
         }
     }
 
-    private var baseURL: URL {
+    private nonisolated var baseURL: URL {
         var components = URLComponents()
         components.scheme = scheme; components.host = host
         if !((scheme == "https" && port == 443) || (scheme == "http" && port == 80) || port == 0) { components.port = port }
@@ -102,7 +102,7 @@ public actor OpenAIClient: LLMClientProtocol {
 
     // MARK: - Chat Completions path (shared wire)
 
-    package func makeChatRequest(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?, stream: Bool) throws -> URLRequest {
+    package nonisolated func makeChatRequest(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?, stream: Bool) throws -> URLRequest {
         let query = ChatCompletionsChatRequest(
             messages: messages.map { ChatCompletionsMessage($0, provider: .openAI) },
             model: modelName,
@@ -176,7 +176,7 @@ public actor OpenAIClient: LLMClientProtocol {
 
     // MARK: - Responses path
 
-    package func makeResponsesRequest(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, stream: Bool) throws -> URLRequest {
+    package nonisolated func makeResponsesRequest(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, stream: Bool) throws -> URLRequest {
         var input: [ResponsesInputItem] = []
         for m in messages {
             switch m.role {
@@ -202,7 +202,7 @@ public actor OpenAIClient: LLMClientProtocol {
             }
         }
         let textFormat: ResponsesTextFormat? = switch responseFormat {
-        case .none, .text, nil: nil
+        case .none, .text: nil
         case .jsonObject: .jsonObject
         case let .jsonSchema(s): .jsonSchema(name: s.name, description: s.description, schema: s.schema, strict: s.isStrict)
         }
@@ -226,7 +226,7 @@ public actor OpenAIClient: LLMClientProtocol {
         return request
     }
 
-    private func mapResponsesToolChoice(_ choice: LLMToolChoice?, tools: [LLMToolDefinition]?) -> ResponsesToolChoice? {
+    private nonisolated func mapResponsesToolChoice(_ choice: LLMToolChoice?, tools: [LLMToolDefinition]?) -> ResponsesToolChoice? {
         switch choice {
         case nil: return tools != nil ? .auto : nil
         case .some(.none): return ResponsesToolChoice.none
@@ -237,7 +237,7 @@ public actor OpenAIClient: LLMClientProtocol {
 
     private func streamResponses(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, maxRetries: Int, continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation) async throws {
         let request = try makeResponsesRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, stream: true)
-        var accumulator = ResponsesStreamAccumulator()
+        let accumulator = Mutex(ResponsesStreamAccumulator())
         try await RetryPolicy.retry(maxRetries: maxRetries, shouldRetry: { _ in false }) {
             let stream = try await HTTPHelpers.openLineStream(request, transport: self.transport, provider: "OpenAI")
             for try await line in stream {
@@ -252,7 +252,10 @@ public actor OpenAIClient: LLMClientProtocol {
                 }
                 let payloadJSON = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
                 let eventType = payloadJSON["type"] as? String ?? ""
-                if let chunk = ResponsesEvents.chunk(forEventType: eventType, payload: data, model: self.modelName, responseID: (payloadJSON["response_id"] as? String) ?? (payloadJSON["id"] as? String) ?? "", accumulator: &accumulator) {
+                let chunk = accumulator.withLock { state in
+                    ResponsesEvents.chunk(forEventType: eventType, payload: data, model: self.modelName, responseID: (payloadJSON["response_id"] as? String) ?? (payloadJSON["id"] as? String) ?? "", accumulator: &state)
+                }
+                if let chunk {
                     continuation.yield(chunk)
                 }
             }

@@ -179,7 +179,7 @@ data: [DONE]
             _ = try await client.sendMessage("hello")
             Issue.record("Expected sendMessage to throw")
         } catch let error as LLMServiceError {
-            #expect(error == .httpError(provider: "OpenAI", statusCode: 429, responseBody: "", retryAfter: nil))
+            #expect(error == .httpError(provider: "OpenAI", statusCode: 429, responseBody: #"{"error":{"message":"rate limited"}}"#, retryAfter: nil))
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
