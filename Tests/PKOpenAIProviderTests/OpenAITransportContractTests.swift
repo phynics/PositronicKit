@@ -10,7 +10,7 @@ import Synchronization
 import Testing
 @testable import PKOpenAIProvider
 
-private final class RecordingTransport: ProviderHTTPTransport, @unchecked Sendable {
+private final class RecordingTransport: ProviderHTTPTransport, Sendable {
     private let requests = Mutex<[URLRequest]>([])
     private let inner: any ProviderHTTPTransport
 
