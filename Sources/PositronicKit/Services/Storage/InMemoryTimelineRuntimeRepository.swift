@@ -7,7 +7,7 @@ import PKUtilities
 /// The actor gives tests and local hosts one serialization boundary with the same transition
 /// rules that a database-backed adapter must preserve. It is intentionally ephemeral; production
 /// adapters should implement the protocol against a durable transaction.
-public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, WorkspaceBindingRepository, TimelineSummaryStore {
+public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, WorkspaceBindingRepository {
     private struct ToolKey: Hashable {
         let turnID: UUID
         let toolCallID: String
@@ -20,7 +20,6 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
     private var quarantinedTurns: [UUID: UUID] = [:]
     private var intents: [ToolKey: RuntimeToolIntent] = [:]
     private var results: [ToolKey: RuntimeToolResult] = [:]
-    private var summaries: [UUID: [TimelineSummary]] = [:]
     private var workspaceBindings = WorkspaceBindingTable()
     private let durable: Bool
 
@@ -56,11 +55,10 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         timelines.removeValue(forKey: id)
         // Cascade: destroying the Timeline destroys its history. Append-only means "immutable
         // while the Timeline lives," not "retained forever" — once the Timeline row is gone, its
-        // messages and summary projections become unreachable, so this conformer removes them
+        // messages become unreachable, so this conformer removes them
         // here rather than leaving them as an orphaned, unbounded leak. See the cascade contract
         // documented on `TimelineRuntimeRepository`.
         messages.removeValue(forKey: id)
-        summaries.removeValue(forKey: id)
         workspaceBindings.removeAll(for: id)
         if let activeTurnID = activeTurns.removeValue(forKey: id) {
             turns[activeTurnID]?.quarantine = TurnQuarantine(
@@ -481,30 +479,6 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
             quarantinedTurns.removeValue(forKey: timelineID)
         }
         return turn
-    }
-
-    // MARK: Summary projections
-
-    public func saveSummary(_ summary: TimelineSummary) async throws {
-        guard timelines[summary.timelineID] != nil else {
-            throw TimelineRuntimeRepositoryError.timelineNotFound(summary.timelineID)
-        }
-        let durableIDs = Set(messages[summary.timelineID, default: []].map(\.id))
-        guard let missing = summary.sourceMessageIDs.first(where: { !durableIDs.contains($0) }) else {
-            var timelineSummaries = summaries[summary.timelineID, default: []]
-            if let index = timelineSummaries.firstIndex(where: { $0.id == summary.id }) {
-                timelineSummaries[index] = summary
-            } else {
-                timelineSummaries.append(summary)
-            }
-            summaries[summary.timelineID] = timelineSummaries
-            return
-        }
-        throw TimelineRuntimeRepositoryError.summarySourceMissing(messageID: missing)
-    }
-
-    public func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary] {
-        summaries[timelineID, default: []]
     }
 
     // MARK: WorkspaceBindingRepository
