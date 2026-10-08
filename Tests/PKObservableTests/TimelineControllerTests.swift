@@ -159,6 +159,76 @@ struct TimelineControllerTests {
         #expect(controller.messages.map(\.content).contains("second reply"))
     }
 
+    @Test("a completed send records its durable outcome and turn identity")
+    func completedSendRecordsDurableOutcome() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.nextResponses = ["reply"]
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: driver.id)
+        let controller = TimelineController(driver)
+
+        try await controller.send("Hi")
+
+        #expect(controller.lastTurnID != nil)
+        #expect(controller.lastError == nil)
+        if case .completed = controller.lastOutcome {
+        } else {
+            Issue.record("Expected the controller to record a completed outcome")
+        }
+    }
+
+    @Test("cancel() clears streaming state")
+    func cancelClearsStreamingState() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.neverFinishingStreamCallIndices = [1]
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: driver.id)
+        let controller = TimelineController(driver)
+
+        let sendTask = Task { try await controller.send("Hi") }
+        while controller.isStreaming == false {
+            await Task.yield()
+        }
+        await controller.cancel()
+        sendTask.cancel()
+        _ = await sendTask.result
+        for _ in 0..<20 {
+            await Task.yield()
+        }
+
+        #expect(controller.isStreaming == false)
+    }
+
+    @Test("a fork binds to a controller over the direct path")
+    func forkBindsToController() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.nextResponses = ["fork reply"]
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: driver.id)
+        let fork = try await kit.timelines.fork(
+            from: driver.timelineID,
+            context: DirectTurnContext(systemInstructions: "Audit.")
+        )
+        let controller = TimelineController(fork)
+
+        try await controller.send("Audit this.")
+
+        #expect(controller.messages.map(\.content).contains("fork reply"))
+        if case .completed = controller.lastOutcome {
+        } else {
+            Issue.record("Expected the fork controller to record a completed outcome")
+        }
+    }
+
     @Test("a superseded send cannot clear replacement streaming state")
     func supersededSendCannotClearReplacementStreamingState() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory

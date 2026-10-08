@@ -41,6 +41,13 @@ for tagged releases beginning with `1.0.0`.
   access against an in-memory runtime that shares the language model, Agent store, and Workspace
   stores but keeps its own repository and prompt-journal state, so fork writes never reach the
   source Timeline. The fork's runtime is released when its handle is released.
+- `TimelineController` records the durable terminal truth of each send: `lastTurnID`,
+  `lastOutcome` (via `TurnHandle.outcome()`), and `lastError`, plus a `cancel()` entry point for
+  UI cancellation. `TimelineFork` exposes `handle` and `directContext`, and `PKObservable` gains
+  `TimelineController(fork:)` for binding fork sessions to SwiftUI views.
+- `docs/SwiftUI.md` documents the app-owned runtime service, managed/direct binding, outcome
+  joins, cancellation, and fork sessions with type-checked snippets. CI builds and tests
+  `PKObservable` on the iOS Simulator.
 - `TurnHistoryProjectionSource` lets a host supply a bounded, provider-facing replacement for a
   covered historical prefix on one Turn. `RuntimeCustomization(turnHistoryProjectionSource:)`
   receives ordered `TurnHistoryMessageDescriptor`s and budget metadata, and returns a

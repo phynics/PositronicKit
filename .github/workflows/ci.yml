@@ -260,6 +260,26 @@ jobs:
       # the vendored `JSONSchemaMacro` from `swift-json-schema` until a human approves it in the
       # Xcode UI. The macro is already pinned through `Package.resolved`, so this trusts the
       # resolved dependency rather than an arbitrary remote one.
+      - name: Build PKObservable for the iOS Simulator
+        run: |
+          mkdir -p .build
+          xcodebuild build \
+            -skipMacroValidation \
+            -scheme PKObservable \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath .build/ios-simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee -a .build/ios-verify.log
+
+      - name: Test PKObservable on the iOS Simulator
+        run: |
+          xcodebuild test \
+            -skipMacroValidation \
+            -scheme PKObservable \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -derivedDataPath .build/ios-simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee -a .build/ios-verify.log
       - name: Build PKFoundationModelsProvider for the iOS Simulator
         run: |
           mkdir -p .build
