@@ -1,6 +1,6 @@
 import Foundation
-import OpenAI
 @testable import PKOllamaProvider
+@testable import PKOpenAIProvider
 @testable import PKOpenRouterProvider
 import PKPrompt
 import PKContracts

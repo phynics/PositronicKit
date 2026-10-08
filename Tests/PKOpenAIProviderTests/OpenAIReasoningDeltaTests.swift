@@ -1,5 +1,4 @@
 import Foundation
-import OpenAI
 import PKContracts
 import PKUtilities
 import Testing
@@ -9,7 +8,7 @@ import Testing
     /// Streams a chat completion chunk carrying `delta.reasoning_content` (Deepseek-style) and
     /// asserts the OpenAI provider conversion surfaces it on the transport-neutral
     /// `LLMStreamDelta.thinking` field (STAB-7).
-    @Test("ChatStreamResult reasoning_content delta maps to LLMStreamDelta.thinking")
+    @Test("ChatCompletionsStreamChunk reasoning_content delta maps to LLMStreamDelta.thinking")
     func reasoningContentDeltaMapsToThinking() throws {
         let json = #"""
         {
@@ -30,7 +29,7 @@ import Testing
         }
         """#
 
-        let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsStreamChunk.self, from: Data(json.utf8))
         let chunk = result.toLLMStreamChunk()
 
         #expect(chunk.choices.first?.delta.reasoning == "Let me reason about this.")
@@ -39,7 +38,7 @@ import Testing
 
     /// Streams a chat completion chunk carrying `delta.reasoning` (Gemini/OpenRouter-style via
     /// the OpenAI SDK) and asserts it maps to `LLMStreamDelta.thinking`.
-    @Test("ChatStreamResult reasoning delta maps to LLMStreamDelta.thinking")
+    @Test("ChatCompletionsStreamChunk reasoning delta maps to LLMStreamDelta.thinking")
     func reasoningDeltaMapsToThinking() throws {
         let json = #"""
         {
@@ -60,7 +59,7 @@ import Testing
         }
         """#
 
-        let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsStreamChunk.self, from: Data(json.utf8))
         let chunk = result.toLLMStreamChunk()
 
         #expect(chunk.choices.first?.delta.reasoning == "Step one.")
@@ -68,7 +67,7 @@ import Testing
 
     /// A non-reasoning model's chunk omits the reasoning fields entirely; the converted
     /// `LLMStreamDelta.thinking` must be `nil` so existing flows stay byte-identical.
-    @Test("ChatStreamResult without reasoning fields yields nil thinking")
+    @Test("ChatCompletionsStreamChunk without reasoning fields yields nil thinking")
     func nonReasoningChunkHasNilThinking() throws {
         let json = #"""
         {
@@ -89,7 +88,7 @@ import Testing
         }
         """#
 
-        let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsStreamChunk.self, from: Data(json.utf8))
         let chunk = result.toLLMStreamChunk()
 
         #expect(chunk.choices.first?.delta.reasoning == nil)

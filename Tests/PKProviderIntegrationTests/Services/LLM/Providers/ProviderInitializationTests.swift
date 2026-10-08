@@ -2,7 +2,6 @@ import Foundation
 #if canImport(FoundationNetworking)
     import FoundationNetworking
 #endif
-import OpenAI
 @testable import PKAnthropicProvider
 @testable import PKOllamaProvider
 @testable import PKOpenAIProvider
@@ -16,73 +15,8 @@ import Testing
 
 private typealias RequestRecordingTransport = ScriptedProviderHTTPTransport
 
-/// Records the URLRequest OpenAI's SDK sends over the wire, without performing real network
-/// I/O. `intercept(request:)` fires synchronously before the request is dispatched, so it lets
-/// us inspect host/scheme/port/model/timeout/apiKey without needing a valid mocked response.
-private final class RecordingOpenAIMiddleware: OpenAIMiddleware, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
-    private let storage = Mutex<[URLRequest]>([])
-    private let requestSignals: AsyncStream<Void>
-    private let requestSignalContinuation: AsyncStream<Void>.Continuation // swiftlint:disable:this concurrency_stored_continuation -- test-only request observation signal
-
-    init() {
-        (requestSignals, requestSignalContinuation) = AsyncStream<Void>.makeStream()
-    }
-
-    var recordedRequests: [URLRequest] {
-        storage.withLock { $0 }
-    }
-
-    func intercept(request: URLRequest) -> URLRequest {
-        storage.withLock { $0.append(request) }
-        requestSignalContinuation.yield(())
-        return request
-    }
-
-    func waitUntilIntercepted() async {
-        var iterator = requestSignals.makeAsyncIterator()
-        _ = await iterator.next()
-    }
-}
-
-/// Blocks all real network I/O for the OpenAI SDK's `URLSession`: every request is answered
-/// synchronously from process memory. Registered only on a dedicated ephemeral session, never
-/// on `URLSession.shared`.
-private final class NoNetworkURLProtocol: URLProtocol {
-    static let session: URLSession = {
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [NoNetworkURLProtocol.self]
-        return URLSession(configuration: configuration)
-    }()
-
-    override class func canInit(with _: URLRequest) -> Bool {
-        true
-    }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        // A deliberately-invalid response body: these tests only assert on the *outgoing*
-        // request captured by the middleware, never on decoded response content, so failing
-        // fast here (rather than modeling the full OpenAI stream wire format) is sufficient.
-        let response = HTTPURLResponse(
-            url: request.url ?? URL(string: "https://example.invalid")!,
-            statusCode: 500,
-            httpVersion: "HTTP/1.1",
-            headerFields: [:]
-        )!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: Data())
-        client?.urlProtocolDidFinishLoading(self)
-    }
-
-    override func stopLoading() {}
-}
-
-// `.serialized`: `NoNetworkURLProtocol` registers a process-global `URLProtocol` that
-// answers the OpenAI SDK's dedicated session from memory. Serialization keeps that
-// global registration and the SDK session assertions ordered between tests (issue #155).
+// `.serialized`: each test binds its own loopback server; serialization keeps port
+// churn ordered between tests (issue #155).
 @Suite("Provider initialization contracts", .serialized, .tags(.integration))
 struct ProviderInitializationTests {
     private func response(url: String, status: Int = 200) -> HTTPURLResponse {
@@ -93,23 +27,18 @@ struct ProviderInitializationTests {
 
     @Test("OpenAI client timelines default host/port/scheme/model/timeout into the outgoing request")
     func openAIDefaultsPropagate() async throws {
-        let middleware = RecordingOpenAIMiddleware()
-        let client = OpenAIClient(
-            apiKey: "sk-default-test",
-            session: NoNetworkURLProtocol.session,
-            middlewares: [middleware]
-        )
+        let transport = RequestRecordingTransport { _ in
+            (Data(), self.response(url: "https://api.openai.com/v1/chat/completions", status: 500))
+        }
+        let client = OpenAIClient(apiKey: "sk-default-test", maxRetries: 0, transport: transport, api: .chatCompletions)
 
         let stream = await client.chatStream(
             messages: [LLMMessage(role: .user, content: "hi")],
             tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
         )
-        let consumer = Task { _ = try? await stream.collect() }
-        await middleware.waitUntilIntercepted()
-        consumer.cancel()
-        _ = await consumer.value
+        _ = try? await stream.collect()
 
-        let request = try #require(middleware.recordedRequests.first)
+        let request = try #require(await transport.recordedRequests().first)
         #expect(request.url?.host == "api.openai.com")
         #expect(request.url?.scheme == "https")
         #expect(request.timeoutInterval == 60.0)
@@ -122,7 +51,9 @@ struct ProviderInitializationTests {
 
     @Test("OpenAI client timelines explicit overrides into the outgoing request")
     func openAIOverridesPropagate() async throws {
-        let middleware = RecordingOpenAIMiddleware()
+        let transport = RequestRecordingTransport { _ in
+            (Data(), self.response(url: "https://my-openai-proxy.example.com:8443/v1/chat/completions", status: 500))
+        }
         let client = OpenAIClient(
             apiKey: "sk-override-test",
             modelName: "gpt-4o-mini",
@@ -131,20 +62,17 @@ struct ProviderInitializationTests {
             scheme: "https",
             timeoutInterval: 12.5,
             maxRetries: 0,
-            session: NoNetworkURLProtocol.session,
-            middlewares: [middleware]
+            transport: transport,
+            api: .chatCompletions
         )
 
         let stream = await client.chatStream(
             messages: [LLMMessage(role: .user, content: "hi")],
             tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
         )
-        let consumer = Task { _ = try? await stream.collect() }
-        await middleware.waitUntilIntercepted()
-        consumer.cancel()
-        _ = await consumer.value
+        _ = try? await stream.collect()
 
-        let request = try #require(middleware.recordedRequests.first)
+        let request = try #require(await transport.recordedRequests().first)
         #expect(request.url?.host == "my-openai-proxy.example.com")
         #expect(request.url?.port == 8443)
         #expect(request.timeoutInterval == 12.5)

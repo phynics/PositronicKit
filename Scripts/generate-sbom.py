@@ -10,7 +10,7 @@ products with their dependency edges.
 
 The package SBOM records one component per product and a `dependencies` edge
 from each product to its resolved packages, so a release proves that, for
-example, `PKOpenAIProvider` pulls in `MacPaw/OpenAI` while `PKContracts` does
+example, `PKOpenAIProvider` no longer pulls in a third-party SDK while `PKContracts` does
 not. `validate_sbom` pins that attribution; the fixture tests in
 `Tests/Scripts/generate_sbom_test.py` exercise it without a Swift toolchain.
 """
@@ -37,7 +37,7 @@ FORMAT_SUFFIX = {"cyclonedx": "cyclonedx.json", "spdx": "spdx.json"}
 # to preserve, and fails closed if SwiftPM stops attributing a package per
 # product.
 ATTRIBUTION_CHECKS = (
-    ("PKOpenAIProvider", "MacPaw/openai", "depends"),
+    ("PKOpenAIProvider", "MacPaw/openai", "excludes"),
     ("PKContracts", "MacPaw/openai", "excludes"),
 )
 

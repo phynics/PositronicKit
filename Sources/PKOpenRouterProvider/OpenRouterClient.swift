@@ -44,7 +44,7 @@ public actor OpenRouterClient: LLMClientProtocol {
     /// OpenRouter SSE wire format is snake_case (`tool_calls`, `finish_reason`, `prompt_tokens`)
     /// while `LLMStreamChunk` and its nested types use camelCase properties with no explicit
     /// CodingKeys. Without this, those fields silently decode to nil (YAK-23).
-    private static let streamChunkDecoder: JSONDecoder = {
+    package static let streamChunkDecoder_DEPRECATED: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return decoder
@@ -215,10 +215,10 @@ public actor OpenRouterClient: LLMClientProtocol {
         let modelName = self.modelName
         let logger = self.logger
         let maxRetries = self.maxRetries
-        let chatMessages = messages.map { OpenRouterMessage($0, logger: logger) }
+        let chatMessages = messages.map { OpenRouterMessage($0, provider: .openRouter, logger: logger) }
         let chatTools = tools?.map(OpenRouterTool.init)
-        let chatResponseFormat = mapResponseFormat(responseFormat)
-        let chatToolChoice = mapToolChoice(toolChoice, tools: tools)
+        let chatResponseFormat = ChatCompletionsWire.mapResponseFormat(responseFormat)
+        let chatToolChoice = ChatCompletionsWire.mapToolChoice(toolChoice, tools: tools)
         // The tool-call recovery request repeats the streamed one without streaming or audio.
         let makeQuery: @Sendable (Bool) -> OpenRouterChatRequest = { streaming in
             OpenRouterChatRequest(
@@ -369,8 +369,8 @@ public actor OpenRouterClient: LLMClientProtocol {
             // the provider-specific `OpenRouterStreamChunk` (which also captures `delta.reasoning`
             // for reasoning models — STAB-7) then convert into the transport-neutral
             // `LLMStreamChunk`, mapping `reasoning` → `thinking`.
-            let raw = try Self.streamChunkDecoder.decode(OpenRouterStreamChunk.self, from: data)
-            let result = raw.toLLMStreamChunk(audioFormat: audioFormat)
+            let raw = try ChatCompletionsWire.streamChunkDecoder.decode(OpenRouterStreamChunk.self, from: data)
+            let result = raw.toLLMStreamChunk(audioFormat: audioFormat, continuationProvider: .openRouter)
             recoveryState.withLock {
                 $0.observe(
                     yieldedContent: result.carriesConsumerOutput,
@@ -395,7 +395,7 @@ public actor OpenRouterClient: LLMClientProtocol {
         guard choice.finishReason == "tool_calls" else { return nil }
         guard let toolCalls = choice.message.toolCalls, !toolCalls.isEmpty else { return nil }
 
-        let chunk = response.toLLMStreamChunk()
+        let chunk = response.toLLMStreamChunk(continuationProvider: .openRouter)
         return LLMStreamChunk(id: chunk.id, model: chunk.model, choices: Array(chunk.choices.prefix(1)), usage: chunk.usage)
     }
 
@@ -411,15 +411,15 @@ public actor OpenRouterClient: LLMClientProtocol {
     ) async throws -> LLMStreamChunk {
         try validateLLMMessageHistory(messages)
         let requestBody = OpenRouterChatRequest(
-            messages: messages.map { OpenRouterMessage($0, logger: logger) },
+            messages: messages.map { OpenRouterMessage($0, provider: .openRouter, logger: logger) },
             model: modelName,
             frequencyPenalty: generationParameters?.frequencyPenalty,
             maxCompletionTokens: generationParameters?.maxTokens,
             presencePenalty: generationParameters?.presencePenalty,
-            responseFormat: mapResponseFormat(responseFormat),
+            responseFormat: ChatCompletionsWire.mapResponseFormat(responseFormat),
             seed: generationParameters?.seed,
             temperature: generationParameters?.temperature,
-            toolChoice: mapToolChoice(toolChoice, tools: tools),
+            toolChoice: ChatCompletionsWire.mapToolChoice(toolChoice, tools: tools),
             tools: tools?.map(OpenRouterTool.init),
             topP: generationParameters?.topP,
             stream: false,
@@ -455,33 +455,4 @@ public actor OpenRouterClient: LLMClientProtocol {
         }
     }
 
-    private nonisolated func mapToolChoice(
-        _ choice: LLMToolChoice?,
-        tools: [LLMToolDefinition]?
-    ) -> OpenRouterToolChoice? {
-        switch choice {
-        case nil:
-            // Preserve OpenRouter's existing default: an unspecified choice with tools is auto.
-            return tools != nil ? .auto : nil
-        case .some(.none): return OpenRouterToolChoice.none
-        case .some(.auto): return .auto
-        case let .some(.function(name)): return .function(name)
-        }
-    }
-
-    private nonisolated func mapResponseFormat(_ format: LLMResponseFormat?) -> OpenRouterResponseFormat? {
-        switch format {
-        case .none, .text:
-            return nil
-        case .jsonObject:
-            return .jsonObject
-        case let .jsonSchema(schema):
-            return .jsonSchema(.init(
-                name: schema.name,
-                description: schema.description,
-                schema: schema.schema,
-                strict: schema.isStrict
-            ))
-        }
-    }
 }

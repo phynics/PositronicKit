@@ -1,39 +1,42 @@
+import Foundation
 import PKContracts
 import PKUtilities
 import Testing
-import OpenAI
-import Foundation
 
 @Suite(.tags(.unit)) final class APIRequestsTests {
-    private func assertCodable<T: Codable & Equatable>(_ value: T) throws {
-        let encoder = JSONEncoder()
-        let decoder = JSONDecoder()
-
-        let data = try encoder.encode(value)
-        let decoded = try decoder.decode(T.self, from: data)
-        #expect(value == decoded)
-    }
-
     @Test
-
-    func testChatQueryCodable() throws {
-        let message = ChatQuery.ChatCompletionMessageParam(role: .user, content: "Hello")!
-        let query = ChatQuery(messages: [message], model: "test-model")
-        try assertCodable(query)
-    }
-
-    @Test
-
-    func testChatQueryWithToolsCodable() throws {
-        let message = ChatQuery.ChatCompletionMessageParam(role: .user, content: "What's the weather?")!
-        let tool = ChatQuery.ChatCompletionToolParam(
-            function: .init(
-                name: "get_weather",
-                description: "Gets the weather"
-                // omitting parameters to bypass initializer complexity since we're just testing codability round trips
-            )
+    func testChatCompletionsRequestEncodesDeterministically() throws {
+        let query = ChatCompletionsChatRequest(
+            messages: [.init(role: "user", content: .text("Hello"))],
+            model: "test-model",
+            stream: false
         )
-        let query = ChatQuery(messages: [message], model: "test-model", tools: [tool])
-        try assertCodable(query)
+        let encoder = ChatCompletionsWire.sortedEncoder()
+        let first = try encoder.encode(query)
+        let second = try encoder.encode(query)
+        #expect(first == second)
+        let decoded = try JSONDecoder().decode(ChatCompletionsChatRequest.self, from: first)
+        #expect(decoded.model == "test-model")
+        #expect(decoded.messages.first?.role == "user")
+    }
+
+    @Test
+    func testChatCompletionsRequestWithToolsEncodes() throws {
+        let tool = ChatCompletionsTool(function: .init(
+            name: "get_weather",
+            description: "Gets the weather",
+            parameters: nil,
+            strict: nil
+        ))
+        let query = ChatCompletionsChatRequest(
+            messages: [.init(role: "user", content: .text("What's the weather?"))],
+            model: "test-model",
+            toolChoice: .auto,
+            tools: [tool],
+            stream: false
+        )
+        let data = try ChatCompletionsWire.sortedEncoder().encode(query)
+        let json = String(data: data, encoding: .utf8) ?? ""
+        #expect(json.contains("get_weather"))
     }
 }

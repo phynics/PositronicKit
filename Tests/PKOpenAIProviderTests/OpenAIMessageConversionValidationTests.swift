@@ -23,10 +23,8 @@ struct OpenAIMessageConversionValidationTests {
         let message = LLMMessage(role: .tool, content: "result", toolCallID: "call_1")
         let param = try message.toOpenAIMessageParam()
 
-        guard case let .tool(toolMessage) = param else {
-            Issue.record("Expected a .tool message param")
-            return
-        }
-        #expect(toolMessage.toolCallId == "call_1")
+        #expect(param.role == "tool")
+        #expect(param.toolCallID == "call_1")
+        #expect(param.content?.text == "result")
     }
 }

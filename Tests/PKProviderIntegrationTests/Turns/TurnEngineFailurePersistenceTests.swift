@@ -1,7 +1,6 @@
 import Foundation
 import ErrorKit
 import Logging
-import OpenAI
 @testable import PKContracts
 import PKTestSupport
 import PKUtilities

@@ -2,7 +2,6 @@ import Foundation
 #if canImport(FoundationNetworking)
     import FoundationNetworking
 #endif
-import OpenAI
 import PKContracts
 import PKUtilities
 @testable import PKOllamaProvider
@@ -37,7 +36,6 @@ struct ProviderHTTPFailureTests {
 
     @Test("OpenAI status errors are normalized into shared HTTP failures")
     func openAIStatusErrorsAreNormalized() throws {
-        let client = OpenAIClient(apiKey: "test")
         let url = try #require(URL(string: "https://api.openai.com/v1/chat/completions"))
         let response = try #require(HTTPURLResponse(
             url: url,
@@ -46,16 +44,9 @@ struct ProviderHTTPFailureTests {
             headerFields: ["Retry-After": "3"]
         ))
 
-        let mapped = client.mapProviderError(
-            OpenAIError.statusError(response: response, statusCode: 429),
-            provider: "OpenAI"
-        )
+        let mapped = ProviderHTTPFailure.makeError(provider: "OpenAI", response: response, responseBody: "")
 
-        guard let error = mapped as? LLMServiceError else {
-            Issue.record("Expected LLMServiceError, got \(type(of: mapped))")
-            return
-        }
-        #expect(error == .httpError(provider: "OpenAI", statusCode: 429, responseBody: "", retryAfter: 3))
+        #expect(mapped == .httpError(provider: "OpenAI", statusCode: 429, responseBody: "", retryAfter: 3))
         #expect(RetryPolicy.isTransient(error: mapped))
     }
 }

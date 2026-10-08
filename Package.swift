@@ -34,7 +34,6 @@ let package = Package(
         .executable(name: "PKTestSupportConsumer", targets: ["PKTestSupportConsumer"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/MacPaw/OpenAI.git", exact: "0.4.8"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
         .package(url: "https://github.com/FlineDev/ErrorKit", from: "1.0.0"),
         .package(url: "https://github.com/ajevans99/swift-json-schema", exact: "0.11.2"),
@@ -100,7 +99,6 @@ let package = Package(
             dependencies: [
                 "PKContracts",
                 "PKUtilities",
-                .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Sources/PKOpenAIProvider",
@@ -253,7 +251,6 @@ let package = Package(
                 "PKUtilities",
                 "PKPrompt",
                 "PKTestSupport",
-                .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "ErrorKit", package: "ErrorKit"),
                 .product(name: "JSONSchema", package: "swift-json-schema"),
@@ -300,7 +297,6 @@ let package = Package(
                 "PKUtilities",
                 "PKTestSupport",
                 "PositronicKit",
-                .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/PKOpenAIProviderTests",

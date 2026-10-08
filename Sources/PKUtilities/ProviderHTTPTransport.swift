@@ -75,6 +75,17 @@ package struct URLSessionProviderHTTPTransport: ProviderHTTPTransport {
             delegateQueue: nil
         )
         let task = streamingSession.dataTask(with: request)
+
+        // Attach the line continuation before resuming the task. The delegate
+        // queue can otherwise finish the stream after buffering lines but before
+        // this async context yields them, silently dropping the trailing lines.
+        let stream = AsyncThrowingStream<String, Error> { continuation in
+            coordinator.attachLineContinuation(continuation)
+            continuation.onTermination = { @Sendable _ in
+                task.cancel()
+                streamingSession.finishTasksAndInvalidate()
+            }
+        }
         task.resume()
 
         let response: URLResponse
@@ -92,14 +103,6 @@ package struct URLSessionProviderHTTPTransport: ProviderHTTPTransport {
             task.cancel()
             streamingSession.invalidateAndCancel()
             throw error
-        }
-
-        let stream = AsyncThrowingStream<String, Error> { continuation in
-            coordinator.attachLineContinuation(continuation)
-            continuation.onTermination = { @Sendable _ in
-                task.cancel()
-                streamingSession.finishTasksAndInvalidate()
-            }
         }
 
         return (stream, response)

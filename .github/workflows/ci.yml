@@ -78,11 +78,11 @@ jobs:
         run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
 
       # Cache the whole build directory, not just the downloaded sources, so the
-      # dependency graph (swift-syntax via the JSONSchema macro, swift-crypto,
-      # OpenAI) is not recompiled in debug and release on every run. Checkout
-      # gives package sources a fresh mtime, so PositronicKit's own modules still
-      # rebuild; only the untouched dependencies are reused. The key names the
-      # exact compiler, because modules from another compiler cannot be imported.
+      # dependency graph (swift-syntax via the JSONSchema macro, swift-crypto) is
+      # not recompiled in debug and release on every run. The key names the exact
+      # compiler and the package manifest, because modules from another compiler
+      # or dependency graph cannot be imported. A manifest change therefore
+      # builds fresh instead of restoring a stale module graph.
       - name: Identify the compiler for the build cache
         id: toolchain
         run: echo "id=$(swift --version 2>&1 | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
@@ -95,8 +95,6 @@ jobs:
             .build
             ~/.swiftpm
           key: build-linux-verify-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
-          restore-keys: |
-            build-linux-verify-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
 
       - name: Install SwiftLint
         run: |
@@ -150,11 +148,11 @@ jobs:
         run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
 
       # Cache the whole build directory, not just the downloaded sources, so the
-      # dependency graph (swift-syntax via the JSONSchema macro, swift-crypto,
-      # OpenAI) is not recompiled in debug and release on every run. Checkout
-      # gives package sources a fresh mtime, so PositronicKit's own modules still
-      # rebuild; only the untouched dependencies are reused. The key names the
-      # exact compiler, because modules from another compiler cannot be imported.
+      # dependency graph (swift-syntax via the JSONSchema macro, swift-crypto) is
+      # not recompiled in debug and release on every run. The key names the exact
+      # compiler and the package manifest, because modules from another compiler
+      # or dependency graph cannot be imported. A manifest change therefore
+      # builds fresh instead of restoring a stale module graph.
       - name: Identify the compiler for the build cache
         id: toolchain
         run: echo "id=$(swift --version 2>&1 | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
@@ -167,8 +165,6 @@ jobs:
             .build
             ~/.swiftpm
           key: build-macos-verify-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
-          restore-keys: |
-            build-macos-verify-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
 
       # Only the gates whose result depends on the Apple platform. Lint, doc
       # snippets, and the release-mode PKTestSupport and public-consumer builds
@@ -302,11 +298,11 @@ jobs:
         run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
 
       # Cache the whole build directory, not just the downloaded sources, so the
-      # dependency graph (swift-syntax via the JSONSchema macro, swift-crypto,
-      # OpenAI) is not recompiled in debug and release on every run. Checkout
-      # gives package sources a fresh mtime, so PositronicKit's own modules still
-      # rebuild; only the untouched dependencies are reused. The key names the
-      # exact compiler, because modules from another compiler cannot be imported.
+      # dependency graph (swift-syntax via the JSONSchema macro, swift-crypto) is
+      # not recompiled in debug and release on every run. The key names the exact
+      # compiler and the package manifest, because modules from another compiler
+      # or dependency graph cannot be imported. A manifest change therefore
+      # builds fresh instead of restoring a stale module graph.
       - name: Identify the compiler for the build cache
         id: toolchain
         run: echo "id=$(swift --version 2>&1 | shasum -a 256 | cut -c1-16)" >> "$GITHUB_OUTPUT"
@@ -319,8 +315,6 @@ jobs:
             .build
             ~/.swiftpm
           key: build-linux-coverage-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
-          restore-keys: |
-            build-linux-coverage-${{ runner.os }}-${{ steps.toolchain.outputs.id }}-
 
       - name: Run Linux coverage target
         run: |
