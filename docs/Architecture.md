@@ -169,6 +169,9 @@ the downstream audit and migration boundary.
 - `PKPrompt` owns prompt IR, composition, assembly, rendering, compression, and journaling.
 - `PositronicKit` owns domain state, orchestration, durability, and Workspace dispatch.
 - Provider products adapt concrete services to `PKContracts`; they do not import the runtime.
+- Runtime adapters (`PKObservable`, planned `PKSQLiteStorage`, planned `PKMCP`) import
+  `PositronicKit` to implement its host-facing protocols, use only public API, and are never
+  imported by the runtime or by providers (see [ADR 0015](adr/0015-runtime-adapter-tier.md)).
 - `PKObservable` projects runtime state outward for UI consumers.
 - `PKTestSupport` provides ordinary-import fixtures for downstream test targets.
 - `PKUtilities` supports package implementation but is not a public product.

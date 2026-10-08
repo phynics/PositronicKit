@@ -71,7 +71,7 @@
     {
       "title": "Architecture",
       "path": "docs/Architecture.md",
-      "summary": "Domain boundaries, capability values, durability, and execution authority."
+        "summary": "Domain boundaries, capability values, durability, execution authority, and the runtime adapter tier."
     },
     {
       "title": "Prompt composition",

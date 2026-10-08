@@ -115,8 +115,8 @@ for message in history {
 }
 ```
 
-This history is separate from `PromptJournal`, which observes assembled prompt state for provider
-prompt reuse.
+This history is separate from `PKPrompt`'s `PromptJournal`, which tracks assembled prompt sections.
+Runtime Turns do not use journal plans to build provider requests.
 
 The capability values are the supported consumer entry points. `kit.model` is timeline-free
 inference; `kit.timelines` returns a stateful `TimelineHandle`; `kit.agents` manages identities and
@@ -382,9 +382,11 @@ print(compactedPlan?.overlaySections.isEmpty ?? false)
 
 ### How overlays are represented in model context
 
+> **Unevaluated.** No evaluation yet shows that models reliably apply these overlay messages (for example, that a later `<prompt_journal_replace>` supersedes the earlier section). Runtime Turns never emit them; they reach a model only when your own code sends `PromptJournalPlan.buildMessages()` output. Test the behavior against your target models first.
+
 `PromptJournalPlan` renders these state transitions as provider-neutral Timeline messages with
-structured XML tags. The model receives section changes without another copy of each unchanged
-stable block:
+structured XML tags. A model that receives them sees section changes without another copy of each
+unchanged stable block:
 
 *   **Snapshot Mode (`.snapshot`):** Emitted at the beginning of a session, establishing the initial state of the prompt's baseline sections:
     ```xml
