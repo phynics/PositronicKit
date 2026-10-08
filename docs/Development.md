@@ -63,18 +63,21 @@ The supported toolchain is the version declared by `swift-tools-version` in `Pac
 ## Public API baselines
 
 The `api/` public-symbol baselines are keyed by release and platform and are generated with the
-supported Swift 6.4 toolchain. `make verify-public-api` compares against the primary
-`<release>-public-api-<platform>.json` baseline.
-`make update-public-api-baseline` records an intentional change for the running toolchain.
+supported Swift 6.4 toolchain. On `main`, `make verify-public-api` compares against
+`api/next-public-api-<platform>.json`, the unreleased Next baseline, and
+`make update-public-api-baseline` records an intentional change in that file. A release freezes the
+Next graph as `api/<major>.<minor>-public-api-<platform>.json` with
+`python3 Scripts/promote-public-api-baselines.py --to <version>`; those release-named files are
+immutable and `make verify-public-api-immutability` fails when one no longer matches its tag.
 
 The macOS baseline must be generated on macOS; a Linux host cannot extract the Apple-only symbol
-graph. When `make verify-public-api` fails in the macOS CI lane, that lane regenerates the baseline
-and publishes it as the `macos-public-api-baseline` artifact. A Linux contributor retrieves the
-exact file macOS would produce instead of hand-editing the baseline:
+graph. When `make verify-public-api` fails in the macOS CI lane, that lane regenerates the Next
+baseline and publishes it as the `macos-public-api-baseline` artifact. A Linux contributor retrieves
+the exact file macOS would produce instead of hand-editing the baseline:
 
 ```bash
 gh run download <run-id> -n macos-public-api-baseline
-cp macos-public-api-baseline/<release>-public-api-macos.json api/
+cp macos-public-api-baseline/next-public-api-macos.json api/
 ```
 
 The macOS lane publishes the artifact only when `make verify-public-api` is the failing step.

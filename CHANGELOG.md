@@ -64,6 +64,13 @@ for tagged releases beginning with `1.0.0`.
   membership atomically at admission, intermediate assistant/tool writes, and terminal commits.
   `TimelineRuntimeRepositoryConformanceSuite` checks this invariant.
 
+### Changed
+
+- Public API baselines now track `main` in `api/next-public-api-{linux,macos}.json`. Release-named
+  `api/<major>.<minor>-public-api-*.json` files are frozen at their tag and must not be edited;
+  `Scripts/promote-public-api-baselines.py --to <version>` copies the Next graphs at release time,
+  and `make verify-public-api-immutability` fails when a frozen file no longer matches its tag.
+
 ## [6.1.0] - 2026-09-30
 
 ### Breaking
