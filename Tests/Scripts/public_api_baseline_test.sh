@@ -11,7 +11,7 @@ fake_bin="$tmp_dir/bin"
 mkdir -p "$fixture/Scripts" "$fixture/docs" "$fixture/api" "$fake_bin"
 cp "$repo_root/Scripts/public-api-baseline.py" "$fixture/Scripts/"
 cp "$repo_root/docs/catalog.json" "$fixture/docs/"
-baseline_release="$(python3 -c "import json; print('.'.join(json.load(open('$fixture/docs/catalog.json'))['next']['version'].split('.')[:2]))")"
+baseline_release="next"
 
 cat > "$fixture/api/$baseline_release-public-api-linux.json" <<EOF
 {

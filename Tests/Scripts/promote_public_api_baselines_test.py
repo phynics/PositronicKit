@@ -17,10 +17,10 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
-def baseline(platform_name: str) -> dict[str, object]:
+def baseline(platform_name: str, release: str = "next") -> dict[str, object]:
     return {
         "schemaVersion": 2,
-        "release": "6.0",
+        "release": release,
         "platform": platform_name,
         "modules": ["PKContracts"],
         "symbols": [{"precise": "example", "module": "PKContracts"}],
@@ -28,18 +28,22 @@ def baseline(platform_name: str) -> dict[str, object]:
     }
 
 
-def test_promotes_both_graphs_and_is_idempotent() -> None:
+def write_next(api: Path, release: str = "next") -> None:
+    for platform_name in MODULE.PLATFORMS:
+        (api / f"next-public-api-{platform_name}.json").write_text(
+            json.dumps(baseline(platform_name, release)),
+            encoding="utf-8",
+        )
+
+
+def test_promotes_next_graphs_to_a_release() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         api = root / "api"
         api.mkdir()
-        for platform_name in MODULE.PLATFORMS:
-            (api / f"6.0-public-api-{platform_name}.json").write_text(
-                json.dumps(baseline(platform_name)),
-                encoding="utf-8",
-            )
+        write_next(api)
 
-        destinations = MODULE.promote_baselines(root, "6.0.0", "6.1.0")
+        destinations = MODULE.promote_baselines(root, "6.1.0")
         expected = [
             api / "6.1-public-api-linux.json",
             api / "6.1-public-api-macos.json",
@@ -52,55 +56,47 @@ def test_promotes_both_graphs_and_is_idempotent() -> None:
                 "release": "6.1",
             }
 
-        assert MODULE.promote_baselines(root, "6.0.0", "6.1.0") == expected
 
-
-def test_conflicting_target_fails_without_writing_other_platform() -> None:
+def test_existing_release_baseline_is_never_overwritten() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         api = root / "api"
         api.mkdir()
-        for platform_name in MODULE.PLATFORMS:
-            (api / f"6.0-public-api-{platform_name}.json").write_text(
-                json.dumps(baseline(platform_name)),
-                encoding="utf-8",
-            )
-        conflict = baseline("macos")
-        conflict["symbols"] = []
+        write_next(api)
+        existing = baseline("macos", release="6.1")
         (api / "6.1-public-api-macos.json").write_text(
-            json.dumps(conflict),
+            json.dumps(existing),
             encoding="utf-8",
         )
 
         try:
-            MODULE.promote_baselines(root, "6.0.0", "6.1.0")
+            MODULE.promote_baselines(root, "6.1.0")
         except ValueError as exc:
-            assert "refusing to overwrite a different baseline" in str(exc)
+            assert "refusing to modify the existing release baseline" in str(exc)
         else:
-            raise AssertionError("conflicting target baseline was overwritten")
+            raise AssertionError("existing release baseline was overwritten")
 
         assert not (api / "6.1-public-api-linux.json").exists()
 
 
-def test_rejects_mismatched_source_release() -> None:
+def test_rejects_source_that_is_not_next() -> None:
     try:
         MODULE.promoted_document(
-            baseline("linux"),
-            from_release="5.1",
+            baseline("linux", release="6.0"),
             to_release="6.1",
             platform_name="linux",
         )
     except ValueError as exc:
-        assert "expected '5.1'" in str(exc)
+        assert "expected 'next'" in str(exc)
     else:
-        raise AssertionError("mismatched source release was accepted")
+        raise AssertionError("non-Next source release was accepted")
 
 
 if __name__ == "__main__":
     tests = [
-        test_promotes_both_graphs_and_is_idempotent,
-        test_conflicting_target_fails_without_writing_other_platform,
-        test_rejects_mismatched_source_release,
+        test_promotes_next_graphs_to_a_release,
+        test_existing_release_baseline_is_never_overwritten,
+        test_rejects_source_that_is_not_next,
     ]
     for test in tests:
         test()

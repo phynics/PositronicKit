@@ -22,13 +22,13 @@ The tagged version applies to the public products documented in
    issues the release claims to deliver.
 2. Review the public API inventory with `make verify-public-api` on Linux and macOS. The platform
    graphs differ, especially for Apple-only products, so the release requires reviewed
-   `api/<major>.<minor>-public-api-linux.json` and `api/<major>.<minor>-public-api-macos.json`
-   files. For an intentional contract change, inspect the reported symbols and record that platform
-   with `make update-public-api-baseline`; never update a baseline merely to make the gate pass. The
+   `api/next-public-api-linux.json` and `api/next-public-api-macos.json` files on `main`. For an
+   intentional contract change, inspect the reported symbols and record that platform with
+   `make update-public-api-baseline`; never update a baseline merely to make the gate pass. The
    checker uses the output directory reported by SwiftPM and validates every catalog module before
    treating extraction status as a failure, so errors for non-public test targets are tooling noise
    only when all reviewed public graphs are present.
-3. Generate the macOS baseline on macOS. A Linux host cannot extract the Apple-only graph, so a
+3. Generate the macOS Next baseline on macOS. A Linux host cannot extract the Apple-only graph, so a
    release prepared on Linux is not ready to tag until a macOS host has run
    `make verify-public-api` (or `make update-public-api-baseline`) against the same commit.
    When the macOS CI lane fails `make verify-public-api`, it publishes the regenerated file as the
@@ -36,21 +36,22 @@ The tagged version applies to the public products documented in
 
    ```bash
    gh run download <run-id> -n macos-public-api-baseline
-   cp macos-public-api-baseline/<release>-public-api-macos.json api/
+   cp macos-public-api-baseline/next-public-api-macos.json api/
    ```
 
    The lane publishes the artifact only for a public-API failure and never pushes the change
    itself.
-   When both platform checks pass against the current baselines and the symbol graphs stay
-   unchanged, run this command to update only the release metadata in both baseline files:
+   When both platform checks pass against the current Next baseline and the symbol graphs stay
+   unchanged, freeze the release baselines with:
 
    ```sh
-   python3 Scripts/promote-public-api-baselines.py \
-     --from <current-version> \
-     --to <release-version>
+   python3 Scripts/promote-public-api-baselines.py --to <release-version>
    ```
 
-   The script refuses to replace a different target baseline.
+   The script copies `api/next-public-api-<platform>.json` to
+   `api/<major>.<minor>-public-api-<platform>.json` and fails if that release-named file already
+   exists. A frozen release baseline is never edited; `make verify-public-api-immutability` fails
+   when one no longer matches its release tag.
 4. Update `docs/catalog.json` when the stable tag, product graph, or navigation changes; regenerate
    navigation with `python3 Scripts/generate-doc-navigation.py`.
 5. Confirm the stable landing remains the default and all Next links target `main`.
