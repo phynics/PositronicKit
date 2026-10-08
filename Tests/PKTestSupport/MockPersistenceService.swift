@@ -20,7 +20,7 @@ import Synchronization
 /// Health, durability, request-origin callbacks, and agents share one mutex state.
 /// Agent insert-or-replace is atomic. Callback values are snapshotted while locked, then invoked
 /// after unlocking, so no mutex crosses an `await` or caller-provided code.
-public final class MockPersistenceService: TimelineRuntimeRepository, TimelineSummaryStore, WorkspaceStore, RequestOriginStoreProtocol, AgentStoreProtocol, HealthCheckable {
+public final class MockPersistenceService: TimelineRuntimeRepository, WorkspaceStore, RequestOriginStoreProtocol, AgentStoreProtocol, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok
         var mockHealthDetails: [String: String]? = ["mock": "true"]
@@ -470,6 +470,4 @@ extension MockPersistenceService {
     }
     public func interruptTurn(turnID: UUID, reason: String, disposition: TurnInterruptDisposition, now: Date) async throws -> TurnInterruptResult { recordPersistenceAccess(); return try await turnRuntime.interruptTurn(turnID: turnID, reason: reason, disposition: disposition, now: now) }
     public func releaseQuarantine(timelineID: UUID, turnID: UUID, confirmation: QuarantineReleaseConfirmation, now: Date) async throws -> TurnRecord { recordPersistenceAccess(); return try await turnRuntime.releaseQuarantine(timelineID: timelineID, turnID: turnID, confirmation: confirmation, now: now) }
-    public func saveSummary(_ summary: TimelineSummary) async throws { recordPersistenceAccess(); try await turnRuntime.saveSummary(summary) }
-    public func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary] { recordPersistenceAccess(); return try await turnRuntime.fetchSummaries(for: timelineID) }
 }
