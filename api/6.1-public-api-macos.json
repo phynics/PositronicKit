@@ -274,16 +274,6 @@
       "declaration": "let messageContent: MessageContent"
     },
     {
-      "precise": "s:11PKContracts10LLMMessageV16PKOpenAIProviderE20toOpenAIMessageParam0F2AI9ChatQueryV0j17CompletionMessageH0OyKF",
-      "module": "PKOpenAIProvider",
-      "kind": "swift.method",
-      "path": [
-        "LLMMessage",
-        "toOpenAIMessageParam()"
-      ],
-      "declaration": "func toOpenAIMessageParam() throws -> ChatQuery.ChatCompletionMessageParam"
-    },
-    {
       "precise": "s:11PKContracts10LLMMessageV4RoleO",
       "module": "PKContracts",
       "kind": "swift.enum",
@@ -2136,16 +2126,6 @@
         "LLMToolChoice"
       ],
       "declaration": "enum LLMToolChoice"
-    },
-    {
-      "precise": "s:11PKContracts13LLMToolChoiceO16PKOpenAIProviderE012toOpenAIToolC00G2AI9ChatQueryV0J33CompletionFunctionCallOptionParamOyF",
-      "module": "PKOpenAIProvider",
-      "kind": "swift.method",
-      "path": [
-        "LLMToolChoice",
-        "toOpenAIToolChoice()"
-      ],
-      "declaration": "func toOpenAIToolChoice() -> ChatQuery.ChatCompletionFunctionCallOptionParam"
     },
     {
       "precise": "s:11PKContracts13LLMToolChoiceO4autoyA2CmF",
@@ -4502,16 +4482,6 @@
       "declaration": "case jsonSchema(LLMResponseSchema)"
     },
     {
-      "precise": "s:11PKContracts17LLMResponseFormatO16PKOpenAIProviderE016toOpenAIResponseC00G2AI9ChatQueryV08ResponseC0OyF",
-      "module": "PKOpenAIProvider",
-      "kind": "swift.method",
-      "path": [
-        "LLMResponseFormat",
-        "toOpenAIResponseFormat()"
-      ],
-      "declaration": "func toOpenAIResponseFormat() -> ChatQuery.ResponseFormat"
-    },
-    {
       "precise": "s:11PKContracts17LLMResponseFormatO2eeoiySbAC_ACtFZ",
       "module": "PKContracts",
       "kind": "swift.func.op",
@@ -4648,16 +4618,6 @@
         "description"
       ],
       "declaration": "let description: String?"
-    },
-    {
-      "precise": "s:11PKContracts17LLMToolDefinitionV16PKOpenAIProviderE17toOpenAIToolParam0G2AI9ChatQueryV0k14CompletionToolI0VyF",
-      "module": "PKOpenAIProvider",
-      "kind": "swift.method",
-      "path": [
-        "LLMToolDefinition",
-        "toOpenAIToolParam()"
-      ],
-      "declaration": "func toOpenAIToolParam() -> ChatQuery.ChatCompletionToolParam"
     },
     {
       "precise": "s:11PKContracts17LLMToolDefinitionV4fromACs7Decoder_p_tKcfc",
@@ -24502,14 +24462,14 @@
       "declaration": "let structuredOutputAdapter: any StructuredOutputAdapter"
     },
     {
-      "precise": "s:16PKOpenAIProvider12OpenAIClientC6apiKey9modelName4host4port6scheme15timeoutInterval10maxRetries23structuredOutputAdapterACSS_S2SSiSSSdSi11PKContracts010StructuredqR0_ptcfc",
+      "precise": "s:16PKOpenAIProvider12OpenAIClientC6apiKey9modelName4host4port6scheme15timeoutInterval10maxRetries23structuredOutputAdapter0E0ACSS_S2SSiSSSdSi11PKContracts010StructuredqR0_pAA0C5AIAPIOtcfc",
       "module": "PKOpenAIProvider",
       "kind": "swift.init",
       "path": [
         "OpenAIClient",
-        "init(apiKey:modelName:host:port:scheme:timeoutInterval:maxRetries:structuredOutputAdapter:)"
+        "init(apiKey:modelName:host:port:scheme:timeoutInterval:maxRetries:structuredOutputAdapter:api:)"
       ],
-      "declaration": "convenience init(apiKey: String, modelName: String = \"gpt-4o\", host: String = \"api.openai.com\", port: Int = 443, scheme: String = \"https\", timeoutInterval: TimeInterval = 60.0, maxRetries: Int = 3, structuredOutputAdapter: any StructuredOutputAdapter = NativeJSONSchemaStructuredOutputAdapter())"
+      "declaration": "convenience init(apiKey: String, modelName: String = \"gpt-4o\", host: String = \"api.openai.com\", port: Int = 443, scheme: String = \"https\", timeoutInterval: TimeInterval = 60.0, maxRetries: Int = 3, structuredOutputAdapter: any StructuredOutputAdapter = NativeJSONSchemaStructuredOutputAdapter(), api: OpenAIAPI = .automatic)"
     },
     {
       "precise": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
@@ -24559,6 +24519,45 @@
         "init(apiKey:modelName:host:port:scheme:timeoutInterval:maxRetries:inputBudget:)"
       ],
       "declaration": "convenience init(apiKey: String, modelName: String = \"text-embedding-3-small\", host: String = \"api.openai.com\", port: Int = 443, scheme: String = \"https\", timeoutInterval: TimeInterval = 60.0, maxRetries: Int = 3, inputBudget: EmbeddingInputBudget = OpenAIEmbeddingClient.defaultInputBudget)"
+    },
+    {
+      "precise": "s:16PKOpenAIProvider9OpenAIAPIO",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.enum",
+      "path": [
+        "OpenAIAPI"
+      ],
+      "declaration": "enum OpenAIAPI"
+    },
+    {
+      "precise": "s:16PKOpenAIProvider9OpenAIAPIO15chatCompletionsyA2CmF",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.enum.case",
+      "path": [
+        "OpenAIAPI",
+        "chatCompletions"
+      ],
+      "declaration": "case chatCompletions"
+    },
+    {
+      "precise": "s:16PKOpenAIProvider9OpenAIAPIO9automaticyA2CmF",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.enum.case",
+      "path": [
+        "OpenAIAPI",
+        "automatic"
+      ],
+      "declaration": "case automatic"
+    },
+    {
+      "precise": "s:16PKOpenAIProvider9OpenAIAPIO9responsesyA2CmF",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.enum.case",
+      "path": [
+        "OpenAIAPI",
+        "responses"
+      ],
+      "declaration": "case responses"
     },
     {
       "precise": "s:19PKAnthropicProvider0A0O",
@@ -28897,24 +28896,6 @@
       "declaration": "func duplicateIDs<ID>(idKeyPath: KeyPath<Element, ID>) -> [ID] where ID : Comparable, ID : Hashable"
     },
     {
-      "precise": "s:e:s:11PKContracts10LLMMessageV16PKOpenAIProviderE20toOpenAIMessageParam0F2AI9ChatQueryV0j17CompletionMessageH0OyKF",
-      "module": "PKOpenAIProvider",
-      "kind": "swift.extension",
-      "path": [
-        "LLMMessage"
-      ],
-      "declaration": "extension LLMMessage"
-    },
-    {
-      "precise": "s:e:s:11PKContracts13LLMToolChoiceO16PKOpenAIProviderE012toOpenAIToolC00G2AI9ChatQueryV0J33CompletionFunctionCallOptionParamOyF",
-      "module": "PKOpenAIProvider",
-      "kind": "swift.extension",
-      "path": [
-        "LLMToolChoice"
-      ],
-      "declaration": "extension LLMToolChoice"
-    },
-    {
       "precise": "s:e:s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider18memoryContextLimit08documentqR015timeoutInterval10maxRetries11temperature0V6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4xA11LLMProviderOS2iSdSgSiSgA_A0_A_A_A_A0_A2XtFZ",
       "module": "PKTestSupport",
       "kind": "swift.extension",
@@ -28922,24 +28903,6 @@
         "LLMConfiguration"
       ],
       "declaration": "extension LLMConfiguration"
-    },
-    {
-      "precise": "s:e:s:11PKContracts17LLMResponseFormatO16PKOpenAIProviderE016toOpenAIResponseC00G2AI9ChatQueryV08ResponseC0OyF",
-      "module": "PKOpenAIProvider",
-      "kind": "swift.extension",
-      "path": [
-        "LLMResponseFormat"
-      ],
-      "declaration": "extension LLMResponseFormat"
-    },
-    {
-      "precise": "s:e:s:11PKContracts17LLMToolDefinitionV16PKOpenAIProviderE17toOpenAIToolParam0G2AI9ChatQueryV0k14CompletionToolI0VyF",
-      "module": "PKOpenAIProvider",
-      "kind": "swift.extension",
-      "path": [
-        "LLMToolDefinition"
-      ],
-      "declaration": "extension LLMToolDefinition"
     },
     {
       "precise": "s:e:s:11PKContracts18WorkspaceReferenceV13PKTestSupportE7fixture2id3uri8location8originID8rootPath5tools6statusAC10Foundation4UUIDV_AA0B3URIVAC0B8LocationOAOSgSSSgSayAA04ToolC0OGAC0B6StatusOtFZ",
@@ -34152,6 +34115,34 @@
       "module": "PKOpenAIProvider",
       "kind": "conformsTo",
       "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "kind": "conformsTo",
+      "module": "PKOpenAIProvider",
+      "source": "s:16PKOpenAIProvider9OpenAIAPIO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "kind": "conformsTo",
+      "module": "PKOpenAIProvider",
+      "source": "s:16PKOpenAIProvider9OpenAIAPIO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "kind": "conformsTo",
+      "module": "PKOpenAIProvider",
+      "source": "s:16PKOpenAIProvider9OpenAIAPIO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "kind": "conformsTo",
+      "module": "PKOpenAIProvider",
+      "source": "s:16PKOpenAIProvider9OpenAIAPIO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -40714,34 +40705,6 @@
       "target": "s:13PositronicKit27TurnHistoryProjectionSourceP18failureRequirementAA0c19ContextContributionH0Ovp"
     },
     {
-      "module": "PKOpenAIProvider",
-      "kind": "extensionTo",
-      "source": "s:e:s:11PKContracts10LLMMessageV16PKOpenAIProviderE20toOpenAIMessageParam0F2AI9ChatQueryV0j17CompletionMessageH0OyKF",
-      "target": "s:11PKContracts10LLMMessageV",
-      "targetFallback": "PKContracts.LLMMessage"
-    },
-    {
-      "module": "PKOpenAIProvider",
-      "kind": "extensionTo",
-      "source": "s:e:s:11PKContracts13LLMToolChoiceO16PKOpenAIProviderE012toOpenAIToolC00G2AI9ChatQueryV0J33CompletionFunctionCallOptionParamOyF",
-      "target": "s:11PKContracts13LLMToolChoiceO",
-      "targetFallback": "PKContracts.LLMToolChoice"
-    },
-    {
-      "module": "PKOpenAIProvider",
-      "kind": "extensionTo",
-      "source": "s:e:s:11PKContracts17LLMResponseFormatO16PKOpenAIProviderE016toOpenAIResponseC00G2AI9ChatQueryV08ResponseC0OyF",
-      "target": "s:11PKContracts17LLMResponseFormatO",
-      "targetFallback": "PKContracts.LLMResponseFormat"
-    },
-    {
-      "module": "PKOpenAIProvider",
-      "kind": "extensionTo",
-      "source": "s:e:s:11PKContracts17LLMToolDefinitionV16PKOpenAIProviderE17toOpenAIToolParam0G2AI9ChatQueryV0k14CompletionToolI0VyF",
-      "target": "s:11PKContracts17LLMToolDefinitionV",
-      "targetFallback": "PKContracts.LLMToolDefinition"
-    },
-    {
       "module": "PKPrompt",
       "kind": "extensionTo",
       "source": "s:e:s:Sl8PKPromptE12duplicateIDs9idKeyPathSayqd__Gs0eF0Cy7ElementQzqd__G_tSLRd__SHRd__lF",
@@ -47197,34 +47160,6 @@
     {
       "module": "PKOpenAIProvider",
       "kind": "memberOf",
-      "source": "s:11PKContracts10LLMMessageV16PKOpenAIProviderE20toOpenAIMessageParam0F2AI9ChatQueryV0j17CompletionMessageH0OyKF",
-      "target": "s:e:s:11PKContracts10LLMMessageV16PKOpenAIProviderE20toOpenAIMessageParam0F2AI9ChatQueryV0j17CompletionMessageH0OyKF",
-      "targetFallback": "PKContracts.LLMMessage"
-    },
-    {
-      "module": "PKOpenAIProvider",
-      "kind": "memberOf",
-      "source": "s:11PKContracts13LLMToolChoiceO16PKOpenAIProviderE012toOpenAIToolC00G2AI9ChatQueryV0J33CompletionFunctionCallOptionParamOyF",
-      "target": "s:e:s:11PKContracts13LLMToolChoiceO16PKOpenAIProviderE012toOpenAIToolC00G2AI9ChatQueryV0J33CompletionFunctionCallOptionParamOyF",
-      "targetFallback": "PKContracts.LLMToolChoice"
-    },
-    {
-      "module": "PKOpenAIProvider",
-      "kind": "memberOf",
-      "source": "s:11PKContracts17LLMResponseFormatO16PKOpenAIProviderE016toOpenAIResponseC00G2AI9ChatQueryV08ResponseC0OyF",
-      "target": "s:e:s:11PKContracts17LLMResponseFormatO16PKOpenAIProviderE016toOpenAIResponseC00G2AI9ChatQueryV08ResponseC0OyF",
-      "targetFallback": "PKContracts.LLMResponseFormat"
-    },
-    {
-      "module": "PKOpenAIProvider",
-      "kind": "memberOf",
-      "source": "s:11PKContracts17LLMToolDefinitionV16PKOpenAIProviderE17toOpenAIToolParam0G2AI9ChatQueryV0k14CompletionToolI0VyF",
-      "target": "s:e:s:11PKContracts17LLMToolDefinitionV16PKOpenAIProviderE17toOpenAIToolParam0G2AI9ChatQueryV0k14CompletionToolI0VyF",
-      "targetFallback": "PKContracts.LLMToolDefinition"
-    },
-    {
-      "module": "PKOpenAIProvider",
-      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider0A2AIO10makeClient13configurationAA12OpenAIClientC11PKContracts16LLMConfigurationV_tFZ",
       "target": "s:16PKOpenAIProvider0A2AIO",
       "sourceOrigin": {
@@ -47305,9 +47240,9 @@
       }
     },
     {
-      "module": "PKOpenAIProvider",
       "kind": "memberOf",
-      "source": "s:16PKOpenAIProvider12OpenAIClientC6apiKey9modelName4host4port6scheme15timeoutInterval10maxRetries23structuredOutputAdapterACSS_S2SSiSSSdSi11PKContracts010StructuredqR0_ptcfc",
+      "module": "PKOpenAIProvider",
+      "source": "s:16PKOpenAIProvider12OpenAIClientC6apiKey9modelName4host4port6scheme15timeoutInterval10maxRetries23structuredOutputAdapter0E0ACSS_S2SSiSSSdSi11PKContracts010StructuredqR0_pAA0C5AIAPIOtcfc",
       "target": "s:16PKOpenAIProvider12OpenAIClientC"
     },
     {
@@ -47341,6 +47276,24 @@
       "kind": "memberOf",
       "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC6apiKey9modelName4host4port6scheme15timeoutInterval10maxRetries11inputBudgetACSS_S2SSiSSSdSi11PKContracts014EmbeddingInputR0Vtcfc",
       "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKOpenAIProvider",
+      "source": "s:16PKOpenAIProvider9OpenAIAPIO15chatCompletionsyA2CmF",
+      "target": "s:16PKOpenAIProvider9OpenAIAPIO"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKOpenAIProvider",
+      "source": "s:16PKOpenAIProvider9OpenAIAPIO9automaticyA2CmF",
+      "target": "s:16PKOpenAIProvider9OpenAIAPIO"
+    },
+    {
+      "kind": "memberOf",
+      "module": "PKOpenAIProvider",
+      "source": "s:16PKOpenAIProvider9OpenAIAPIO9responsesyA2CmF",
+      "target": "s:16PKOpenAIProvider9OpenAIAPIO"
     },
     {
       "module": "PKOpenRouterProvider",
