@@ -2,7 +2,7 @@
 	verify verify-concurrency-scan verify-diagnose-scan verify-runtime-architecture \
 	verify-linux-agent verify-linux-filter verify-linux-repeat verify-linux-coverage \
 	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-domain-vocabulary verify-doc-snippets detect-flakes \
-	verify-public-api update-public-api-baseline verify-release sbom \
+	verify-public-api update-public-api-baseline verify-public-api-immutability verify-release sbom \
 	verify-static verify-documentation-static verify-docc verify-macos-ci verify-macos-ci-gates \
 	agent-verify agent-test agent-test-repeat linux-image linux-build linux-coverage require-container-runtime
 
@@ -67,6 +67,7 @@ help:
 	@echo "  make verify-public-consumers  Compile ordinary imports for every public library product"
 	@echo "  make verify-public-api    Compare public Swift symbols with the reviewed Next baseline"
 	@echo "  make update-public-api-baseline  Record an intentionally reviewed public API change"
+	@echo "  make verify-public-api-immutability  Check release baselines still match their tags"
 	@echo "  make verify-release VERSION=x.y.z  Check local tag and release artifacts agree"
 	@echo "  make sbom                  Generate the CycloneDX release SBOM (VERSION=x.y.z names it)"
 	@echo "  make verify-dependency-direction  Check the target dependency boundaries"
@@ -157,7 +158,7 @@ verify: verify-concurrency-scan verify-diagnose-scan verify-agent-harness verify
 # Source-level gates that need only Python and Bash. CI runs them in a preflight
 # job before any Swift toolchain is installed, so a policy failure stops the
 # expensive build jobs within seconds.
-verify-static: verify-diagnose-scan verify-runtime-architecture verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-documentation-static
+verify-static: verify-diagnose-scan verify-runtime-architecture verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-documentation-static verify-public-api-immutability
 
 # The macOS CI lane: only the gates whose result depends on the Apple platform.
 # The platform-neutral ones (lint, doc snippets, the release-mode PKTestSupport
@@ -257,6 +258,12 @@ verify-public-api:
 update-public-api-baseline:
 	@python3 Scripts/public-api-baseline.py --write
 
+# Frozen release baselines must match their release tags; only the Next
+# baseline tracks main. Run in preflight so an edit to a shipped file fails
+# before the Swift lanes build.
+verify-public-api-immutability:
+	@python3 Scripts/check-public-api-baseline-immutability.py
+
 verify-release:
 	@python3 Scripts/validate-release-readiness.py "$(VERSION)"
 
@@ -319,6 +326,7 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/validate_release_readiness_test.py
 	@python3 -B Tests/Scripts/generate_sbom_test.py
 	@python3 -B Tests/Scripts/promote_public_api_baselines_test.py
+	@python3 -B Tests/Scripts/check_public_api_baseline_immutability_test.py
 	@python3 -B Tests/Scripts/check_domain_vocabulary_test.py
 	@python3 -B Tests/Scripts/check_pr_docs_impact_test.py
 	@python3 -B Tests/Scripts/check_story_coverage_test.py

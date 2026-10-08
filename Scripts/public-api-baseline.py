@@ -27,17 +27,10 @@ def platform_name() -> str:
 
 PLATFORM = platform_name()
 
-
-def target_release() -> str:
-    """Return the major.minor release represented by the Next API surface."""
-    catalog = json.loads(CATALOG.read_text())
-    version = catalog["next"].get("version")
-    if not version:
-        raise SystemExit("docs/catalog.json next.version is required for public API baselines")
-    return ".".join(version.split(".")[:2])
-
-
-BASELINE_RELEASE = target_release()
+# `main` is always checked against the unreleased Next baseline. A release tag
+# gets its own immutable `api/<major>.<minor>-public-api-<platform>.json` file
+# only when `promote-public-api-baselines.py` copies this one at release time.
+BASELINE_RELEASE = "next"
 
 
 def run_result(*arguments: str) -> tuple[int, str]:

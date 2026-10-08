@@ -188,14 +188,14 @@ jobs:
           make verify-public-api 2>&1 | tee -a .build/macos-verify.log
 
       # A Linux host cannot extract the Apple-only symbol graph, so a failing
-      # `verify-public-api` here publishes the exact baseline macOS produces for
-      # a Linux contributor to commit instead of hand-editing the file.
+      # `verify-public-api` here publishes the exact Next baseline macOS produces
+      # for a Linux contributor to commit instead of hand-editing the file.
       - name: Regenerate the macOS public API baseline
         if: failure() && steps.public-api.outcome == 'failure'
         id: baseline
         run: |
           make update-public-api-baseline
-          baseline="$(git diff --name-only -- 'api/*-public-api-macos.json')"
+          baseline="$(git diff --name-only -- 'api/next-public-api-macos.json')"
           count="$(printf '%s\n' "$baseline" | grep -c .)"
           if [ "$count" -ne 1 ]; then
             echo "expected exactly one regenerated macOS baseline, found $count" >&2
