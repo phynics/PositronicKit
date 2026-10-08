@@ -212,8 +212,8 @@ struct StreamDecodingConformanceTests {
             host: "127.0.0.1",
             port: Int(server.port),
             scheme: "http",
-            session: .shared,
-            middlewares: []
+            maxRetries: 0,
+            api: .chatCompletions
         )
 
         let chunks = try await client.chatStream(
@@ -251,8 +251,8 @@ struct StreamDecodingConformanceTests {
             host: "127.0.0.1",
             port: Int(server.port),
             scheme: "http",
-            session: .shared,
-            middlewares: []
+            maxRetries: 0,
+            api: .chatCompletions
         )
 
         let chunks = try await client.chatStream(
