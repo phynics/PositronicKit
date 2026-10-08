@@ -318,8 +318,7 @@ jobs:
         run: |
           xcodebuild test \
             -skipMacroValidation \
-            -scheme PKObservable \
-            -only-testing:PKObservableTests \
+            -scheme PKObservableTests \
             -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}' \
             -derivedDataPath .build/ios-simulator \
             CODE_SIGNING_ALLOWED=NO \

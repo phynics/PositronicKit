@@ -7,6 +7,24 @@
       buildImplicitDependencies = "YES"
       buildArchitectures = "Automatic">
       <BuildActionEntries>
+         <!-- The library buildable gives the scheme a supported platform.
+              Without a non-test buildable, xcodebuild reports "Supported
+              platforms for the buildables in the current scheme is empty"
+              and cannot resolve an iOS Simulator destination. -->
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "PKObservable"
+               BuildableName = "PKObservable"
+               BlueprintName = "PKObservable"
+               ReferencedContainer = "container:Package.swift">
+            </BuildableReference>
+         </BuildActionEntry>
          <BuildActionEntry
             buildForTesting = "YES"
             buildForRunning = "YES"

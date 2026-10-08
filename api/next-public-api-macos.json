@@ -10349,6 +10349,16 @@
       "declaration": "@MainActor final class TimelineController"
     },
     {
+      "precise": "s:12PKObservable18TimelineControllerC10lastTurnID10Foundation4UUIDVSgvp",
+      "module": "PKObservable",
+      "kind": "swift.property",
+      "path": [
+        "TimelineController",
+        "lastTurnID"
+      ],
+      "declaration": "@MainActor var lastTurnID: UUID? { get set }"
+    },
+    {
       "precise": "s:12PKObservable18TimelineControllerC11isStreamingSbvp",
       "module": "PKObservable",
       "kind": "swift.property",
@@ -10357,6 +10367,16 @@
         "isStreaming"
       ],
       "declaration": "@MainActor var isStreaming: Bool { get set }"
+    },
+    {
+      "precise": "s:12PKObservable18TimelineControllerC11lastOutcome13PositronicKit04TurnE0OSgvp",
+      "module": "PKObservable",
+      "kind": "swift.property",
+      "path": [
+        "TimelineController",
+        "lastOutcome"
+      ],
+      "declaration": "@MainActor var lastOutcome: TurnOutcome? { get set }"
     },
     {
       "precise": "s:12PKObservable18TimelineControllerC13streamingTextSSvp",
@@ -10379,6 +10399,16 @@
       "declaration": "@MainActor func send(_ message: String) async throws"
     },
     {
+      "precise": "s:12PKObservable18TimelineControllerC6cancelyyYaF",
+      "module": "PKObservable",
+      "kind": "swift.method",
+      "path": [
+        "TimelineController",
+        "cancel()"
+      ],
+      "declaration": "@MainActor func cancel() async"
+    },
+    {
       "precise": "s:12PKObservable18TimelineControllerC6driver13PositronicKit0B6HandleVvp",
       "module": "PKObservable",
       "kind": "swift.property",
@@ -10399,6 +10429,16 @@
       "declaration": "@MainActor var messages: [Message] { get set }"
     },
     {
+      "precise": "s:12PKObservable18TimelineControllerC9lastErrorAA0bcE0VSgvp",
+      "module": "PKObservable",
+      "kind": "swift.property",
+      "path": [
+        "TimelineController",
+        "lastError"
+      ],
+      "declaration": "@MainActor var lastError: TimelineControllerError? { get set }"
+    },
+    {
       "precise": "s:12PKObservable18TimelineControllerC_7context8messagesAC13PositronicKit0B6HandleV_AF17DirectTurnContextVSay11PKContracts7MessageVGtcfc",
       "module": "PKObservable",
       "kind": "swift.init",
@@ -10407,6 +10447,16 @@
         "init(_:context:messages:)"
       ],
       "declaration": "@MainActor init(_ driver: TimelineHandle, context: DirectTurnContext, messages: [Message] = [])"
+    },
+    {
+      "precise": "s:12PKObservable18TimelineControllerC_8messagesAC13PositronicKit0B4ForkC_Say11PKContracts7MessageVGtcfc",
+      "module": "PKObservable",
+      "kind": "swift.init",
+      "path": [
+        "TimelineController",
+        "init(_:messages:)"
+      ],
+      "declaration": "@MainActor init(_ fork: TimelineFork, messages: [Message] = [])"
     },
     {
       "precise": "s:12PKObservable18TimelineControllerC_8messagesAC13PositronicKit0B6HandleV_Say11PKContracts7MessageVGtcfc",
@@ -15034,6 +15084,16 @@
       "declaration": "let timelineID: UUID"
     },
     {
+      "precise": "s:13PositronicKit12TimelineForkC13directContextAA010DirectTurnF0Vvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TimelineFork",
+        "directContext"
+      ],
+      "declaration": "var directContext: DirectTurnContext { get }"
+    },
+    {
       "precise": "s:13PositronicKit12TimelineForkC6cancelyyYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -15042,6 +15102,16 @@
         "cancel()"
       ],
       "declaration": "func cancel() async"
+    },
+    {
+      "precise": "s:13PositronicKit12TimelineForkC6handleAA0C6HandleVvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TimelineFork",
+        "handle"
+      ],
+      "declaration": "var handle: TimelineHandle { get }"
     },
     {
       "precise": "s:13PositronicKit12TimelineForkC8messagesSayAA0C7MessageVGyYaKF",
@@ -38970,43 +39040,43 @@
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit21TurnHistoryProjectionV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit21TurnHistoryProjectionV",
       "target": "s:SH",
       "targetFallback": "Swift.Hashable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit21TurnHistoryProjectionV",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit21TurnHistoryProjectionV",
       "target": "s:Se",
       "targetFallback": "Swift.Decodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit21TurnHistoryProjectionV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit21TurnHistoryProjectionV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
@@ -39433,36 +39503,36 @@
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
       "targetFallback": "Foundation.LocalizedError"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO",
       "target": "s:s5ErrorP",
       "targetFallback": "Swift.Error"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
@@ -39562,57 +39632,57 @@
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV",
       "target": "s:SH",
       "targetFallback": "Swift.Hashable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV",
       "target": "s:Se",
       "targetFallback": "Swift.Decodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit27TurnHistoryProjectionSourceP",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit27TurnHistoryProjectionSourceP",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
@@ -39795,85 +39865,85 @@
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV",
       "target": "s:SH",
       "targetFallback": "Swift.Hashable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV",
       "target": "s:Se",
       "targetFallback": "Swift.Decodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV",
       "target": "s:SH",
       "targetFallback": "Swift.Hashable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV",
       "target": "s:Se",
       "targetFallback": "Swift.Decodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
@@ -40704,14 +40774,14 @@
       }
     },
     {
-      "kind": "defaultImplementationOf",
       "module": "PositronicKit",
+      "kind": "defaultImplementationOf",
       "source": "s:13PositronicKit27TurnHistoryProjectionSourcePAAE18failureRequirementAA0c19ContextContributionH0Ovp",
+      "target": "s:13PositronicKit27TurnHistoryProjectionSourceP18failureRequirementAA0c19ContextContributionH0Ovp",
       "sourceOrigin": {
-        "displayName": "TurnHistoryProjectionSource.failureRequirement",
-        "identifier": "s:13PositronicKit27TurnHistoryProjectionSourceP18failureRequirementAA0c19ContextContributionH0Ovp"
-      },
-      "target": "s:13PositronicKit27TurnHistoryProjectionSourceP18failureRequirementAA0c19ContextContributionH0Ovp"
+        "identifier": "s:13PositronicKit27TurnHistoryProjectionSourceP18failureRequirementAA0c19ContextContributionH0Ovp",
+        "displayName": "TurnHistoryProjectionSource.failureRequirement"
+      }
     },
     {
       "module": "PKOpenAIProvider",
@@ -47049,7 +47119,19 @@
     {
       "module": "PKObservable",
       "kind": "memberOf",
+      "source": "s:12PKObservable18TimelineControllerC10lastTurnID10Foundation4UUIDVSgvp",
+      "target": "s:12PKObservable18TimelineControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
       "source": "s:12PKObservable18TimelineControllerC11isStreamingSbvp",
+      "target": "s:12PKObservable18TimelineControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
+      "source": "s:12PKObservable18TimelineControllerC11lastOutcome13PositronicKit04TurnE0OSgvp",
       "target": "s:12PKObservable18TimelineControllerC"
     },
     {
@@ -47067,6 +47149,12 @@
     {
       "module": "PKObservable",
       "kind": "memberOf",
+      "source": "s:12PKObservable18TimelineControllerC6cancelyyYaF",
+      "target": "s:12PKObservable18TimelineControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
       "source": "s:12PKObservable18TimelineControllerC6driver13PositronicKit0B6HandleVvp",
       "target": "s:12PKObservable18TimelineControllerC"
     },
@@ -47079,7 +47167,19 @@
     {
       "module": "PKObservable",
       "kind": "memberOf",
+      "source": "s:12PKObservable18TimelineControllerC9lastErrorAA0bcE0VSgvp",
+      "target": "s:12PKObservable18TimelineControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
       "source": "s:12PKObservable18TimelineControllerC_7context8messagesAC13PositronicKit0B6HandleV_AF17DirectTurnContextVSay11PKContracts7MessageVGtcfc",
+      "target": "s:12PKObservable18TimelineControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
+      "source": "s:12PKObservable18TimelineControllerC_8messagesAC13PositronicKit0B4ForkC_Say11PKContracts7MessageVGtcfc",
       "target": "s:12PKObservable18TimelineControllerC"
     },
     {
@@ -52525,7 +52625,19 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit12TimelineForkC13directContextAA010DirectTurnF0Vvp",
+      "target": "s:13PositronicKit12TimelineForkC"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit12TimelineForkC6cancelyyYaF",
+      "target": "s:13PositronicKit12TimelineForkC"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit12TimelineForkC6handleAA0C6HandleVvp",
       "target": "s:13PositronicKit12TimelineForkC"
     },
     {
@@ -52931,8 +53043,8 @@
       "target": "s:13PositronicKit14TurnNoticeCodeO"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit14TurnNoticeCodeO23historyProjectionFailedyA2CmF",
       "target": "s:13PositronicKit14TurnNoticeCodeO"
     },
@@ -55147,8 +55259,8 @@
       "target": "s:13PositronicKit20RuntimeCustomizationV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit20RuntimeCustomizationV18agentContextSource04turnfG00h17HistoryProjectionG00E12ActivitySink0h7OutcomeL0AcA05AgentfG0_pSg_AA04TurnfG0_pSgAA0oijG0_pSgAA0nkL0_pSgAA0omL0_pSgtcfc",
       "target": "s:13PositronicKit20RuntimeCustomizationV"
     },
@@ -55159,8 +55271,8 @@
       "target": "s:13PositronicKit20RuntimeCustomizationV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit20RuntimeCustomizationV27turnHistoryProjectionSourceAA04TurnfgH0_pSgvp",
       "target": "s:13PositronicKit20RuntimeCustomizationV"
     },
@@ -55305,44 +55417,44 @@
       "target": "s:13PositronicKit21SidecarSchemaComposerO"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit21TurnHistoryProjectionV11replacementSSvp",
       "target": "s:13PositronicKit21TurnHistoryProjectionV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit21TurnHistoryProjectionV17coveredMessageIDs11replacement013firstRetainedG2IDACSay10Foundation4UUIDVG_SSAISgtcfc",
       "target": "s:13PositronicKit21TurnHistoryProjectionV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit21TurnHistoryProjectionV17coveredMessageIDsSay10Foundation4UUIDVGvp",
       "target": "s:13PositronicKit21TurnHistoryProjectionV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit21TurnHistoryProjectionV22firstRetainedMessageID10Foundation4UUIDVSgvp",
       "target": "s:13PositronicKit21TurnHistoryProjectionV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit21TurnHistoryProjectionV28maximumReplacementCharactersSivpZ",
       "target": "s:13PositronicKit21TurnHistoryProjectionV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit21TurnHistoryProjectionV4fromACs7Decoder_p_tKcfc",
+      "target": "s:13PositronicKit21TurnHistoryProjectionV",
       "sourceOrigin": {
-        "displayName": "Decodable.init(from:)",
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc"
-      },
-      "target": "s:13PositronicKit21TurnHistoryProjectionV"
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
     },
     {
       "module": "PositronicKit",
@@ -55811,54 +55923,54 @@
       "target": "s:13PositronicKit26InMemoryRequestOriginStoreC"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO13emptyCoverageyA2CmF",
       "target": "s:13PositronicKit26TurnHistoryProjectionErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO16errorDescriptionSSSgvp",
+      "target": "s:13PositronicKit26TurnHistoryProjectionErrorO",
       "sourceOrigin": {
-        "displayName": "LocalizedError.errorDescription",
-        "identifier": "s:10Foundation14LocalizedErrorP16errorDescriptionSSSgvp"
-      },
-      "target": "s:13PositronicKit26TurnHistoryProjectionErrorO"
+        "identifier": "s:10Foundation14LocalizedErrorP16errorDescriptionSSSgvp",
+        "displayName": "LocalizedError.errorDescription"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO16unknownMessageIDyAC10Foundation4UUIDVcACmF",
       "target": "s:13PositronicKit26TurnHistoryProjectionErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO18coversCurrentInputyAC10Foundation4UUIDVcACmF",
       "target": "s:13PositronicKit26TurnHistoryProjectionErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO19replacementTooLargeyACSi_tcACmF",
       "target": "s:13PositronicKit26TurnHistoryProjectionErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO20splitToolTransactionyAC10Foundation4UUIDV_tcACmF",
       "target": "s:13PositronicKit26TurnHistoryProjectionErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO21firstRetainedMismatchyAC10Foundation4UUIDVSg_AHtcACmF",
       "target": "s:13PositronicKit26TurnHistoryProjectionErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit26TurnHistoryProjectionErrorO21nonContiguousCoverageyAC10Foundation4UUIDV_AGtcACmF",
       "target": "s:13PositronicKit26TurnHistoryProjectionErrorO"
     },
@@ -55941,44 +56053,44 @@
       "target": "s:13PositronicKit27InMemoryTimelinePersistenceC"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV13historyTokensSivp",
       "target": "s:13PositronicKit27TurnHistoryProjectionBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV15availableTokensSivp",
       "target": "s:13PositronicKit27TurnHistoryProjectionBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV18reserveForResponseSivp",
       "target": "s:13PositronicKit27TurnHistoryProjectionBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV19contextWindowTokens18reserveForResponse09availableI007historyI0ACSi_S3itcfc",
       "target": "s:13PositronicKit27TurnHistoryProjectionBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV19contextWindowTokensSivp",
       "target": "s:13PositronicKit27TurnHistoryProjectionBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit27TurnHistoryProjectionBudgetV4fromACs7Decoder_p_tKcfc",
+      "target": "s:13PositronicKit27TurnHistoryProjectionBudgetV",
       "sourceOrigin": {
-        "displayName": "Decodable.init(from:)",
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc"
-      },
-      "target": "s:13PositronicKit27TurnHistoryProjectionBudgetV"
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
     },
     {
       "module": "PositronicKit",
@@ -56233,112 +56345,112 @@
       "target": "s:13PositronicKit28TurnContextContributionValueO"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV11toolCallIDsSaySSGvp",
       "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV15estimatedTokensSivp",
       "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV16toolResultCallIDSSSgvp",
       "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV2id10Foundation4UUIDVvp",
       "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV2id4role7content15estimatedTokens11toolCallIDs0l6ResultM2IDAC10Foundation4UUIDV_11PKContracts0E0V0E4RoleOSSSiSaySSGSSSgtcfc",
       "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV4fromACs7Decoder_p_tKcfc",
+      "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV",
       "sourceOrigin": {
-        "displayName": "Decodable.init(from:)",
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc"
-      },
-      "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV4role11PKContracts0E0V0E4RoleOvp",
       "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV7contentSSvp",
       "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV10timelineID04turnH007requestH005agentH013executionKind8messages6budgetAC10Foundation4UUIDV_A3MSgAA0c9ExecutionM0OSayAA0cD17MessageDescriptorVGAA0cdE6BudgetVtcfc",
       "target": "s:13PositronicKit28TurnHistoryProjectionRequestV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV10timelineID10Foundation4UUIDVvp",
       "target": "s:13PositronicKit28TurnHistoryProjectionRequestV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV13executionKindAA0c9ExecutionH0Ovp",
       "target": "s:13PositronicKit28TurnHistoryProjectionRequestV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV4fromACs7Decoder_p_tKcfc",
+      "target": "s:13PositronicKit28TurnHistoryProjectionRequestV",
       "sourceOrigin": {
-        "displayName": "Decodable.init(from:)",
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc"
-      },
-      "target": "s:13PositronicKit28TurnHistoryProjectionRequestV"
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV6budgetAA0cdE6BudgetVvp",
       "target": "s:13PositronicKit28TurnHistoryProjectionRequestV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV6turnID10Foundation4UUIDVvp",
       "target": "s:13PositronicKit28TurnHistoryProjectionRequestV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV7agentID10Foundation4UUIDVSgvp",
       "target": "s:13PositronicKit28TurnHistoryProjectionRequestV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV8messagesSayAA0cD17MessageDescriptorVGvp",
       "target": "s:13PositronicKit28TurnHistoryProjectionRequestV"
     },
     {
-      "kind": "memberOf",
       "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryProjectionRequestV9requestID10Foundation4UUIDVvp",
       "target": "s:13PositronicKit28TurnHistoryProjectionRequestV"
     },
@@ -58271,14 +58383,14 @@
       "target": "s:13PositronicKit27TimelinePersistenceProtocolP"
     },
     {
-      "kind": "requirementOf",
       "module": "PositronicKit",
+      "kind": "requirementOf",
       "source": "s:13PositronicKit27TurnHistoryProjectionSourceP10projection3forAA0cdE0VSgAA0cdE7RequestV_tYaKF",
       "target": "s:13PositronicKit27TurnHistoryProjectionSourceP"
     },
     {
-      "kind": "requirementOf",
       "module": "PositronicKit",
+      "kind": "requirementOf",
       "source": "s:13PositronicKit27TurnHistoryProjectionSourceP18failureRequirementAA0c19ContextContributionH0Ovp",
       "target": "s:13PositronicKit27TurnHistoryProjectionSourceP"
     },
