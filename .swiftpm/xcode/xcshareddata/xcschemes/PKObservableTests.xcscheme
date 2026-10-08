@@ -15,8 +15,22 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "PKObservable"
+               BuildableName = "PKObservable"
+               BlueprintName = "PKObservable"
+               ReferencedContainer = "container:Package.swift">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "PKObservableTests"
-               BuildableName = "PKObservableTests.xctest"
+               BuildableName = "PKObservableTests"
                BlueprintName = "PKObservableTests"
                ReferencedContainer = "container:Package.swift">
             </BuildableReference>
@@ -36,7 +50,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "PKObservableTests"
-               BuildableName = "PKObservableTests.xctest"
+               BuildableName = "PKObservableTests"
                BlueprintName = "PKObservableTests"
                ReferencedContainer = "container:Package.swift">
             </BuildableReference>
