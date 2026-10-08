@@ -12224,16 +12224,6 @@
       "declaration": "func saveMessage(_ message: TimelineMessage) async throws"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC11saveSummaryyy13PositronicKit08TimelineG0VYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "saveSummary(_:)"
-      ],
-      "declaration": "func saveSummary(_ summary: TimelineSummary) async throws"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC12appendNotice6turnID6noticey10Foundation4UUIDV_13PositronicKit04TurnG0VtYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12402,16 +12392,6 @@
         "fetchSnapshots(for:)"
       ],
       "declaration": "func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot]"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC14fetchSummaries3forSay13PositronicKit15TimelineSummaryVG10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "fetchSummaries(for:)"
-      ],
-      "declaration": "func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary]"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC14fetchTimelines15attachedToAgentSay13PositronicKit14TimelineRecordVG10Foundation4UUIDV_tYaKF",
@@ -13664,48 +13644,6 @@
         "TimelineRuntimeRepositoryConformanceSuite"
       ],
       "declaration": "enum TimelineRuntimeRepositoryConformanceSuite"
-    },
-    {
-      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
-      "module": "PKTestSupport",
-      "kind": "swift.enum",
-      "path": [
-        "TimelineRuntimeRepositoryConformanceSuite",
-        "SummaryStorage"
-      ],
-      "declaration": "enum SummaryStorage"
-    },
-    {
-      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO12notSupportedyA2EmF",
-      "module": "PKTestSupport",
-      "kind": "swift.enum.case",
-      "path": [
-        "TimelineRuntimeRepositoryConformanceSuite",
-        "SummaryStorage",
-        "notSupported"
-      ],
-      "declaration": "case notSupported"
-    },
-    {
-      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO8requiredyA2EmF",
-      "module": "PKTestSupport",
-      "kind": "swift.enum.case",
-      "path": [
-        "TimelineRuntimeRepositoryConformanceSuite",
-        "SummaryStorage",
-        "required"
-      ],
-      "declaration": "case required"
-    },
-    {
-      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run14summaryStorage04makeE0yAC07SummaryJ0O_13PositronicKit0cdE0_pyYaKYCXEtYaKFZ",
-      "module": "PKTestSupport",
-      "kind": "swift.type.method",
-      "path": [
-        "TimelineRuntimeRepositoryConformanceSuite",
-        "run(summaryStorage:makeRepository:)"
-      ],
-      "declaration": "static func run(summaryStorage: SummaryStorage = .required, makeRepository: () async throws -> any TimelineRuntimeRepository) async throws"
     },
     {
       "precise": "s:13PKTestSupport9SeededRNGV",
@@ -19966,35 +19904,6 @@
       "declaration": "static let `default`: RuntimeCustomization"
     },
     {
-      "precise": "s:13PositronicKit20TimelineSummaryStoreP",
-      "module": "PositronicKit",
-      "kind": "swift.protocol",
-      "path": [
-        "TimelineSummaryStore"
-      ],
-      "declaration": "protocol TimelineSummaryStore : Sendable"
-    },
-    {
-      "precise": "s:13PositronicKit20TimelineSummaryStoreP04saveD0yyAA0cD0VYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineSummaryStore",
-        "saveSummary(_:)"
-      ],
-      "declaration": "func saveSummary(_ summary: TimelineSummary) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit20TimelineSummaryStoreP14fetchSummaries3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineSummaryStore",
-        "fetchSummaries(for:)"
-      ],
-      "declaration": "func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary]"
-    },
-    {
       "precise": "s:13PositronicKit20WorkspaceQueryResultV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -22697,16 +22606,6 @@
       "declaration": "case memberMessageMissing(turnID: UUID, messageID: UUID)"
     },
     {
-      "precise": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO20summarySourceMissingyAC10Foundation4UUIDV_tcACmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "TimelineRuntimeRepositoryError",
-        "summarySourceMissing(messageID:)"
-      ],
-      "declaration": "case summarySourceMissing(messageID: UUID)"
-    },
-    {
       "precise": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO24historyDeletionForbiddenyAC10Foundation4UUIDV_tcACmF",
       "module": "PositronicKit",
       "kind": "swift.enum.case",
@@ -22885,16 +22784,6 @@
       "declaration": "func saveMessage(_ message: TimelineMessage) async throws"
     },
     {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC11saveSummaryyyAA0eI0VYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryTimelineRuntimeRepository",
-        "saveSummary(_:)"
-      ],
-      "declaration": "func saveSummary(_ summary: TimelineSummary) async throws"
-    },
-    {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC12appendNotice6turnID6noticey10Foundation4UUIDV_AA04TurnI0VtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -22973,16 +22862,6 @@
         "fetchSnapshots(for:)"
       ],
       "declaration": "func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot]"
-    },
-    {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC14fetchSummaries3forSayAA0E7SummaryVG10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryTimelineRuntimeRepository",
-        "fetchSummaries(for:)"
-      ],
-      "declaration": "func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary]"
     },
     {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
@@ -29058,6 +28937,16 @@
         "Collection"
       ],
       "declaration": "extension Collection"
+    },
+    {
+      "precise": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run04makeE0y13PositronicKit0cdE0_pyYaKYCXE_tYaKFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "TimelineRuntimeRepositoryConformanceSuite",
+        "run(makeRepository:)"
+      ],
+      "declaration": "static func run(makeRepository: () async throws -> any TimelineRuntimeRepository) async throws"
     }
   ],
   "relationships": [
@@ -36022,13 +35911,6 @@
       "module": "PKTestSupport",
       "kind": "conformsTo",
       "source": "s:13PKTestSupport22MockPersistenceServiceC",
-      "target": "s:13PositronicKit20TimelineSummaryStoreP",
-      "targetFallback": "PositronicKit.TimelineSummaryStore"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP",
       "targetFallback": "PositronicKit.TimelineRuntimeRepository"
     },
@@ -36267,34 +36149,6 @@
       "module": "PKTestSupport",
       "kind": "conformsTo",
       "source": "s:13PKTestSupport28MockTimelinePersistenceStoreC",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
-      "target": "s:SH",
-      "targetFallback": "Swift.Hashable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -38916,20 +38770,6 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
-      "source": "s:13PositronicKit20TimelineSummaryStoreP",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit20TimelineSummaryStoreP",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
       "source": "s:13PositronicKit20WorkspaceQueryResultV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
@@ -40044,12 +39884,6 @@
       "kind": "conformsTo",
       "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
       "target": "s:13PositronicKit15DurabilityAwareP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
-      "target": "s:13PositronicKit20TimelineSummaryStoreP"
     },
     {
       "module": "PositronicKit",
@@ -50597,16 +50431,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC11saveSummaryyy13PositronicKit08TimelineG0VYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit20TimelineSummaryStoreP04saveD0yyAA0cD0VYaKF",
-        "displayName": "TimelineSummaryStore.saveSummary(_:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC12appendNotice6turnID6noticey10Foundation4UUIDV_13PositronicKit04TurnG0VtYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -50764,16 +50588,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
         "displayName": "TimelineMessageStoreProtocol.fetchSnapshots(for:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC14fetchSummaries3forSay13PositronicKit15TimelineSummaryVG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit20TimelineSummaryStoreP14fetchSummaries3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineSummaryStore.fetchSummaries(for:)"
       }
     },
     {
@@ -51645,30 +51459,6 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport34RequestOriginStoreConformanceSuiteO3run04makeE0y13PositronicKit0cdE8Protocol_pyYaKYCXE_tYaKFZ",
       "target": "s:13PKTestSupport34RequestOriginStoreConformanceSuiteO"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO",
-      "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO12notSupportedyA2EmF",
-      "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO8requiredyA2EmF",
-      "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO14SummaryStorageO"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run14summaryStorage04makeE0yAC07SummaryJ0O_13PositronicKit0cdE0_pyYaKYCXEtYaKFZ",
-      "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO"
     },
     {
       "module": "PKTestSupport",
@@ -56489,12 +56279,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO20summarySourceMissingyAC10Foundation4UUIDV_tcACmF",
-      "target": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO24historyDeletionForbiddenyAC10Foundation4UUIDV_tcACmF",
       "target": "s:13PositronicKit30TimelineRuntimeRepositoryErrorO"
     },
@@ -56635,16 +56419,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC11saveSummaryyyAA0eI0VYaKF",
-      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit20TimelineSummaryStoreP04saveD0yyAA0cD0VYaKF",
-        "displayName": "TimelineSummaryStore.saveSummary(_:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC12appendNotice6turnID6noticey10Foundation4UUIDV_AA04TurnI0VtYaKF",
       "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
       "sourceOrigin": {
@@ -56720,16 +56494,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
         "displayName": "TimelineMessageStoreProtocol.fetchSnapshots(for:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC14fetchSummaries3forSayAA0E7SummaryVG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit20TimelineSummaryStoreP14fetchSummaries3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineSummaryStore.fetchSummaries(for:)"
       }
     },
     {
@@ -58021,18 +57785,6 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit20TimelineSummaryStoreP04saveD0yyAA0cD0VYaKF",
-      "target": "s:13PositronicKit20TimelineSummaryStoreP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit20TimelineSummaryStoreP14fetchSummaries3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit20TimelineSummaryStoreP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
       "source": "s:13PositronicKit21WorkspaceFileProviderP04readD04pathS2S_tYaKF",
       "target": "s:13PositronicKit21WorkspaceFileProviderP"
     },
@@ -58353,6 +58105,12 @@
       "kind": "requirementOf",
       "source": "s:13PositronicKit28TimelineMessageStoreProtocolP14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
       "target": "s:13PositronicKit28TimelineMessageStoreProtocolP"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO3run04makeE0y13PositronicKit0cdE0_pyYaKYCXE_tYaKFZ",
+      "target": "s:13PKTestSupport41TimelineRuntimeRepositoryConformanceSuiteO"
     }
   ]
 }
