@@ -129,7 +129,9 @@ package struct ChatCompletionsMessage: Codable, Sendable {
         name = message.name
         toolCallID = message.toolCallID
         toolCalls = message.toolCalls?.map(ChatCompletionsToolCall.init)
-        reasoning = message.reasoning
+        // `reasoning` is an OpenRouter extension to the Chat Completions wire; OpenAI's
+        // chat completions endpoint accepts no such input field, so drop it there.
+        reasoning = provider == .openRouter ? message.reasoning : nil
         if message.role == .tool, message.toolCallID == nil {
             logger.warning("LLMMessage with .tool role is missing toolCallID (contract violation).")
         }
