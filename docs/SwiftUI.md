@@ -34,7 +34,7 @@ let direct = TimelineController(
     scratchpad,
     context: DirectTurnContext(systemInstructions: "You are a helpful assistant.")
 )
-try await direct.send("Summarize this thread.")
+try await direct.send("Summarize this timeline.")
 ```
 
 ## Join the durable outcome and cancel from the UI
