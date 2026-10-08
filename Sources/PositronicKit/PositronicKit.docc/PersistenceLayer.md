@@ -45,8 +45,9 @@ terminal lifecycle. `fetchToolResults` therefore describes runtime-executed call
 avoids inventing a second lifecycle or weakening the atomic local result boundary.
 
 PositronicKit does not ship a canonical database backend. Hosts provide the storage implementation
-that fits their environment, whether that is in-memory state, SQLite, cloud storage, or another
-persistence layer that conforms to the store protocols.
+that fits their environment; durable hosts validate their stores with `validateDurability()` and
+exercise them against the `PKTestSupport` store conformance suites. The optional vendored-SQLite
+`PKSQLiteStorage` backend (issue #265) is the reference durable conformer when it lands.
 
 ### Composition
 
