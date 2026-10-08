@@ -186,6 +186,12 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- **Repo hygiene (#271):** `PKContracts` no longer declares the unused `Crypto` dependency
+  (kept on `PKUtilities` where it is imported); planning documents are folded into
+  ADR 0015 and removed from `docs/`; `PersistenceLayer` DocC points at
+  `validateDurability()`, the `PKTestSupport` conformance suites, and the planned
+  `PKSQLiteStorage` backend (#265).
+
 - **Provider retries no longer multiply or repeat reasoning:** `OpenRouterClient.sendMessage` and
   `OllamaClient.sendMessage` no longer wrap a second retry loop around `chatStream`, which could
   issue up to `(maxRetries + 1)²` requests. Every streaming provider now stops retrying once it has

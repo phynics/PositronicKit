@@ -49,7 +49,6 @@ let package = Package(
                 .product(name: "JSONSchema", package: "swift-json-schema"),
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
                 .product(name: "PartialJSON", package: "PartialJSON"),
-                .product(name: "Crypto", package: "swift-crypto"),
             ],
             path: "Sources/PKContracts",
             exclude: ["CONTEXT.md"],

@@ -97,6 +97,8 @@ kind of safety valve that the runtime uses, without coupling them to runtime-onl
 - track changed / added / removed prompt entries between turns
 - compact append state when message-count or token thresholds are exceeded
 
+`TimelinePromptHistory` does not shape provider requests. The runtime builds each request directly from the rendered prompt, and no journal overlays are sent.
+
 If you are adopting `PKRuntime`, you usually do not need to instantiate or manage `TimelinePromptHistory` directly. It is runtime machinery, not the primary prompt-facing journaling surface.
 
 The two systems intentionally overlap only partially:
@@ -214,6 +216,8 @@ Cache policies drive the journaling behavior:
   `observe()`.
 
 `PromptJournal` is provider-neutral: it produces layered sections and journal paths, and a higher layer decides how to project overlays into provider-specific update messages.
+
+> **Unevaluated.** No evaluation yet shows that models reliably apply these overlay messages (for example, that a later `<prompt_journal_replace>` supersedes the earlier section). Runtime Turns never emit them; they reach a model only when your own code sends `PromptJournalPlan.buildMessages()` output. Test the behavior against your target models first.
 
 ### PromptBuilder notes
 
