@@ -47,7 +47,7 @@ current package.
 
 Add PositronicKit as a Swift Package dependency:
 
-```swift
+```swift skip
 .package(url: "https://github.com/phynics/PositronicKit.git", from: "6.1.0")
 ```
 
@@ -81,7 +81,7 @@ Choose the smallest operation tier that fits the feature:
 
 ```swift
 let answer = try await kit.model.generate("Summarize this note.")
-print(answer.content) // timeline-free inference
+print(answer.content ?? "") // timeline-free inference
 
 let directTimeline = try await kit.timelines.create(title: "Scratchpad")
 let directTurn = try await directTimeline.startDirectTurn(
@@ -90,6 +90,7 @@ let directTurn = try await directTimeline.startDirectTurn(
 )
 for await event in directTurn.events() {
     // Render deltas or inspect terminal events.
+    print(event.textContent ?? "")
 }
 
 let agent = try await kit.agents.create(
@@ -254,7 +255,10 @@ Use these guides for details:
 
 ## Code examples
 
-All snippets below are compiled as part of `PositronicKitExamples`.
+Every Swift snippet in this README is type-checked by the documentation gate
+(`make verify-documentation`, via `Scripts/compile-doc-snippets.sh`); a fence
+marked `swift skip` is syntax-checked only. The same gate covers the guides
+under `docs/`.
 
 ### Prompt composition with PKPrompt
 
@@ -460,10 +464,11 @@ consumer's test target and keep native diagnostics at the call site:
 ```swift
 import PKTestSupport
 import PositronicKit
+import Testing
 
 @Test("my Timeline repository conforms")
 func timelineRepositoryConforms() async throws {
-    try await TimelineRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
+    try await TimelineRuntimeRepositoryConformanceSuite.run {
         MyTimelineRuntimeRepository()
     }
 }

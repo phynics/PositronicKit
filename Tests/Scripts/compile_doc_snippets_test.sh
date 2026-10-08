@@ -32,6 +32,19 @@ make_docs() {
     } > "$docs/Example.md"
 }
 
+# make_readme <readme-file> <fence-header> <body>
+make_readme() {
+    local readme="$1"
+    local header="$2"
+    local body="$3"
+    mkdir -p "$(dirname "$readme")"
+    {
+        printf '# Example\n\n```%s\n' "$header"
+        printf '%s\n' "$body"
+        printf '```\n'
+    } > "$readme"
+}
+
 # make_tool <bin-dir> <name> <exit>: a fake tool that always exits <exit>.
 make_tool() {
     local bin="$1"
@@ -58,6 +71,7 @@ run_case() {
     output="$(
         PATH="$bin:$PATH" DOC_SNIPPET_TARGET_DIR="$case_dir/target" \
             DOC_SNIPPET_PARSE_DIR="$case_dir/parse" \
+            DOC_SNIPPET_README="$case_dir/README.md" \
             bash "$gate" "$case_dir/docs" 2>&1
     )" || actual_exit=$?
     if [ "$actual_exit" -ne "$expected_exit" ]; then
@@ -108,6 +122,32 @@ if grep -q "@MainActor" "$tmp_dir/main-actor/target/Generated/Example.1.swift"; 
     pass=$((pass + 1))
 else
     printf 'FAIL main-actor-marker-wraps-block: expected @MainActor wrapper\n'
+    fail=$((fail + 1))
+fi
+
+# 1b. README.md is a first-class snippet source: its Swift fence is
+#     type-checked even when the docs tree has no blocks.
+mkdir -p "$tmp_dir/readme-typecheck/docs"
+make_readme "$tmp_dir/readme-typecheck/README.md" "swift" 'let answer = 42'
+run_case "readme-typecheck" 0 0 0 "1 block(s) type-checked, 0 parse-only, all OK."
+if [ -f "$tmp_dir/readme-typecheck/target/Generated/README.1.swift" ]; then
+    printf 'ok readme-typecheck-generates-source\n'
+    pass=$((pass + 1))
+else
+    printf 'FAIL readme-typecheck-generates-source: missing generated README wrapper\n'
+    fail=$((fail + 1))
+fi
+
+# 1c. A README fence marked `swift skip` follows the docs parse-only convention.
+mkdir -p "$tmp_dir/readme-skip-parse/docs"
+make_readme "$tmp_dir/readme-skip-parse/README.md" "swift skip" 'let answer = 42'
+run_case "readme-skip-parse" 1 0 0 "parsed OK."
+if [ -f "$tmp_dir/readme-skip-parse/parse/README.1.swift" ] \
+    && [ ! -f "$tmp_dir/readme-skip-parse/target/Generated/README.1.swift" ]; then
+    printf 'ok readme-skip-parse-routes-to-parse\n'
+    pass=$((pass + 1))
+else
+    printf 'FAIL readme-skip-parse-routes-to-parse: README skip marker not honored\n'
     fail=$((fail + 1))
 fi
 
