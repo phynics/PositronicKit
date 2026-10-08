@@ -30,7 +30,8 @@ through the owning issue or an ADR.
 - Public consumers use capability values and handles. Managers, registries, pipeline topology, and
   model-round machinery remain internal.
 - `PKContracts` imports no PositronicKit project target. Providers and external integrations do not
-  import the runtime. `PKUtilities` is not a public product.
+  import the runtime. Optional **runtime adapters** (`PKObservable`, `PKSQLiteStorage`, `PKMCP`)
+  import `PositronicKit` to implement its host-facing protocols; see [ADR 0015](docs/adr/0015-runtime-adapter-tier.md). `PKUtilities` is not a public product.
 - `PromptJournal` observes assembled prompt state. It does not own semantic Timeline history.
 
 Require an owning issue and an independently justified consumer story before adding a public
@@ -50,7 +51,10 @@ On Linux, use the pinned container environment, which accepts Podman (preferred)
 not run host Swift or compose another container command. See [docs/Development.md](docs/Development.md) for setup.
 
 For an intentional public API change, inspect `make verify-public-api` on every affected platform
-before running `make update-public-api-baseline`. Generate the Linux baseline on Linux.
+before running `make update-public-api-baseline`, which records the change in the unreleased
+`api/next-public-api-<platform>.json` baseline. Release-named `api/<major>.<minor>-public-api-*.json`
+baselines are immutable; freeze one with `Scripts/promote-public-api-baselines.py --to <version>`
+and keep `make verify-public-api-immutability` green. Generate the Linux baseline on Linux.
 
 Use only the language and stdlib features the declared `swift-tools-version` and the `platforms:`
 deployment targets allow. Do not add `#if compiler` or `#if swift` guards to `Sources/` or

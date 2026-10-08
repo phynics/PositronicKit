@@ -87,6 +87,7 @@ def test_artifact_is_published_only_on_public_api_failure() -> None:
     assert "name: macos-public-api-baseline" in job, job
     assert "if-no-files-found: error" in job, job
     assert "${{ steps.baseline.outputs.baseline }}" in job, job
+    assert "'api/next-public-api-macos.json'" in job, job
 
 
 if __name__ == "__main__":

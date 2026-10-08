@@ -61,6 +61,13 @@ for tagged releases beginning with `1.0.0`.
   conformance and keep your own summary store if you have one. The `TimelineSummary` value stays
   for host pipelines.
 
+### Changed
+
+- Public API baselines now track `main` in `api/next-public-api-{linux,macos}.json`. Release-named
+  `api/<major>.<minor>-public-api-*.json` files are frozen at their tag and must not be edited;
+  `Scripts/promote-public-api-baselines.py --to <version>` copies the Next graphs at release time,
+  and `make verify-public-api-immutability` fails when a frozen file no longer matches its tag.
+
 ## [6.1.0] - 2026-09-30
 
 ### Breaking
@@ -185,6 +192,12 @@ for tagged releases beginning with `1.0.0`.
   instead of silently choosing the first match.
 
 ### Fixed
+
+- **Repo hygiene (#271):** `PKContracts` no longer declares the unused `Crypto` dependency
+  (kept on `PKUtilities` where it is imported); planning documents are folded into
+  ADR 0015 and removed from `docs/`; `PersistenceLayer` DocC points at
+  `validateDurability()`, the `PKTestSupport` conformance suites, and the planned
+  `PKSQLiteStorage` backend (#265).
 
 - **Provider retries no longer multiply or repeat reasoning:** `OpenRouterClient.sendMessage` and
   `OllamaClient.sendMessage` no longer wrap a second retry loop around `chatStream`, which could
