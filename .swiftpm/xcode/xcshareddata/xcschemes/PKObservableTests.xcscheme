@@ -18,7 +18,7 @@
                BlueprintIdentifier = "PKObservable"
                BuildableName = "PKObservable"
                BlueprintName = "PKObservable"
-               ReferencedContainer = "container:Package.swift">
+               ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -32,7 +32,7 @@
                BlueprintIdentifier = "PKObservableTests"
                BuildableName = "PKObservableTests"
                BlueprintName = "PKObservableTests"
-               ReferencedContainer = "container:Package.swift">
+               ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -52,7 +52,7 @@
                BlueprintIdentifier = "PKObservableTests"
                BuildableName = "PKObservableTests"
                BlueprintName = "PKObservableTests"
-               ReferencedContainer = "container:Package.swift">
+               ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
       </Testables>
