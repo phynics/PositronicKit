@@ -8,6 +8,10 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Changed
+
+- **OpenAI provider rebuild (no third-party SDK):** `PKOpenAIProvider` now runs on the shared `PKUtilities` Chat Completions wire plumbing with `.sortedKeys`-deterministic bytes and adds stateless Responses API support (`OpenAIAPI.automatic/.chatCompletions/.responses`; Responses for `api.openai.com`, Chat Completions elsewhere, audio forced to Chat Completions). `PKOpenRouterProvider` becomes a thin preset over the same core (attribution headers retained). Removes the `MacPaw/OpenAI` dependency.
+
 ### Added
 
 - **Runtime-neutral embeddings:** `PKContracts` gains `EmbeddingClientProtocol`,

@@ -40,7 +40,7 @@ OPENAI_COMPONENT = {
 def make_document(
     *,
     products: tuple[str, ...] = ("PKContracts", "PKOpenAIProvider"),
-    openai_from: tuple[str, ...] = ("PKOpenAIProvider",),
+    openai_from: tuple[str, ...] = (),
     bom_format: str = "CycloneDX",
 ) -> dict:
     components = [
@@ -70,9 +70,9 @@ def test_required_product_missing_is_rejected() -> None:
     assert any("PKPrompt" in error for error in errors), errors
 
 
-def test_missing_dependency_edge_is_rejected() -> None:
+def test_no_macpaw_dependency_edge_is_required() -> None:
     errors = MODULE.validate_sbom(make_document(openai_from=()), ("PKContracts", "PKOpenAIProvider"))
-    assert any("PKOpenAIProvider must depend on MacPaw/openai" in error for error in errors), errors
+    assert errors == [], errors
 
 
 def test_forbidden_dependency_edge_is_rejected() -> None:
@@ -97,7 +97,7 @@ def test_build_command_uses_swiftbuild() -> None:
 
 def test_check_entry_point_accepts_a_valid_document() -> None:
     products = MODULE.required_products_from_catalog()
-    document = make_document(products=products, openai_from=("PKOpenAIProvider",))
+    document = make_document(products=products, openai_from=())
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / "sbom.json"
         path.write_text(json.dumps(document), encoding="utf-8")
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     tests = [
         test_valid_sbom_passes,
         test_required_product_missing_is_rejected,
-        test_missing_dependency_edge_is_rejected,
+        test_no_macpaw_dependency_edge_is_required,
         test_forbidden_dependency_edge_is_rejected,
         test_non_cyclonedx_is_rejected,
         test_build_command_uses_swiftbuild,
