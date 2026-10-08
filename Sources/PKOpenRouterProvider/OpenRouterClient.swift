@@ -464,7 +464,7 @@ public actor OpenRouterClient: LLMClientProtocol {
             // Preserve OpenRouter's existing default: an unspecified choice with tools is auto.
             return tools != nil ? .auto : nil
         case .some(.none): return OpenRouterToolChoice.none
-        case .some(.auto): return .auto
+        case .some(.auto): return OpenRouterToolChoice.auto
         case let .some(.function(name)): return .function(name)
         }
     }

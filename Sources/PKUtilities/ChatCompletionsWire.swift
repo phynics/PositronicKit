@@ -464,8 +464,8 @@ package enum ChatCompletionsWire {
     package static func mapToolChoice(_ choice: LLMToolChoice?, tools: [LLMToolDefinition]?) -> ChatCompletionsToolChoice? {
         switch choice {
         case nil: return tools != nil ? .auto : nil
-        case .some(.none): return .none
-        case .some(.auto): return .auto
+        case .some(.none): return ChatCompletionsToolChoice.none
+        case .some(.auto): return ChatCompletionsToolChoice.auto
         case let .some(.function(name)): return .function(name)
         }
     }

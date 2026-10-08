@@ -229,8 +229,8 @@ public actor OpenAIClient: LLMClientProtocol {
     private func mapResponsesToolChoice(_ choice: LLMToolChoice?, tools: [LLMToolDefinition]?) -> ResponsesToolChoice? {
         switch choice {
         case nil: return tools != nil ? .auto : nil
-        case .some(.none): return .none
-        case .some(.auto): return .auto
+        case .some(.none): return ResponsesToolChoice.none
+        case .some(.auto): return ResponsesToolChoice.auto
         case let .some(.function(name)): return .function(name)
         }
     }

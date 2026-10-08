@@ -24,7 +24,7 @@ public extension LLMMessage {
 
 public extension LLMToolChoice {
     func toOpenAIToolChoice() -> ChatCompletionsToolChoice {
-        ChatCompletionsWire.mapToolChoice(self, tools: [.init(name: "x", description: nil, parameters: nil)]) ?? .auto
+        ChatCompletionsWire.mapToolChoice(self, tools: [.init(name: "x", description: nil, parameters: nil)]) ?? ChatCompletionsToolChoice.auto
     }
 }
 
