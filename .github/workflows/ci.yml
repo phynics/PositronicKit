@@ -297,12 +297,29 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee -a .build/ios-verify.log
 
+      # The runner image installs a different iPhone generation with each Xcode
+      # release, so a hard-coded device name breaks on image updates (#298). Pick
+      # an available iOS Simulator by its UDID, which is unique across runtimes.
+      - name: Resolve an available iOS Simulator
+        id: simulator
+        run: |
+          udid="$(xcrun simctl list devices available \
+            | sed -nE 's/^ *iPhone[^()]* \(([0-9A-F-]+)\) \([^)]*\)$/\1/p' \
+            | head -n 1)"
+          if [ -z "$udid" ]; then
+            echo "No available iPhone simulator found on this runner." >&2
+            xcrun simctl list devices available >&2
+            exit 1
+          fi
+          echo "Using iOS Simulator UDID: $udid"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
       - name: Test PKObservable on the iOS Simulator
         run: |
           xcodebuild test \
             -skipMacroValidation \
             -scheme PKObservableTests \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}' \
             -derivedDataPath .build/ios-simulator \
             CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee -a .build/ios-verify.log
