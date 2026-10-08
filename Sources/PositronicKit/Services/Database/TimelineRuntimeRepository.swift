@@ -325,7 +325,7 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
 /// at already durable message IDs.
 ///
 /// Summary projections are a host concern: the runtime neither writes nor reads them. A host
-/// summary pipeline stores them through a ``TimelineSummaryStore``; the
+/// summary pipeline keeps its own store; the
 /// ``AgentContextSnapshot/primaryTimelineSummary`` prompt section is supplied by the Agent context
 /// source, not derived from these rows.
 public struct TimelineSummary: Codable, Equatable, Hashable, Sendable {
@@ -453,7 +453,6 @@ public enum TimelineRuntimeRepositoryError: Error, Equatable, Sendable, CustomSt
     case duplicateToolResult(turnID: UUID, toolCallID: String)
     case appendOnlyViolation(messageID: UUID)
     case historyDeletionForbidden(timelineID: UUID)
-    case summarySourceMissing(messageID: UUID)
     case confirmationRequired
     case runtimeRepositoryRequired(timelineID: UUID)
     case authorityCoordinatorRequired(timelineID: UUID)
@@ -491,8 +490,6 @@ public enum TimelineRuntimeRepositoryError: Error, Equatable, Sendable, CustomSt
             return ErrorMetadata(code: 6110, message: "Message \(messageID) is append-only and cannot be replaced.")
         case let .historyDeletionForbidden(timelineID):
             return ErrorMetadata(code: 6111, message: "Timeline \(timelineID) history is append-only and cannot be deleted.")
-        case let .summarySourceMissing(messageID):
-            return ErrorMetadata(code: 6112, message: "Summary source message \(messageID) is not durable.")
         case .confirmationRequired:
             return ErrorMetadata(code: 6113, message: "This administrative operation requires explicit FORCE_CLEAR confirmation.")
         case let .runtimeRepositoryRequired(timelineID):
@@ -564,8 +561,7 @@ extension TimelineRuntimeRepositoryError: PKError {
 /// sanctioned path to removing a Timeline's messages is deleting the Timeline itself. A SQL-backed
 /// conformer typically satisfies this with `ON DELETE CASCADE` foreign keys from the message table
 /// to the timeline row; an in-memory or other keyed-store conformer must remove the corresponding
-/// per-timeline entries explicitly inside `deleteTimeline(id:)`. A ``TimelineSummaryStore``
-/// implementation should cascade summary projections the same way.
+/// per-timeline entries explicitly inside `deleteTimeline(id:)`.
 ///
 /// `PKTestSupport` ships `TimelineRuntimeRepositoryConformanceSuite` for downstream adapters. The
 /// suite exercises these durable admission, history, ordering, interruption, and terminal-transition
@@ -655,17 +651,6 @@ public protocol TimelineRuntimeRepository: TimelinePersistenceProtocol, Timeline
         confirmation: QuarantineReleaseConfirmation,
         now: Date
     ) async throws -> TurnRecord
-}
-
-/// Optional durable storage for ``TimelineSummary`` projections.
-///
-/// Summary projections are a host concern: the runtime neither writes nor reads them. A host
-/// summary pipeline can conform its own store to this protocol alongside
-/// ``TimelineRuntimeRepository``; the runtime repository does not require summary storage, so
-/// conformers are not forced to implement an unused capability.
-public protocol TimelineSummaryStore: Sendable {
-    func saveSummary(_ summary: TimelineSummary) async throws
-    func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary]
 }
 
 public extension TimelineRuntimeRepository {
