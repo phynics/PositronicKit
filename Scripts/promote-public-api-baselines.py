@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Copy verified public API graphs to a new release line."""
+"""Promote the Next public API graphs to an immutable release baseline."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 PLATFORMS = ("linux", "macos")
+SOURCE_RELEASE = "next"
 
 
 def baseline_release(version: str) -> str:
@@ -25,16 +26,15 @@ def baseline_release(version: str) -> str:
 def promoted_document(
     document: dict[str, object],
     *,
-    from_release: str,
     to_release: str,
     platform_name: str,
 ) -> dict[str, object]:
     if document.get("schemaVersion") != 2:
         raise ValueError(f"unsupported baseline schema for {platform_name}")
-    if document.get("release") != from_release:
+    if document.get("release") != SOURCE_RELEASE:
         raise ValueError(
             f"{platform_name} baseline release is {document.get('release')!r}, "
-            f"expected {from_release!r}"
+            f"expected {SOURCE_RELEASE!r}"
         )
     if document.get("platform") != platform_name:
         raise ValueError(
@@ -70,15 +70,12 @@ def write_atomically(path: Path, content: str) -> None:
             temporary_path.unlink(missing_ok=True)
 
 
-def promote_baselines(root: Path, from_version: str, to_version: str) -> list[Path]:
-    from_release = baseline_release(from_version)
+def promote_baselines(root: Path, to_version: str) -> list[Path]:
     to_release = baseline_release(to_version)
-    if from_release == to_release:
-        raise ValueError("source and target must use different major.minor release lines")
 
     planned: list[tuple[Path, dict[str, object]]] = []
     for platform_name in PLATFORMS:
-        source = root / "api" / f"{from_release}-public-api-{platform_name}.json"
+        source = root / "api" / f"{SOURCE_RELEASE}-public-api-{platform_name}.json"
         destination = root / "api" / f"{to_release}-public-api-{platform_name}.json"
         try:
             document = json.loads(source.read_text(encoding="utf-8"))
@@ -88,24 +85,16 @@ def promote_baselines(root: Path, from_version: str, to_version: str) -> list[Pa
             raise ValueError(f"{source.relative_to(root)} must contain a JSON object")
         promoted = promoted_document(
             document,
-            from_release=from_release,
             to_release=to_release,
             platform_name=platform_name,
         )
 
         if destination.exists():
-            try:
-                existing = json.loads(destination.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError) as exc:
-                raise ValueError(
-                    f"cannot validate existing {destination.relative_to(root)}: {exc}"
-                ) from exc
-            if existing != promoted:
-                raise ValueError(
-                    f"refusing to overwrite a different baseline: {destination.relative_to(root)}"
-                )
-        else:
-            planned.append((destination, promoted))
+            raise ValueError(
+                f"refusing to modify the existing release baseline: "
+                f"{destination.relative_to(root)}"
+            )
+        planned.append((destination, promoted))
 
     for destination, document in planned:
         write_atomically(destination, json.dumps(document, indent=2))
@@ -115,18 +104,17 @@ def promote_baselines(root: Path, from_version: str, to_version: str) -> list[Pa
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--from", dest="from_version", required=True, help="verified source version")
     parser.add_argument("--to", dest="to_version", required=True, help="release version")
     arguments = parser.parse_args()
 
     try:
-        destinations = promote_baselines(ROOT, arguments.from_version, arguments.to_version)
+        destinations = promote_baselines(ROOT, arguments.to_version)
     except (OSError, ValueError) as exc:
         print(f"promote-public-api-baselines: {exc}", file=sys.stderr)
         return 1
 
     for destination in destinations:
-        print(f"Verified baseline ready: {destination.relative_to(ROOT)}")
+        print(f"Frozen release baseline: {destination.relative_to(ROOT)}")
     return 0
 
 
