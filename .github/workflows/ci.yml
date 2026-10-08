@@ -318,7 +318,8 @@ jobs:
         run: |
           xcodebuild test \
             -skipMacroValidation \
-            -scheme PKObservableTests \
+            -scheme PositronicKit-Package \
+            -only-testing:PKObservableTests \
             -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}' \
             -derivedDataPath .build/ios-simulator \
             CODE_SIGNING_ALLOWED=NO \
