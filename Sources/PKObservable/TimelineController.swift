@@ -15,9 +15,10 @@ public struct TimelineControllerError: Error, Sendable {
 
 /// A SwiftUI-friendly controller for a PKRuntime timeline handle.
 ///
-/// Create a controller with ``init(_:messages:)`` for an Agent-attached Timeline (managed Turns) or
-/// with ``init(_:context:messages:)`` for a detached Timeline (direct Turns). The initializer
-/// selects the admission path; `send(_:)` behavior is identical on both.
+/// Create a controller from a `TimelineHandle` for an Agent-attached Timeline (managed Turns),
+/// from a `TimelineHandle` plus `DirectTurnContext` for a detached Timeline (direct Turns), or
+/// from a `TimelineFork` for a fork session. The initializer selects the admission path; `send(_:)`
+/// behavior is identical on all three.
 ///
 /// Issuing a new `send(_:)` while one is already in flight cancels/supersedes it: the prior
 /// task is cancelled, the driver's underlying generation is cancelled, and the new send starts
