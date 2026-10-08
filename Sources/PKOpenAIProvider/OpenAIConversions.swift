@@ -5,11 +5,11 @@ import PKUtilities
 // OpenAI-specific mappings on top of the shared ChatCompletions wire.
 // Audio continuation provider is .openAI; reasoning is omitted on Chat Completions history.
 
-public extension LLMToolDefinition {
+package extension LLMToolDefinition {
     func toOpenAIToolParam() -> ChatCompletionsTool { ChatCompletionsTool(self) }
 }
 
-public extension LLMMessage {
+package extension LLMMessage {
     func toOpenAIMessageParam() throws -> ChatCompletionsMessage {
         if role == .tool { try validateLLMMessageHistory([self]) }
         // Validate audio formats early (WAV/MP3 only for OpenAI).
@@ -22,13 +22,13 @@ public extension LLMMessage {
     }
 }
 
-public extension LLMToolChoice {
+package extension LLMToolChoice {
     func toOpenAIToolChoice() -> ChatCompletionsToolChoice {
         ChatCompletionsWire.mapToolChoice(self, tools: [.init(name: "x", description: nil, parameters: nil)]) ?? ChatCompletionsToolChoice.auto
     }
 }
 
-public extension LLMResponseFormat {
+package extension LLMResponseFormat {
     func toOpenAIResponseFormat() -> ChatCompletionsResponseFormat? {
         ChatCompletionsWire.mapResponseFormat(self)
     }

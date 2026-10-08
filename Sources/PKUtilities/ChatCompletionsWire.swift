@@ -375,6 +375,13 @@ package struct ChatCompletionsChatResponse: Codable, Sendable {
             usage: usage.map { $0.toLLMTokenUsage() }
         )
     }
+
+    package func toLLMToolCallRecoveryChunk(continuationProvider: LLMProvider = .openRouter) -> LLMStreamChunk? {
+        guard let choice = choices.first, choice.finishReason == "tool_calls",
+              let calls = choice.message.toolCalls, !calls.isEmpty else { return nil }
+        let chunk = toLLMStreamChunk(continuationProvider: continuationProvider)
+        return LLMStreamChunk(id: chunk.id, model: chunk.model, choices: Array(chunk.choices.prefix(1)), usage: chunk.usage)
+    }
 }
 
 package struct ChatCompletionsStreamChunk: Codable, Sendable {
@@ -383,8 +390,15 @@ package struct ChatCompletionsStreamChunk: Codable, Sendable {
             package let role: String?
             package let content: String?
             package let reasoning: String?
+            package let reasoningContent: String?
+            package var effectiveReasoning: String? { reasoning ?? reasoningContent }
             package let toolCalls: [StreamToolCall]?
             package let audio: Audio?
+            package enum CodingKeys: String, CodingKey {
+                case role, content, reasoning, audio
+                case reasoningContent = "reasoning_content"
+                case toolCalls = "tool_calls"
+            }
             package struct Audio: Codable, Sendable {
                 package let data: String?
                 package let transcript: String?
@@ -396,13 +410,30 @@ package struct ChatCompletionsStreamChunk: Codable, Sendable {
         package let index: Int
         package let delta: Delta
         package let finishReason: String?
+        package enum CodingKeys: String, CodingKey {
+            case index, delta
+            case finishReason = "finish_reason"
+        }
     }
     package struct Usage: Codable, Sendable {
         package let promptTokens: Int?
         package let completionTokens: Int?
         package let totalTokens: Int?
         package let promptTokensDetails: PromptTokensDetails?
-        package struct PromptTokensDetails: Codable, Sendable { package let cachedTokens: Int?; package let cacheWriteTokens: Int? }
+        package enum CodingKeys: String, CodingKey {
+            case promptTokens = "prompt_tokens"
+            case completionTokens = "completion_tokens"
+            case totalTokens = "total_tokens"
+            case promptTokensDetails = "prompt_tokens_details"
+        }
+        package struct PromptTokensDetails: Codable, Sendable {
+            package let cachedTokens: Int?
+            package let cacheWriteTokens: Int?
+            package enum CodingKeys: String, CodingKey {
+                case cachedTokens = "cached_tokens"
+                case cacheWriteTokens = "cache_write_tokens"
+            }
+        }
     }
     package struct StreamToolCall: Codable, Sendable {
         package let index: Int?
@@ -424,7 +455,7 @@ package struct ChatCompletionsStreamChunk: Codable, Sendable {
                     delta: LLMStreamDelta(
                         role: choice.delta.role.flatMap(LLMMessage.Role.init(rawValue:)),
                         content: choice.delta.content,
-                        reasoning: choice.delta.reasoning,
+                        reasoning: choice.delta.effectiveReasoning,
                         audio: choice.delta.audio.flatMap { audio -> LLMAudioDelta? in
                             guard let audioFormat else { return nil }
                             let continuation: AudioContinuationReference? = if let id = audio.id, let expiry = audio.expiresAt {

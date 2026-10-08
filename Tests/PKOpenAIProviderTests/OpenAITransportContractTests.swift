@@ -2,7 +2,6 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
-import OpenAI
 import PKContracts
 import PKTestSupport
 import PKUtilities
@@ -11,30 +10,30 @@ import Synchronization
 import Testing
 @testable import PKOpenAIProvider
 
-private final class CapturingMiddleware: OpenAIMiddleware, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+private final class RecordingTransport: ProviderHTTPTransport, @unchecked Sendable {
     private let requests = Mutex<[URLRequest]>([])
-    private let signals: AsyncStream<Void>
-    private let signalContinuation: AsyncStream<Void>.Continuation // swiftlint:disable:this concurrency_stored_continuation -- test-only request observation signal
+    private let inner: any ProviderHTTPTransport
 
-    init() {
-        (signals, signalContinuation) = AsyncStream<Void>.makeStream()
-    }
-
-    func intercept(request: URLRequest) -> URLRequest {
-        requests.withLock { $0.append(request) }
-        signalContinuation.yield(())
-        return request
+    init(timeoutInterval: TimeInterval = 60) {
+        inner = URLSessionProviderHTTPTransport(timeoutIntervalForRequest: timeoutInterval)
     }
 
     func recordedRequests() -> [URLRequest] {
         requests.withLock { $0 }
     }
 
-    func waitUntilIntercepted() async {
-        var iterator = signals.makeAsyncIterator()
-        _ = await iterator.next()
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        requests.withLock { $0.append(request) }
+        return try await inner.data(for: request)
+    }
+
+    func lines(for request: URLRequest) async throws -> (AsyncThrowingStream<String, Error>, URLResponse) {
+        requests.withLock { $0.append(request) }
+        return try await inner.lines(for: request)
     }
 }
+
+private typealias CapturingMiddleware = RecordingTransport
 
 // `.serialized`: each test binds a loopback `TestHTTPServer` and observes SDK traffic
 // through a per-test middleware signal. Serialization keeps the request-observation
@@ -55,9 +54,16 @@ struct OpenAITransportContractTests {
             port: Int(port),
             scheme: "http",
             maxRetries: maxRetries,
-            session: .shared,
-            middlewares: [middleware]
+            transport: middleware,
+            api: .chatCompletions
         )
+    }
+
+    private func waitForRequest(_ middleware: CapturingMiddleware) async {
+        for _ in 0..<100 {
+            if !middleware.recordedRequests().isEmpty { return }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
     }
 
     private func requestBody(_ request: URLRequest) -> String {
@@ -198,7 +204,7 @@ data: {bad json
             }
         }
 
-        await middleware.waitUntilIntercepted()
+        await waitForRequest(middleware)
         consumer.cancel()
         _ = await consumer.value
     }

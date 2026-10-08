@@ -10,9 +10,9 @@ import PKContracts
 import PKUtilities
 import PKTestSupport
 @testable import PKOllamaProvider
+@testable import PKOpenAIProvider
 @testable import PKOpenRouterProvider
 @testable import PositronicKit
-import OpenAI
 import Testing
 
 @Suite("Structured output preparation order", .tags(.integration))
@@ -156,15 +156,15 @@ struct StructuredOutputPreparationTests {
     @Test("OpenAI response_format preserves nested sidecar root order")
     func openAIResponseFormatPreservesOrder() throws {
         let schema = try makeSchema()
-        let query = ChatQuery(
+        let query = ChatCompletionsChatRequest(
             messages: [try LLMMessage(role: .user, content: "hello").toOpenAIMessageParam()],
             model: "gpt-4o",
-            responseFormat: LLMResponseFormat.jsonSchema(.init(
+            responseFormat: ChatCompletionsWire.mapResponseFormat(LLMResponseFormat.jsonSchema(.init(
                 name: schema.name,
                 description: schema.description,
                 schema: schema.schema,
                 isStrict: schema.isStrict
-            )).toOpenAIResponseFormat(),
+            ))),
             stream: true
         )
 

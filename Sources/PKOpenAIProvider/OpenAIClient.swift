@@ -122,7 +122,7 @@ public actor OpenAIClient: LLMClientProtocol {
         )
         var request = URLRequest(url: baseURL.appendingPathComponent("v1/chat/completions"))
         request.httpMethod = "POST"; request.timeoutInterval = timeoutInterval
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        modelsRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try ChatCompletionsWire.sortedEncoder().encode(query)
         return request
@@ -219,7 +219,7 @@ public actor OpenAIClient: LLMClientProtocol {
         )
         var request = URLRequest(url: baseURL.appendingPathComponent("v1/responses"))
         request.httpMethod = "POST"; request.timeoutInterval = timeoutInterval
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        modelsRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
         request.httpBody = try encoder.encode(body)
@@ -303,12 +303,12 @@ public actor OpenAIClient: LLMClientProtocol {
     }
 
     public func fetchAvailableModels() async throws -> [String]? {
-        var request = URLRequest(url: baseURL.appendingPathComponent("v1/models"))
-        request.timeoutInterval = timeoutInterval
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        var modelsRequest = URLRequest(url: baseURL.appendingPathComponent("v1/models"))
+        modelsRequest.timeoutInterval = timeoutInterval
+        modelsRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         struct ModelsResponse: Decodable { struct M: Decodable { let id: String }; let data: [M] }
         return try await RetryPolicy.retry(maxRetries: maxRetries) {
-            try await HTTPHelpers.fetchDecodable(ModelsResponse.self, for: request, transport: self.transport, provider: "OpenAI").data.map(\.id)
+            try await HTTPHelpers.fetchDecodable(ModelsResponse.self, for: modelsRequest, transport: self.transport, provider: "OpenAI").data.map(\.id)
         }
     }
 }

@@ -1,5 +1,4 @@
 import Foundation
-import OpenAI
 @testable import PKContracts
 import PKUtilities
 import PKTestSupport

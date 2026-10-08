@@ -2,7 +2,6 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
-import OpenAI
 import PKContracts
 import PKTestSupport
 import PKUtilities
@@ -241,38 +240,17 @@ data: [DONE]
         #expect(toolCalls.first?.function?.arguments == #"{"city":"Berlin"}"#)
     }
 
-    // MARK: - mapProviderError CancellationError passthrough
+    // MARK: - Cancellation is never retried
 
-    @Test("mapProviderError passes through CancellationError unchanged")
+    @Test("CancellationError is never treated as transient")
     func cancellationErrorPassthrough() async throws {
-        let client = OpenAIClient(
-            apiKey: "key",
-            modelName: "gpt-4o",
-            host: "127.0.0.1",
-            port: 12345,
-            scheme: "http",
-            timeoutInterval: 5.0,
-            maxRetries: 0
-        )
-        let cancellation = CancellationError()
-        let mapped = client.mapProviderError(cancellation, provider: "OpenAI")
-        #expect(mapped is CancellationError)
+        #expect(!RetryPolicy.isTransient(error: CancellationError()))
     }
 
-    @Test("mapProviderError passes through unknown errors unchanged")
+    @Test("Unknown errors are not treated as transient")
     func unknownErrorPassthrough() async throws {
-        let client = OpenAIClient(
-            apiKey: "key",
-            modelName: "gpt-4o",
-            host: "127.0.0.1",
-            port: 12345,
-            scheme: "http",
-            timeoutInterval: 5.0,
-            maxRetries: 0
-        )
         struct CustomError: Error {}
-        let mapped = client.mapProviderError(CustomError(), provider: "OpenAI")
-        #expect(mapped is CustomError)
+        #expect(!RetryPolicy.isTransient(error: CustomError()))
     }
 
     // MARK: - PKOpenAI.makeClient

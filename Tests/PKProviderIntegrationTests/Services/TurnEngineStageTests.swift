@@ -1,6 +1,5 @@
 import Foundation
 import Logging
-import OpenAI
 import PKContracts
 import PKUtilities
 import PKTestSupport

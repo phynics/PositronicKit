@@ -1,7 +1,7 @@
 import Foundation
-import OpenAI
 import PKContracts
 import PKTestSupport
+import PKUtilities
 @testable import PKAnthropicProvider
 @testable import PKFoundationModelsProvider
 @testable import PKOllamaProvider
@@ -173,7 +173,7 @@ struct ProviderCapabilityMatrixTests {
 
     private func assertOpenAIAudioOutput(_ id: String) throws {
         let data = Data(#"{"id":"audio-1","object":"chat.completion.chunk","created":0,"model":"gpt-4o","choices":[{"index":0,"delta":{"audio":{"id":"audio-1","data":"AQ==","transcript":"hello","expires_at":4102444800}},"finish_reason":"stop"}]}"#.utf8)
-        let chunk = try JSONDecoder().decode(ChatStreamResult.self, from: data).toLLMStreamChunk(audioFormat: .wav)
+        let chunk = try JSONDecoder().decode(ChatCompletionsStreamChunk.self, from: data).toLLMStreamChunk(audioFormat: .wav, continuationProvider: .openAI)
         let delta = try #require(chunk.choices.first?.delta.audio)
         #expect(delta.data == Data([1]), "\(id)")
         #expect(delta.transcript == "hello", "\(id)")

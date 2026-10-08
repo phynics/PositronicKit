@@ -1,12 +1,11 @@
 import Foundation
-import OpenAI
 @testable import PKOpenAIProvider
 import PKContracts
 import PKUtilities
 import Testing
 
 @Suite struct OpenAIToolCallRecoveryTests {
-    @Test("ChatResult tool_calls payload can be converted into a recovery stream chunk")
+    @Test("ChatCompletionsChatResponse tool_calls payload can be converted into a recovery stream chunk")
     func chatResultToolCallsRecoverToChunk() throws {
         let json = #"""
         {
@@ -42,7 +41,7 @@ import Testing
         }
         """#
 
-        let result = try JSONDecoder().decode(ChatResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsChatResponse.self, from: Data(json.utf8))
         let chunk = try #require(result.toLLMToolCallRecoveryChunk())
 
         #expect(chunk.choices.first?.finishReason == "tool_calls")
@@ -75,7 +74,7 @@ import Testing
         }
         """#
 
-        let result = try JSONDecoder().decode(ChatResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsChatResponse.self, from: Data(json.utf8))
         #expect(result.toLLMToolCallRecoveryChunk() == nil)
     }
 }

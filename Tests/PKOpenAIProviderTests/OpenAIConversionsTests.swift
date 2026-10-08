@@ -1,6 +1,5 @@
 import Foundation
 import struct JSONSchema.Schema
-import OpenAI
 @testable import PKOpenAIProvider
 import PKContracts
 import PKUtilities
@@ -20,36 +19,24 @@ struct OpenAIConversionsTests {
 
     // MARK: - LLMMessage.toOpenAIMessageParam
 
-    @Test("system role maps to .system param with textContent")
+    @Test("system role maps to wire message with text content")
     func systemRoleConversion() throws {
         let message = LLMMessage(role: .system, content: "You are helpful.", name: "sys")
         let param = try message.toOpenAIMessageParam()
 
-        guard case let .system(systemMsg) = param else {
-            Issue.record("Expected .system param"); return
-        }
-        if case let .textContent(text) = systemMsg.content {
-            #expect(text == "You are helpful.")
-        } else {
-            Issue.record("Expected .textContent")
-        }
-        #expect(systemMsg.name == "sys")
+        #expect(param.role == "system")
+        #expect(param.content?.text == "You are helpful.")
+        #expect(param.name == "sys")
     }
 
-    @Test("user role maps to .user param with string content")
+    @Test("user role maps to wire message with text content")
     func userRoleConversion() throws {
         let message = LLMMessage(role: .user, content: "Hello!", name: "alice")
         let param = try message.toOpenAIMessageParam()
 
-        guard case let .user(userMsg) = param else {
-            Issue.record("Expected .user param"); return
-        }
-        if case let .string(text) = userMsg.content {
-            #expect(text == "Hello!")
-        } else {
-            Issue.record("Expected .string content")
-        }
-        #expect(userMsg.name == "alice")
+        #expect(param.role == "user")
+        #expect(param.content?.text == "Hello!")
+        #expect(param.name == "alice")
     }
 
     @Test("ordered user media maps to OpenAI content parts")
@@ -82,15 +69,9 @@ struct OpenAIConversionsTests {
         )
         let param = try message.toOpenAIMessageParam()
 
-        guard case let .assistant(assistantMsg) = param else {
-            Issue.record("Expected .assistant param"); return
-        }
-        if case let .textContent(text) = assistantMsg.content {
-            #expect(text == "Let me check.")
-        } else {
-            Issue.record("Expected .textContent")
-        }
-        let toolCalls = try #require(assistantMsg.toolCalls)
+        #expect(param.role == "assistant")
+        #expect(param.content?.text == "Let me check.")
+        let toolCalls = try #require(param.toolCalls)
         #expect(toolCalls.count == 1)
         #expect(toolCalls.first?.id == "call_1")
         #expect(toolCalls.first?.function.name == "get_weather")
@@ -102,15 +83,9 @@ struct OpenAIConversionsTests {
         let message = LLMMessage(role: .assistant, content: "Hi there.")
         let param = try message.toOpenAIMessageParam()
 
-        guard case let .assistant(assistantMsg) = param else {
-            Issue.record("Expected .assistant param"); return
-        }
-        if case let .textContent(text) = assistantMsg.content {
-            #expect(text == "Hi there.")
-        } else {
-            Issue.record("Expected .textContent")
-        }
-        #expect(assistantMsg.toolCalls == nil)
+        #expect(param.role == "assistant")
+        #expect(param.content?.text == "Hi there.")
+        #expect(param.toolCalls == nil)
     }
 
     @Test("developer role maps to .developer param")
@@ -118,15 +93,9 @@ struct OpenAIConversionsTests {
         let message = LLMMessage(role: .developer, content: "Dev instructions.", name: "dev")
         let param = try message.toOpenAIMessageParam()
 
-        guard case let .developer(devMsg) = param else {
-            Issue.record("Expected .developer param"); return
-        }
-        if case let .textContent(text) = devMsg.content {
-            #expect(text == "Dev instructions.")
-        } else {
-            Issue.record("Expected .textContent")
-        }
-        #expect(devMsg.name == "dev")
+        #expect(param.role == "developer")
+        #expect(param.content?.text == "Dev instructions.")
+        #expect(param.name == "dev")
     }
 
     @Test("tool role with toolCallID maps to .tool param without warning")
@@ -134,15 +103,9 @@ struct OpenAIConversionsTests {
         let message = LLMMessage(role: .tool, content: "result", toolCallID: "call_1")
         let param = try message.toOpenAIMessageParam()
 
-        guard case let .tool(toolMsg) = param else {
-            Issue.record("Expected .tool param"); return
-        }
-        #expect(toolMsg.toolCallId == "call_1")
-        if case let .textContent(text) = toolMsg.content {
-            #expect(text == "result")
-        } else {
-            Issue.record("Expected .textContent")
-        }
+        #expect(param.role == "tool")
+        #expect(param.toolCallID == "call_1")
+        #expect(param.content?.text == "result")
     }
 
     // MARK: - LLMToolChoice.toOpenAIToolChoice
@@ -168,13 +131,10 @@ struct OpenAIConversionsTests {
 
     // MARK: - LLMResponseFormat.toOpenAIResponseFormat
 
-    @Test("responseFormat .text maps to .text")
+    @Test("responseFormat .text maps to nil (default text output)")
     func responseFormatText() {
         let format = LLMResponseFormat.text
-        let param = format.toOpenAIResponseFormat()
-        guard case .text = param else {
-            Issue.record("Expected .text"); return
-        }
+        #expect(format.toOpenAIResponseFormat() == nil)
     }
 
     @Test("responseFormat .jsonObject maps to .jsonObject")
@@ -255,7 +215,7 @@ struct OpenAIConversionsTests {
         #expect(param.function.strict == false)
     }
 
-    // MARK: - ChatStreamResult.toLLMStreamChunk
+    // MARK: - ChatCompletionsStreamChunk.toLLMStreamChunk
 
     @Test("stream chunk with tool call deltas maps toolCalls")
     func streamChunkWithToolCallDeltas() throws {
@@ -287,7 +247,7 @@ struct OpenAIConversionsTests {
           ]
         }
         """#
-        let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsStreamChunk.self, from: Data(json.utf8))
         let chunk = result.toLLMStreamChunk()
 
         let toolCalls = try #require(chunk.choices.first?.delta.toolCalls)
@@ -321,7 +281,7 @@ struct OpenAIConversionsTests {
           }
         }
         """#
-        let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsStreamChunk.self, from: Data(json.utf8))
         let chunk = result.toLLMStreamChunk()
 
         let usage = try #require(chunk.usage)
@@ -343,7 +303,7 @@ struct OpenAIConversionsTests {
           "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
         }
         """#
-        let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsStreamChunk.self, from: Data(json.utf8))
         let chunk = result.toLLMStreamChunk()
 
         let usage = try #require(chunk.usage)
@@ -363,7 +323,7 @@ struct OpenAIConversionsTests {
             let json = """
             {"id":"c","object":"chat.completion.chunk","created":0,"model":"m","choices":[{"index":0,"delta":{"content":"x"},"finish_reason":"\(wire)"}]}
             """
-            let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
+            let result = try JSONDecoder().decode(ChatCompletionsStreamChunk.self, from: Data(json.utf8))
             let chunk = result.toLLMStreamChunk()
             #expect(chunk.choices.first?.finishReason == expected)
         }
@@ -374,7 +334,7 @@ struct OpenAIConversionsTests {
         let json = #"""
         {"id":"c","object":"chat.completion.chunk","created":0,"model":"m","choices":[{"index":0,"delta":{"content":"x"},"finish_reason":"error"}]}
         """#
-        let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsStreamChunk.self, from: Data(json.utf8))
         let chunk = result.toLLMStreamChunk()
         #expect(chunk.choices.first?.finishReason == "error")
     }
@@ -392,20 +352,20 @@ struct OpenAIConversionsTests {
             let json = """
             {"id":"c","object":"chat.completion.chunk","created":0,"model":"m","choices":[{"index":0,"delta":{"role":"\(wire)"},"finish_reason":null}]}
             """
-            let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
+            let result = try JSONDecoder().decode(ChatCompletionsStreamChunk.self, from: Data(json.utf8))
             let chunk = result.toLLMStreamChunk()
             #expect(chunk.choices.first?.delta.role == expected)
         }
     }
 
-    // MARK: - ChatResult.toLLMToolCallRecoveryChunk
+    // MARK: - ChatCompletionsChatResponse.toLLMToolCallRecoveryChunk
 
     @Test("recovery chunk returns nil when choices is empty")
     func recoveryChunkEmptyChoices() throws {
         let json = #"""
         {"id":"c","object":"chat.completion","created":0,"model":"m","choices":[]}
         """#
-        let result = try JSONDecoder().decode(ChatResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsChatResponse.self, from: Data(json.utf8))
         #expect(result.toLLMToolCallRecoveryChunk() == nil)
     }
 
@@ -414,7 +374,7 @@ struct OpenAIConversionsTests {
         let json = #"""
         {"id":"c","object":"chat.completion","created":0,"model":"m","choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"hi"}}]}
         """#
-        let result = try JSONDecoder().decode(ChatResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsChatResponse.self, from: Data(json.utf8))
         #expect(result.toLLMToolCallRecoveryChunk() == nil)
     }
 
@@ -423,7 +383,7 @@ struct OpenAIConversionsTests {
         let json = #"""
         {"id":"c","object":"chat.completion","created":0,"model":"m","choices":[{"index":0,"finish_reason":"tool_calls","message":{"role":"assistant","content":null,"tool_calls":[]}}]}
         """#
-        let result = try JSONDecoder().decode(ChatResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsChatResponse.self, from: Data(json.utf8))
         #expect(result.toLLMToolCallRecoveryChunk() == nil)
     }
 
@@ -432,7 +392,7 @@ struct OpenAIConversionsTests {
         let json = #"""
         {"id":"c","object":"chat.completion","created":0,"model":"m","choices":[{"index":0,"finish_reason":"tool_calls","message":{"role":"assistant","content":null}}]}
         """#
-        let result = try JSONDecoder().decode(ChatResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsChatResponse.self, from: Data(json.utf8))
         #expect(result.toLLMToolCallRecoveryChunk() == nil)
     }
 
@@ -460,7 +420,7 @@ struct OpenAIConversionsTests {
           "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15, "prompt_tokens_details": {"cached_tokens": 2, "audio_tokens": 0}}
         }
         """#
-        let result = try JSONDecoder().decode(ChatResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsChatResponse.self, from: Data(json.utf8))
         let chunk = try #require(result.toLLMToolCallRecoveryChunk())
         let usage = try #require(chunk.usage)
         #expect(usage.promptTokens == 10)
@@ -493,7 +453,7 @@ struct OpenAIConversionsTests {
           ]
         }
         """#
-        let result = try JSONDecoder().decode(ChatResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsChatResponse.self, from: Data(json.utf8))
         let chunk = try #require(result.toLLMToolCallRecoveryChunk())
         #expect(chunk.choices.first?.delta.content == "Thinking about it")
         #expect(chunk.choices.first?.delta.reasoning == "Step by step")
@@ -524,7 +484,7 @@ struct OpenAIConversionsTests {
           ]
         }
         """#
-        let result = try JSONDecoder().decode(ChatResult.self, from: Data(json.utf8))
+        let result = try JSONDecoder().decode(ChatCompletionsChatResponse.self, from: Data(json.utf8))
         let chunk = try #require(result.toLLMToolCallRecoveryChunk())
         let toolCalls = try #require(chunk.choices.first?.delta.toolCalls)
         #expect(toolCalls.count == 2)

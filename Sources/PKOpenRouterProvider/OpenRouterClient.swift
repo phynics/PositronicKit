@@ -455,33 +455,4 @@ public actor OpenRouterClient: LLMClientProtocol {
         }
     }
 
-    private nonisolated func mapToolChoice(
-        _ choice: LLMToolChoice?,
-        tools: [LLMToolDefinition]?
-    ) -> OpenRouterToolChoice? {
-        switch choice {
-        case nil:
-            // Preserve OpenRouter's existing default: an unspecified choice with tools is auto.
-            return tools != nil ? .auto : nil
-        case .some(.none): return OpenRouterToolChoice.none
-        case .some(.auto): return OpenRouterToolChoice.auto
-        case let .some(.function(name)): return .function(name)
-        }
-    }
-
-    private nonisolated func mapResponseFormat(_ format: LLMResponseFormat?) -> OpenRouterResponseFormat? {
-        switch format {
-        case .none, .text:
-            return nil
-        case .jsonObject:
-            return .jsonObject
-        case let .jsonSchema(schema):
-            return .jsonSchema(.init(
-                name: schema.name,
-                description: schema.description,
-                schema: schema.schema,
-                strict: schema.isStrict
-            ))
-        }
-    }
 }
