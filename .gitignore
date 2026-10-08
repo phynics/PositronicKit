@@ -5,7 +5,14 @@
 /*.xcodeproj
 xcuserdata/
 DerivedData/
-.swiftpm/
+# Xcode user state under .swiftpm stays ignored, but shared schemes are
+# tracked so the iOS Simulator lane can run test-target schemes.
+.swiftpm/*
+!.swiftpm/xcode/
+.swiftpm/xcode/*
+!.swiftpm/xcode/xcshareddata/
+.swiftpm/xcode/xcshareddata/*
+!.swiftpm/xcode/xcshareddata/xcschemes/
 .claude/
 .letta/
 .vscode/
