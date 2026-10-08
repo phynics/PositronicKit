@@ -56,6 +56,10 @@ for tagged releases beginning with `1.0.0`.
 - `TimelineRuntimeRepository` conformers must implement `recordTurnMessage(_:turnID:)` and record
   membership atomically at admission, intermediate assistant/tool writes, and terminal commits.
   `TimelineRuntimeRepositoryConformanceSuite` checks this invariant.
+- `TimelineSummaryStore` is removed along with the `summaryStorage:` conformance-suite parameter
+  and the `summarySourceMissing` error case. The runtime never read summaries; drop the
+  conformance and keep your own summary store if you have one. The `TimelineSummary` value stays
+  for host pipelines.
 
 ## [6.1.0] - 2026-09-30
 

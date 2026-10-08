@@ -218,12 +218,4 @@ actor FailingTerminalRepository: TimelineRuntimeRepository {
             now: now
         )
     }
-
-    func saveSummary(_ summary: TimelineSummary) async throws {
-        try await base.saveSummary(summary)
-    }
-
-    func fetchSummaries(for timelineID: UUID) async throws -> [TimelineSummary] {
-        try await base.fetchSummaries(for: timelineID)
-    }
 }

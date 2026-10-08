@@ -37,7 +37,6 @@ struct RepositoryPKErrorTests {
             TimelineErrorCase(error: .duplicateToolResult(turnID: turnID, toolCallID: toolCallID), code: 6109),
             TimelineErrorCase(error: .appendOnlyViolation(messageID: messageID), code: 6110),
             TimelineErrorCase(error: .historyDeletionForbidden(timelineID: timelineID), code: 6111),
-            TimelineErrorCase(error: .summarySourceMissing(messageID: messageID), code: 6112),
             TimelineErrorCase(error: .confirmationRequired, code: 6113),
             TimelineErrorCase(error: .runtimeRepositoryRequired(timelineID: timelineID), code: 6114),
             TimelineErrorCase(error: .authorityCoordinatorRequired(timelineID: timelineID), code: 6115),
@@ -60,8 +59,8 @@ struct RepositoryPKErrorTests {
             TimelineErrorCase(error: .quarantineNotFound(timelineID: timelineID, turnID: turnID), code: 6118),
         ]
 
-        #expect(cases.count == 18)
-        #expect(cases.map(\.code) == Array(6101...6118))
+        #expect(cases.count == 17)
+        #expect(cases.map(\.code) == Array(6101...6111) + Array(6113...6118))
         #expect(Set(cases.map(\.code)).count == cases.count)
         #expect(Set(cases.map(\.code)).isDisjoint(with: Set(6001...6005)))
 
