@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Generate bindable, type-checkable Swift sources from docs fenced code blocks.
+"""Generate bindable, type-checkable Swift sources from Markdown fenced code blocks.
 
-Reads every ```swift fence under a docs tree and writes one generated Swift file
-per block into <out_dir>/Generated, plus a shared prelude that binds the
-placeholder identifiers the guides use (`kit`, `myLanguageModel`,
-`myRuntimeRepository`, ...). The shell gate then builds the DocSnippetConsumer
-target so a stale label, arity, or type in a guide fails the build.
+Reads every ```swift fence under a docs tree and in an optional README and
+writes one generated Swift file per block into <out_dir>/Generated, plus a
+shared prelude that binds the placeholder identifiers the guides use (`kit`,
+`myLanguageModel`, `myRuntimeRepository`, ...). The shell gate then builds the
+DocSnippetConsumer target so a stale label, arity, or type in a guide or the
+README fails the build.
 
 A fence may opt out of type-checking with the greppable marker:
 
@@ -59,6 +60,7 @@ PLACEHOLDERS = [
     ("kit", "PKRuntime"),
     ("chat", "PKRuntime"),
     ("timeline", "TimelineHandle"),
+    ("directTimeline", "TimelineHandle"),
     ("timelineID", "UUID"),
     ("agent", "Agent"),
     ("myLLM", "any LLMStreamClient"),
@@ -78,6 +80,7 @@ PLACEHOLDERS = [
     ("tools", "[any PKTool]"),
     ("title", "SidecarDirective"),
     ("tone", "SidecarDirective"),
+    ("request", "StructuredOutputRequest"),
 ]
 
 # Placeholder callbacks the guides pass around as if the reader defined them.
@@ -114,9 +117,10 @@ def render_prelude() -> str:
         lines.append(f"    static func {name}() -> {type_name} {{ {body} }}")
     lines.append("}")
     lines.append("")
-    lines.append("// The conformance-suite guide expects the reader to supply a WorkspaceStore;")
-    lines.append("// the shipped test double stands in for it.")
+    lines.append("// The conformance-suite guides expect the reader to supply stores;")
+    lines.append("// the shipped implementations stand in for them.")
     lines.append("internal typealias MyWorkspaceStore = MockWorkspacePersistence")
+    lines.append("internal typealias MyTimelineRuntimeRepository = InMemoryTimelineRuntimeRepository")
     lines.append("")
     return "\n".join(lines)
 
@@ -190,11 +194,17 @@ def render_block(
     ordered = list(dict.fromkeys(imports + DEFAULT_IMPORTS))
     lines.extend(ordered)
     lines.append("")
+    # Every block owns one namespace. Macro-attached declarations (`@Schemable`
+    # types, `@Test` functions) cannot be nested in a function, so they live in
+    # this type rather than at file scope. That keeps two guides from colliding
+    # on a shared example type name such as `ProjectMetadata`. The wrapper is a
+    # struct, not an enum, because Swift Testing's `@Test` macro constructs the
+    # enclosing type for an instance test; a caseless enum has no initializer.
+    lines.append(f"internal struct {source_label_identifier(source_label)} {{")
     if declarations:
         lines.append(declarations)
         lines.append("")
     if statements.strip():
-        lines.append(f"internal enum {source_label_identifier(source_label)} {{")
         if main_actor:
             # Guides that document main-actor UI helpers such as
             # `TimelineController` opt in with ` ```swift main-actor `. The
@@ -214,7 +224,7 @@ def render_block(
             lines.append(f"        _ = {name}")
         lines.append("        }")
         lines.append("    }")
-        lines.append("}")
+    lines.append("}")
     lines.append("")
     return "\n".join(lines)
 
@@ -248,7 +258,29 @@ def parse_blocks(text: str) -> list[tuple[str, str]]:
     return blocks
 
 
-def generate(docs_dir: Path, out_dir: Path, parse_dir: Path) -> tuple[int, int]:
+def collect_sources(docs_dir: Path, readme: Path | None) -> list[tuple[Path, str, str]]:
+    """Return `(markdown, label_base, file_stem)` for every snippet source.
+
+    The docs tree keeps its `docs/<relative path>` label; the README, when
+    present, is labeled `README.md` so a block's origin is obvious in the
+    generated wrapper and in a compiler diagnostic.
+    """
+    sources: list[tuple[Path, str, str]] = []
+    if docs_dir.is_dir():
+        for markdown in sorted(docs_dir.rglob("*.md")):
+            relative = markdown.relative_to(docs_dir).as_posix()
+            sources.append((markdown, f"docs/{relative}", markdown.stem))
+    if readme is not None and readme.is_file():
+        sources.append((readme, "README.md", "README"))
+    return sources
+
+
+def generate(
+    docs_dir: Path,
+    readme: Path | None,
+    out_dir: Path,
+    parse_dir: Path,
+) -> tuple[int, int]:
     generated_dir = out_dir / "Generated"
     generated_dir.mkdir(parents=True, exist_ok=True)
     parse_dir.mkdir(parents=True, exist_ok=True)
@@ -258,11 +290,9 @@ def generate(docs_dir: Path, out_dir: Path, parse_dir: Path) -> tuple[int, int]:
     checked = 0
     skipped = 0
 
-    markdown_files = sorted(docs_dir.rglob("*.md"))
-    for markdown in markdown_files:
-        base = markdown.stem
+    for markdown, label_base, base in collect_sources(docs_dir, readme):
         for number, (info, body) in enumerate(parse_blocks(markdown.read_text(encoding="utf-8")), start=1):
-            label = f"docs/{markdown.relative_to(docs_dir).as_posix()} block {number}"
+            label = f"{label_base} block {number}"
             name = f"{base}.{number}.swift"
             if SKIP_TOKEN.search(info):
                 skipped += 1
@@ -309,12 +339,18 @@ def main() -> int:
         type=Path,
         help="outside the SwiftPM target path; skipped blocks are only parse-checked",
     )
+    parser.add_argument(
+        "--readme",
+        type=Path,
+        default=None,
+        help="optional README whose fenced Swift blocks join the docs tree in the gate",
+    )
     args = parser.parse_args()
 
     if not args.docs_dir.is_dir():
         print(f"generate-doc-snippets: {args.docs_dir} is not a directory", file=sys.stderr)
         return 2
-    checked, skipped = generate(args.docs_dir, args.out_dir, args.parse_dir)
+    checked, skipped = generate(args.docs_dir, args.readme, args.out_dir, args.parse_dir)
     print(f"generate-doc-snippets: {checked} type-checked, {skipped} parse-only")
     return 0
 

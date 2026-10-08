@@ -213,23 +213,25 @@ interpret, so its test skips on hosts without one, the same way
 ### Docs snippet gate
 
 `Scripts/compile-doc-snippets.sh` extracts every ` ```swift ` block under `docs/`
-and type-checks it against the real modules. It writes each block into the
-compile-only `DocSnippetConsumer` target — a wrapper that imports the modules the
-guides use and binds placeholder identifiers from a generated prelude — then runs
-one `swift build --target DocSnippetConsumer`. A stale argument label, a removed
-symbol, or a wrong argument type in a guide fails `make verify-documentation`
-(and the standalone `make verify-doc-snippets`).
+and in `README.md` and type-checks it against the real modules. It writes each
+block into the compile-only `DocSnippetConsumer` target — a wrapper that imports
+the modules the guides use and binds placeholder identifiers from a generated
+prelude — then runs one `swift build --target DocSnippetConsumer`. A stale
+argument label, a removed symbol, or a wrong argument type in a guide or the
+README fails `make verify-documentation` (and the standalone
+`make verify-doc-snippets`).
 
 Placeholder identifiers (`kit`, `myLanguageModel`, `myRuntimeRepository`, ...)
-come from the prelude, so a guide can stay short without becoming uncompilable.
-Add a new placeholder to `Scripts/generate-doc-snippets.py` when a guide
-introduces one. A block that is deliberately illustrative rather than compilable
-opts out with a fence marker:
+come from the prelude, so a guide or README snippet can stay short without
+becoming uncompilable. Add a new placeholder to
+`Scripts/generate-doc-snippets.py` when a guide or the README introduces one. A
+block that is deliberately illustrative rather than compilable opts out with a
+fence marker:
 
     ```swift skip
 
 Skipped blocks still pass the cheap `swiftc -parse` syntax check. The marker is
-greppable, so `grep -rn '```swift skip' docs/` lists every block outside the
-type-check gate. Generated wrappers live under
+greppable, so `grep -rn '```swift skip' docs/ README.md` lists every block outside
+the type-check gate. Generated wrappers live under
 `Tests/DocSnippetConsumer/Generated/` and the parse scratch under
 `.build/doc-snippet-parse/`; neither is committed.

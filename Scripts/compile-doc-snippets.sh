@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# compile-doc-snippets.sh — type-check Swift fenced blocks in docs/.
+# compile-doc-snippets.sh — type-check Swift fenced blocks in docs/ and README.md.
 #
-# Extracts every ```swift block from the markdown under docs/ and type-checks it
-# against the real public modules. Blocks are written into the compile-only
-# `DocSnippetConsumer` target, which imports PositronicKit / PKContracts (and
-# the provider and test-support modules the guides use) and is built once with
-# `swift build --target DocSnippetConsumer`. A wrong argument label, a removed
-# symbol, or a wrong argument type in a guide therefore fails this gate.
+# Extracts every ```swift block from the markdown under docs/ and from README.md
+# and type-checks it against the real public modules. Blocks are written into the
+# compile-only `DocSnippetConsumer` target, which imports PositronicKit /
+# PKContracts (and the provider and test-support modules the guides use) and is
+# built once with `swift build --target DocSnippetConsumer`. A wrong argument
+# label, a removed symbol, or a wrong argument type in a guide or the README
+# therefore fails this gate.
 #
 # Snippets that intentionally use undefined identifiers for brevity get a
 # bindable stub from a generated prelude (`kit`, `myLanguageModel`,
@@ -36,6 +37,9 @@ DOCS_DIR="${1:-docs}"
 SWIFT_BIN="${DOC_SNIPPET_SWIFT:-swift}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# The README is a first-class snippet source; `DOC_SNIPPET_README` lets the
+# fixture tests point the gate at a controlled file instead of the repo README.
+README_FILE="${DOC_SNIPPET_README:-$REPO_ROOT/README.md}"
 TARGET_DIR="${DOC_SNIPPET_TARGET_DIR:-$REPO_ROOT/Tests/DocSnippetConsumer}"
 GENERATED_DIR="$TARGET_DIR/Generated"
 # Skipped blocks are only parse-checked, so they must stay outside the SwiftPM
@@ -54,7 +58,7 @@ if ! command -v "$SWIFT_BIN" >/dev/null 2>&1; then
     exit 0
 fi
 
-summary="$(python3 "$SCRIPT_DIR/generate-doc-snippets.py" "$DOCS_DIR" "$TARGET_DIR" "$PARSE_DIR")"
+summary="$(python3 "$SCRIPT_DIR/generate-doc-snippets.py" "$DOCS_DIR" "$TARGET_DIR" "$PARSE_DIR" --readme "$README_FILE")"
 echo "$summary"
 checked="$(printf '%s\n' "$summary" | sed -n 's/.*: \([0-9]*\) type-checked,.*/\1/p')"
 skipped="$(printf '%s\n' "$summary" | sed -n 's/.*, \([0-9]*\) parse-only.*/\1/p')"
@@ -62,7 +66,7 @@ checked="${checked:-0}"
 skipped="${skipped:-0}"
 
 if [ "$checked" -eq 0 ] && [ "$skipped" -eq 0 ]; then
-    echo "compile-doc-snippets: no Swift fenced blocks under $DOCS_DIR"
+    echo "compile-doc-snippets: no Swift fenced blocks under $DOCS_DIR or $README_FILE"
     exit 0
 fi
 
