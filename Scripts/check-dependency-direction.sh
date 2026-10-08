@@ -94,6 +94,60 @@ else
     fi
 fi
 
+# Runtime adapter tier (ADR 0015): optional products that import PositronicKit
+# to implement its host-facing protocols. Adapters sit downstream of the
+# runtime; the runtime and providers never import them, and adapters never
+# import providers or each other.
+ADAPTERS="PKObservable PKSQLiteStorage PKMCP"
+PROVIDERS="PKOpenAIProvider PKOpenRouterProvider PKOllamaProvider PKAnthropicProvider PKFoundationModelsProvider"
+
+# The runtime must never import an adapter.
+for adapter in $ADAPTERS; do
+    if matches="$(find_matches '^(@_exported[[:space:]]+)?import[[:space:]]+'"${adapter}"'([[:space:]]|$)' Sources/PositronicKit || true)"; then
+        if [[ -n "$matches" ]]; then
+            report_failure "PositronicKit imports adapter $adapter:\n$matches"
+        fi
+    fi
+done
+
+# Adapters must never import a provider or another adapter, and must use only
+# public API: no package-level access, so they prove the public protocols suffice.
+for adapter in $ADAPTERS; do
+    if [[ ! -d "Sources/$adapter" ]]; then
+        continue
+    fi
+    for provider in $PROVIDERS; do
+        if matches="$(find_matches '^(@_exported[[:space:]]+)?import[[:space:]]+'"${provider}"'([[:space:]]|$)' "Sources/$adapter" || true)"; then
+            if [[ -n "$matches" ]]; then
+                report_failure "$adapter imports provider $provider:\n$matches"
+            fi
+        fi
+    done
+    for other in $ADAPTERS; do
+        if [[ "$other" == "$adapter" ]]; then
+            continue
+        fi
+        if matches="$(find_matches '^(@_exported[[:space:]]+)?import[[:space:]]+'"${other}"'([[:space:]]|$)' "Sources/$adapter" || true)"; then
+            if [[ -n "$matches" ]]; then
+                report_failure "$adapter imports adapter $other:\n$matches"
+            fi
+        fi
+    done
+    if matches="$(find_matches '(^|[^A-Za-z0-9_])package[[:space:]]+(func|var|let|class|struct|enum|actor|protocol|extension|typealias|final[[:space:]])' "Sources/$adapter" || true)"; then
+        if [[ -n "$matches" ]]; then
+            report_failure "$adapter uses package-level symbols (adapters must use only public API):\n$matches"
+        fi
+    fi
+    block="$(target_block "$adapter")"
+    if [[ -n "$block" ]]; then
+        for provider in $PROVIDERS; do
+            if grep -q "\"$provider\"" <<<"$block"; then
+                report_failure "$adapter target depends on provider $provider"
+            fi
+        done
+    fi
+done
+
 if (( failed != 0 )); then
     exit 1
 fi
