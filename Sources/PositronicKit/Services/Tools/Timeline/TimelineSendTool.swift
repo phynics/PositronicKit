@@ -71,7 +71,12 @@ public struct TimelineSendTool: PKContracts.PKTool, Sendable {
 
         // Derive the current depth from the source timeline's history: the deepest hop that
         // reached this timeline. A fresh timeline has no remote messages and starts at 0.
-        let sourceMessages = (try? await messageStore.fetchMessages(for: sourceTimelineID)) ?? []
+        let sourceMessages: [TimelineMessage]
+        do {
+            sourceMessages = try await messageStore.fetchMessages(for: sourceTimelineID)
+        } catch {
+            return .failure("Could not read source timeline history. Message was not sent.")
+        }
         let currentRemoteDepth = sourceMessages.map(\.remoteDepth).max() ?? 0
         let nextDepth = currentRemoteDepth + 1
         if nextDepth > TurnEngine.Constants.maxRemoteDepth {
