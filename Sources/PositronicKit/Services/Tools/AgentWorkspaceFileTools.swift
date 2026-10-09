@@ -158,7 +158,14 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
                 let path = try requiredString("path", parameters)
                 let content = try requiredString("content", parameters)
                 let safePath = try validated(path)
-                let existing = (try? await provider.readFile(path: safePath)) ?? ""
+                let existing: String
+                do {
+                    existing = try await provider.readFile(path: safePath)
+                } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
+                    existing = ""
+                } catch let error as POSIXError where error.code == .ENOENT {
+                    existing = ""
+                }
                 try validateWriteContent(existing + content)
                 try await provider.writeFile(path: safePath, content: existing + content)
                 return .success("Appended to \(path)")
