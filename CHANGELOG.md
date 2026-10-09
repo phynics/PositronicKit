@@ -13,6 +13,8 @@ for tagged releases beginning with `1.0.0`.
 - `append_file` preserves existing files when a read fails, including oversized files,
   permission errors, and invalid UTF-8. It creates a file only when the provider reports
   a recognized missing-file error.
+- Timeline sends now fail without saving a destination message when source history cannot be read,
+  preventing a storage failure from bypassing the cross-agent send depth limit.
 
 ### Changed
 
