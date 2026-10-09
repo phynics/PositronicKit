@@ -33,6 +33,10 @@ public protocol WorkspaceToolProvider: WorkspaceProvider {
 /// Optional capability for providers that expose workspace files.
 public protocol WorkspaceFileProvider: WorkspaceProvider {
     /// Reads a file from the workspace.
+    ///
+    /// For a missing file, throw `CocoaError(.fileNoSuchFile)`,
+    /// `CocoaError(.fileReadNoSuchFile)`, or `POSIXError(.ENOENT)` to allow `append_file`
+    /// to create it. All other read errors make append fail without writing.
     func readFile(path: String) async throws -> String
 
     /// Lists files in the workspace, optionally recursively.

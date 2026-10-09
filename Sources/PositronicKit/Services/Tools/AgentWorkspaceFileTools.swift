@@ -158,7 +158,13 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
                 let path = try requiredString("path", parameters)
                 let content = try requiredString("content", parameters)
                 let safePath = try validated(path)
-                let existing = (try? await provider.readFile(path: safePath)) ?? ""
+                let existing: String
+                do {
+                    existing = try await provider.readFile(path: safePath)
+                } catch {
+                    guard Self.isMissingFileError(error) else { throw error }
+                    existing = ""
+                }
                 try validateWriteContent(existing + content)
                 try await provider.writeFile(path: safePath, content: existing + content)
                 return .success("Appended to \(path)")
@@ -208,6 +214,21 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
     private func validateWriteContent(_ content: String) throws {
         guard content.utf8.count <= Self.maxWriteBytes else {
             throw ToolError.invalidArgument("content", expected: "at most \(Self.maxWriteBytes) UTF-8 bytes", got: "\(content.utf8.count) bytes")
+        }
+    }
+
+    /// Recognizes a missing-file error only when the domain and code agree, so a custom
+    /// provider cannot impersonate one by reusing a Cocoa code in another domain.
+    private static func isMissingFileError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        switch nsError.domain {
+        case NSCocoaErrorDomain:
+            return nsError.code == CocoaError.Code.fileNoSuchFile.rawValue
+                || nsError.code == CocoaError.Code.fileReadNoSuchFile.rawValue
+        case NSPOSIXErrorDomain:
+            return nsError.code == Int(POSIXErrorCode.ENOENT.rawValue)
+        default:
+            return false
         }
     }
 

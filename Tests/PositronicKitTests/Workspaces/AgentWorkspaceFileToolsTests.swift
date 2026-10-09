@@ -41,6 +41,86 @@ struct AgentWorkspaceFileToolsTests {
         #expect((try await delete.execute(parameters: ["path": "Notes/MEMORY.md"])).isSuccess)
     }
 
+    @Test("append creates a missing local file", arguments: ["new.md", "new-directory/new.md"])
+    func appendCreatesMissingLocalFile(path: String) async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let reference = WorkspaceReference(uri: .agentWorkspace(UUID()), location: .runtime, rootPath: root.path)
+        let provider = try LocalAgentWorkspaceProvider(reference: reference)
+        let append = AgentWorkspaceFileTool(operation: .appendFile, provider: provider)
+
+        let result = try await append.execute(parameters: ["path": .string(path), "content": "new content"])
+
+        #expect(result.isSuccess)
+        #expect(try String(contentsOf: root.appendingPathComponent(path), encoding: .utf8) == "new content")
+    }
+
+    enum LocalReadFailure: CaseIterable, Sendable {
+        case oversized
+        case invalidUTF8
+    }
+
+    @Test("append preserves local files that cannot be read", arguments: LocalReadFailure.allCases)
+    func appendPreservesUnreadableLocalFile(failure: LocalReadFailure) async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let file = root.appendingPathComponent("existing.md")
+        let original: Data
+        switch failure {
+        case .oversized: original = Data(repeating: 0x61, count: 1_024 * 1_024 + 1)
+        case .invalidUTF8: original = Data([0xFF, 0xFE, 0x61])
+        }
+        try original.write(to: file)
+        let reference = WorkspaceReference(uri: .agentWorkspace(UUID()), location: .runtime, rootPath: root.path)
+        let provider = try LocalAgentWorkspaceProvider(reference: reference)
+        let append = AgentWorkspaceFileTool(operation: .appendFile, provider: provider)
+
+        let result = try await append.execute(parameters: ["path": "existing.md", "content": "new content"])
+
+        #expect(!result.isSuccess)
+        #expect(result.error?.isEmpty == false)
+        #expect(try Data(contentsOf: file) == original)
+    }
+
+    @Test("append never writes after a provider read failure", arguments: [
+        NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError),
+        NSError(domain: NSCocoaErrorDomain, code: NSFileReadInapplicableStringEncodingError),
+        NSError(domain: NSCocoaErrorDomain, code: NSFileReadUnknownError),
+        NSError(domain: NSPOSIXErrorDomain, code: Int(POSIXErrorCode.EACCES.rawValue)),
+        NSError(domain: "CustomWorkspaceError", code: NSFileReadNoSuchFileError),
+    ])
+    func appendPreservesFileAfterProviderReadFailure(error: NSError) async throws {
+        let provider = FailingReadWorkspaceProvider(error: error, content: "existing content")
+        let append = AgentWorkspaceFileTool(operation: .appendFile, provider: provider)
+
+        let result = try await append.execute(parameters: ["path": "existing.md", "content": "new content"])
+
+        #expect(!result.isSuccess)
+        #expect(result.error == error.localizedDescription)
+        #expect(await provider.content == "existing content")
+        #expect(await provider.writeCount == 0)
+    }
+
+    @Test("append creates files only for recognized missing-file errors", arguments: [
+        NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError),
+        NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError),
+        NSError(domain: NSPOSIXErrorDomain, code: Int(POSIXErrorCode.ENOENT.rawValue)),
+    ])
+    func appendCreatesMissingProviderFile(error: NSError) async throws {
+        let provider = FailingReadWorkspaceProvider(error: error, content: nil)
+        let append = AgentWorkspaceFileTool(operation: .appendFile, provider: provider)
+
+        let result = try await append.execute(parameters: ["path": "new.md", "content": "new content"])
+
+        #expect(result.isSuccess)
+        #expect(await provider.content == "new content")
+        #expect(await provider.writeCount == 1)
+    }
+
     @Test("jails paths and requests approval only for SOUL mutations")
     func pathAndApprovalPolicy() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -66,5 +146,32 @@ struct AgentWorkspaceFileToolsTests {
             "content": "must not escape",
         ])
         #expect(!blocked.isSuccess)
+    }
+}
+
+private actor FailingReadWorkspaceProvider: WorkspaceFileProvider {
+    nonisolated let reference = WorkspaceReference(uri: .agentWorkspace(UUID()), location: .runtime)
+    private let error: NSError
+    private(set) var content: String?
+    private(set) var writeCount = 0
+
+    init(error: NSError, content: String?) {
+        self.error = error
+        self.content = content
+    }
+
+    var isHealthy: Bool { true }
+
+    func readFile(path _: String) async throws -> String { throw error }
+
+    func writeFile(path _: String, content: String) async throws {
+        self.content = content
+        writeCount += 1
+    }
+
+    func listFiles(path _: String) async throws -> [String] { [] }
+
+    func deleteFile(path _: String) async throws {
+        content = nil
     }
 }
