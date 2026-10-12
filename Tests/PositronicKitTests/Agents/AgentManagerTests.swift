@@ -266,12 +266,8 @@ struct AgentManagerTests {
             expectedCleanup = ["deleteWorkspace"]
         case .timeline:
             expectedCleanup = ["deleteTimeline", "deleteWorkspace"]
-        case .instance:
+        case .instance, .audit:
             expectedCleanup = ["deleteAgent", "deleteTimeline", "deleteWorkspace"]
-        case .audit:
-            expectedCleanup = [
-                "deleteMessages", "deleteAgent", "deleteTimeline", "deleteWorkspace",
-            ]
         }
         #expect(await stores.cleanupOperations() == expectedCleanup)
     }
@@ -631,14 +627,6 @@ private actor AgentAttachmentRaceTimelineStore: TimelinePersistenceProtocol {
         timelines.removeValue(forKey: id)
     }
 
-    func pruneTimelines(
-        olderThan _: TimeInterval,
-        excluding _: [UUID],
-        dryRun _: Bool
-    ) async throws -> Int {
-        0
-    }
-
     func blockNextSave() {
         blockNextSaveRequest = true
     }
@@ -722,14 +710,9 @@ private actor AgentCreationFaultStore: WorkspaceStore, TimelinePersistenceProtoc
     func deleteTimeline(id: UUID) async throws {
         cleanupEvents.append("deleteTimeline")
         timelines.removeValue(forKey: id)
-    }
-
-    func pruneTimelines(
-        olderThan _: TimeInterval,
-        excluding _: [UUID],
-        dryRun _: Bool
-    ) async throws -> Int {
-        0
+        // Mirror `TimelineRuntimeRepository`: deleting a Timeline cascades its message history.
+        // Rollback relies on this cascade now that no separate message-delete step exists.
+        messages.removeAll { $0.timelineID == id }
     }
 
     func saveMessage(_ message: TimelineMessage) async throws {
@@ -741,19 +724,6 @@ private actor AgentCreationFaultStore: WorkspaceStore, TimelinePersistenceProtoc
 
     func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage] {
         messages.filter { $0.timelineID == timelineID }
-    }
-
-    func deleteMessages(for timelineID: UUID) async throws {
-        cleanupEvents.append("deleteMessages")
-        messages.removeAll { $0.timelineID == timelineID }
-    }
-
-    func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int {
-        0
-    }
-
-    func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] {
-        []
     }
 
     func saveAgent(_ instance: Agent) async throws {
@@ -774,10 +744,6 @@ private actor AgentCreationFaultStore: WorkspaceStore, TimelinePersistenceProtoc
     func deleteAgent(id: UUID) async throws {
         cleanupEvents.append("deleteAgent")
         instances.removeValue(forKey: id)
-    }
-
-    func fetchTimelines(attachedToAgent agentID: UUID) async throws -> [TimelineRecord] {
-        timelines.values.filter { $0.attachedAgentID == agentID }
     }
 
     func allInstances() -> [Agent] {

@@ -100,18 +100,6 @@ private struct GatedTimelineStore: TimelinePersistenceProtocol {
     }
 
     func deleteTimeline(id: UUID) async throws { try await base.deleteTimeline(id: id) }
-
-    func pruneTimelines(
-        olderThan timeInterval: TimeInterval,
-        excluding excludedTimelineIDs: [UUID],
-        dryRun: Bool
-    ) async throws -> Int {
-        try await base.pruneTimelines(
-            olderThan: timeInterval,
-            excluding: excludedTimelineIDs,
-            dryRun: dryRun
-        )
-    }
 }
 
 private func makeGatedManager(

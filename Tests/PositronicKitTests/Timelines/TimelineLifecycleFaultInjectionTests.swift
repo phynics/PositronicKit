@@ -29,18 +29,6 @@ private actor AttachmentTimelinePersistence: TimelinePersistenceProtocol {
     func deleteTimeline(id: UUID) async throws {
         try await backing.deleteTimeline(id: id)
     }
-
-    func pruneTimelines(
-        olderThan timeInterval: TimeInterval,
-        excluding excludedTimelineIds: [UUID],
-        dryRun: Bool
-    ) async throws -> Int {
-        try await backing.pruneTimelines(
-            olderThan: timeInterval,
-            excluding: excludedTimelineIds,
-            dryRun: dryRun
-        )
-    }
 }
 
 private actor BlockingWorkspaceStore: WorkspaceStore {

@@ -32,15 +32,6 @@ final class MockPersistenceStore:
         []
     }
 
-    func deleteMessages(for _: UUID) async throws {}
-    func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int {
-        0
-    }
-
-    func fetchSnapshots(for _: UUID) async throws -> [TurnSnapshot] {
-        []
-    }
-
     // TimelinePersistenceProtocol
     func saveTimeline(_: TimelineRecord) async throws {}
     func fetchTimeline(id _: UUID) async throws -> TimelineRecord? {
@@ -52,9 +43,6 @@ final class MockPersistenceStore:
     }
 
     func deleteTimeline(id _: UUID) async throws {}
-    func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int {
-        0
-    }
 
     // WorkspaceStore
     func saveWorkspace(_: WorkspaceReference) async throws {}

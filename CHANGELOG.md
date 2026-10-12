@@ -79,6 +79,13 @@ for tagged releases beginning with `1.0.0`.
   and the `summarySourceMissing` error case. The runtime never read summaries; drop the
   conformance and keep your own summary store if you have one. The `TimelineSummary` value stays
   for host pipelines.
+- Store interfaces no longer declare uncalled requirements. `TimelinePersistenceProtocol` drops
+  `pruneTimelines`; `TimelineMessageStoreProtocol` drops `deleteMessages`, `pruneMessages`, and
+  `fetchSnapshots`; `AgentStoreProtocol` drops `fetchTimelines(attachedToAgent:)`.
+  `AgentStoreConformanceSuite.run(makeStore:)` drops its `[TimelineRecord]` parameter
+  accordingly. Keep pruning and snapshot reads in your own stores. Timeline deletion already
+  cascades message history, so the in-memory runtime repository no longer exposes an
+  always-throwing `deleteMessages`.
 
 ### Changed
 

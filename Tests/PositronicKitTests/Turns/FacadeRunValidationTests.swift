@@ -275,10 +275,6 @@ private actor CountingAgentStore: AgentStoreProtocol {
     func deleteAgent(id: UUID) async throws {
         instances.removeValue(forKey: id)
     }
-
-    func fetchTimelines(attachedToAgent _: UUID) async throws -> [TimelineRecord] {
-        []
-    }
 }
 
 private final class RunTerminationProbe: Sendable {

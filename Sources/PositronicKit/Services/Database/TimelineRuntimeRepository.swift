@@ -556,9 +556,8 @@ extension TimelineRuntimeRepositoryError: PKError {
 /// Timeline's history is immutable *while the Timeline lives*, not that it survives the
 /// Timeline's own deletion — a conformer that drops the timeline row but leaves `messages`
 /// behind creates an unbounded, unreachable-by-ID storage leak and a data-retention problem for
-/// any content the deleted Timeline carried. `deleteMessages(for:)` remains forbidden for ordinary
-/// in-place history pruning (`TimelineRuntimeRepositoryError.historyDeletionForbidden`); the only
-/// sanctioned path to removing a Timeline's messages is deleting the Timeline itself. A SQL-backed
+/// any content the deleted Timeline carried. The only sanctioned path to removing a Timeline's
+/// messages is deleting the Timeline itself. A SQL-backed
 /// conformer typically satisfies this with `ON DELETE CASCADE` foreign keys from the message table
 /// to the timeline row; an in-memory or other keyed-store conformer must remove the corresponding
 /// per-timeline entries explicitly inside `deleteTimeline(id:)`.

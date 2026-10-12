@@ -31,8 +31,4 @@ public actor InMemoryTimelinePersistence: TimelinePersistenceProtocol {
     public func deleteTimeline(id: UUID) async throws {
         timelines.removeAll { $0.id == id }
     }
-
-    public func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int {
-        0
-    }
 }

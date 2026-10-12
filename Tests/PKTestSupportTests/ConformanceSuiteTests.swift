@@ -24,13 +24,11 @@ struct ConformanceSuiteTests {
 
     @Test("AgentStoreProtocol runs against seeded in-tree conformers")
     func agentStoreConformers() async throws {
-        try await AgentStoreConformanceSuite.run { timelines in
-            InMemoryAgentStore(timelines: timelines)
+        try await AgentStoreConformanceSuite.run {
+            InMemoryAgentStore()
         }
-        try await AgentStoreConformanceSuite.run { timelines in
-            let store = MockPersistenceService()
-            store.timelines = timelines
-            return store
+        try await AgentStoreConformanceSuite.run {
+            MockPersistenceService()
         }
     }
 
@@ -110,8 +108,8 @@ struct ConformanceSuiteTests {
         try await withKnownIssue(
             "broken fixture must be observed",
             {
-                try await AgentStoreConformanceSuite.run { timelines in
-                    BrokenAgentStore(timelines: timelines)
+                try await AgentStoreConformanceSuite.run {
+                    BrokenAgentStore()
                 }
             },
             matching: Self.matchesScenario("agent.save.fetch")
@@ -195,12 +193,10 @@ private actor BrokenWorkspaceStore: WorkspaceStore {
 }
 
 private actor BrokenAgentStore: AgentStoreProtocol {
-    init(timelines _: [TimelineRecord]) {}
     func saveAgent(_: Agent) async throws {}
     func fetchAgent(id _: UUID) async throws -> Agent? { nil }
     func fetchAllAgents() async throws -> [Agent] { [] }
     func deleteAgent(id _: UUID) async throws {}
-    func fetchTimelines(attachedToAgent _: UUID) async throws -> [TimelineRecord] { [] }
 }
 
 private actor BrokenRequestOriginStore: RequestOriginStoreProtocol {

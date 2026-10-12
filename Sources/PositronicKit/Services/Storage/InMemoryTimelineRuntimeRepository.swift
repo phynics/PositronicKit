@@ -68,21 +68,6 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         }
     }
 
-    public func pruneTimelines(
-        olderThan timeInterval: TimeInterval,
-        excluding excludedTimelineIDs: [UUID],
-        dryRun: Bool
-    ) async throws -> Int {
-        let cutoff = Date().addingTimeInterval(-timeInterval)
-        let excluded = Set(excludedTimelineIDs)
-        let eligible = timelines.values.filter { !$0.id.isExcluded(by: excluded) && $0.updatedAt < cutoff }
-        guard !dryRun else { return eligible.count }
-        for timeline in eligible {
-            try await deleteTimeline(id: timeline.id)
-        }
-        return eligible.count
-    }
-
     // MARK: TimelineMessageStoreProtocol
 
     public func saveMessage(_ message: TimelineMessage) async throws {
@@ -109,26 +94,6 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
 
     public func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage] {
         messages[timelineID, default: []].chronological()
-    }
-
-    public func deleteMessages(for timelineID: UUID) async throws {
-        throw TimelineRuntimeRepositoryError.historyDeletionForbidden(timelineID: timelineID)
-    }
-
-    public func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
-        let cutoff = Date().addingTimeInterval(-timeInterval)
-        let count = messages.values.reduce(into: 0) { result, history in
-            result += history.filter { $0.timestamp < cutoff }.count
-        }
-        guard !dryRun else { return count }
-        // A preview is useful to an administrator, but the runtime repository never deletes
-        // history as part of an ordinary transition.
-        guard let timelineID = messages.keys.first else { return 0 }
-        throw TimelineRuntimeRepositoryError.historyDeletionForbidden(timelineID: timelineID)
-    }
-
-    public func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] {
-        messages[timelineID, default: []].assistantSnapshots()
     }
 
     // MARK: Admission
@@ -617,11 +582,5 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         case let .cancelled(reason): return "cancelled\(reason.map { ": \($0)" } ?? "")"
         case let .interrupted(reason): return "interrupted: \(reason)"
         }
-    }
-}
-
-private extension UUID {
-    func isExcluded(by excluded: Set<UUID>) -> Bool {
-        excluded.contains(self)
     }
 }

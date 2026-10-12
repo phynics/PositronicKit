@@ -210,21 +210,6 @@ public final class MockPersistenceService: TimelineRuntimeRepository, WorkspaceS
             .map { $0.element }
     }
 
-    public func deleteMessages(for timelineID: UUID) async throws {
-        defer { recordPersistenceAccess() }
-        throw TimelineRuntimeRepositoryError.historyDeletionForbidden(timelineID: timelineID)
-    }
-
-    public func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
-        defer { recordPersistenceAccess() }
-        return try await messagesMock.pruneMessages(olderThan: timeInterval, dryRun: dryRun)
-    }
-
-    public func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] {
-        defer { recordPersistenceAccess() }
-        return try await messagesMock.fetchSnapshots(for: timelineID)
-    }
-
     // MARK: - TimelinePersistenceProtocol
 
     public var timelines: [TimelineRecord] {
@@ -256,15 +241,10 @@ public final class MockPersistenceService: TimelineRuntimeRepository, WorkspaceS
         // `messagesMock` and the cohesive `turnRuntime` — so both must drop the timeline's
         // messages here for `fetchMessages(for:)` to reflect the same cascade a real conformer
         // guarantees.
-        try await messagesMock.deleteMessages(for: id)
+        messagesMock.messages.removeAll { $0.timelineID == id }
         _ = state.withLock { $0.deletedMessageTimelineIDs.insert(id) }
         try await timelinesMock.deleteTimeline(id: id)
         try await turnRuntime.deleteTimeline(id: id)
-    }
-
-    public func pruneTimelines(olderThan timeInterval: TimeInterval, excluding excludedTimelineIDs: [UUID], dryRun: Bool) async throws -> Int {
-        defer { recordPersistenceAccess() }
-        return try await timelinesMock.pruneTimelines(olderThan: timeInterval, excluding: excludedTimelineIDs, dryRun: dryRun)
     }
 
     // MARK: - WorkspaceStore
@@ -363,11 +343,6 @@ public final class MockPersistenceService: TimelineRuntimeRepository, WorkspaceS
     public func deleteAgent(id: UUID) async throws {
         defer { recordPersistenceAccess() }
         state.withLock { $0.agents.removeAll { $0.id == id } }
-    }
-
-    public func fetchTimelines(attachedToAgent agentID: UUID) async throws -> [TimelineRecord] {
-        defer { recordPersistenceAccess() }
-        return timelines.filter { $0.attachedAgentID == agentID }
     }
 
     public func resetDatabase() async throws {

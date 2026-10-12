@@ -7,8 +7,7 @@ import Synchronization
 /// In-memory `TimelineMessageStoreProtocol` test double backed by a mutex-guarded array.
 ///
 /// Inspectable: `messages` reads/writes the backing store directly, so tests can seed
-/// fixtures or assert on saved state. `fetchSnapshots(for:)` decodes `TurnSnapshot` from
-/// each assistant message's `snapshotData`, mirroring the real persistence layer's format.
+/// fixtures or assert on saved state.
 public final class MockMessageStore: TimelineMessageStoreProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let messagesState = Mutex<[TimelineMessage]>([])
 
@@ -43,27 +42,6 @@ public final class MockMessageStore: TimelineMessageStoreProtocol, @unchecked Se
                     return lhs.offset < rhs.offset
                 }
                 .map { $0.element }
-        }
-    }
-
-    public func deleteMessages(for timelineID: UUID) async throws {
-        messagesState.withLock {
-            $0.removeAll { $0.timelineID == timelineID }
-        }
-    }
-
-    public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int {
-        return 0
-    }
-
-    public func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] {
-        messagesState.withLock {
-            $0
-                .filter { $0.timelineID == timelineID && $0.role == "assistant" }
-                .compactMap { message in
-                    guard let data = message.snapshotData else { return nil }
-                    return try? SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
-                }
         }
     }
 }

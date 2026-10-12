@@ -509,14 +509,6 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
             try #require(error == .appendOnlyViolation(messageID: messageID), "timeline.history.append-only.error")
         }
 
-        do {
-            try await repository.deleteMessages(for: timelineID)
-            Issue.record("timeline.history.delete-messages.must-fail")
-            return
-        } catch let error as TimelineRuntimeRepositoryError {
-            try #require(error == .historyDeletionForbidden(timelineID: timelineID), "timeline.history.delete-messages.error")
-        }
-
         try await repository.deleteTimeline(id: timelineID)
         try #require(try await repository.fetchMessages(for: timelineID).isEmpty, "timeline.history.delete-cascade.messages")
     }
