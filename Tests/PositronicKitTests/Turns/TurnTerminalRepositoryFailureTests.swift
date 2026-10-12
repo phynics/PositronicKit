@@ -11,10 +11,12 @@ struct TurnTerminalRepositoryFailureTests {
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "must not be delivered"
         let repository = FailingTerminalRepository()
-        let kit = PKRuntime(configuration: .init(
-            languageModel: llm,
-            persistence: .init(runtimeRepository: repository)
-        ))
+        let runtime = TestRuntime(
+            workspaceRoot: TestRuntime.uniqueWorkspaceRoot(),
+            llm: llm,
+            persistenceConfiguration: .init(runtimeRepository: repository)
+        )
+        let kit = runtime.runtime
         let timeline = try await kit.timelines.create(title: "Terminal failure")
 
         let turn = try await kit.timelines.open(timeline.id).startDirectTurn(

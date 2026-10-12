@@ -1,6 +1,8 @@
+import ErrorKit
 import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
+import Logging
 import PKContracts
 
 /// The immutable workspace/tool authority captured for one admitted Turn.
@@ -81,7 +83,10 @@ struct WorkspaceToolDispatch: Sendable {
 /// Owns captured Workspace selection, execution disposition, authority revalidation, and
 /// process-local serialization for `call_tool`.
 struct WorkspaceToolDispatcher: Sendable {
-    typealias LocalExecutor = @Sendable (AnyTool, [String: AnyCodable]) async throws -> String
+    /// Reports a tool task abandoned by a timeout that may still be running. The lane owner uses
+    /// it to keep the Workspace closed until the task ends.
+    typealias AbandonedToolHandler = @Sendable (Task<Void, Never>) -> Void
+    typealias LocalExecutor = @Sendable (AnyTool, [String: AnyCodable], AbandonedToolHandler) async throws -> String
 
     static let callName = "call_tool"
 
@@ -187,7 +192,9 @@ struct WorkspaceToolDispatcher: Sendable {
                 if !route.isPrimary {
                     try await timelineManager.requireWorkspaceBinding(route.workspaceID, for: timelineID)
                 }
-                return try await executeLocally(route.tool, nested)
+                return try await executeLocally(route.tool, nested) { task in
+                    timelineManager.retainWorkspaceLane(route.workspaceID, until: task)
+                }
             }
             return .completed(output)
         case .deferExternally:
@@ -202,10 +209,12 @@ struct WorkspaceToolDispatcher: Sendable {
         using executeLocally: @escaping LocalExecutor
     ) async throws -> String {
         guard case let .workspace(workspaceID, _) = tool.origin else {
-            return try await executeLocally(tool, arguments)
+            return try await executeLocally(tool, arguments, { _ in })
         }
         return try await timelineManager.withWorkspaceExecution(workspaceID) {
-            try await executeLocally(tool, arguments)
+            try await executeLocally(tool, arguments) { task in
+                timelineManager.retainWorkspaceLane(workspaceID, until: task)
+            }
         }
     }
 
@@ -311,14 +320,35 @@ extension TimelineManager {
             // wrappers directly. This also fills any custom definitions unavailable in the
             // Timeline registry while preserving known system tools where applicable.
             var fileProvider: any WorkspaceFileProvider?
-            let liveWorkspace = try? await workspaceResolver.workspace(id: reference.id)
+            var liveWorkspace: any WorkspaceProvider?
+            do {
+                liveWorkspace = try await workspaceResolver.workspace(id: reference.id)
+            } catch {
+                recordCatalogDegradation(
+                    for: timelineID, operation: "resolveWorkspace", workspaceID: reference.id, error: error
+                )
+            }
             fileProvider = liveWorkspace as? any WorkspaceFileProvider
             if isPrimary, fileProvider == nil, reference.rootPath != nil {
-                fileProvider = try? LocalAgentWorkspaceProvider(reference: reference)
+                do {
+                    fileProvider = try LocalAgentWorkspaceProvider(reference: reference)
+                } catch {
+                    recordCatalogDegradation(
+                        for: timelineID, operation: "localFileProvider", workspaceID: reference.id, error: error
+                    )
+                }
             }
             if let toolProvider = liveWorkspace as? any WorkspaceToolProvider
             {
-                let listed = (try? await toolProvider.listTools()) ?? []
+                let listed: [ToolReference]
+                do {
+                    listed = try await toolProvider.listTools()
+                } catch {
+                    recordCatalogDegradation(
+                        for: timelineID, operation: "listTools", workspaceID: reference.id, error: error
+                    )
+                    listed = []
+                }
                 let available: [AnyTool]
                 if let registry {
                     available = await registry.getAvailableTools()
@@ -374,5 +404,27 @@ extension TimelineManager {
             ($0.isPrimary ? 0 : 1, $0.label, $0.workspace.id.uuidString)
                 < ($1.isPrimary ? 0 : 1, $1.label, $1.workspace.id.uuidString)
         })
+    }
+
+    /// Records a catalog-capture failure through the same degradation lane the attach path uses,
+    /// so a resolver or `listTools` failure is observable instead of being silently swallowed by
+    /// a `try?`. The Turn degradation policy decides whether the recorded diagnostic is fatal.
+    private func recordCatalogDegradation(
+        for timelineID: UUID,
+        operation: String,
+        workspaceID: UUID,
+        error: Error
+    ) {
+        logger.warning("""
+        captureWorkspaceToolCatalog: \(operation) failed — \
+        workspace: \(workspaceID.uuidString.prefix(8)), timeline: \(timelineID.uuidString.prefix(8)), \
+        error: \(ErrorKit.userFriendlyMessage(for: error))
+        """)
+        timelineDegradations[timelineID, default: []].append(TurnDiagnostic(
+            dependency: .workspace,
+            operation: "captureWorkspaceCatalog.\(operation)",
+            entityID: "workspace:\(workspaceID.uuidString.prefix(8))",
+            error: error
+        ))
     }
 }

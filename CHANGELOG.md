@@ -10,11 +10,19 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- The Workspace Execution Lane stays closed after a mutating or external-process tool times out,
+  until the abandoned task ends. A later call for the same Workspace now waits instead of
+  overlapping the still-running tool (#302).
 - `append_file` preserves existing files when a read fails, including oversized files,
   permission errors, and invalid UTF-8. It creates a file only when the provider reports
   a recognized missing-file error.
 - Timeline sends now fail without saving a destination message when source history cannot be read,
   preventing a storage failure from bypassing the cross-agent send depth limit.
+- Workspace tool catalog capture records a `.workspace` degradation when the live resolver or
+  `listTools` fails, instead of silently dropping the workspace's tools.
+- Two Workspaces that declare the same custom tool ID stay independently routable. The registry
+  no longer lets dictionary order overwrite one declaration, so `call_tool` rejects an implicit
+  ambiguous selection and `at` routes to the named Workspace.
 
 ### Changed
 
@@ -69,6 +77,13 @@ for tagged releases beginning with `1.0.0`.
   that returns `nil` leaves history unchanged; a source that throws follows its
   `failureRequirement` (default `.optional`, recorded as `TurnNoticeCode.historyProjectionFailed`).
   Invalid coverage is rejected with `TurnHistoryProjectionError`.
+- `PKTestSupport.TestRuntime` is the single deep fixture for runtime suites. It builds a
+  `PKRuntime` through the public `PKRuntime.Configuration` from one coherent persistence backing,
+  and exposes the scripted `MockLLMService`, the in-memory `MockPersistenceService` repository,
+  optional persistence/runtime profiles and generation parameters, and a `runtimeBuilder` escape
+  hatch for the internal clock seam. Turn tests assert durable facts through its `repository` and
+  `TurnHandle` instead of copying construction wiring; `Scripts/check-test-layout.sh` keeps new
+  Turn tests on this fixture.
 
 ### Breaking
 
@@ -95,6 +110,12 @@ for tagged releases beginning with `1.0.0`.
   and `make verify-public-api-immutability` fails when a frozen file no longer matches its tag.
 
 ## [6.1.0] - 2026-09-30
+
+> **Source-breaking for 6.0.x consumers.** This minor release removed 185 public symbols relative
+> to 6.0.0, so a consumer pinned to `from: "6.0.0"` resolves it and can fail to compile. Stay on
+> the compatible line by pinning `exact: "6.0.x"`, or move to `7.0.0` when it ships. The `6.1.0`
+> tag is immutable; this notice records the break after publication. Every later minor and patch
+> release is gated against the previous release's frozen baseline.
 
 ### Breaking
 

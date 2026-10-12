@@ -227,12 +227,13 @@ actor ToolRouter {
                     outcome = try await workspaceDispatcher.execute(
                         dispatch,
                         timelineID: timelineId,
-                        using: { [self] tool, arguments in
+                        using: { [self] tool, arguments, onAbandon in
                             try await executeLocally(
                                 tool: tool.identity,
                                 arguments: arguments,
                                 timelineId: timelineId,
-                                dynamicTools: [tool]
+                                dynamicTools: [tool],
+                                onAbandon: onAbandon
                             )
                         }
                     )
@@ -392,12 +393,13 @@ actor ToolRouter {
         let output = try await workspaceDispatcher.executeDirect(
             tool: directTool,
             arguments: arguments,
-            using: { [self] directTool, directArguments in
+            using: { [self] directTool, directArguments, onAbandon in
                 try await executeLocally(
                     tool: directTool.identity,
                     arguments: directArguments,
                     timelineId: timelineID,
-                    dynamicTools: availableTools
+                    dynamicTools: availableTools,
+                    onAbandon: onAbandon
                 )
             }
         )
@@ -424,7 +426,8 @@ actor ToolRouter {
         tool: ToolReference,
         arguments: [String: AnyCodable],
         timelineId: UUID,
-        dynamicTools: [AnyTool]?
+        dynamicTools: [AnyTool]?,
+        onAbandon: @Sendable (Task<Void, Never>) -> Void
     ) async throws -> String {
         let toolName = loggingConfiguration.redactionPolicy.sanitizeStructured(tool.displayName)
         logger.info("Executing locally: \(toolName)")
@@ -471,7 +474,8 @@ actor ToolRouter {
             resolvedTool,
             arguments: arguments,
             timeout: toolExecutionTimeout,
-            sleep: sleep
+            sleep: sleep,
+            onAbandon: onAbandon
         )
         if result.isSuccess {
             logger.info("Success: \(toolName)")

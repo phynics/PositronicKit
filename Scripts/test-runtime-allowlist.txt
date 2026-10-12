@@ -1,0 +1,12 @@
+# Files under a Turns/ directory that may still build a PKRuntime inline.
+#
+# This list grandfathers the Turn suites that predate the deep TestRuntime fixture
+# (issue #313). It may only shrink: `Scripts/check-test-layout.sh` fails when a
+# listed file no longer builds a PKRuntime inline, so a migration must remove the
+# entry, and it fails when a Turn test builds a runtime that is not listed. New
+# Turn tests build through Tests/PKTestSupport/TestRuntime.swift.
+Tests/PositronicKitTests/Turns/FacadeOneShotTests.swift
+Tests/PositronicKitTests/Turns/FacadeRunValidationTests.swift
+Tests/PositronicKitTests/Turns/GenerationTransportTests.swift
+Tests/PositronicKitTests/Turns/ManagedDirectTurnExecutionTests.swift
+Tests/PositronicKitTests/Turns/TypedStructuredGenerationTests.swift
