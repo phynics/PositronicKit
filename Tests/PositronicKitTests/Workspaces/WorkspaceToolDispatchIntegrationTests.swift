@@ -26,6 +26,53 @@ struct WorkspaceToolDispatchIntegrationTests {
         }
     }
 
+    /// Records concurrent entry into a Workspace's tools so a timeout overlap is observable.
+    private actor OverlapProbe {
+        private(set) var active = 0
+        private(set) var maximumActive = 0
+        private(set) var enterCount = 0
+        private(set) var events: [String] = []
+
+        func enter() -> Int {
+            active += 1
+            enterCount += 1
+            maximumActive = max(maximumActive, active)
+            events.append("enter-\(enterCount)")
+            return enterCount
+        }
+
+        func leave(_ call: Int) {
+            active -= 1
+            events.append("leave-\(call)")
+        }
+    }
+
+    /// A mutating Workspace tool that ignores cancellation and blocks until the test releases it.
+    private struct CancellationIgnoringMutatingTool: PKTool {
+        let callName: String
+        let started: AsyncLatch
+        let release: AsyncLatch
+        let probe: OverlapProbe
+
+        var name: String { callName }
+        let toolDescription = "A cancellation-ignoring mutating Workspace tool"
+        let requiresPermission = false
+        let sideEffects: ToolSideEffects = .mutating
+        let parametersSchema = makeEmptyObjectSchema()
+
+        func canExecute() async -> Bool { true }
+
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
+            let call = await probe.enter()
+            if call == 1 {
+                started.open()
+            }
+            await release.wait()
+            await probe.leave(call)
+            return .success("late")
+        }
+    }
+
     private final class AsyncLatch: Sendable {
         private enum State: Sendable {
             case closed([CheckedContinuation<Void, Never>])
@@ -101,13 +148,15 @@ struct WorkspaceToolDispatchIntegrationTests {
         let repository: InMemoryTimelineRuntimeRepository
         let timelineID: UUID
         let workspace: WorkspaceReference
-        let tool: ProbeTool
+        let tool: AnyTool
     }
 
     private func makeEnvironment(
         location: WorkspaceReference.WorkspaceLocation,
         toolName: String = "workspace_probe",
-        tool: ProbeTool? = nil
+        tool: AnyTool? = nil,
+        toolExecutionTimeout: TimeInterval = 60,
+        sleep: (@Sendable (UInt64) async throws -> Void)? = nil
     ) async throws -> Environment {
         let persistence = MockPersistenceService()
         let bindings = InMemoryWorkspaceBindingRepository()
@@ -125,7 +174,9 @@ struct WorkspaceToolDispatchIntegrationTests {
         )
         let router = ToolRouter(
             timelineManager: manager,
-            runtimeRepository: repository
+            runtimeRepository: repository,
+            toolExecutionTimeout: toolExecutionTimeout,
+            sleep: sleep
         )
         let timeline = try await manager.createTimeline(title: "Workspace dispatch")
         try await repository.saveTimeline(timeline)
@@ -139,14 +190,14 @@ struct WorkspaceToolDispatchIntegrationTests {
         try await persistence.saveWorkspace(workspace)
         try await manager.attachWorkspace(workspace.id, to: timeline.id)
 
-        let resolvedTool = tool ?? ProbeTool(
+        let resolvedTool = tool ?? AnyTool(ProbeTool(
             callName: toolName,
             result: "workspace output",
             executionProbe: nil,
             intentProbe: nil,
             repository: nil,
             turnID: nil
-        )
+        ))
         guard let toolManager = await manager.getToolManager(for: timeline.id) else {
             Issue.record("Timeline tool manager was not created")
             return Environment(
@@ -160,7 +211,7 @@ struct WorkspaceToolDispatchIntegrationTests {
                 tool: resolvedTool
             )
         }
-        await toolManager.updateAvailableTools([AnyTool(resolvedTool)])
+        await toolManager.updateAvailableTools([resolvedTool])
         if let resolvedWorkspace = try await manager.workspaceResolver.workspace(id: workspace.id) {
             await toolManager.registerWorkspace(resolvedWorkspace)
         }
@@ -188,7 +239,7 @@ struct WorkspaceToolDispatchIntegrationTests {
 
     private func catalog(
         workspace: WorkspaceReference,
-        tool: ProbeTool,
+        tool: AnyTool,
         isPrimary: Bool = false
     ) -> WorkspaceToolCatalog {
         WorkspaceToolCatalog(entries: [
@@ -196,7 +247,7 @@ struct WorkspaceToolDispatchIntegrationTests {
                 workspace: workspace,
                 label: workspace.uri.description,
                 isPrimary: isPrimary,
-                tools: [AnyTool(tool)]
+                tools: [tool]
             ),
         ])
     }
@@ -266,14 +317,14 @@ struct WorkspaceToolDispatchIntegrationTests {
         let executionProbe = ExecutionProbe()
         let environment = try await makeEnvironment(
             location: .runtime,
-            tool: ProbeTool(
+            tool: AnyTool(ProbeTool(
                 callName: "workspace_probe",
                 result: "should not execute",
                 executionProbe: executionProbe,
                 intentProbe: nil,
                 repository: nil,
                 turnID: nil
-            )
+            ))
         )
         let turnID = try await admit(environment, fingerprint: "lane-revalidation")
         let catalog = catalog(workspace: environment.workspace, tool: environment.tool)
@@ -331,14 +382,14 @@ struct WorkspaceToolDispatchIntegrationTests {
     @Test("runtime and runtimeTimeline Workspace calls execute locally with route provenance")
     func localWorkspaceLocationsExecuteWithProvenance() async throws {
         let executionProbe = ExecutionProbe()
-        let environment = try await makeEnvironment(location: .runtime, tool: ProbeTool(
+        let environment = try await makeEnvironment(location: .runtime, tool: AnyTool(ProbeTool(
             callName: "workspace_probe",
             result: "local output",
             executionProbe: executionProbe,
             intentProbe: nil,
             repository: nil,
             turnID: nil
-        ))
+        )))
         let secondWorkspace = WorkspaceReference(
             uri: WorkspaceURI(host: "workspace-dispatch", path: "/timeline"),
             location: .runtimeTimeline,
@@ -349,7 +400,7 @@ struct WorkspaceToolDispatchIntegrationTests {
         try await environment.manager.attachWorkspace(secondWorkspace.id, to: environment.timelineID)
         let turnID = try await admit(environment, fingerprint: "local-provenance")
         let dispatchCatalog = WorkspaceToolCatalog(entries: [
-            .init(workspace: environment.workspace, label: "runtime", isPrimary: false, tools: [AnyTool(environment.tool)]),
+            .init(workspace: environment.workspace, label: "runtime", isPrimary: false, tools: [environment.tool]),
             .init(workspace: secondWorkspace, label: "runtimeTimeline", isPrimary: false, tools: [AnyTool(environment.tool)]),
         ])
         let calls = [
@@ -384,14 +435,14 @@ struct WorkspaceToolDispatchIntegrationTests {
         let executionProbe = ExecutionProbe()
         let environment = try await makeEnvironment(
             location: .attached,
-            tool: ProbeTool(
+            tool: AnyTool(ProbeTool(
                 callName: "workspace_probe",
                 result: "must remain external",
                 executionProbe: executionProbe,
                 intentProbe: nil,
                 repository: nil,
                 turnID: nil
-            )
+            ))
         )
         let turnID = try await admit(environment, fingerprint: "attached-deferral")
         let dispatchCatalog = catalog(workspace: environment.workspace, tool: environment.tool)
@@ -428,7 +479,7 @@ struct WorkspaceToolDispatchIntegrationTests {
             repository: environment.repository,
             turnID: turnID
         )
-        let dispatchCatalog = catalog(workspace: environment.workspace, tool: tool)
+        let dispatchCatalog = catalog(workspace: environment.workspace, tool: AnyTool(tool))
         let call = ParsedToolCall(
             callId: "call-intent-order",
             name: "call_tool",
@@ -444,5 +495,103 @@ struct WorkspaceToolDispatchIntegrationTests {
         )
 
         #expect(await intentProbe.intentWasDurableBeforeExecution)
+    }
+
+    @Test("mutating timeout holds the Workspace lane until the abandoned tool ends")
+    func mutatingTimeoutHoldsLaneUntilAbandonedToolEnds() async throws {
+        let probe = OverlapProbe()
+        let started = AsyncLatch()
+        let release = AsyncLatch()
+        let tool = CancellationIgnoringMutatingTool(
+            callName: "workspace_probe",
+            started: started,
+            release: release,
+            probe: probe
+        )
+        // The first call times out only after its mutating tool has started. Later calls park so
+        // the second tool wins its own race and completes normally once the lane is free.
+        let timeoutCalls = Mutex(0)
+        let sleep: @Sendable (UInt64) async throws -> Void = { _ in
+            let call = timeoutCalls.withLock { count -> Int in
+                count += 1
+                return count
+            }
+            if call == 1 {
+                await started.wait()
+            } else {
+                try await Task.sleep(for: .seconds(3600))
+            }
+        }
+        let environment = try await makeEnvironment(
+            location: .runtime,
+            tool: AnyTool(tool),
+            toolExecutionTimeout: 0.1,
+            sleep: sleep
+        )
+        let turnID = try await admit(environment, fingerprint: "mutating-timeout-lane-hold")
+        let dispatchCatalog = catalog(workspace: environment.workspace, tool: environment.tool)
+        let firstCall = ParsedToolCall(
+            callId: "call-timeout-first",
+            name: "call_tool",
+            argumentsJSON: "{\"tool\":\"workspace_probe\",\"at\":\"\(environment.workspace.id.uuidString)\",\"arguments\":{}}"
+        )
+        let secondCall = ParsedToolCall(
+            callId: "call-timeout-second",
+            name: "call_tool",
+            argumentsJSON: "{\"tool\":\"workspace_probe\",\"at\":\"\(environment.workspace.id.uuidString)\",\"arguments\":{}}"
+        )
+
+        let first = Task {
+            try await Self.handle(
+                router: environment.router,
+                timelineID: environment.timelineID,
+                turnID: turnID,
+                calls: [firstCall],
+                availableTools: [dispatchCatalog.callTool],
+                workspaceToolCatalog: dispatchCatalog
+            )
+        }
+        await started.wait()
+        _ = try await first.value
+
+        // The timed-out operation returned, but the abandoned mutating tool is still running, so
+        // the lane must stay closed. Without the hold this is already false and the second call
+        // below would overlap the first tool.
+        #expect(environment.manager.isWorkspaceBusy(environment.workspace.id))
+
+        let second = Task {
+            try await Self.handle(
+                router: environment.router,
+                timelineID: environment.timelineID,
+                turnID: turnID,
+                calls: [secondCall],
+                availableTools: [dispatchCatalog.callTool],
+                workspaceToolCatalog: dispatchCatalog
+            )
+        }
+
+        // Wait until the second call's durable intent is recorded; the dispatcher enters the lane
+        // immediately after that write. Then give an unheld lane a bounded window to overlap.
+        var secondIntentRecorded = false
+        for _ in 0..<1000 {
+            if try await environment.repository.fetchToolIntents(turnID: turnID)
+                .contains(where: { $0.toolCallID == secondCall.callId }) {
+                secondIntentRecorded = true
+                break
+            }
+            await Task.yield()
+        }
+        #expect(secondIntentRecorded)
+        let deadline = ContinuousClock.now + .milliseconds(500)
+        while await probe.enterCount < 2, ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(await probe.maximumActive == 1)
+
+        release.open()
+        _ = try await second.value
+
+        #expect(await probe.events == ["enter-1", "leave-1", "enter-2", "leave-2"])
+        #expect(await probe.maximumActive == 1)
     }
 }

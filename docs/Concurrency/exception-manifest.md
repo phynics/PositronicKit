@@ -114,6 +114,15 @@ removes it from the lane and resumes its suspended task synchronously. This avoi
 unstructured cleanup task, prevents canceled waiters from being retained behind a hung operation,
 and prevents a canceled caller from running its operation after it leaves the queue.
 
+`FIFOLane` also supports a deferred hold. When a mutating or external-process tool times out and
+may still run, the owning operation hands the abandoned task to the lane before it returns. The
+lane keeps the key closed and spawns one unstructured watcher per hold, created inside `hold`
+itself, that awaits the abandoned task and then calls `releaseHold`. The watcher is not stored, so
+it does not outlive the task it observes, and it does not inherit cancellation from the timed-out
+operation. The hold count and the `active`/`closing` key sets all live in the same
+`Synchronization.Mutex` state, so a completion that races the owning operation's `release` cannot
+grant two waiters.
+
 ## Guardrail
 
 > Do not introduce a generic reference box to satisfy a `Sendable` diagnostic or to

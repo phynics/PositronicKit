@@ -29,3 +29,17 @@ silently reintroduce a second authority.
 principal and replaces the dispatcher's primary-Workspace boolean with an explicit binding kind.
 Durable exclusive ownership, the conditional-claim boundary, and process-local serialization per
 Workspace are unchanged. 7.0 keeps the current shape; 8.0 implements the generalization.
+
+## Amendment: abandoned mutating tools keep the lane closed
+
+The no-overlap guarantee also covers work the runtime stops waiting for. When a `.mutating` or
+`.externalProcess` tool times out, `ToolTimeoutEnforcer` reports
+`ToolError.timedOutButMayStillBeRunning` and abandons the still-running task. The Workspace
+Execution Lane keeps that Workspace's lane closed after the timed-out operation returns, until the
+abandoned task actually ends. A later call for the same Workspace therefore waits instead of
+overlapping the tool; calls for other Workspaces are unaffected. The lane observes the abandoned
+task with one unstructured watcher per hold, so the timed-out operation's own structured scope is
+unchanged and the hold cannot be cancelled by that operation's cancellation.
+
+A pending human approval still holds the lane for as long as the approval decision takes. Moving
+approval resolution outside the lane is a separate behavior change tracked by #257.

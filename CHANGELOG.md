@@ -10,6 +10,9 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- The Workspace Execution Lane stays closed after a mutating or external-process tool times out,
+  until the abandoned task ends. A later call for the same Workspace now waits instead of
+  overlapping the still-running tool (#302).
 - `append_file` preserves existing files when a read fails, including oversized files,
   permission errors, and invalid UTF-8. It creates a file only when the provider reports
   a recognized missing-file error.

@@ -21,9 +21,11 @@ import PKUtilities
 /// - `.mutating` / `.externalProcess`: the enforcer throws
 ///   `ToolError.timedOutButMayStillBeRunning` so the caller is informed that the tool may
 ///   still be executing, whether as another Swift task or in an external process or service, and
-///   retrying may duplicate side effects. The enforcer does not await a cancellation-ignoring
-///   asynchronous tool after the timeout wins; subject to the nonblocking tool contract above,
-///   only the reported status changes from the `.none` case.
+///   retrying may duplicate side effects. Before throwing, the enforcer reports the abandoned
+///   `toolTask` to `onAbandon` so the caller can keep its execution lane closed until the task
+///   actually ends. The enforcer itself does not await the cancellation-ignoring loser; subject
+///   to the nonblocking tool contract above, only the reported status and the abandoned-task
+///   handoff change from the `.none` case.
 ///
 /// The `sleep` closure is injected so tests can substitute an instant-timeout fake clock and
 /// exercise the timeout branch without `Task.sleep`'s real-time delay or a `TimelineManager`.
@@ -47,6 +49,9 @@ package enum ToolTimeoutEnforcer {
     ///     Tests inject an instant-return closure to exercise the timeout branch without real-time
     ///     delay. The closure must throw on cancellation to mirror `Task.sleep` semantics so the
     ///     tool-completion path can cancel the pending timeout cleanly.
+    ///   - onAbandon: Called with the abandoned tool task when a `.mutating` or `.externalProcess`
+    ///     tool times out and may still be running. The callback must not block; the Workspace
+    ///     Execution Lane uses it to keep the lane closed until the task ends. Defaults to a no-op.
     /// - Returns: The tool's `ToolResult` if it completes within the timeout.
     /// - Throws: `ToolError.executionFailed` with a timeout message if the wall-clock race wins
     ///   and the tool is side-effect-free (`.none`); `ToolError.timedOutButMayStillBeRunning`
@@ -56,7 +61,8 @@ package enum ToolTimeoutEnforcer {
         _ tool: AnyTool,
         arguments: [String: AnyCodable],
         timeout: TimeInterval,
-        sleep: @Sendable @escaping (UInt64) async throws -> Void = defaultSleep
+        sleep: @Sendable @escaping (UInt64) async throws -> Void = defaultSleep,
+        onAbandon: @Sendable (Task<Void, Never>) -> Void = { _ in }
     ) async throws -> ToolResult {
         // PKRR-030: validate the timeout via the reusable `Timeout` type so the
         // validation logic and overflow-safe nanosecond conversion are shared with
@@ -123,6 +129,9 @@ package enum ToolTimeoutEnforcer {
                     case .none:
                         throw ToolError.executionFailed(timeoutMessage)
                     case .mutating, .externalProcess:
+                        // Hand the still-running task to the owning lane so it can stay closed
+                        // until the tool actually ends and a later call cannot overlap it.
+                        onAbandon(toolTask)
                         throw ToolError.timedOutButMayStillBeRunning(timeout: timeout)
                     }
                 case .sleepCancelled:
