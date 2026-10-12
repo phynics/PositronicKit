@@ -162,16 +162,4 @@ private actor HistoryReadFailingMessageStore: TimelineMessageStoreProtocol {
         saveCount += 1
         try await backing.saveMessage(message)
     }
-
-    func deleteMessages(for timelineID: UUID) async throws {
-        try await backing.deleteMessages(for: timelineID)
-    }
-
-    func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
-        try await backing.pruneMessages(olderThan: timeInterval, dryRun: dryRun)
-    }
-
-    func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] {
-        try await backing.fetchSnapshots(for: timelineID)
-    }
 }

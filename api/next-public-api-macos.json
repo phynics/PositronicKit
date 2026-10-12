@@ -11583,36 +11583,6 @@
       "declaration": "func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage]"
     },
     {
-      "precise": "s:13PKTestSupport16MockMessageStoreC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMessageStore",
-        "pruneMessages(olderThan:dryRun:)"
-      ],
-      "declaration": "func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PKTestSupport16MockMessageStoreC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMessageStore",
-        "deleteMessages(for:)"
-      ],
-      "declaration": "func deleteMessages(for timelineID: UUID) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport16MockMessageStoreC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMessageStore",
-        "fetchSnapshots(for:)"
-      ],
-      "declaration": "func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot]"
-    },
-    {
       "precise": "s:13PKTestSupport16MockMessageStoreC8messagesSay13PositronicKit08TimelineD0VGvp",
       "module": "PKTestSupport",
       "kind": "swift.property",
@@ -11818,36 +11788,6 @@
         "fetchMessages(for:)"
       ],
       "declaration": "func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage]"
-    },
-    {
-      "precise": "s:13PKTestSupport19FailingMessageStoreC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "FailingMessageStore",
-        "pruneMessages(olderThan:dryRun:)"
-      ],
-      "declaration": "func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PKTestSupport19FailingMessageStoreC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "FailingMessageStore",
-        "deleteMessages(for:)"
-      ],
-      "declaration": "func deleteMessages(for timelineID: UUID) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport19FailingMessageStoreC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "FailingMessageStore",
-        "fetchSnapshots(for:)"
-      ],
-      "declaration": "func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot]"
     },
     {
       "precise": "s:13PKTestSupport19FailingMessageStoreC17attemptedMessagesSay13PositronicKit08TimelineD0VGvp",
@@ -12354,16 +12294,6 @@
       "declaration": "var mockIsDurable: Bool { get set }"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "pruneMessages(olderThan:dryRun:)"
-      ],
-      "declaration": "func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC13resetDatabaseyyYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12382,16 +12312,6 @@
         "saveWorkspace(_:)"
       ],
       "declaration": "func saveWorkspace(_ workspace: WorkspaceReference) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "deleteMessages(for:)"
-      ],
-      "declaration": "func deleteMessages(for timelineID: UUID) async throws"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC14deleteTimeline2idy10Foundation4UUIDV_tYaKF",
@@ -12414,26 +12334,6 @@
       "declaration": "func fetchAllAgents() async throws -> [Agent]"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "fetchSnapshots(for:)"
-      ],
-      "declaration": "func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot]"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC14fetchTimelines15attachedToAgentSay13PositronicKit14TimelineRecordVG10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "fetchTimelines(attachedToAgent:)"
-      ],
-      "declaration": "func fetchTimelines(attachedToAgent agentID: UUID) async throws -> [TimelineRecord]"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC14fetchWorkspace2id12includeTools11PKContracts0G9ReferenceVSg10Foundation4UUIDV_SbtYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12442,16 +12342,6 @@
         "fetchWorkspace(id:includeTools:)"
       ],
       "declaration": "func fetchWorkspace(id: UUID, includeTools: Bool = false) async throws -> WorkspaceReference?"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "pruneTimelines(olderThan:excluding:dryRun:)"
-      ],
-      "declaration": "func pruneTimelines(olderThan timeInterval: TimeInterval, excluding excludedTimelineIDs: [UUID], dryRun: Bool) async throws -> Int"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC15beginModelRound6turnID05modelH5Index3nowy10Foundation4UUIDV_SiAH4DateVtYaKF",
@@ -12823,16 +12713,6 @@
       "declaration": "func deleteTimeline(id: UUID) async throws"
     },
     {
-      "precise": "s:13PKTestSupport23MockTimelinePersistenceC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockTimelinePersistence",
-        "pruneTimelines(olderThan:excluding:dryRun:)"
-      ],
-      "declaration": "func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int"
-    },
-    {
       "precise": "s:13PKTestSupport23MockTimelinePersistenceC17fetchAllTimelines15includeArchivedSay13PositronicKit0D6RecordVGSb_tYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12901,16 +12781,6 @@
       "declaration": "func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage]"
     },
     {
-      "precise": "s:13PKTestSupport24BatchFailingMessageStoreC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "BatchFailingMessageStore",
-        "pruneMessages(olderThan:dryRun:)"
-      ],
-      "declaration": "func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int"
-    },
-    {
       "precise": "s:13PKTestSupport24BatchFailingMessageStoreC13saveCallCountSivp",
       "module": "PKTestSupport",
       "kind": "swift.property",
@@ -12919,26 +12789,6 @@
         "saveCallCount"
       ],
       "declaration": "var saveCallCount: Int { get }"
-    },
-    {
-      "precise": "s:13PKTestSupport24BatchFailingMessageStoreC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "BatchFailingMessageStore",
-        "deleteMessages(for:)"
-      ],
-      "declaration": "func deleteMessages(for timelineID: UUID) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport24BatchFailingMessageStoreC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "BatchFailingMessageStore",
-        "fetchSnapshots(for:)"
-      ],
-      "declaration": "func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot]"
     },
     {
       "precise": "s:13PKTestSupport24BatchFailingMessageStoreC18failAfterSaveCountSiSgvp",
@@ -13315,14 +13165,14 @@
       "declaration": "enum AgentStoreConformanceSuite"
     },
     {
-      "precise": "s:13PKTestSupport26AgentStoreConformanceSuiteO3run04makeD0y13PositronicKit0cD8Protocol_pSayAF14TimelineRecordVGYaKYCXE_tYaKFZ",
+      "precise": "s:13PKTestSupport26AgentStoreConformanceSuiteO3run04makeD0y13PositronicKit0cD8Protocol_pyYaKYCXE_tYaKFZ",
       "module": "PKTestSupport",
       "kind": "swift.type.method",
       "path": [
         "AgentStoreConformanceSuite",
         "run(makeStore:)"
       ],
-      "declaration": "static func run(makeStore: ([TimelineRecord]) async throws -> any AgentStoreProtocol) async throws"
+      "declaration": "static func run(makeStore: () async throws -> any AgentStoreProtocol) async throws"
     },
     {
       "precise": "s:13PKTestSupport26FailingTimelinePersistenceC",
@@ -13372,16 +13222,6 @@
         "init(fetchFails:saveFails:deleteFails:)"
       ],
       "declaration": "init(fetchFails: Bool = false, saveFails: Bool = false, deleteFails: Bool = false)"
-    },
-    {
-      "precise": "s:13PKTestSupport26FailingTimelinePersistenceC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "FailingTimelinePersistence",
-        "pruneTimelines(olderThan:excluding:dryRun:)"
-      ],
-      "declaration": "func pruneTimelines(olderThan timeInterval: TimeInterval, excluding excludedTimelineIDs: [UUID], dryRun: Bool) async throws -> Int"
     },
     {
       "precise": "s:13PKTestSupport26FailingTimelinePersistenceC17fetchAllTimelines15includeArchivedSay13PositronicKit0D6RecordVGSb_tYaKF",
@@ -13490,16 +13330,6 @@
         "deleteTimeline(id:)"
       ],
       "declaration": "func deleteTimeline(id: UUID) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport28MockTimelinePersistenceStoreC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockTimelinePersistenceStore",
-        "pruneTimelines(olderThan:excluding:dryRun:)"
-      ],
-      "declaration": "func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int"
     },
     {
       "precise": "s:13PKTestSupport28MockTimelinePersistenceStoreC17fetchAllTimelines15includeArchivedSay13PositronicKit0D6RecordVGSb_tYaKF",
@@ -18707,16 +18537,6 @@
       "declaration": "func fetchAllAgents() async throws -> [Agent]"
     },
     {
-      "precise": "s:13PositronicKit18AgentStoreProtocolP14fetchTimelines010attachedToC0SayAA14TimelineRecordVG10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "AgentStoreProtocol",
-        "fetchTimelines(attachedToAgent:)"
-      ],
-      "declaration": "func fetchTimelines(attachedToAgent agentID: UUID) async throws -> [TimelineRecord]"
-    },
-    {
       "precise": "s:13PositronicKit18InMemoryAgentStoreC",
       "module": "PositronicKit",
       "kind": "swift.class",
@@ -18764,16 +18584,6 @@
         "fetchAllAgents()"
       ],
       "declaration": "func fetchAllAgents() async throws -> [Agent]"
-    },
-    {
-      "precise": "s:13PositronicKit18InMemoryAgentStoreC14fetchTimelines010attachedToE0SayAA14TimelineRecordVG10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryAgentStore",
-        "fetchTimelines(attachedToAgent:)"
-      ],
-      "declaration": "func fetchTimelines(attachedToAgent agentID: UUID) async throws -> [TimelineRecord]"
     },
     {
       "precise": "s:13PositronicKit18InMemoryAgentStoreCACycfc",
@@ -19765,36 +19575,6 @@
         "fetchMessages(for:)"
       ],
       "declaration": "func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage]"
-    },
-    {
-      "precise": "s:13PositronicKit20InMemoryMessageStoreC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMessageStore",
-        "pruneMessages(olderThan:dryRun:)"
-      ],
-      "declaration": "func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PositronicKit20InMemoryMessageStoreC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMessageStore",
-        "deleteMessages(for:)"
-      ],
-      "declaration": "func deleteMessages(for timelineID: UUID) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit20InMemoryMessageStoreC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMessageStore",
-        "fetchSnapshots(for:)"
-      ],
-      "declaration": "func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot]"
     },
     {
       "precise": "s:13PositronicKit20InMemoryMessageStoreCACycfc",
@@ -21569,16 +21349,6 @@
       "declaration": "func deleteTimeline(id: UUID) async throws"
     },
     {
-      "precise": "s:13PositronicKit27InMemoryTimelinePersistenceC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryTimelinePersistence",
-        "pruneTimelines(olderThan:excluding:dryRun:)"
-      ],
-      "declaration": "func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int"
-    },
-    {
       "precise": "s:13PositronicKit27InMemoryTimelinePersistenceC17fetchAllTimelines15includeArchivedSayAA0E6RecordVGSb_tYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -21636,16 +21406,6 @@
         "deleteTimeline(id:)"
       ],
       "declaration": "func deleteTimeline(id: UUID) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit27TimelinePersistenceProtocolP14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelinePersistenceProtocol",
-        "pruneTimelines(olderThan:excluding:dryRun:)"
-      ],
-      "declaration": "func pruneTimelines(olderThan timeInterval: TimeInterval, excluding excludedTimelineIDs: [UUID], dryRun: Bool) async throws -> Int"
     },
     {
       "precise": "s:13PositronicKit27TimelinePersistenceProtocolP17fetchAllTimelines15includeArchivedSayAA0C6RecordVGSb_tYaKF",
@@ -22070,36 +21830,6 @@
         "fetchMessages(for:)"
       ],
       "declaration": "func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage]"
-    },
-    {
-      "precise": "s:13PositronicKit28TimelineMessageStoreProtocolP13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineMessageStoreProtocol",
-        "pruneMessages(olderThan:dryRun:)"
-      ],
-      "declaration": "func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PositronicKit28TimelineMessageStoreProtocolP14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineMessageStoreProtocol",
-        "deleteMessages(for:)"
-      ],
-      "declaration": "func deleteMessages(for timelineID: UUID) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit28TimelineMessageStoreProtocolP14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineMessageStoreProtocol",
-        "fetchSnapshots(for:)"
-      ],
-      "declaration": "func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot]"
     },
     {
       "precise": "s:13PositronicKit28TurnContextContributionErrorO",
@@ -22892,46 +22622,6 @@
         "interruptTurn(turnID:reason:disposition:now:)"
       ],
       "declaration": "func interruptTurn(turnID: UUID, reason: String, disposition: TurnInterruptDisposition, now: Date) async throws -> TurnInterruptResult"
-    },
-    {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryTimelineRuntimeRepository",
-        "pruneMessages(olderThan:dryRun:)"
-      ],
-      "declaration": "func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryTimelineRuntimeRepository",
-        "deleteMessages(for:)"
-      ],
-      "declaration": "func deleteMessages(for timelineID: UUID) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryTimelineRuntimeRepository",
-        "fetchSnapshots(for:)"
-      ],
-      "declaration": "func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot]"
-    },
-    {
-      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryTimelineRuntimeRepository",
-        "pruneTimelines(olderThan:excluding:dryRun:)"
-      ],
-      "declaration": "func pruneTimelines(olderThan timeInterval: TimeInterval, excluding excludedTimelineIDs: [UUID], dryRun: Bool) async throws -> Int"
     },
     {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC15beginModelRound6turnID05modelJ5Index3nowy10Foundation4UUIDV_SiAH4DateVtYaKF",
@@ -50042,36 +49732,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport16MockMessageStoreC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "target": "s:13PKTestSupport16MockMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-        "displayName": "TimelineMessageStoreProtocol.pruneMessages(olderThan:dryRun:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport16MockMessageStoreC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport16MockMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.deleteMessages(for:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport16MockMessageStoreC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport16MockMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.fetchSnapshots(for:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport16MockMessageStoreC8messagesSay13PositronicKit08TimelineD0VGvp",
       "target": "s:13PKTestSupport16MockMessageStoreC"
     },
@@ -50215,36 +49875,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP13fetchMessages3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
         "displayName": "TimelineMessageStoreProtocol.fetchMessages(for:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport19FailingMessageStoreC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "target": "s:13PKTestSupport19FailingMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-        "displayName": "TimelineMessageStoreProtocol.pruneMessages(olderThan:dryRun:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport19FailingMessageStoreC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport19FailingMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.deleteMessages(for:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport19FailingMessageStoreC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport19FailingMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.fetchSnapshots(for:)"
       }
     },
     {
@@ -50612,16 +50242,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-        "displayName": "TimelineMessageStoreProtocol.pruneMessages(olderThan:dryRun:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC13resetDatabaseyyYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC"
     },
@@ -50633,16 +50253,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit14WorkspaceStoreP04saveC0yy11PKContracts0C9ReferenceVYaKF",
         "displayName": "WorkspaceStore.saveWorkspace(_:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.deleteMessages(for:)"
       }
     },
     {
@@ -50668,41 +50278,11 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.fetchSnapshots(for:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC14fetchTimelines15attachedToAgentSay13PositronicKit14TimelineRecordVG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit18AgentStoreProtocolP14fetchTimelines010attachedToC0SayAA14TimelineRecordVG10Foundation4UUIDV_tYaKF",
-        "displayName": "AgentStoreProtocol.fetchTimelines(attachedToAgent:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC14fetchWorkspace2id12includeTools11PKContracts0G9ReferenceVSg10Foundation4UUIDV_SbtYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
         "identifier": "s:13PositronicKit14WorkspaceStoreP05fetchC02id12includeTools11PKContracts0C9ReferenceVSg10Foundation4UUIDV_SbtYaKF",
         "displayName": "WorkspaceStore.fetchWorkspace(id:includeTools:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit27TimelinePersistenceProtocolP14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-        "displayName": "TimelinePersistenceProtocol.pruneTimelines(olderThan:excluding:dryRun:)"
       }
     },
     {
@@ -51016,16 +50596,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport23MockTimelinePersistenceC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "target": "s:13PKTestSupport23MockTimelinePersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit27TimelinePersistenceProtocolP14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-        "displayName": "TimelinePersistenceProtocol.pruneTimelines(olderThan:excluding:dryRun:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport23MockTimelinePersistenceC17fetchAllTimelines15includeArchivedSay13PositronicKit0D6RecordVGSb_tYaKF",
       "target": "s:13PKTestSupport23MockTimelinePersistenceC",
       "sourceOrigin": {
@@ -51068,38 +50638,8 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport24BatchFailingMessageStoreC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "target": "s:13PKTestSupport24BatchFailingMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-        "displayName": "TimelineMessageStoreProtocol.pruneMessages(olderThan:dryRun:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport24BatchFailingMessageStoreC13saveCallCountSivp",
       "target": "s:13PKTestSupport24BatchFailingMessageStoreC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24BatchFailingMessageStoreC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport24BatchFailingMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.deleteMessages(for:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24BatchFailingMessageStoreC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport24BatchFailingMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.fetchSnapshots(for:)"
-      }
     },
     {
       "module": "PKTestSupport",
@@ -51340,7 +50880,7 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport26AgentStoreConformanceSuiteO3run04makeD0y13PositronicKit0cD8Protocol_pSayAF14TimelineRecordVGYaKYCXE_tYaKFZ",
+      "source": "s:13PKTestSupport26AgentStoreConformanceSuiteO3run04makeD0y13PositronicKit0cD8Protocol_pyYaKYCXE_tYaKFZ",
       "target": "s:13PKTestSupport26AgentStoreConformanceSuiteO"
     },
     {
@@ -51378,16 +50918,6 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport26FailingTimelinePersistenceC10fetchFails04saveG006deleteG0ACSb_S2btcfc",
       "target": "s:13PKTestSupport26FailingTimelinePersistenceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport26FailingTimelinePersistenceC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "target": "s:13PKTestSupport26FailingTimelinePersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit27TimelinePersistenceProtocolP14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-        "displayName": "TimelinePersistenceProtocol.pruneTimelines(olderThan:excluding:dryRun:)"
-      }
     },
     {
       "module": "PKTestSupport",
@@ -51457,16 +50987,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit27TimelinePersistenceProtocolP06deleteC02idy10Foundation4UUIDV_tYaKF",
         "displayName": "TimelinePersistenceProtocol.deleteTimeline(id:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport28MockTimelinePersistenceStoreC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "target": "s:13PKTestSupport28MockTimelinePersistenceStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit27TimelinePersistenceProtocolP14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-        "displayName": "TimelinePersistenceProtocol.pruneTimelines(olderThan:excluding:dryRun:)"
       }
     },
     {
@@ -54396,16 +53916,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit18InMemoryAgentStoreC14fetchTimelines010attachedToE0SayAA14TimelineRecordVG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit18InMemoryAgentStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit18AgentStoreProtocolP14fetchTimelines010attachedToC0SayAA14TimelineRecordVG10Foundation4UUIDV_tYaKF",
-        "displayName": "AgentStoreProtocol.fetchTimelines(attachedToAgent:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit18InMemoryAgentStoreCACycfc",
       "target": "s:13PositronicKit18InMemoryAgentStoreC"
     },
@@ -54943,36 +54453,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP13fetchMessages3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
         "displayName": "TimelineMessageStoreProtocol.fetchMessages(for:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20InMemoryMessageStoreC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "target": "s:13PositronicKit20InMemoryMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-        "displayName": "TimelineMessageStoreProtocol.pruneMessages(olderThan:dryRun:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20InMemoryMessageStoreC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit20InMemoryMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.deleteMessages(for:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20InMemoryMessageStoreC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit20InMemoryMessageStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.fetchSnapshots(for:)"
       }
     },
     {
@@ -55810,16 +55290,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit27InMemoryTimelinePersistenceC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "target": "s:13PositronicKit27InMemoryTimelinePersistenceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit27TimelinePersistenceProtocolP14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-        "displayName": "TimelinePersistenceProtocol.pruneTimelines(olderThan:excluding:dryRun:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit27InMemoryTimelinePersistenceC17fetchAllTimelines15includeArchivedSayAA0E6RecordVGSb_tYaKF",
       "target": "s:13PositronicKit27InMemoryTimelinePersistenceC",
       "sourceOrigin": {
@@ -56567,46 +56037,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP13interruptTurn6turnID6reason11disposition3nowAA0G15InterruptResultO10Foundation4UUIDV_SSAA0gM11DispositionOAK4DateVtYaKF",
         "displayName": "TimelineRuntimeRepository.interruptTurn(turnID:reason:disposition:now:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-        "displayName": "TimelineMessageStoreProtocol.pruneMessages(olderThan:dryRun:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.deleteMessages(for:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28TimelineMessageStoreProtocolP14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
-        "displayName": "TimelineMessageStoreProtocol.fetchSnapshots(for:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit27TimelinePersistenceProtocolP14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-        "displayName": "TimelinePersistenceProtocol.pruneTimelines(olderThan:excluding:dryRun:)"
       }
     },
     {
@@ -57876,12 +57306,6 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit18AgentStoreProtocolP14fetchTimelines010attachedToC0SayAA14TimelineRecordVG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit18AgentStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
       "source": "s:13PositronicKit18LLMClientResolvingP7clients3forAA0C3SetV11PKContracts16LLMConfigurationV_tF",
       "target": "s:13PositronicKit18LLMClientResolvingP"
     },
@@ -58116,12 +57540,6 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
-      "source": "s:13PositronicKit27TimelinePersistenceProtocolP14pruneTimelines9olderThan9excluding6dryRunSiSd_Say10Foundation4UUIDVGSbtYaKF",
-      "target": "s:13PositronicKit27TimelinePersistenceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
       "source": "s:13PositronicKit27TimelinePersistenceProtocolP17fetchAllTimelines15includeArchivedSayAA0C6RecordVGSb_tYaKF",
       "target": "s:13PositronicKit27TimelinePersistenceProtocolP"
     },
@@ -58189,24 +57607,6 @@
       "module": "PositronicKit",
       "kind": "requirementOf",
       "source": "s:13PositronicKit28TimelineMessageStoreProtocolP13fetchMessages3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit28TimelineMessageStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit28TimelineMessageStoreProtocolP13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
-      "target": "s:13PositronicKit28TimelineMessageStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit28TimelineMessageStoreProtocolP14deleteMessages3fory10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit28TimelineMessageStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit28TimelineMessageStoreProtocolP14fetchSnapshots3forSay11PKContracts12TurnSnapshotVG10Foundation4UUIDV_tYaKF",
       "target": "s:13PositronicKit28TimelineMessageStoreProtocolP"
     }
   ]

@@ -31,12 +31,6 @@ public final class FailingMessageStore: TimelineMessageStoreProtocol, @unchecked
     }
 
     public func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage] { [] }
-
-    public func deleteMessages(for timelineID: UUID) async throws {}
-
-    public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int { 0 }
-
-    public func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] { [] }
 }
 
 /// A `TimelinePersistenceProtocol` mock that can be configured to throw on
@@ -86,18 +80,6 @@ public final class FailingTimelinePersistence: TimelinePersistenceProtocol, @unc
         deleteAttemptState.withLock { $0 += 1 }
         if deleteFails { throw FailingStoreError.deleteFailed }
         try await backing.deleteTimeline(id: id)
-    }
-
-    public func pruneTimelines(
-        olderThan timeInterval: TimeInterval,
-        excluding excludedTimelineIDs: [UUID],
-        dryRun: Bool
-    ) async throws -> Int {
-        try await backing.pruneTimelines(
-            olderThan: timeInterval,
-            excluding: excludedTimelineIDs,
-            dryRun: dryRun
-        )
     }
 }
 
@@ -197,14 +179,6 @@ public final class BatchFailingMessageStore: TimelineMessageStoreProtocol {
     public func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage] {
         try await backing.fetchMessages(for: timelineID)
     }
-
-    public func deleteMessages(for timelineID: UUID) async throws {
-        try await backing.deleteMessages(for: timelineID)
-    }
-
-    public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int { 0 }
-
-    public func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] { [] }
 }
 
 /// Deprecated fixture spelling retained for tests that exercise the v3 persistence protocol.

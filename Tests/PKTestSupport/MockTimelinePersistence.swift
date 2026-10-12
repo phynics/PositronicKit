@@ -7,8 +7,7 @@ import Synchronization
 /// In-memory `TimelinePersistenceProtocol` test double backed by a mutex-guarded array.
 ///
 /// Inspectable: `timelines` reads/writes the backing store directly. `fetchAllTimelines`
-/// filters out archived timelines unless `includeArchived` is `true`. `pruneTimelines`
-/// is a no-op that always reports zero pruned rows.
+/// filters out archived timelines unless `includeArchived` is `true`.
 public final class MockTimelinePersistenceStore: TimelinePersistenceProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let timelinesState = Mutex<[TimelineRecord]>([])
 
@@ -46,10 +45,6 @@ public final class MockTimelinePersistenceStore: TimelinePersistenceProtocol, @u
             $0.removeAll { $0.id == id }
         }
     }
-
-    public func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int {
-        return 0
-    }
 }
 
 /// Actor-backed canonical persistence test double used for compatibility coverage.
@@ -76,13 +71,5 @@ public actor MockTimelinePersistence: TimelinePersistenceProtocol {
 
     public func deleteTimeline(id: UUID) async throws {
         timelines.removeAll { $0.id == id }
-    }
-
-    public func pruneTimelines(
-        olderThan _: TimeInterval,
-        excluding _: [UUID],
-        dryRun _: Bool
-    ) async throws -> Int {
-        0
     }
 }

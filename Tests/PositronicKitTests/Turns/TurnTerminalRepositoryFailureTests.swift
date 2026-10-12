@@ -60,28 +60,12 @@ actor FailingTerminalRepository: TimelineRuntimeRepository {
         try await base.deleteTimeline(id: id)
     }
 
-    func pruneTimelines(olderThan timeInterval: TimeInterval, excluding excludedTimelineIDs: [UUID], dryRun: Bool) async throws -> Int {
-        try await base.pruneTimelines(olderThan: timeInterval, excluding: excludedTimelineIDs, dryRun: dryRun)
-    }
-
     func saveMessage(_ message: TimelineMessage) async throws {
         try await base.saveMessage(message)
     }
 
     func fetchMessages(for timelineID: UUID) async throws -> [TimelineMessage] {
         try await base.fetchMessages(for: timelineID)
-    }
-
-    func deleteMessages(for timelineID: UUID) async throws {
-        try await base.deleteMessages(for: timelineID)
-    }
-
-    func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
-        try await base.pruneMessages(olderThan: timeInterval, dryRun: dryRun)
-    }
-
-    func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] {
-        try await base.fetchSnapshots(for: timelineID)
     }
 
     func admitTurn(

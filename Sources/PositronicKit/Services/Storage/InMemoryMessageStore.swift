@@ -17,18 +17,4 @@ public actor InMemoryMessageStore: TimelineMessageStoreProtocol {
             .filter { $0.timelineID == timelineID }
             .chronological()
     }
-
-    public func deleteMessages(for timelineID: UUID) async throws {
-        messages.removeAll { $0.timelineID == timelineID }
-    }
-
-    public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int {
-        0
-    }
-
-    public func fetchSnapshots(for timelineID: UUID) async throws -> [TurnSnapshot] {
-        messages
-            .filter { $0.timelineID == timelineID }
-            .assistantSnapshots()
-    }
 }

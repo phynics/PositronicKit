@@ -119,7 +119,6 @@ actor AgentManager {
         var workspace: WorkspaceReference?
         var didAttemptTimelineSave = false
         var didAttemptAgentSave = false
-        var didAttemptAuditSave = false
 
         do {
             // 1. Create workspace via repository
@@ -158,7 +157,6 @@ actor AgentManager {
                 role: .system,
                 content: "[CREATED] Agent '\(name)' (\(agentId.uuidString)) created."
             )
-            didAttemptAuditSave = true
             try await messageStore.saveMessage(creationMsg)
 
             logger.info("Created agent '\(name)' (\(agentId))")
@@ -170,7 +168,6 @@ actor AgentManager {
                 workspace: workspace,
                 didAttemptTimelineSave: didAttemptTimelineSave,
                 didAttemptAgentSave: didAttemptAgentSave,
-                didAttemptAuditSave: didAttemptAuditSave,
                 originalError: error
             )
             throw error
@@ -382,24 +379,8 @@ actor AgentManager {
         workspace: WorkspaceReference?,
         didAttemptTimelineSave: Bool,
         didAttemptAgentSave: Bool,
-        didAttemptAuditSave: Bool,
         originalError: Error
     ) async {
-        // The audit save may have failed after writing, so compensate an attempted save too.
-        if didAttemptAuditSave {
-            do {
-                try await messageStore.deleteMessages(for: privateTimelineID)
-            } catch {
-                logCreateRollbackFailure(
-                    operation: "deleteMessages",
-                    entityID: privateTimelineID,
-                    agentID: agentID,
-                    originalError: originalError,
-                    cleanupError: error
-                )
-            }
-        }
-
         // Stores may report a failed save after the row was written; deletes are therefore
         // attempted for every save that was entered, not only for saves that returned success.
         if didAttemptAgentSave {

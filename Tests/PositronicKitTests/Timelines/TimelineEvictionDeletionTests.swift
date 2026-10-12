@@ -298,14 +298,13 @@ struct TimelineEvictionDeletionTests {
         // separate, independent step in `deleteTimelinePermanently`.
         #expect(try await backing.fetchWorkspace(id: workspaceId, includeTools: false) == nil)
 
-        // Messages are NOT cleaned up here: history deletion is now solely the cascade that
+        // Messages are NOT cleaned up here: history deletion is solely the cascade that
         // `timelineStore.deleteTimeline(id:)` performs internally (H-01), and this test wires a
         // `timelineStore` (`failingTimelineStore`) that is a different object from `messageStore`
-        // (`backing`) and throws before doing anything. `TimelineManager` no longer has a separate
-        // `messageStore.deleteMessages(for:)` step to fall back on, so a host that splits its
-        // timeline store from its message store no longer gets an independent best-effort message
-        // cleanup — it must use one `TimelineRuntimeRepository` for both, as the default facade
-        // wiring now does.
+        // (`backing`) and throws before doing anything. `TimelineManager` has no separate message
+        // cleanup step, so a host that splits its timeline store from its message store does not
+        // get an independent best-effort message cleanup — it must use one
+        // `TimelineRuntimeRepository` for both, as the default facade wiring now does.
         #expect(try await backing.fetchMessages(for: timeline.id).count == 1)
 
         // Timeline row was NOT removed (delete threw before delegating to backing).
@@ -343,10 +342,9 @@ struct TimelineEvictionDeletionTests {
     @Test("deleteTimelinePermanently through the default public facade cascades message history (H-01)")
     func permanentDeleteThroughDefaultFacadeCascadesHistory() async throws {
         // Regression for H-01: `PKRuntime()` wires `messageStore` to the same
-        // `InMemoryTimelineRuntimeRepository` as `runtimeRepository` (append-only history), so
-        // `deleteTimelinePermanently` must no longer rely on `messageStore.deleteMessages(for:)` —
-        // that call always throws `historyDeletionForbidden` there. Deleting the timeline must
-        // cascade the message history instead of silently leaving it orphaned and unreachable.
+        // `InMemoryTimelineRuntimeRepository` as `runtimeRepository` (append-only history).
+        // Deleting the timeline must cascade the message history instead of silently leaving it
+        // orphaned and unreachable.
         let kit = PKRuntime()
         let handle = try await kit.timelines.create(title: "probe")
         try await kit.runtimeRepository.saveMessage(TimelineMessage(
