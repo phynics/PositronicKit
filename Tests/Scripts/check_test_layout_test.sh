@@ -19,7 +19,9 @@ make_fixture() {
     local fixture="$1"
     local kind="$2"
     mkdir -p "$fixture/Scripts" "$fixture/Tests/PositronicKitTests/Services" \
-        "$fixture/Tests/PositronicKitTests/Support"
+        "$fixture/Tests/PositronicKitTests/Support" "$fixture/Tests/PKTestSupport"
+    : > "$fixture/Tests/PKTestSupport/TestRuntime.swift"
+    : > "$fixture/Scripts/test-runtime-allowlist.txt"
     if [ "$kind" != "missing-provider-target" ]; then
         mkdir -p "$fixture/Tests/PKProviderIntegrationTests/Services" \
             "$fixture/Tests/PKProviderIntegrationTests/Support"
@@ -61,6 +63,24 @@ make_fixture() {
         ticket-name)
             : > "$fixture/Tests/PositronicKitTests/Services/STAB8SomethingTests.swift"
             ;;
+        turn-inline)
+            mkdir -p "$fixture/Tests/PositronicKitTests/Turns"
+            printf '%s\n' 'let kit = PKRuntime(configuration: .init())' \
+                > "$fixture/Tests/PositronicKitTests/Turns/StrayTurnTests.swift"
+            ;;
+        turn-allowlisted)
+            mkdir -p "$fixture/Tests/PositronicKitTests/Turns"
+            printf '%s\n' 'let kit = PKRuntime(configuration: .init())' \
+                > "$fixture/Tests/PositronicKitTests/Turns/StrayTurnTests.swift"
+            printf '%s\n' 'Tests/PositronicKitTests/Turns/StrayTurnTests.swift' \
+                > "$fixture/Scripts/test-runtime-allowlist.txt"
+            ;;
+        stale-allowlist)
+            mkdir -p "$fixture/Tests/PositronicKitTests/Turns"
+            : > "$fixture/Tests/PositronicKitTests/Turns/StrayTurnTests.swift"
+            printf '%s\n' 'Tests/PositronicKitTests/Turns/StrayTurnTests.swift' \
+                > "$fixture/Scripts/test-runtime-allowlist.txt"
+            ;;
     esac
 }
 
@@ -93,6 +113,9 @@ run_case "clean-layout-passes" "clean" 0 "Test layout checks passed."
 run_case "root-file-fails" "root-file" 1 "sits directly in Tests/PositronicKitTests"
 run_case "provider-root-file-fails" "provider-root-file" 1 "sits directly in Tests/PKProviderIntegrationTests"
 run_case "ticket-name-fails" "ticket-name" 1 "ticket identifier"
+run_case "turn-inline-build-fails" "turn-inline" 1 "builds PKRuntime inline; build through TestRuntime"
+run_case "turn-allowlisted-passes" "turn-allowlisted" 0 "Test layout checks passed."
+run_case "stale-allowlist-fails" "stale-allowlist" 1 "no longer builds a PKRuntime inline"
 run_case "tag-definitions-differ" "tag-mismatch" 1 "tag definitions differ"
 run_case "missing-provider-target-fails" "missing-provider-target" 1 "PKProviderIntegrationTests is missing"
 

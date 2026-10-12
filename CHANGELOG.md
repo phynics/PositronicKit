@@ -69,6 +69,13 @@ for tagged releases beginning with `1.0.0`.
   that returns `nil` leaves history unchanged; a source that throws follows its
   `failureRequirement` (default `.optional`, recorded as `TurnNoticeCode.historyProjectionFailed`).
   Invalid coverage is rejected with `TurnHistoryProjectionError`.
+- `PKTestSupport.TestRuntime` is the single deep fixture for runtime suites. It builds a
+  `PKRuntime` through the public `PKRuntime.Configuration` from one coherent persistence backing,
+  and exposes the scripted `MockLLMService`, the in-memory `MockPersistenceService` repository,
+  optional persistence/runtime profiles and generation parameters, and a `runtimeBuilder` escape
+  hatch for the internal clock seam. Turn tests assert durable facts through its `repository` and
+  `TurnHandle` instead of copying construction wiring; `Scripts/check-test-layout.sh` keeps new
+  Turn tests on this fixture.
 
 ### Breaking
 

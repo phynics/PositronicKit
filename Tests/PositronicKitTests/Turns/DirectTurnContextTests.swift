@@ -39,7 +39,7 @@ struct DirectTurnContextTests {
     func directTurnUsesDefaultContributor() async throws {
         let model = MockLLMService()
         model.mockClient.nextResponse = "direct reply"
-        let kit = PKRuntime(languageModel: model)
+        let kit = TestRuntime(workspaceRoot: TestRuntime.uniqueWorkspaceRoot(), llm: model).runtime
         let timeline = try await kit.timelines.create(title: "Direct")
 
         let turn = try await timeline.startDirectTurn(
@@ -55,7 +55,7 @@ struct DirectTurnContextTests {
     func defaultContributorPreservesFingerprint() async throws {
         let model = MockLLMService()
         model.mockClient.nextResponse = "replayed reply"
-        let kit = PKRuntime(languageModel: model)
+        let kit = TestRuntime(workspaceRoot: TestRuntime.uniqueWorkspaceRoot(), llm: model).runtime
         let timeline = try await kit.timelines.create(title: "Replay")
         let options = TurnOptions(requestID: UUID())
 
@@ -83,11 +83,12 @@ struct DirectTurnContextTests {
         model.mockClient.nextResponse = "context-aware reply"
         let source = RecordingTurnContextSource()
         let repository = InMemoryTimelineRuntimeRepository()
-        let kit = PKRuntime(configuration: .init(
-            languageModel: model,
-            persistence: .init(runtimeRepository: repository),
+        let kit = TestRuntime(
+            workspaceRoot: TestRuntime.uniqueWorkspaceRoot(),
+            llm: model,
+            persistenceConfiguration: .init(runtimeRepository: repository),
             runtime: .init(customization: RuntimeCustomization(turnContextSource: source))
-        ))
+        ).runtime
         let timeline = try await kit.timelines.create(title: "Context source")
 
         let turn = try await timeline.startDirectTurn(
