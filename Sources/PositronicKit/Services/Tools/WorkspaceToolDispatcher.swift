@@ -83,7 +83,10 @@ struct WorkspaceToolDispatch: Sendable {
 /// Owns captured Workspace selection, execution disposition, authority revalidation, and
 /// process-local serialization for `call_tool`.
 struct WorkspaceToolDispatcher: Sendable {
-    typealias LocalExecutor = @Sendable (AnyTool, [String: AnyCodable]) async throws -> String
+    /// Reports a tool task abandoned by a timeout that may still be running. The lane owner uses
+    /// it to keep the Workspace closed until the task ends.
+    typealias AbandonedToolHandler = @Sendable (Task<Void, Never>) -> Void
+    typealias LocalExecutor = @Sendable (AnyTool, [String: AnyCodable], AbandonedToolHandler) async throws -> String
 
     static let callName = "call_tool"
 
@@ -189,7 +192,9 @@ struct WorkspaceToolDispatcher: Sendable {
                 if !route.isPrimary {
                     try await timelineManager.requireWorkspaceBinding(route.workspaceID, for: timelineID)
                 }
-                return try await executeLocally(route.tool, nested)
+                return try await executeLocally(route.tool, nested) { task in
+                    timelineManager.retainWorkspaceLane(route.workspaceID, until: task)
+                }
             }
             return .completed(output)
         case .deferExternally:
@@ -204,10 +209,12 @@ struct WorkspaceToolDispatcher: Sendable {
         using executeLocally: @escaping LocalExecutor
     ) async throws -> String {
         guard case let .workspace(workspaceID, _) = tool.origin else {
-            return try await executeLocally(tool, arguments)
+            return try await executeLocally(tool, arguments, { _ in })
         }
         return try await timelineManager.withWorkspaceExecution(workspaceID) {
-            try await executeLocally(tool, arguments)
+            try await executeLocally(tool, arguments) { task in
+                timelineManager.retainWorkspaceLane(workspaceID, until: task)
+            }
         }
     }
 

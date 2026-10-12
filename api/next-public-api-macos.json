@@ -10496,6 +10496,16 @@
       "declaration": "struct TestRuntime"
     },
     {
+      "precise": "s:13PKTestSupport11TestRuntimeV10repository13PositronicKit08TimelineD10Repository_pvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "TestRuntime",
+        "repository"
+      ],
+      "declaration": "let repository: any TimelineRuntimeRepository"
+    },
+    {
       "precise": "s:13PKTestSupport11TestRuntimeV10workspaces13PositronicKit19WorkspaceCapabilityVvp",
       "module": "PKTestSupport",
       "kind": "swift.property",
@@ -10516,14 +10526,14 @@
       "declaration": "let persistence: MockPersistenceService"
     },
     {
-      "precise": "s:13PKTestSupport11TestRuntimeV13workspaceRoot11persistence3llm0E7CreatorAC10Foundation3URLV_AA22MockPersistenceServiceCAA0L10LLMServiceC13PositronicKit16WorkspaceFactory_ptcfc",
+      "precise": "s:13PKTestSupport11TestRuntimeV13workspaceRoot3llm11persistence0H13Configuration7runtime20generationParameters0E7Creator0J7BuilderAC10Foundation3URLV_AA14MockLLMServiceCAA0Q18PersistenceServiceC13PositronicKit9PKRuntimeC0sI0VSgAU0dI0VSg11PKContracts010GenerationL0VSgAS16WorkspaceFactory_pSgA2U0I0VYbcSgtcfc",
       "module": "PKTestSupport",
       "kind": "swift.init",
       "path": [
         "TestRuntime",
-        "init(workspaceRoot:persistence:llm:workspaceCreator:)"
+        "init(workspaceRoot:llm:persistence:persistenceConfiguration:runtime:generationParameters:workspaceCreator:runtimeBuilder:)"
       ],
-      "declaration": "init(workspaceRoot: URL, persistence: MockPersistenceService = MockPersistenceService(), llm: MockLLMService = MockLLMService(), workspaceCreator: any WorkspaceFactory = MockWorkspaceCreator())"
+      "declaration": "init(workspaceRoot: URL, llm: MockLLMService = MockLLMService(), persistence: MockPersistenceService = MockPersistenceService(), persistenceConfiguration: PKRuntime.PersistenceConfiguration? = nil, runtime: PKRuntime.RuntimeConfiguration? = nil, generationParameters: GenerationParameters? = nil, workspaceCreator: any WorkspaceFactory? = nil, runtimeBuilder: (@Sendable (PKRuntime.Configuration) -> PKRuntime)? = nil)"
     },
     {
       "precise": "s:13PKTestSupport11TestRuntimeV19timelinePersistence13PositronicKit08TimelineF8Protocol_pvp",
@@ -10534,6 +10544,16 @@
         "timelinePersistence"
       ],
       "declaration": "var timelinePersistence: any TimelinePersistenceProtocol { get }"
+    },
+    {
+      "precise": "s:13PKTestSupport11TestRuntimeV19uniqueWorkspaceRoot10Foundation3URLVyFZ",
+      "module": "PKTestSupport",
+      "kind": "swift.type.method",
+      "path": [
+        "TestRuntime",
+        "uniqueWorkspaceRoot()"
+      ],
+      "declaration": "static func uniqueWorkspaceRoot() -> URL"
     },
     {
       "precise": "s:13PKTestSupport11TestRuntimeV3llmAA14MockLLMServiceCvp",
@@ -34078,29 +34098,29 @@
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOpenAIProvider9OpenAIAPIO",
       "target": "s:SH",
       "targetFallback": "Swift.Hashable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOpenAIProvider9OpenAIAPIO",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOpenAIProvider9OpenAIAPIO",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOpenAIProvider9OpenAIAPIO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
@@ -47174,8 +47194,8 @@
       }
     },
     {
-      "kind": "memberOf",
       "module": "PKOpenAIProvider",
+      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider12OpenAIClientC6apiKey9modelName4host4port6scheme15timeoutInterval10maxRetries23structuredOutputAdapter0E0ACSS_S2SSiSSSdSi11PKContracts010StructuredqR0_pAA0C5AIAPIOtcfc",
       "target": "s:16PKOpenAIProvider12OpenAIClientC"
     },
@@ -47212,20 +47232,20 @@
       "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC"
     },
     {
-      "kind": "memberOf",
       "module": "PKOpenAIProvider",
+      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider9OpenAIAPIO15chatCompletionsyA2CmF",
       "target": "s:16PKOpenAIProvider9OpenAIAPIO"
     },
     {
-      "kind": "memberOf",
       "module": "PKOpenAIProvider",
+      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider9OpenAIAPIO9automaticyA2CmF",
       "target": "s:16PKOpenAIProvider9OpenAIAPIO"
     },
     {
-      "kind": "memberOf",
       "module": "PKOpenAIProvider",
+      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider9OpenAIAPIO9responsesyA2CmF",
       "target": "s:16PKOpenAIProvider9OpenAIAPIO"
     },
@@ -49360,6 +49380,12 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport11TestRuntimeV10repository13PositronicKit08TimelineD10Repository_pvp",
+      "target": "s:13PKTestSupport11TestRuntimeV"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport11TestRuntimeV10workspaces13PositronicKit19WorkspaceCapabilityVvp",
       "target": "s:13PKTestSupport11TestRuntimeV"
     },
@@ -49372,13 +49398,19 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport11TestRuntimeV13workspaceRoot11persistence3llm0E7CreatorAC10Foundation3URLV_AA22MockPersistenceServiceCAA0L10LLMServiceC13PositronicKit16WorkspaceFactory_ptcfc",
+      "source": "s:13PKTestSupport11TestRuntimeV13workspaceRoot3llm11persistence0H13Configuration7runtime20generationParameters0E7Creator0J7BuilderAC10Foundation3URLV_AA14MockLLMServiceCAA0Q18PersistenceServiceC13PositronicKit9PKRuntimeC0sI0VSgAU0dI0VSg11PKContracts010GenerationL0VSgAS16WorkspaceFactory_pSgA2U0I0VYbcSgtcfc",
       "target": "s:13PKTestSupport11TestRuntimeV"
     },
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport11TestRuntimeV19timelinePersistence13PositronicKit08TimelineF8Protocol_pvp",
+      "target": "s:13PKTestSupport11TestRuntimeV"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport11TestRuntimeV19uniqueWorkspaceRoot10Foundation3URLVyFZ",
       "target": "s:13PKTestSupport11TestRuntimeV"
     },
     {

@@ -279,6 +279,19 @@ actor TimelineManager {
         try await workspaceExecutionCoordinator.withWorkspaceExecution(workspaceID: workspaceID, operation: operation)
     }
 
+    /// Keeps the Workspace lane closed until an abandoned tool's task completes.
+    ///
+    /// `nonisolated` because the timeout path that registers the hold runs synchronously inside
+    /// the lane operation; the coordinator is an immutable `Sendable` stored property.
+    nonisolated func retainWorkspaceLane(_ workspaceID: UUID, until task: Task<Void, Never>) {
+        workspaceExecutionCoordinator.hold(workspaceID, until: task)
+    }
+
+    /// Whether a Workspace lane is executing, queued, or held by an abandoned tool.
+    nonisolated func isWorkspaceBusy(_ workspaceID: UUID) -> Bool {
+        workspaceExecutionCoordinator.isBusy(workspaceID)
+    }
+
     /// Serializes Turn admission and Timeline authority mutations under one per-Timeline lane.
     func withTimelineAuthority<T: Sendable>(
         _ timelineID: UUID,
