@@ -16,6 +16,30 @@ latest stable tag and the complete public product/documentation catalog:
 The tagged version applies to the public products documented in
 [README.md](../README.md) and the modules covered by [CHANGELOG.md](../CHANGELOG.md).
 
+## Public API compatibility gate
+
+`make verify-release VERSION=<version>` compares the release candidate's public symbol surface with
+the frozen baseline of the previous release. It reads `api/next-public-api-<platform>.json` for a
+patch release and `api/<major>.<minor>-public-api-<platform>.json` for a minor or major release,
+and it compares against `api/<previous-major>.<previous-minor>-public-api-<platform>.json`. The
+previous release is the dated section immediately below the candidate in `CHANGELOG.md`.
+
+The release kind sets the rule:
+
+| Release kind | Rule |
+| ------------ | ---- |
+| `patch` | Fails on any public symbol delta: added, removed, or changed declarations. |
+| `minor` | Fails on a removed symbol or a changed declaration; additions are compatible. |
+| `major` | Removals pass, but the dated changelog section must carry a non-empty `### Breaking` section. |
+
+The check depends on the frozen per-tag baselines from #259. Never edit
+`api/<major>.<minor>-public-api-<platform>.json`; promote the Next graphs at release time with
+`Scripts/promote-public-api-baselines.py --to <version>`.
+
+The 6.1.0 release broke this rule before the gate existed: it removed 185 public symbols relative
+to 6.0.0. The tag is immutable, so its changelog entry records the break, and consumers on
+`from: "6.0.0"` must pin `exact: "6.0.x"` or move to 7.0.0.
+
 ## Before Tagging
 
 1. Merge every intended change into `CHANGELOG.md` under `Unreleased` and close out the open
