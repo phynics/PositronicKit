@@ -9,6 +9,11 @@ macOS lane stops regenerating and publishing the baseline only when
 
 The regression this guards: `if: failure()` alone also fires after an unrelated
 macOS gate failure, which would publish a misleading baseline.
+
+The same file also guards the frozen-baseline gate wiring: `main` is checked
+against `api/next-*`, editing a release-named baseline must fail the preflight
+static gate, and the preflight job must run that gate. A future edit that drops
+one link in the chain would silently stop failing on a frozen-file edit.
 """
 
 from __future__ import annotations
@@ -19,7 +24,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/ci.yml"
+MAKEFILE = ROOT / "Makefile"
 MACOS_JOB = "macos-verify"
+PREFLIGHT_JOB = "preflight"
+NEXT_BASELINE_SCRIPT = ROOT / "Scripts/public-api-baseline.py"
+IMMUTABILITY_CHECKER = "Scripts/check-public-api-baseline-immutability.py"
 PUBLIC_API_OUTCOME_CONDITION = (
     "if: failure() && steps.public-api.outcome == 'failure'"
 )
@@ -47,6 +56,28 @@ def job_block(workflow: str, job: str) -> str:
     return "\n".join(lines[start:end])
 
 
+def makefile_text() -> str:
+    return MAKEFILE.read_text(encoding="utf-8")
+
+
+def target_block(makefile: str, target: str) -> str:
+    """Return a Make target declaration plus its recipe, stopping at a blank line."""
+    lines = makefile.splitlines()
+    start = None
+    for index, line in enumerate(lines):
+        if line.startswith(f"{target}:"):
+            start = index
+            break
+    if start is None:
+        raise AssertionError(f"{target} target not found in {MAKEFILE.relative_to(ROOT)}")
+    block = [lines[start]]
+    for line in lines[start + 1 :]:
+        if not line.strip() or re.match(r"^[A-Za-z0-9_.-]+:", line):
+            break
+        block.append(line)
+    return "\n".join(block)
+
+
 def permissions_block(workflow: str) -> str:
     lines = workflow.splitlines()
     start = None
@@ -62,6 +93,26 @@ def permissions_block(workflow: str) -> str:
             break
         block.append(line)
     return "\n".join(block)
+
+
+def test_main_api_check_reads_the_next_baseline() -> None:
+    script = NEXT_BASELINE_SCRIPT.read_text(encoding="utf-8")
+    assert 'BASELINE_RELEASE = "next"' in script, script
+
+
+def test_immutability_target_runs_the_checker() -> None:
+    block = target_block(makefile_text(), "verify-public-api-immutability")
+    assert IMMUTABILITY_CHECKER in block, block
+
+
+def test_static_gate_includes_the_immutability_check() -> None:
+    block = target_block(makefile_text(), "verify-static")
+    assert "verify-public-api-immutability" in block, block
+
+
+def test_preflight_job_runs_the_static_gate() -> None:
+    job = job_block(workflow_text(), PREFLIGHT_JOB)
+    assert "make verify-static" in job, job
 
 
 def test_permissions_stay_read_only() -> None:
@@ -92,6 +143,10 @@ def test_artifact_is_published_only_on_public_api_failure() -> None:
 
 if __name__ == "__main__":
     tests = [
+        test_main_api_check_reads_the_next_baseline,
+        test_immutability_target_runs_the_checker,
+        test_static_gate_includes_the_immutability_check,
+        test_preflight_job_runs_the_static_gate,
         test_permissions_stay_read_only,
         test_public_api_check_is_its_own_step,
         test_regeneration_runs_only_on_public_api_failure,
