@@ -22,3 +22,10 @@ read the legacy IDs, validate the workspace records, claim the canonical reposit
 then retire the legacy field. Adapters may instead discard incompatible rows. The runtime does not
 perform this migration on lookup or hydration, so a custom `ThreadPersistenceProtocol` cannot
 silently reintroduce a second authority.
+
+## Amendment
+
+[ADR 0016](0016-admission-authority-provider.md) generalizes binding ownership from a Timeline to a
+principal and replaces the dispatcher's primary-Workspace boolean with an explicit binding kind.
+Durable exclusive ownership, the conditional-claim boundary, and process-local serialization per
+Workspace are unchanged. 7.0 keeps the current shape; 8.0 implements the generalization.
