@@ -10533,7 +10533,7 @@
         "TestRuntime",
         "init(workspaceRoot:llm:persistence:persistenceConfiguration:runtime:generationParameters:workspaceCreator:runtimeBuilder:)"
       ],
-      "declaration": "init(workspaceRoot: URL, llm: MockLLMService = MockLLMService(), persistence: MockPersistenceService = MockPersistenceService(), persistenceConfiguration: PKRuntime.PersistenceConfiguration? = nil, runtime: PKRuntime.RuntimeConfiguration? = nil, generationParameters: GenerationParameters? = nil, workspaceCreator: (any WorkspaceFactory)? = nil, runtimeBuilder: (@Sendable (PKRuntime.Configuration) -> PKRuntime)? = nil)"
+      "declaration": "init(workspaceRoot: URL, llm: MockLLMService = MockLLMService(), persistence: MockPersistenceService = MockPersistenceService(), persistenceConfiguration: PKRuntime.PersistenceConfiguration? = nil, runtime: PKRuntime.RuntimeConfiguration? = nil, generationParameters: GenerationParameters? = nil, workspaceCreator: any WorkspaceFactory? = nil, runtimeBuilder: (@Sendable (PKRuntime.Configuration) -> PKRuntime)? = nil)"
     },
     {
       "precise": "s:13PKTestSupport11TestRuntimeV19timelinePersistence13PositronicKit08TimelineF8Protocol_pvp",

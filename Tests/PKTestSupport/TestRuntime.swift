@@ -98,7 +98,7 @@ public struct TestRuntime: Sendable {
         persistenceConfiguration: PKRuntime.PersistenceConfiguration? = nil,
         runtime: PKRuntime.RuntimeConfiguration? = nil,
         generationParameters: GenerationParameters? = nil,
-        workspaceCreator: (any WorkspaceFactory)? = nil,
+        workspaceCreator: any WorkspaceFactory? = nil,
         runtimeBuilder: (@Sendable (PKRuntime.Configuration) -> PKRuntime)? = nil
     ) {
         self.llm = llm
