@@ -16,10 +16,12 @@ struct TurnFinalizerLivenessTests {
         persistence.completeTurnBlocker = { await gate.block() }
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "done"
-        let kit = PKRuntime(configuration: .init(
-            languageModel: llm,
-            persistence: .init(runtimeRepository: persistence)
-        ))
+        let runtime = TestRuntime(
+            workspaceRoot: TestRuntime.uniqueWorkspaceRoot(),
+            llm: llm,
+            persistence: persistence
+        )
+        let kit = runtime.runtime
         let timeline = try await kit.timelines.create(title: "Hung commit")
 
         let turn = try await kit.timelines.open(timeline.id).startDirectTurn(
@@ -45,11 +47,12 @@ struct TurnFinalizerLivenessTests {
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "prepared reply"
         let gate = PreparationGate()
-        let kit = PKRuntime(configuration: .init(
-            languageModel: llm,
-            persistence: .inMemory(),
+        let runtime = TestRuntime(
+            workspaceRoot: TestRuntime.uniqueWorkspaceRoot(),
+            llm: llm,
             runtime: .init(customization: RuntimeCustomization(turnContextSource: gate))
-        ))
+        )
+        let kit = runtime.runtime
         let timeline = try await kit.timelines.create(title: "Prepare in-process")
 
         let first = Task {
@@ -61,7 +64,7 @@ struct TurnFinalizerLivenessTests {
         #expect(await gate.waitUntilEntered(), "the first Turn should reach preparation")
 
         // A different request during preparation must stay busy, not interrupt the preparing Turn.
-        let active = try #require(try await kit.runtimeRepository.fetchActiveTurn(for: timeline.id))
+        let active = try #require(try await runtime.repository.fetchActiveTurn(for: timeline.id))
         do {
             _ = try await timeline.startDirectTurn(
                 "second request",
@@ -71,13 +74,13 @@ struct TurnFinalizerLivenessTests {
         } catch let error as TimelineRuntimeRepositoryError {
             #expect(error == .timelineBusy(timelineID: timeline.id, activeTurnID: active.identity.turnID))
         }
-        #expect(try await kit.runtimeRepository.fetchTurn(id: active.identity.turnID)?.outcome == nil,
+        #expect(try await runtime.repository.fetchTurn(id: active.identity.turnID)?.outcome == nil,
                 "the preparing Turn must not be interrupted")
 
         await gate.release()
         let turn = try await first.value
         _ = await turn.events().collect()
-        #expect(try await kit.runtimeRepository.fetchTurn(id: turn.id)?.outcome == .completed)
+        #expect(try await runtime.repository.fetchTurn(id: turn.id)?.outcome == .completed)
     }
 
     @Test("admission stays busy while a commit is pending within the stall limit")
@@ -87,10 +90,12 @@ struct TurnFinalizerLivenessTests {
         persistence.completeTurnBlocker = { await gate.block() }
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "reply"
-        let kit = PKRuntime(configuration: .init(
-            languageModel: llm,
-            persistence: .init(runtimeRepository: persistence)
-        ))
+        let runtime = TestRuntime(
+            workspaceRoot: TestRuntime.uniqueWorkspaceRoot(),
+            llm: llm,
+            persistence: persistence
+        )
+        let kit = runtime.runtime
         let timeline = try await kit.timelines.create(title: "Within stall limit")
         let turn = try await kit.timelines.open(timeline.id).startDirectTurn(
             "A",
@@ -122,11 +127,13 @@ struct TurnFinalizerLivenessTests {
         persistence.completeTurnBlocker = { await gate.block() }
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "reply"
-        let kit = PKRuntime(configuration: .init(
-            languageModel: llm,
-            persistence: .init(runtimeRepository: persistence),
+        let runtime = TestRuntime(
+            workspaceRoot: TestRuntime.uniqueWorkspaceRoot(),
+            llm: llm,
+            persistence: persistence,
             runtime: .init(terminalCommitStallLimit: 0.05)
-        ))
+        )
+        let kit = runtime.runtime
         let timeline = try await kit.timelines.create(title: "Hung then healthy")
         let first = try await kit.timelines.open(timeline.id).startDirectTurn(
             "A",
@@ -160,10 +167,12 @@ struct TurnFinalizerLivenessTests {
         persistence.completeTurnBlocker = { await gate.block() }
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "reply"
-        let kit = PKRuntime(configuration: .init(
-            languageModel: llm,
-            persistence: .init(runtimeRepository: persistence)
-        ))
+        let runtime = TestRuntime(
+            workspaceRoot: TestRuntime.uniqueWorkspaceRoot(),
+            llm: llm,
+            persistence: persistence
+        )
+        let kit = runtime.runtime
         let timeline = try await kit.timelines.create(title: "Replacement")
         let turn = try await kit.timelines.open(timeline.id).startDirectTurn(
             "A",
@@ -193,10 +202,12 @@ struct TurnFinalizerLivenessTests {
         let persistence = MockPersistenceService()
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "reply"
-        let kit = PKRuntime(configuration: .init(
-            languageModel: llm,
-            persistence: .init(runtimeRepository: persistence)
-        ))
+        let runtime = TestRuntime(
+            workspaceRoot: TestRuntime.uniqueWorkspaceRoot(),
+            llm: llm,
+            persistence: persistence
+        )
+        let kit = runtime.runtime
         let timeline = try await kit.timelines.create(title: "Quarantine evidence")
 
         // Orphan admitted by an earlier process, with an unresolved mutating intent. The side
@@ -241,10 +252,12 @@ struct TurnFinalizerLivenessTests {
         llm.mockClient.nextStreamWait = 0.05
         let persistence = MockPersistenceService()
         persistence.completeTurnChecksCancellation = true
-        let kit = PKRuntime(configuration: .init(
-            languageModel: llm,
-            persistence: .init(runtimeRepository: persistence)
-        ))
+        let runtime = TestRuntime(
+            workspaceRoot: TestRuntime.uniqueWorkspaceRoot(),
+            llm: llm,
+            persistence: persistence
+        )
+        let kit = runtime.runtime
         let timeline = try await kit.timelines.create(title: "Cancel durability")
         let turn = try await kit.timelines.open(timeline.id).startDirectTurn(
             "stream",
@@ -264,10 +277,12 @@ struct TurnFinalizerLivenessTests {
         let persistence = MockPersistenceService()
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "done"
-        let kit = PKRuntime(configuration: .init(
-            languageModel: llm,
-            persistence: .init(runtimeRepository: persistence)
-        ))
+        let runtime = TestRuntime(
+            workspaceRoot: TestRuntime.uniqueWorkspaceRoot(),
+            llm: llm,
+            persistence: persistence
+        )
+        let kit = runtime.runtime
         let timeline = try await kit.timelines.create(title: "Orphan")
 
         // Simulate a Turn admitted by an earlier process: the durable active pointer exists, but

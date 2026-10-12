@@ -46,6 +46,43 @@ while IFS= read -r path; do
     fi
 done < <(find Tests -name '*.swift' -print 2>/dev/null)
 
+# New Turn tests build through the deep TestRuntime fixture so construction wiring has one home
+# and the 7.0 internal refactors do not break suites that only meant to test behavior. The
+# grandfather list may only shrink: a stale entry fails the gate.
+test_runtime_fixture="Tests/PKTestSupport/TestRuntime.swift"
+runtime_allowlist="Scripts/test-runtime-allowlist.txt"
+if [[ ! -f "$test_runtime_fixture" ]]; then
+    report_failure "$test_runtime_fixture is missing; Turn tests have no deep fixture"
+fi
+if [[ ! -f "$runtime_allowlist" ]]; then
+    report_failure "$runtime_allowlist is missing; inline PKRuntime construction cannot be checked"
+fi
+
+if [[ -f "$runtime_allowlist" ]]; then
+    while IFS= read -r path; do
+        [[ -z "$path" || "$path" == \#* ]] && continue
+        if [[ ! -f "$path" ]]; then
+            report_failure "$runtime_allowlist names $path, which does not exist; remove the stale entry"
+            continue
+        fi
+        if ! grep -qE '(^|[^A-Za-z0-9_.])PKRuntime\(' "$path"; then
+            report_failure "$runtime_allowlist names $path, but it no longer builds a PKRuntime inline; remove the stale entry"
+        fi
+    done < "$runtime_allowlist"
+fi
+
+while IFS= read -r turn_dir; do
+    while IFS= read -r path; do
+        if ! grep -qE '(^|[^A-Za-z0-9_.])PKRuntime\(' "$path"; then
+            continue
+        fi
+        if [[ -f "$runtime_allowlist" ]] && grep -qxF "$path" "$runtime_allowlist"; then
+            continue
+        fi
+        report_failure "$path builds PKRuntime inline; build through TestRuntime instead"
+    done < <(find "$turn_dir" -maxdepth 1 -name '*.swift' -print)
+done < <(find Tests -type d -name Turns -print 2>/dev/null)
+
 if (( failed != 0 )); then
     exit 1
 fi

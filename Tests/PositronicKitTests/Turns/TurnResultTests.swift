@@ -17,7 +17,7 @@ import Testing
 @Suite("Turn result and generated-text helpers (#143)", .serialized, .timeLimit(.minutes(2)), .tags(.integration))
 struct TurnResultTests {
     private func makeKit(_ llm: MockLLMService) -> PKRuntime {
-        PKRuntime(languageModel: llm)
+        TestRuntime(workspaceRoot: TestRuntime.uniqueWorkspaceRoot(), llm: llm).runtime
     }
 
     private func makeManagedTurn(
@@ -79,9 +79,10 @@ struct TurnResultTests {
         let persistence = MockPersistenceService()
         let llm = MockLLMService()
         let repository = InMemoryTimelineRuntimeRepository()
-        let kit = PKRuntime(configuration: .init(
-            languageModel: llm,
-            persistence: .init(
+        let kit = TestRuntime(
+            workspaceRoot: workspace.root,
+            llm: llm,
+            persistenceConfiguration: .init(
                 runtimeRepository: repository,
                 workspacePersistence: persistence,
                 agentStore: persistence,
@@ -92,7 +93,7 @@ struct TurnResultTests {
                 workspaceProfile: .hostManaged(root: workspace.root),
                 workspaceCreator: MockWorkspaceCreator()
             )
-        ))
+        ).runtime
         let timeline = try await kit.timelines.create(title: "Deferred Result")
         let attachedWorkspace = WorkspaceReference(
             uri: WorkspaceURI(host: "remote", path: "/deferred"),
