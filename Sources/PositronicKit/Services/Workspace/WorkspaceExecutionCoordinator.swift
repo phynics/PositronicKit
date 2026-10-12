@@ -25,8 +25,18 @@ final class WorkspaceExecutionCoordinator: Sendable {
         try await lane.run(workspaceID, operation: operation)
     }
 
-    /// Whether a Workspace currently has an executing or queued operation.
+    /// Whether a Workspace currently has an executing, queued, or deferred operation.
     public func isBusy(_ workspaceID: UUID) -> Bool {
         lane.isBusy(workspaceID)
+    }
+
+    /// Keeps the Workspace lane closed until `task` completes.
+    ///
+    /// The Workspace Execution Lane calls this when a mutating or external-process tool times
+    /// out and is abandoned but may still be running. The lane then stays closed after the
+    /// timed-out operation returns, so the next call for the Workspace cannot overlap the
+    /// abandoned tool. Must be called from the operation that currently holds the lane.
+    public func hold(_ workspaceID: UUID, until task: Task<Void, Never>) {
+        lane.hold(workspaceID, until: task)
     }
 }
