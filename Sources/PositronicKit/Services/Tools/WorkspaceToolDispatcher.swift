@@ -320,7 +320,7 @@ extension TimelineManager {
             // wrappers directly. This also fills any custom definitions unavailable in the
             // Timeline registry while preserving known system tools where applicable.
             var fileProvider: any WorkspaceFileProvider?
-            var liveWorkspace: (any WorkspaceProvider)?
+            var liveWorkspace: any WorkspaceProvider?
             do {
                 liveWorkspace = try await workspaceResolver.workspace(id: reference.id)
             } catch {
