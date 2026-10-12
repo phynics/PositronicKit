@@ -13,8 +13,18 @@ package actor TimelineToolRegistry {
     /// Registered workspace providers; tool-capable providers contribute their tools.
     private var workspaces: [UUID: any WorkspaceProvider] = [:]
 
-    /// Cached workspace tools: toolName -> (wrapper, origin)
-    private var workspaceTools: [String: (tool: WorkspaceToolWrapper, origin: ToolOrigin)] = [:]
+    /// Identifies one Workspace's declaration of a custom tool. Keying by Workspace *and* call
+    /// name keeps two Workspaces that declare the same tool ID independently routable instead of
+    /// letting dictionary order silently overwrite one of them. The admission catalog then exposes
+    /// both, and `call_tool` rejects an implicit ambiguous selection while `at` still routes to the
+    /// named Workspace.
+    private struct WorkspaceToolKey: Hashable {
+        let workspaceID: UUID
+        let callName: String
+    }
+
+    /// Cached workspace tools keyed by (workspace, tool).
+    private var workspaceTools: [WorkspaceToolKey: (tool: WorkspaceToolWrapper, origin: ToolOrigin)] = [:]
 
     /// Cached known-tool overrides from workspaces: toolName -> Set of origin tags.
     private var knownToolOrigin: [String: Set<ToolOrigin>] = [:]
@@ -73,7 +83,7 @@ package actor TimelineToolRegistry {
 
     /// Refresh tools from all registered workspaces
     private func refreshWorkspaceTools() async {
-        var newTools: [String: (tool: WorkspaceToolWrapper, origin: ToolOrigin)] = [:]
+        var newTools: [WorkspaceToolKey: (tool: WorkspaceToolWrapper, origin: ToolOrigin)] = [:]
         var newKnownOrigin: [String: Set<ToolOrigin>] = [:]
 
         for workspace in workspaces.values {
@@ -99,7 +109,10 @@ package actor TimelineToolRegistry {
                         }
                     case let .custom(def):
                         let wrapper = WorkspaceToolWrapper(workspace: toolProvider, definition: def)
-                        newTools[wrapper.callName] = (tool: wrapper, origin: originTag)
+                        newTools[WorkspaceToolKey(workspaceID: workspace.id, callName: wrapper.callName)] = (
+                            tool: wrapper,
+                            origin: originTag
+                        )
                     }
                 }
             } catch {
@@ -266,8 +279,14 @@ package actor TimelineToolRegistry {
             return toolWithResolvedOrigin(tool)
         }
 
-        // Then check workspace tools
-        if let entry = workspaceTools[id] {
+        // Then check workspace tools. Two Workspaces may declare the same call name; pick the
+        // deterministic representative by origin display name so this lookup does not depend on
+        // dictionary iteration order. Workspace dispatch itself uses the admission catalog, which
+        // keeps both declarations and rejects ambiguity explicitly.
+        let workspaceMatches = workspaceTools.values
+            .filter { $0.tool.callName == id }
+            .sorted { $0.origin.displayName < $1.origin.displayName }
+        if let entry = workspaceMatches.first {
             return AnyTool(entry.tool, origin: entry.origin)
         }
 

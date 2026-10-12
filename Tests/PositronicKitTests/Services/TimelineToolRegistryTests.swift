@@ -372,4 +372,36 @@ final class TimelineToolRegistryTests {
         #expect(available.count == 1)
         #expect(available.first?.callName == "cat")
     }
+
+    @Test func duplicateCustomToolIDsRemainIndependentlyRoutable() async throws {
+        let manager = TimelineToolRegistry(availableTools: [])
+
+        let wsA = UUID()
+        let wsB = UUID()
+        let refA = WorkspaceReference(id: wsA, uri: try #require(WorkspaceURI(parsing: "pk://ws-a")), location: .runtime, originID: nil)
+        let refB = WorkspaceReference(id: wsB, uri: try #require(WorkspaceURI(parsing: "pk://ws-b")), location: .runtime, originID: nil)
+
+        let defA = WorkspaceToolDefinition(id: "dup", name: "Dup A", description: "A", parametersSchema: [:])
+        let defB = WorkspaceToolDefinition(id: "dup", name: "Dup B", description: "B", parametersSchema: [:])
+
+        await manager.registerWorkspace(MockWorkspace(id: wsA, reference: refA, toolsToReturn: [.custom(defA)]))
+        await manager.registerWorkspace(MockWorkspace(id: wsB, reference: refB, toolsToReturn: [.custom(defB)]))
+
+        // Each Workspace keeps its own declaration instead of one overwriting the other in
+        // dictionary order, so explicit `at` routing can still reach either one.
+        let inA = await manager.tools(inWorkspace: wsA)
+        #expect(inA.count == 1)
+        #expect(inA.first?.name == "Dup A")
+        let inB = await manager.tools(inWorkspace: wsB)
+        #expect(inB.count == 1)
+        #expect(inB.first?.name == "Dup B")
+
+        // The flat list exposes both declarations so dispatch can detect ambiguity.
+        let available = await manager.getAvailableTools()
+        #expect(available.filter { $0.callName == "dup" }.count == 2)
+
+        // getTool(id:) stays deterministic rather than order-dependent.
+        let resolved = await manager.getTool(id: "dup")
+        #expect(resolved?.origin == .workspace(id: wsA, name: "pk://ws-a"))
+    }
 }

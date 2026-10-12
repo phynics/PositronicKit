@@ -497,6 +497,68 @@ struct WorkspaceToolDispatchIntegrationTests {
         #expect(await intentProbe.intentWasDurableBeforeExecution)
     }
 
+    @Test("duplicate custom tool IDs stay independently routable through the captured catalog")
+    func duplicateWorkspaceToolIDsRemainIndependentlyRoutable() async throws {
+        let persistence = MockPersistenceService()
+        let bindings = InMemoryWorkspaceBindingRepository()
+        let manager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                workspaceBindingRepository: bindings,
+                runtimeRepository: persistence
+            ),
+            workspaceProfile: .noWorkspace,
+            workspaceCreator: MockWorkspaceCreator()
+        )
+        let timeline = try await manager.createTimeline(title: "Duplicate tool IDs")
+
+        let defA = WorkspaceToolDefinition(id: "dup", name: "Dup A", description: "A", parametersSchema: [:])
+        let defB = WorkspaceToolDefinition(id: "dup", name: "Dup B", description: "B", parametersSchema: [:])
+        let wsA = WorkspaceReference(
+            uri: WorkspaceURI(host: "duplicate", path: "/a"),
+            location: .runtime,
+            tools: [.custom(defA)],
+            rootPath: "/tmp"
+        )
+        let wsB = WorkspaceReference(
+            uri: WorkspaceURI(host: "duplicate", path: "/b"),
+            location: .runtime,
+            tools: [.custom(defB)],
+            rootPath: "/tmp"
+        )
+        try await persistence.saveWorkspace(wsA)
+        try await persistence.saveWorkspace(wsB)
+        try await manager.attachWorkspace(wsA.id, to: timeline.id)
+        try await manager.attachWorkspace(wsB.id, to: timeline.id)
+
+        let catalog = try await manager.captureWorkspaceToolCatalog(
+            for: timeline.id,
+            primaryWorkspaceID: nil
+        )
+        #expect(catalog.entries.count == 2)
+        #expect(catalog.entries.allSatisfy { $0.tools.map(\.callName) == ["dup"] })
+
+        let dispatcher = WorkspaceToolDispatcher(timelineManager: manager)
+        let implicit = ParsedToolCall(
+            callId: "call-implicit",
+            name: WorkspaceToolDispatcher.callName,
+            argumentsJSON: "{\"tool\":\"dup\",\"arguments\":{}}"
+        )
+        #expect(throws: ToolError.self) {
+            _ = try dispatcher.prepare(call: implicit, catalog: catalog)
+        }
+
+        let explicit = ParsedToolCall(
+            callId: "call-explicit",
+            name: WorkspaceToolDispatcher.callName,
+            argumentsJSON: "{\"tool\":\"dup\",\"at\":\"\(wsB.id.uuidString)\",\"arguments\":{}}"
+        )
+        let dispatch = try dispatcher.prepare(call: explicit, catalog: catalog)
+        #expect(dispatch.route.workspaceID == wsB.id)
+    }
+
     @Test("mutating timeout holds the Workspace lane until the abandoned tool ends")
     func mutatingTimeoutHoldsLaneUntilAbandonedToolEnds() async throws {
         let probe = OverlapProbe()
