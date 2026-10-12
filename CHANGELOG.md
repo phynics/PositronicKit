@@ -15,6 +15,11 @@ for tagged releases beginning with `1.0.0`.
   a recognized missing-file error.
 - Timeline sends now fail without saving a destination message when source history cannot be read,
   preventing a storage failure from bypassing the cross-agent send depth limit.
+- Workspace tool catalog capture records a `.workspace` degradation when the live resolver or
+  `listTools` fails, instead of silently dropping the workspace's tools.
+- Two Workspaces that declare the same custom tool ID stay independently routable. The registry
+  no longer lets dictionary order overwrite one declaration, so `call_tool` rejects an implicit
+  ambiguous selection and `at` routes to the named Workspace.
 
 ### Changed
 
