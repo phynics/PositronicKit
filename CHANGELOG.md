@@ -104,6 +104,12 @@ for tagged releases beginning with `1.0.0`.
 
 ## [6.1.0] - 2026-09-30
 
+> **Source-breaking for 6.0.x consumers.** This minor release removed 185 public symbols relative
+> to 6.0.0, so a consumer pinned to `from: "6.0.0"` resolves it and can fail to compile. Stay on
+> the compatible line by pinning `exact: "6.0.x"`, or move to `7.0.0` when it ships. The `6.1.0`
+> tag is immutable; this notice records the break after publication. Every later minor and patch
+> release is gated against the previous release's frozen baseline.
+
 ### Breaking
 
 - **Truncation states the retained end:** `CompressionStrategy.truncate(tail:)` and

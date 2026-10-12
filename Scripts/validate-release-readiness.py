@@ -12,6 +12,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+VERSION_PATTERN = re.compile(r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)")
+RELEASE_HEADING_PATTERN = re.compile(
+    r"^## \[(?P<version>[0-9]+\.[0-9]+\.[0-9]+)\] - \d{4}-\d{2}-\d{2}$",
+    re.MULTILINE,
+)
+RELEASE_SECTION_PATTERN = re.compile(
+    r"^## \[(?P<version>[0-9]+\.[0-9]+\.[0-9]+)\](?: - [^\n]*)?\n(.*?)(?=^## \[|\Z)",
+    re.MULTILINE | re.DOTALL,
+)
+BREAKING_SECTION_PATTERN = re.compile(
+    r"^### Breaking\s*\n(.*?)(?=^### |^## |\Z)",
+    re.MULTILINE | re.DOTALL,
+)
+API_PLATFORMS = ("linux", "macos")
+MAX_REPORTED_VIOLATIONS = 50
+
 
 def fail(message: str) -> None:
     print(f"release readiness: {message}", file=sys.stderr)
@@ -26,6 +42,135 @@ def git(*arguments: str) -> str:
     if result.returncode:
         fail(result.stderr.strip() or f"git {' '.join(arguments)} failed")
     return result.stdout.strip()
+
+
+def version_components(version: str) -> tuple[int, int, int]:
+    match = VERSION_PATTERN.fullmatch(version)
+    if match is None:
+        fail(f"invalid semantic version: {version!r}")
+    return (int(match.group("major")), int(match.group("minor")), int(match.group("patch")))
+
+
+def release_kind(version: str) -> str:
+    """Classify a release by the SemVer component it advances."""
+    _, minor, patch = version_components(version)
+    if patch:
+        return "patch"
+    if minor:
+        return "minor"
+    return "major"
+
+
+def release_versions(changelog: str) -> list[str]:
+    return [match.group("version") for match in RELEASE_HEADING_PATTERN.finditer(changelog)]
+
+
+def previous_release(changelog: str, version: str) -> str | None:
+    """Return the dated release before `version` in the descending changelog."""
+    versions = release_versions(changelog)
+    try:
+        index = versions.index(version)
+    except ValueError:
+        return None
+    return versions[index + 1] if index + 1 < len(versions) else None
+
+
+def release_section(changelog: str, version: str) -> str | None:
+    for match in RELEASE_SECTION_PATTERN.finditer(changelog):
+        if match.group("version") == version:
+            return match.group(2)
+    return None
+
+
+def has_breaking_section(section: str) -> bool:
+    match = BREAKING_SECTION_PATTERN.search(section)
+    return match is not None and bool(match.group(1).strip())
+
+
+def symbol_label(symbol: dict) -> str:
+    return f"{symbol['module']}.{'/'.join(symbol['path'])}"
+
+
+def compare_public_surfaces(candidate: dict, previous: dict, kind: str) -> list[str]:
+    """Report the public symbols a release changes against its predecessor.
+
+    A patch release may not change the public surface at all, a minor release may
+    only add symbols, and a major release may change anything.
+    """
+    previous_symbols = {symbol["precise"]: symbol for symbol in previous.get("symbols", [])}
+    candidate_symbols = {symbol["precise"]: symbol for symbol in candidate.get("symbols", [])}
+    removed = sorted(set(previous_symbols) - set(candidate_symbols))
+    added = sorted(set(candidate_symbols) - set(previous_symbols))
+    changed = sorted(
+        precise for precise in set(previous_symbols) & set(candidate_symbols)
+        if previous_symbols[precise] != candidate_symbols[precise]
+    )
+    if kind == "major":
+        return []
+    failures = [
+        f"removed public symbol: {symbol_label(previous_symbols[precise])}"
+        for precise in removed
+    ]
+    if kind == "patch":
+        failures += [
+            f"added public symbol: {symbol_label(candidate_symbols[precise])}"
+            for precise in added
+        ]
+    failures += [
+        f"changed public symbol declaration: {symbol_label(candidate_symbols[precise])}"
+        for precise in changed
+    ]
+    return failures
+
+
+def candidate_baseline_path(root: Path, version: str, platform_name: str) -> Path:
+    """Return the baseline that ships in this release.
+
+    A minor or major release promotes its own `api/<major>.<minor>-*` file; a
+    patch release keeps the frozen minor baseline and compares `api/next-*`.
+    """
+    major, minor, patch = version_components(version)
+    release_path = root / "api" / f"{major}.{minor}-public-api-{platform_name}.json"
+    if patch == 0 and release_path.exists():
+        return release_path
+    return root / "api" / f"next-public-api-{platform_name}.json"
+
+
+def api_semver_violations(
+    root: Path,
+    version: str,
+    changelog: str,
+    platforms: tuple[str, ...] = API_PLATFORMS,
+) -> list[str]:
+    """Return the public API compatibility failures for a release candidate."""
+    kind = release_kind(version)
+    violations: list[str] = []
+    if kind == "major":
+        section = release_section(changelog, version)
+        if section is None or not has_breaking_section(section):
+            violations.append(
+                f"major release {version} must carry a non-empty `### Breaking` section"
+            )
+
+    previous_version = previous_release(changelog, version)
+    if previous_version is None:
+        return violations
+    previous_name = ".".join(previous_version.split(".")[:2])
+    for platform_name in platforms:
+        candidate_path = candidate_baseline_path(root, version, platform_name)
+        previous_path = root / "api" / f"{previous_name}-public-api-{platform_name}.json"
+        if not candidate_path.exists() or not previous_path.exists():
+            print(
+                f"release readiness: skipping the {kind} public API comparison for "
+                f"{platform_name} (missing {candidate_path.name} or {previous_path.name})",
+                file=sys.stderr,
+            )
+            continue
+        candidate = json.loads(candidate_path.read_text())
+        prior = json.loads(previous_path.read_text())
+        for failure in compare_public_surfaces(candidate, prior, kind):
+            violations.append(f"{failure} [{platform_name}]")
+    return violations
 
 
 def main() -> int:
@@ -47,13 +192,31 @@ def main() -> int:
         fail("CHANGELOG.md Unreleased must be empty after cutting the release section")
 
     baseline_release = ".".join(version.split(".")[:2])
-    for platform_name in ("linux", "macos"):
+    for platform_name in API_PLATFORMS:
         baseline_path = ROOT / "api" / f"{baseline_release}-public-api-{platform_name}.json"
         if not baseline_path.exists():
             fail(f"missing reviewed {platform_name} public API baseline: {baseline_path.relative_to(ROOT)}")
         baseline = json.loads(baseline_path.read_text())
         if baseline.get("release") != baseline_release or baseline.get("platform") != platform_name:
             fail(f"invalid release/platform metadata in {baseline_path.relative_to(ROOT)}")
+
+    violations = api_semver_violations(ROOT, version, changelog)
+    if violations:
+        print(
+            f"release readiness: {release_kind(version)} release {version} changes the public "
+            "API relative to the previous release:",
+            file=sys.stderr,
+        )
+        for violation in violations[:MAX_REPORTED_VIOLATIONS]:
+            print(f"  {violation}", file=sys.stderr)
+        if len(violations) > MAX_REPORTED_VIOLATIONS:
+            print(f"  ... and {len(violations) - MAX_REPORTED_VIOLATIONS} more", file=sys.stderr)
+        print(
+            "A patch release must not change the public API, and a minor release must not remove "
+            "or change symbols. Cut a major release for removals, or restore the symbols.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
 
     tag_ref = f"refs/tags/{version}"
     if git("cat-file", "-t", tag_ref) != "tag":
