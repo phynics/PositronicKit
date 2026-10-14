@@ -6,6 +6,7 @@ import Foundation
 /// Codes `8001`, `8002`, and `8007`–`8009` keep the numbers of the former embedding subsystem.
 /// Codes `8003`–`8006` remain unused; they belonged to the removed MiniLM backend. Transport
 /// failures reuse the provider HTTP error types.
+@_spi(Experimental)
 public enum EmbeddingError: PKError, Equatable {
     case modelUnavailable
     case generationFailed

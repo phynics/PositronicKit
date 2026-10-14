@@ -511,8 +511,8 @@ Provider products ship adapters: `PKOpenAI.makeEmbeddingClient(apiKey:model:)`,
 uses the deterministic test double so it runs without a provider:
 
 ```swift
-import PKContracts
-import PKTestSupport
+@_spi(Experimental) import PKContracts
+@_spi(Experimental) import PKTestSupport
 
 let embeddingClient = MockEmbeddingClient()
 let query = try await embeddingClient.embedQuery("swift concurrency")

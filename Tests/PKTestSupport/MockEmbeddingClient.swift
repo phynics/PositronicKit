@@ -1,5 +1,5 @@
 import Foundation
-import PKContracts
+@_spi(Experimental) import PKContracts
 import Synchronization
 
 /// Deterministic in-memory ``EmbeddingClientProtocol`` test double.
@@ -8,6 +8,7 @@ import Synchronization
 /// same vector and different texts produce different vectors. The client records every admitted
 /// request, exposes a configurable ``space`` and ``inputBudget``, and can be scripted to throw or
 /// to return the wrong number of embeddings so callers can exercise failure paths.
+@_spi(Experimental)
 public final class MockEmbeddingClient: EmbeddingClientProtocol, Sendable {
     private struct State: Sendable {
         var space: EmbeddingSpace

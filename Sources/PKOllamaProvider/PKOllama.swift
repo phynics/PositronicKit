@@ -41,6 +41,7 @@ public enum PKOllama: LLMProviderFactory {
     ///
     /// Embedding is a separate capability from chat. The runtime never calls this client; a host
     /// uses it inside its own `AgentContextSource` or `TurnContextSource`.
+    @_spi(Experimental)
     public static func makeEmbeddingClient(
         model: String = "nomic-embed-text",
         endpoint: String = "http://localhost:11434",

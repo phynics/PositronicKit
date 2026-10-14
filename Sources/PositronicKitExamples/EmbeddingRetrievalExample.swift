@@ -1,5 +1,5 @@
 import Foundation
-import PKContracts
+@_spi(Experimental) import PKContracts
 import PositronicKit
 
 /// Example host-owned semantic retrieval.
@@ -10,8 +10,10 @@ import PositronicKit
 /// ``Embedding/cosineSimilarity(to:)``, and contributes the top results as bounded Turn context.
 ///
 /// The runtime gains no embedding API. Storage, indexing, and ranking stay in the host.
+@_spi(Experimental)
 public struct EmbeddingRetrievalContextSource: TurnContextSource {
     /// One host-owned note and its pre-computed embedding.
+    @_spi(Experimental)
     public struct Note: Sendable, Equatable {
         public let id: UUID
         public let content: String

@@ -9,6 +9,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -70,7 +71,7 @@ def symbolgraph_extract_command() -> list[str]:
 
 
 PRIMARY_BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{PLATFORM}.json"
-BASELINE = PRIMARY_BASELINE
+EXPERIMENTAL_BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-experimental-api-{PLATFORM}.json"
 
 
 def public_modules() -> list[str]:
@@ -91,9 +92,117 @@ def reported_graph_directory(output: str) -> Path:
     return path if path.is_absolute() else ROOT / path
 
 
-def inventory() -> dict:
+def read_graphs(graph_dir: Path, modules: list[str]) -> tuple[dict[str, dict], dict[str, dict], set[str]]:
+    """Read symbol graphs into precise-keyed symbol and relationship maps."""
+    symbols: dict[str, dict] = {}
+    relationships: dict[str, dict] = {}
+    observed: set[str] = set()
+    for graph_path in sorted(graph_dir.rglob("*.symbols.json")):
+        graph = json.loads(graph_path.read_text())
+        module = graph["module"]["name"]
+        if module not in modules:
+            continue
+        observed.add(module)
+        for symbol in graph["symbols"]:
+            precise = symbol["identifier"]["precise"]
+            entry = {
+                "module": module,
+                "kind": symbol["kind"]["identifier"],
+                "path": symbol["pathComponents"],
+                "declaration": declaration(symbol),
+            }
+            existing = symbols.get(precise)
+            if existing is not None and existing != entry:
+                raise SystemExit(f"conflicting symbol graph entries for {precise}")
+            symbols[precise] = entry
+        for relationship in graph.get("relationships", []):
+            entry = {
+                "module": module,
+                **{
+                    key: relationship[key]
+                    for key in ("kind", "source", "target", "targetFallback", "sourceOrigin")
+                    if key in relationship
+                },
+            }
+            relationships[json.dumps(entry, sort_keys=True)] = entry
+    return symbols, relationships, observed
+
+
+def extract_graphs(modules: list[str], bin_path: Path, graph_dir: Path, include_spi: bool) -> None:
+    """Extract ``modules`` with swift-symbolgraph-extract into ``graph_dir``.
+
+    SwiftPM's ``dump-symbol-graph --include-spi-symbols`` does not emit SPI
+    symbols on Linux, so the experimental pass uses the extractor on every
+    platform. Both extractor passes run together so the SPI delta cannot pick up
+    an extractor-versus-SwiftPM difference in the stable surface.
+    """
+    generated_module_maps: Path | None = None
+    sdk: str | None = None
+    if platform.system() == "Darwin":
+        generated_module_maps = bin_path.parent.parent / "Intermediates.noindex" / "GeneratedModuleMaps"
+        sdk = run("xcrun", "--show-sdk-path")
+    graph_dir.mkdir(parents=True, exist_ok=True)
+    for module in modules:
+        candidates = list(bin_path.parent.parent.rglob(f"{module}.swiftmodule"))
+        if not candidates:
+            raise SystemExit(f"missing compiled module: {module}")
+        command = [
+            *symbolgraph_extract_command(),
+            "-module-name", module,
+            "-I", str(candidates[0].parent),
+            "-output-dir", str(graph_dir),
+            "-minimum-access-level", "public",
+            "-skip-synthesized-members",
+            "-skip-inherited-docs",
+        ]
+        if generated_module_maps is not None:
+            command += ["-I", str(generated_module_maps), "-sdk", sdk]
+        if include_spi:
+            command.append("-include-spi-symbols")
+        run(*command)
+
+
+def _extract_and_read(
+    modules: list[str], bin_path: Path, graph_dir: Path, include_spi: bool
+) -> tuple[dict[str, dict], dict[str, dict], set[str]]:
+    extract_graphs(modules, bin_path, graph_dir, include_spi)
+    symbols, relationships, observed = read_graphs(graph_dir, modules)
+    missing = sorted(set(modules) - observed)
+    if missing:
+        raise SystemExit("missing SPI symbol graphs: " + ", ".join(missing))
+    return symbols, relationships, observed
+
+
+def inventory(include_spi: bool = False) -> dict:
+    """Build the reviewed symbol inventory for the catalog's public modules.
+
+    The stable pass records SwiftPM's ``dump-symbol-graph`` output. The SPI pass
+    extracts every module twice with the same extractor, so the experimental
+    baseline holds only the surfaces SPI adds and never an extractor artifact.
+    """
     modules = public_modules()
     bin_path = Path(run("swift", "build", "--show-bin-path").splitlines()[-1])
+    if include_spi:
+        with tempfile.TemporaryDirectory() as scratch:
+            full_symbols, full_relationships, _ = _extract_and_read(
+                modules, bin_path, Path(scratch) / "full", include_spi=True
+            )
+            stable_symbols, stable_relationships, _ = _extract_and_read(
+                modules, bin_path, Path(scratch) / "stable", include_spi=False
+            )
+        symbols = {precise: entry for precise, entry in full_symbols.items() if precise not in stable_symbols}
+        relationships = {
+            key: entry for key, entry in full_relationships.items() if key not in stable_relationships
+        }
+        return {
+            "schemaVersion": 2,
+            "release": BASELINE_RELEASE,
+            "platform": PLATFORM,
+            "modules": modules,
+            "symbols": [dict(precise=precise, **symbols[precise]) for precise in sorted(symbols)],
+            "relationships": [relationships[key] for key in sorted(relationships)],
+        }
+
     # SwiftPM places the graphs beside the configuration directory (for
     # example `.build/x86_64-unknown-linux-gnu/symbolgraph`), so resolve from
     # the bin directory rather than the package `.build` root.
@@ -120,68 +229,22 @@ def inventory() -> dict:
         file=sys.stderr,
     )
 
-    graph_paths = sorted(graph_dir.rglob("*.symbols.json"))
     observed_graph_modules = {
         json.loads(path.read_text())["module"]["name"]
-        for path in graph_paths
+        for path in sorted(graph_dir.rglob("*.symbols.json"))
     }
     if platform.system() == "Darwin":
-        generated_module_maps = bin_path.parent.parent / "Intermediates.noindex" / "GeneratedModuleMaps"
-        sdk = run("xcrun", "--show-sdk-path")
-        fallback_modules = set(modules) - observed_graph_modules
-        fallback_modules.add("PKContracts")
-        for module in sorted(fallback_modules):
+        # SwiftPM skips some Apple-only modules, so re-extract them (and
+        # PKContracts for its cross-module relationships) to keep the stable
+        # surface complete.
+        fallback_modules = sorted({*set(modules) - observed_graph_modules, "PKContracts"})
+        for module in fallback_modules:
             for graph in graph_dir.rglob("*.symbols.json"):
                 if json.loads(graph.read_text())["module"]["name"] == module:
                     graph.unlink()
-            candidates = list(bin_path.parent.parent.rglob(f"{module}.swiftmodule"))
-            if not candidates:
-                continue
-            run(
-                *symbolgraph_extract_command(),
-                "-module-name", module,
-                "-I", str(candidates[0].parent),
-                "-I", str(generated_module_maps),
-                "-sdk", sdk,
-                "-output-dir", str(graph_dir),
-                "-minimum-access-level", "public",
-                "-skip-synthesized-members",
-                "-skip-inherited-docs",
-            )
+        extract_graphs(fallback_modules, bin_path, graph_dir, include_spi=False)
 
-    symbols: dict[str, dict] = {}
-    relationships: dict[str, dict] = {}
-    observed_modules: set[str] = set()
-    for graph_path in sorted(graph_dir.rglob("*.symbols.json")):
-        graph = json.loads(graph_path.read_text())
-        module = graph["module"]["name"]
-        if module not in modules:
-            continue
-        observed_modules.add(module)
-        for symbol in graph["symbols"]:
-            precise = symbol["identifier"]["precise"]
-            entry = {
-                "module": module,
-                "kind": symbol["kind"]["identifier"],
-                "path": symbol["pathComponents"],
-                "declaration": declaration(symbol),
-            }
-            existing = symbols.get(precise)
-            if existing is not None and existing != entry:
-                raise SystemExit(f"conflicting symbol graph entries for {precise}")
-            symbols[precise] = entry
-        for relationship in graph.get("relationships", []):
-            entry = {
-                "module": module,
-                **{
-                    key: relationship[key]
-                    for key in ("kind", "source", "target", "targetFallback", "sourceOrigin")
-                    if key in relationship
-                },
-            }
-            key = json.dumps(entry, sort_keys=True)
-            relationships[key] = entry
-
+    symbols, relationships, observed_modules = read_graphs(graph_dir, modules)
     missing = sorted(set(modules) - observed_modules)
     if missing:
         if dump_status:
@@ -204,17 +267,37 @@ def inventory() -> dict:
     }
 
 
+def experimental_delta(stable: dict, full: dict) -> dict:
+    stable_precise = {s["precise"] for s in stable["symbols"]}
+    stable_rel_keys = {
+        json.dumps(r, sort_keys=True) for r in stable["relationships"]
+    }
+    spi_symbols = [s for s in full["symbols"] if s["precise"] not in stable_precise]
+    spi_relationships = [
+        r for r in full["relationships"]
+        if json.dumps(r, sort_keys=True) not in stable_rel_keys
+    ]
+    return {
+        "schemaVersion": 2,
+        "release": BASELINE_RELEASE,
+        "platform": PLATFORM,
+        "modules": stable["modules"],
+        "symbols": spi_symbols,
+        "relationships": spi_relationships,
+    }
+
+
 def label(symbol: dict) -> str:
     return f"{symbol['module']}.{'/'.join(symbol['path'])}"
 
 
-def check(actual: dict) -> int:
-    if not BASELINE.exists():
-        print(f"public API baseline is missing: {BASELINE.relative_to(ROOT)}", file=sys.stderr)
+def check_baseline(baseline_path: Path, actual: dict, name: str) -> int:
+    if not baseline_path.exists():
+        print(f"{name.lower()} baseline is missing: {baseline_path.relative_to(ROOT)}", file=sys.stderr)
         return 1
-    expected = json.loads(BASELINE.read_text())
+    expected = json.loads(baseline_path.read_text())
     if expected == actual:
-        print(f"Public API matches {BASELINE.relative_to(ROOT)} ({len(actual['symbols'])} symbols).")
+        print(f"{name} matches {baseline_path.relative_to(ROOT)} ({len(actual['symbols'])} symbols).")
         return 0
 
     expected_symbols = {symbol["precise"]: symbol for symbol in expected.get("symbols", [])}
@@ -234,7 +317,7 @@ def check(actual: dict) -> int:
         for relationship in actual["relationships"]
     }
     print(
-        f"Public API differs from the reviewed baseline {BASELINE.relative_to(ROOT)}.",
+        f"{name} differs from the reviewed baseline {baseline_path.relative_to(ROOT)}.",
         file=sys.stderr,
     )
     for heading, identifiers, source in (
@@ -264,13 +347,24 @@ def main() -> int:
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--write", action="store_true")
     args = parser.parse_args()
-    actual = inventory()
+
+    stable = inventory(include_spi=False)
+    full = inventory(include_spi=True)
+    experimental = experimental_delta(stable, full)
+
     if args.write:
-        BASELINE.parent.mkdir(parents=True, exist_ok=True)
-        BASELINE.write_text(json.dumps(actual, indent=2, sort_keys=False) + "\n")
-        print(f"Wrote {BASELINE.relative_to(ROOT)} ({len(actual['symbols'])} symbols).")
+        for baseline_path, actual in (
+            (PRIMARY_BASELINE, stable),
+            (EXPERIMENTAL_BASELINE, experimental),
+        ):
+            baseline_path.parent.mkdir(parents=True, exist_ok=True)
+            baseline_path.write_text(json.dumps(actual, indent=2, sort_keys=False) + "\n")
+            print(f"Wrote {baseline_path.relative_to(ROOT)} ({len(actual['symbols'])} symbols).")
         return 0
-    return check(actual)
+
+    stable_status = check_baseline(PRIMARY_BASELINE, stable, "Public API")
+    experimental_status = check_baseline(EXPERIMENTAL_BASELINE, experimental, "Experimental API")
+    return 1 if (stable_status != 0 or experimental_status != 0) else 0
 
 
 if __name__ == "__main__":

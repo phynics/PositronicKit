@@ -5,6 +5,7 @@ import Foundation
 /// The protocol is deliberately separate from `LLMClientProtocol`: chat-only providers must not
 /// stub an embedding method. The runtime never calls an embedding client. Hosts use one inside
 /// their own `AgentContextSource` or `TurnContextSource` implementation.
+@_spi(Experimental)
 public protocol EmbeddingClientProtocol: Sendable {
     /// Largest request this client accepts. Larger requests are rejected before any I/O.
     var inputBudget: EmbeddingInputBudget { get }
@@ -13,6 +14,7 @@ public protocol EmbeddingClientProtocol: Sendable {
     func embed(_ request: EmbeddingRequest) async throws -> EmbeddingResponse
 }
 
+@_spi(Experimental)
 public extension EmbeddingClientProtocol {
     /// Embeds one query text.
     func embedQuery(_ text: String) async throws -> Embedding {

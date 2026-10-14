@@ -1,5 +1,5 @@
 import Foundation
-import PKContracts
+@_spi(Experimental) import PKContracts
 import Testing
 
 @Suite("EmbeddingInputBudget")

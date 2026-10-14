@@ -5,6 +5,7 @@ import Foundation
 /// Two embeddings are comparable only when their spaces are equal. Carrying provider, model,
 /// dimension, and normalization in the value prevents vectors from different models being
 /// compared silently.
+@_spi(Experimental)
 public struct EmbeddingSpace: Sendable, Codable, Hashable {
     /// Stable provider identifier, for example `"openai"`, `"ollama"`, or `"apple-nl"`.
     public let provider: String
