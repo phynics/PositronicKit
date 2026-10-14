@@ -40,30 +40,45 @@ The 6.1.0 release broke this rule before the gate existed: it removed 185 public
 to 6.0.0. The tag is immutable, so its changelog entry records the break, and consumers on
 `from: "6.0.0"` must pin `exact: "6.0.x"` or move to 7.0.0.
 
+## Experimental surfaces
+
+Experimental public surfaces ship behind `@_spi(Experimental)`. They are excluded from the
+semver-stable public API baseline and tracked in their own baselines
+(`api/next-experimental-api-<platform>.json`).
+
+- Experimental surfaces may change, evolve, or be removed in any minor release.
+- Graduating an experimental surface to semver-stable public API requires an owning issue and an
+  independently justified consumer story.
+- Breaking changes or removals of experimental surfaces do not trigger semver-major bumps, but they
+  must be documented in `CHANGELOG.md` under an `### Experimental` subsection.
+- Downstream consumers access experimental surfaces by adding `@_spi(Experimental)` to module
+  imports (e.g. `@_spi(Experimental) import PKContracts`).
+
 ## Before Tagging
 
 1. Merge every intended change into `CHANGELOG.md` under `Unreleased` and close out the open
    issues the release claims to deliver.
-2. Review the public API inventory with `make verify-public-api` on Linux and macOS. The platform
+2. Review the API inventory with `make verify-public-api` on Linux and macOS. The platform
    graphs differ, especially for Apple-only products, so the release requires reviewed
-   `api/next-public-api-linux.json` and `api/next-public-api-macos.json` files on `main`. For an
-   intentional contract change, inspect the reported symbols and record that platform with
-   `make update-public-api-baseline`; never update a baseline merely to make the gate pass. The
+   `api/next-public-api-<platform>.json` and `api/next-experimental-api-<platform>.json` files on
+   `main`. For an intentional contract change, inspect the reported symbols and record that platform
+   with `make update-public-api-baseline`; never update a baseline merely to make the gate pass. The
    checker uses the output directory reported by SwiftPM and validates every catalog module before
    treating extraction status as a failure, so errors for non-public test targets are tooling noise
    only when all reviewed public graphs are present.
-3. Generate the macOS Next baseline on macOS. A Linux host cannot extract the Apple-only graph, so a
+3. Generate the macOS Next baselines on macOS. A Linux host cannot extract the Apple-only graph, so a
    release prepared on Linux is not ready to tag until a macOS host has run
    `make verify-public-api` (or `make update-public-api-baseline`) against the same commit.
-   When the macOS CI lane fails `make verify-public-api`, it publishes the regenerated file as the
-   `macos-public-api-baseline` artifact. Retrieve and commit it from a Linux host:
+   When the macOS CI lane fails `make verify-public-api`, it publishes the regenerated files as the
+   `macos-public-api-baseline` artifact. Retrieve and commit them from a Linux host:
 
    ```bash
    gh run download <run-id> -n macos-public-api-baseline
    cp macos-public-api-baseline/next-public-api-macos.json api/
+   cp macos-public-api-baseline/next-experimental-api-macos.json api/
    ```
 
-   The lane publishes the artifact only for a public-API failure and never pushes the change
+   The lane publishes the artifact only for an API-baseline failure and never pushes the change
    itself.
    When both platform checks pass against the current Next baseline and the symbol graphs stay
    unchanged, freeze the release baselines with:

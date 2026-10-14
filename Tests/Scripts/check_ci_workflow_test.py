@@ -26,11 +26,15 @@ ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/ci.yml"
 MAKEFILE = ROOT / "Makefile"
 MACOS_JOB = "macos-verify"
+LINUX_JOB = "linux-verify"
 PREFLIGHT_JOB = "preflight"
 NEXT_BASELINE_SCRIPT = ROOT / "Scripts/public-api-baseline.py"
 IMMUTABILITY_CHECKER = "Scripts/check-public-api-baseline-immutability.py"
 PUBLIC_API_OUTCOME_CONDITION = (
     "if: failure() && steps.public-api.outcome == 'failure'"
+)
+LINUX_OUTCOME_CONDITION = (
+    "if: failure() && steps.linux-verify.outcome == 'failure'"
 )
 
 
@@ -137,8 +141,20 @@ def test_artifact_is_published_only_on_public_api_failure() -> None:
     job = job_block(workflow_text(), MACOS_JOB)
     assert "name: macos-public-api-baseline" in job, job
     assert "if-no-files-found: error" in job, job
-    assert "${{ steps.baseline.outputs.baseline }}" in job, job
-    assert "'api/next-public-api-macos.json'" in job, job
+    assert "api/next-public-api-macos.json" in job, job
+    assert "api/next-experimental-api-macos.json" in job, job
+    assert "overwrite: true" in job, job
+
+
+def test_linux_artifact_publishes_both_baselines() -> None:
+    job = job_block(workflow_text(), LINUX_JOB)
+    assert "make update-public-api-baseline" in job, job
+    assert job.count(LINUX_OUTCOME_CONDITION) >= 2, job
+    assert "name: linux-public-api-baseline" in job, job
+    assert "if-no-files-found: error" in job, job
+    assert "api/next-public-api-linux.json" in job, job
+    assert "api/next-experimental-api-linux.json" in job, job
+    assert "overwrite: true" in job, job
 
 
 if __name__ == "__main__":
@@ -151,6 +167,7 @@ if __name__ == "__main__":
         test_public_api_check_is_its_own_step,
         test_regeneration_runs_only_on_public_api_failure,
         test_artifact_is_published_only_on_public_api_failure,
+        test_linux_artifact_publishes_both_baselines,
     ]
     for test in tests:
         test()

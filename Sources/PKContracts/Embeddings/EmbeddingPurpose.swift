@@ -4,6 +4,7 @@ import Foundation
 ///
 /// Providers that handle queries and documents differently (a task type or an input prefix)
 /// map this value; providers whose model is symmetric ignore it.
+@_spi(Experimental)
 public enum EmbeddingPurpose: String, Sendable, Codable, Equatable {
     case query
     case document

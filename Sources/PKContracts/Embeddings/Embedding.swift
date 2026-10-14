@@ -4,6 +4,7 @@ import Foundation
 ///
 /// The space travels with the vector so a comparison between embeddings from different models
 /// fails loudly instead of returning a meaningless score.
+@_spi(Experimental)
 public struct Embedding: Sendable, Codable, Equatable {
     /// The vector components.
     public let vector: [Float]

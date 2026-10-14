@@ -2,11 +2,11 @@ import Foundation
 #if canImport(FoundationNetworking)
     import FoundationNetworking
 #endif
-import PKContracts
-import PKTestSupport
+@_spi(Experimental) import PKContracts
+@_spi(Experimental) import PKTestSupport
 import PKUtilities
 import Testing
-@testable import PKOllamaProvider
+@_spi(Experimental) @testable import PKOllamaProvider
 
 @Suite("Ollama embedding client")
 struct OllamaEmbeddingClientTests {

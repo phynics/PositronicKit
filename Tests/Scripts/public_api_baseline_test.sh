@@ -41,6 +41,32 @@ sed 's/"platform": "linux"/"platform": "macos"/' \
   "$fixture/api/$baseline_release-public-api-linux.json" \
   > "$fixture/api/$baseline_release-public-api-macos.json"
 
+# The experimental baselines contain the SPI-only symbol the fake toolchain
+# emits only when it runs with --include-spi-symbols, so a regression in the
+# delta (including it in the stable set or dropping it from the SPI set) fails.
+for platform_name in linux macos; do
+  cp "$fixture/api/$baseline_release-public-api-$platform_name.json" \
+    "$fixture/api/$baseline_release-experimental-api-$platform_name.json"
+  python3 - "$fixture/api/$baseline_release-experimental-api-$platform_name.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+document = json.loads(open(path).read())
+document["symbols"] = [
+    {
+        "precise": "s:10PKContracts16ExperimentalPeekV",
+        "module": "PKContracts",
+        "kind": "swift.struct",
+        "path": ["ExperimentalPeek"],
+        "declaration": "struct ExperimentalPeek",
+    }
+]
+with open(path, "w") as handle:
+    json.dump(document, handle, indent=2)
+PY
+done
+
 cat > "$fake_bin/swift" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -62,7 +88,12 @@ if [ "${1:-}" = "package" ] && [ "${2:-}" = "dump-symbol-graph" ]; then
     if [ "${OMIT_MODULE:-}" = "$module" ]; then
       continue
     fi
-    printf '{"module":{"name":"%s"},"symbols":[],"relationships":[]}\n' "$module" \
+    symbols="[]"
+    if [ "$module" = "PKContracts" ] && [[ " $* " == *" --include-spi-symbols "* ]] \
+        && [ "${EMIT_SPI:-1}" != "0" ]; then
+      symbols='[{"identifier":{"precise":"s:10PKContracts16ExperimentalPeekV"},"kind":{"identifier":"swift.struct"},"pathComponents":["ExperimentalPeek"],"declarationFragments":[{"spelling":"struct ExperimentalPeek"}]}]'
+    fi
+    printf '{"module":{"name":"%s"},"symbols":%s,"relationships":[]}\n' "$module" "$symbols" \
       > "$output_dir/$module.symbols.json"
     # A compiled module accompanies every emitted graph. The gate only
     # attempts its Darwin fallback extraction where a .swiftmodule exists,
@@ -81,8 +112,9 @@ chmod +x "$fake_bin/swift"
 # Hermetic stand-in for the Xcode toolchain pieces the baseline gate invokes
 # on Darwin: `--show-sdk-path` and `swift-symbolgraph-extract`. It regenerates
 # the requested module graph unless the module is deliberately omitted, which
-# keeps the missing-graph rejection meaningful on macOS. Linux runs never
-# reach for xcrun, so behavior there is unchanged.
+# keeps the missing-graph rejection meaningful on macOS. It also mirrors the
+# real extractor's `-include-spi-symbols` behavior, which the Linux SPI pass
+# now depends on.
 cat > "$fake_bin/xcrun" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -112,7 +144,12 @@ if [ "${1:-}" = "swift-symbolgraph-extract" ]; then
   if [ "$module" = "${OMIT_MODULE:-}" ]; then
     exit 0
   fi
-  printf '{"module":{"name":"%s"},"symbols":[],"relationships":[]}\n' "$module" \
+  symbols="[]"
+  if [ "$module" = "PKContracts" ] && [[ " $* " == *" -include-spi-symbols "* ]] \
+      && [ "${EMIT_SPI:-1}" != "0" ]; then
+    symbols='[{"identifier":{"precise":"s:10PKContracts16ExperimentalPeekV"},"kind":{"identifier":"swift.struct"},"pathComponents":["ExperimentalPeek"],"declarationFragments":[{"spelling":"struct ExperimentalPeek"}]}]'
+  fi
+  printf '{"module":{"name":"%s"},"symbols":%s,"relationships":[]}\n' "$module" "$symbols" \
     > "$output_dir/$module.symbols.json"
   exit 0
 fi
@@ -136,8 +173,18 @@ if [[ "$success_output" != *'Public API matches'* ]]; then
   printf '%s\n' "$success_output" >&2
   exit 1
 fi
+if [[ "$success_output" != *'Experimental API matches'* ]]; then
+  printf 'FAIL: expected experimental symbol graphs to match\n' >&2
+  printf '%s\n' "$success_output" >&2
+  exit 1
+fi
 if [[ "$success_output" != *"$baseline_release-public-api-$host_platform.json"* ]]; then
   printf 'FAIL: expected the primary baseline\n' >&2
+  printf '%s\n' "$success_output" >&2
+  exit 1
+fi
+if [[ "$success_output" != *"$baseline_release-experimental-api-$host_platform.json"* ]]; then
+  printf 'FAIL: expected the experimental baseline\n' >&2
   printf '%s\n' "$success_output" >&2
   exit 1
 fi
@@ -148,6 +195,11 @@ nonzero_output="$(<"$tmp_dir/nonzero.log")"
 nonzero_error="$(<"$tmp_dir/nonzero-error.log")"
 if [[ "$nonzero_output" != *'Public API matches'* ]]; then
   printf 'FAIL: expected complete public graphs to tolerate unrelated extraction errors\n' >&2
+  printf '%s\n' "$nonzero_output" >&2
+  exit 1
+fi
+if [[ "$nonzero_output" != *'Experimental API matches'* ]]; then
+  printf 'FAIL: expected complete experimental graphs to tolerate unrelated extraction errors\n' >&2
   printf '%s\n' "$nonzero_output" >&2
   exit 1
 fi
@@ -169,3 +221,15 @@ if [[ "$missing_output" != *'missing public symbol graphs: PKPrompt'* ]]; then
   exit 1
 fi
 printf 'ok: rejects an omitted public symbol graph\n'
+
+if EMIT_SPI=0 run_baseline > "$tmp_dir/experimental-mismatch.log" 2>&1; then
+  printf 'FAIL: expected an experimental baseline mismatch to fail the gate\n' >&2
+  exit 1
+fi
+experimental_mismatch_output="$(<"$tmp_dir/experimental-mismatch.log")"
+if [[ "$experimental_mismatch_output" != *'Experimental API differs'* ]]; then
+  printf 'FAIL: expected the experimental mismatch diagnostic\n' >&2
+  printf '%s\n' "$experimental_mismatch_output" >&2
+  exit 1
+fi
+printf 'ok: reports an experimental baseline mismatch\n'

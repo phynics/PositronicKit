@@ -130,7 +130,7 @@ def collect_imports(body: str) -> tuple[list[str], str]:
     imports: list[str] = []
     kept: list[str] = []
     for line in body.splitlines():
-        if re.match(r"^\s*(?:@_exported\s+|internal\s+|public\s+)?import\s", line):
+        if re.match(r"^\s*(?:@_spi\([^)]+\)\s+|@_exported\s+|internal\s+|public\s+)*import\s", line):
             stripped = line.strip()
             if stripped not in imports:
                 imports.append(stripped)
@@ -191,7 +191,14 @@ def render_block(
     main_actor: bool,
 ) -> str:
     lines = [f"// {source_label}"]
-    ordered = list(dict.fromkeys(imports + DEFAULT_IMPORTS))
+    spi_modules = set()
+    for imp in imports:
+        m = re.search(r"\bimport\s+([A-Za-z0-9_]+)", imp)
+        if m and "@_spi" in imp:
+            spi_modules.add(m.group(1))
+
+    defaults = [imp for imp in DEFAULT_IMPORTS if not (imp.startswith("import ") and imp.split()[1] in spi_modules)]
+    ordered = list(dict.fromkeys(imports + defaults))
     lines.extend(ordered)
     lines.append("")
     # Every block owns one namespace. Macro-attached declarations (`@Schemable`

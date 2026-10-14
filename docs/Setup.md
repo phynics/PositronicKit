@@ -237,7 +237,8 @@ Embedding is separate from chat. Provider modules expose embedding factories tha
 provider you use and keep the client in the host component that performs retrieval:
 
 ```swift
-import PKOpenAIProvider
+@_spi(Experimental) import PKContracts
+@_spi(Experimental) import PKOpenAIProvider
 
 let embeddingClient = PKOpenAI.makeEmbeddingClient(
     apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "",
