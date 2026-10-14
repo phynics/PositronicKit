@@ -97,8 +97,16 @@ _Avoid_: stream finished, best-effort completion
 
 **Timeline Runtime Repository**:
 The single transactional owner of Timeline metadata, append-only history, Turn admission with its
-input message, tool intent/results, terminal outcomes, and stale-Turn recovery.
+input message, tool intent/results, terminal outcomes, and stale-Turn recovery. It loads a
+``TurnLedgerSnapshot`` and commits a ``TurnLedgerCommit`` atomically; the transition rules live in
+the Turn Ledger.
 _Avoid_: persistence coordinator, prompt journal
+
+**Turn Ledger**:
+The runtime-owned, storage-free decision module for every durable Turn transition. A pure decision
+reads a ``TurnLedgerSnapshot`` and returns the rows to write; the repository applies them in one
+transaction.
+_Avoid_: turn state machine, in-memory repository
 
 ## History and continuity
 
