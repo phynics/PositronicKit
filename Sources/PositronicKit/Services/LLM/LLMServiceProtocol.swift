@@ -32,7 +32,7 @@ public struct LLMGenerationRequest: Sendable {
 /// Selects which configured model tier a streaming request should target.
 ///
 /// Replaces the former `useUtilityModel`/`useFastModel` boolean pair on
-/// ``LLMStreamClient/generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)``.
+/// ``LLMStreamClient/generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:promptCache:)``.
 /// Exactly one tier is selected per call — the previous booleans were ambiguous when both were
 /// `true` (the implementation checked `useFastModel` first, then `useUtilityModel`, then fell
 /// through to the primary client) and didn't document that precedence. `ModelTier` makes the

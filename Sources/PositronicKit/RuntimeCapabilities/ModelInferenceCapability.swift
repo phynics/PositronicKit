@@ -77,6 +77,9 @@ public struct ModelInferenceCapability: Sendable {
     ///   - transport: Which provider transport to use. Streaming is the default. With
     ///     `.requestResponse`, `idleTimeout` bounds the whole request because the provider
     ///     returns one terminal chunk.
+    ///   - promptCaching: Overrides the runtime's prompt-caching policy for this call. `nil`
+    ///     uses the runtime default. This Timeline-free path has no Timeline routing key, so
+    ///     the directive carries only the retention window.
     /// - Returns: The assembled content plus the provider's terminal metadata.
     public func generate(
         _ prompt: String,
@@ -110,6 +113,9 @@ public struct ModelInferenceCapability: Sendable {
     ///     60 seconds and is applied by the existing one-shot structured-output path. With
     ///     `.requestResponse`, it bounds the whole request.
     ///   - transport: Which provider transport to use. Streaming is the default.
+    ///   - promptCaching: Overrides the runtime's prompt-caching policy for this call. `nil`
+    ///     uses the runtime default. This Timeline-free path has no Timeline routing key, so
+    ///     the directive carries only the retention window.
     ///   - decoder: The decoder used to turn the model's JSON payload into `Output`.
     /// - Returns: The decoded structured response.
     /// - Throws: `PKContracts.StructuredGenerationError.schemaConstructionFailed(typeName:reason:)` when
@@ -170,6 +176,9 @@ public struct ModelInferenceCapability: Sendable {
     ///     a non-default runtime configuration. With `.requestResponse`, it bounds the whole
     ///     request.
     ///   - transport: Which provider transport to use. Streaming is the default.
+    ///   - promptCaching: Overrides the runtime's prompt-caching policy for this call. `nil`
+    ///     uses the runtime default. This Timeline-free path has no Timeline routing key, so
+    ///     the directive carries only the retention window.
     /// - Returns: The provider's raw chunk stream. Cancelling the consuming task cancels the
     ///   underlying provider request.
     public func stream(
@@ -192,7 +201,7 @@ public struct ModelInferenceCapability: Sendable {
     /// updating a Timeline.
     ///
     /// This is the raw-payload companion to
-    /// ``generate(_:from:generationParameters:idleTimeout:transport:decoder:)``: it returns the
+    /// ``generate(_:from:generationParameters:idleTimeout:transport:promptCaching:decoder:)``: it returns the
     /// provider's JSON string instead of decoding it into a value. Use it when the caller needs
     /// the raw payload, a hand-built schema, or plain JSON-object mode.
     ///
@@ -208,6 +217,9 @@ public struct ModelInferenceCapability: Sendable {
     ///     a non-default runtime configuration. With `.requestResponse`, it bounds the whole
     ///     request.
     ///   - transport: Which provider transport to use. Streaming is the default.
+    ///   - promptCaching: Overrides the runtime's prompt-caching policy for this call. `nil`
+    ///     uses the runtime default. This Timeline-free path has no Timeline routing key, so
+    ///     the directive carries only the retention window.
     /// - Returns: The raw structured payload (JSON), decodable via `StructuredOutputDecoder`.
     public func generate(
         _ prompt: String,

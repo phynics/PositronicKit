@@ -6,7 +6,7 @@ import PKUtilities
 ///
 /// The runtime resolves one effective policy per generation: a per-Turn override wins over the
 /// runtime default, and ``disabled`` sends no hints. Adapters decide how to translate the
-/// resulting ``PromptCacheDirective``; the runtime never emits provider wire values.
+/// resulting ``PKContracts/PromptCacheDirective``; the runtime never emits provider wire values.
 public enum PromptCachingPolicy: Sendable, Hashable {
     /// Request caching with the given retention window and the runtime's default tier layout.
     case automatic(retention: PromptCacheDirective.Retention = .short)
