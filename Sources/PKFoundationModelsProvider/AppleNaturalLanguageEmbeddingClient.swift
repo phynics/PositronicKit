@@ -1,7 +1,7 @@
 #if canImport(NaturalLanguage)
 import Foundation
 import NaturalLanguage
-import PKContracts
+@_spi(Experimental) import PKContracts
 
 /// `EmbeddingClientProtocol` adapter over Apple's Natural Language sentence embeddings.
 ///
@@ -11,6 +11,7 @@ import PKContracts
 ///
 /// The whole file is guarded by `#if canImport(NaturalLanguage)` so non-Apple hosts compile
 /// without the type.
+@_spi(Experimental)
 public actor AppleNaturalLanguageEmbeddingClient: EmbeddingClientProtocol {
     public nonisolated let inputBudget: EmbeddingInputBudget
 

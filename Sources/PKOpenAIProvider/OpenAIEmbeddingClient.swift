@@ -3,7 +3,7 @@ import Foundation
     import FoundationNetworking
 #endif
 import Logging
-import PKContracts
+@_spi(Experimental) import PKContracts
 import PKUtilities
 
 /// Wire request body for `POST /v1/embeddings`.
@@ -46,6 +46,7 @@ struct OpenAIEmbeddingResponseBody: Decodable {
 /// provider's `index` field, and stamps every embedding with an `EmbeddingSpace` whose
 /// provider is `"openai"`, whose model is the requested model, and whose dimensions come from
 /// the returned vector.
+@_spi(Experimental)
 public actor OpenAIEmbeddingClient: EmbeddingClientProtocol {
     /// Documented OpenAI embeddings request limits, expressed in UTF-8 bytes at roughly four
     /// bytes per token: 2048 inputs, 8191 tokens per input, and 300 000 tokens per request.

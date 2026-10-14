@@ -70,6 +70,7 @@ def symbolgraph_extract_command() -> list[str]:
 
 
 PRIMARY_BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{PLATFORM}.json"
+EXPERIMENTAL_BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-experimental-api-{PLATFORM}.json"
 BASELINE = PRIMARY_BASELINE
 
 
@@ -91,7 +92,7 @@ def reported_graph_directory(output: str) -> Path:
     return path if path.is_absolute() else ROOT / path
 
 
-def inventory() -> dict:
+def inventory(include_spi: bool = False) -> dict:
     modules = public_modules()
     bin_path = Path(run("swift", "build", "--show-bin-path").splitlines()[-1])
     # SwiftPM places the graphs beside the configuration directory (for
@@ -102,12 +103,16 @@ def inventory() -> dict:
     for graph in graph_dir.rglob("*.symbols.json"):
         graph.unlink()
 
-    dump_status, dump_output = run_result(
+    dump_arguments = [
         "swift", "package", "dump-symbol-graph",
         "--minimum-access-level", "public",
         "--skip-synthesized-members",
         "--skip-inherited-docs",
-    )
+    ]
+    if include_spi:
+        dump_arguments.append("--include-spi-symbols")
+
+    dump_status, dump_output = run_result(*dump_arguments)
     try:
         graph_dir = reported_graph_directory(dump_output)
     except SystemExit:
@@ -128,8 +133,11 @@ def inventory() -> dict:
     if platform.system() == "Darwin":
         generated_module_maps = bin_path.parent.parent / "Intermediates.noindex" / "GeneratedModuleMaps"
         sdk = run("xcrun", "--show-sdk-path")
-        fallback_modules = set(modules) - observed_graph_modules
-        fallback_modules.add("PKContracts")
+        if include_spi:
+            fallback_modules = set(modules)
+        else:
+            fallback_modules = set(modules) - observed_graph_modules
+            fallback_modules.add("PKContracts")
         for module in sorted(fallback_modules):
             for graph in graph_dir.rglob("*.symbols.json"):
                 if json.loads(graph.read_text())["module"]["name"] == module:
@@ -137,7 +145,7 @@ def inventory() -> dict:
             candidates = list(bin_path.parent.parent.rglob(f"{module}.swiftmodule"))
             if not candidates:
                 continue
-            run(
+            extract_cmd = [
                 *symbolgraph_extract_command(),
                 "-module-name", module,
                 "-I", str(candidates[0].parent),
@@ -147,7 +155,10 @@ def inventory() -> dict:
                 "-minimum-access-level", "public",
                 "-skip-synthesized-members",
                 "-skip-inherited-docs",
-            )
+            ]
+            if include_spi:
+                extract_cmd.append("-include-spi-symbols")
+            run(*extract_cmd)
 
     symbols: dict[str, dict] = {}
     relationships: dict[str, dict] = {}
@@ -204,17 +215,37 @@ def inventory() -> dict:
     }
 
 
+def experimental_delta(stable: dict, full: dict) -> dict:
+    stable_precise = {s["precise"] for s in stable["symbols"]}
+    stable_rel_keys = {
+        json.dumps(r, sort_keys=True) for r in stable["relationships"]
+    }
+    spi_symbols = [s for s in full["symbols"] if s["precise"] not in stable_precise]
+    spi_relationships = [
+        r for r in full["relationships"]
+        if json.dumps(r, sort_keys=True) not in stable_rel_keys
+    ]
+    return {
+        "schemaVersion": 2,
+        "release": BASELINE_RELEASE,
+        "platform": PLATFORM,
+        "modules": stable["modules"],
+        "symbols": spi_symbols,
+        "relationships": spi_relationships,
+    }
+
+
 def label(symbol: dict) -> str:
     return f"{symbol['module']}.{'/'.join(symbol['path'])}"
 
 
-def check(actual: dict) -> int:
-    if not BASELINE.exists():
-        print(f"public API baseline is missing: {BASELINE.relative_to(ROOT)}", file=sys.stderr)
+def check_baseline(baseline_path: Path, actual: dict, name: str) -> int:
+    if not baseline_path.exists():
+        print(f"{name.lower()} baseline is missing: {baseline_path.relative_to(ROOT)}", file=sys.stderr)
         return 1
-    expected = json.loads(BASELINE.read_text())
+    expected = json.loads(baseline_path.read_text())
     if expected == actual:
-        print(f"Public API matches {BASELINE.relative_to(ROOT)} ({len(actual['symbols'])} symbols).")
+        print(f"{name} matches {baseline_path.relative_to(ROOT)} ({len(actual['symbols'])} symbols).")
         return 0
 
     expected_symbols = {symbol["precise"]: symbol for symbol in expected.get("symbols", [])}
@@ -234,7 +265,7 @@ def check(actual: dict) -> int:
         for relationship in actual["relationships"]
     }
     print(
-        f"Public API differs from the reviewed baseline {BASELINE.relative_to(ROOT)}.",
+        f"{name} differs from the reviewed baseline {baseline_path.relative_to(ROOT)}.",
         file=sys.stderr,
     )
     for heading, identifiers, source in (
@@ -264,13 +295,24 @@ def main() -> int:
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--write", action="store_true")
     args = parser.parse_args()
-    actual = inventory()
+
+    stable = inventory(include_spi=False)
+    full = inventory(include_spi=True)
+    experimental = experimental_delta(stable, full)
+
     if args.write:
-        BASELINE.parent.mkdir(parents=True, exist_ok=True)
-        BASELINE.write_text(json.dumps(actual, indent=2, sort_keys=False) + "\n")
-        print(f"Wrote {BASELINE.relative_to(ROOT)} ({len(actual['symbols'])} symbols).")
+        for baseline_path, actual in (
+            (PRIMARY_BASELINE, stable),
+            (EXPERIMENTAL_BASELINE, experimental),
+        ):
+            baseline_path.parent.mkdir(parents=True, exist_ok=True)
+            baseline_path.write_text(json.dumps(actual, indent=2, sort_keys=False) + "\n")
+            print(f"Wrote {baseline_path.relative_to(ROOT)} ({len(actual['symbols'])} symbols).")
         return 0
-    return check(actual)
+
+    stable_status = check_baseline(PRIMARY_BASELINE, stable, "Public API")
+    experimental_status = check_baseline(EXPERIMENTAL_BASELINE, experimental, "Experimental API")
+    return 1 if (stable_status != 0 or experimental_status != 0) else 0
 
 
 if __name__ == "__main__":

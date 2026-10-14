@@ -41,6 +41,11 @@ sed 's/"platform": "linux"/"platform": "macos"/' \
   "$fixture/api/$baseline_release-public-api-linux.json" \
   > "$fixture/api/$baseline_release-public-api-macos.json"
 
+cp "$fixture/api/$baseline_release-public-api-linux.json" \
+  "$fixture/api/$baseline_release-experimental-api-linux.json"
+cp "$fixture/api/$baseline_release-public-api-macos.json" \
+  "$fixture/api/$baseline_release-experimental-api-macos.json"
+
 cat > "$fake_bin/swift" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -136,8 +141,18 @@ if [[ "$success_output" != *'Public API matches'* ]]; then
   printf '%s\n' "$success_output" >&2
   exit 1
 fi
+if [[ "$success_output" != *'Experimental API matches'* ]]; then
+  printf 'FAIL: expected experimental symbol graphs to match\n' >&2
+  printf '%s\n' "$success_output" >&2
+  exit 1
+fi
 if [[ "$success_output" != *"$baseline_release-public-api-$host_platform.json"* ]]; then
   printf 'FAIL: expected the primary baseline\n' >&2
+  printf '%s\n' "$success_output" >&2
+  exit 1
+fi
+if [[ "$success_output" != *"$baseline_release-experimental-api-$host_platform.json"* ]]; then
+  printf 'FAIL: expected the experimental baseline\n' >&2
   printf '%s\n' "$success_output" >&2
   exit 1
 fi
@@ -148,6 +163,11 @@ nonzero_output="$(<"$tmp_dir/nonzero.log")"
 nonzero_error="$(<"$tmp_dir/nonzero-error.log")"
 if [[ "$nonzero_output" != *'Public API matches'* ]]; then
   printf 'FAIL: expected complete public graphs to tolerate unrelated extraction errors\n' >&2
+  printf '%s\n' "$nonzero_output" >&2
+  exit 1
+fi
+if [[ "$nonzero_output" != *'Experimental API matches'* ]]; then
+  printf 'FAIL: expected complete experimental graphs to tolerate unrelated extraction errors\n' >&2
   printf '%s\n' "$nonzero_output" >&2
   exit 1
 fi

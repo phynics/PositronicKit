@@ -1,6 +1,6 @@
 import Foundation
-import PKContracts
-import PKTestSupport
+@_spi(Experimental) import PKContracts
+@_spi(Experimental) import PKTestSupport
 import PositronicKit
 import Testing
 

@@ -2,11 +2,11 @@ import Foundation
 #if canImport(FoundationNetworking)
     import FoundationNetworking
 #endif
-import PKContracts
-import PKTestSupport
+@_spi(Experimental) import PKContracts
+@_spi(Experimental) import PKTestSupport
 import PKUtilities
 import Testing
-@testable import PKOpenAIProvider
+@_spi(Experimental) @testable import PKOpenAIProvider
 
 @Suite("OpenAI embedding client")
 struct OpenAIEmbeddingClientTests {

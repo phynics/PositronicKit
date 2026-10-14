@@ -1,8 +1,8 @@
 import Foundation
-import PKContracts
-import PKTestSupport
+@_spi(Experimental) import PKContracts
+@_spi(Experimental) import PKTestSupport
 import PositronicKit
-import PositronicKitExamples
+@_spi(Experimental) import PositronicKitExamples
 import Testing
 
 @Suite("Embedding retrieval example")

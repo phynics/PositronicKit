@@ -3,7 +3,7 @@ import Foundation
     import FoundationNetworking
 #endif
 import Logging
-import PKContracts
+@_spi(Experimental) import PKContracts
 import PKUtilities
 
 /// Wire request body for `POST /api/embed`.
@@ -30,6 +30,7 @@ struct OllamaEmbedResponseBody: Decodable {
 /// Ollama's normalization depends on the pulled model, so every embedding reports
 /// `isNormalized: false` unless a caller verifies otherwise. The adapter declares the default
 /// budget and rejects an oversized request before any network I/O.
+@_spi(Experimental)
 public actor OllamaEmbeddingClient: EmbeddingClientProtocol {
     public nonisolated let inputBudget: EmbeddingInputBudget
 

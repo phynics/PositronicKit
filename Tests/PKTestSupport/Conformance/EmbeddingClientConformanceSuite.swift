@@ -1,5 +1,5 @@
 import Foundation
-import PKContracts
+@_spi(Experimental) import PKContracts
 internal import Testing
 
 /// Shared conformance checks for ``EmbeddingClientProtocol`` implementations.
@@ -9,6 +9,7 @@ internal import Testing
 /// request before I/O, that a wrong response count surfaces as
 /// ``EmbeddingError/responseCountMismatch(expected:actual:)``, and that
 /// ``EmbeddingClientProtocol/embedDocuments(_:)`` respects the declared batch boundaries.
+@_spi(Experimental)
 public enum EmbeddingClientConformanceSuite {
     /// Runs the conformance checks for a client that returns deterministic embeddings.
     public static func run(

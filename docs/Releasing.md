@@ -40,6 +40,20 @@ The 6.1.0 release broke this rule before the gate existed: it removed 185 public
 to 6.0.0. The tag is immutable, so its changelog entry records the break, and consumers on
 `from: "6.0.0"` must pin `exact: "6.0.x"` or move to 7.0.0.
 
+## Experimental surfaces
+
+Experimental public surfaces ship behind `@_spi(Experimental)`. They are excluded from the
+semver-stable public API baseline and tracked in their own baselines
+(`api/next-experimental-api-<platform>.json`).
+
+- Experimental surfaces may change, evolve, or be removed in any minor release.
+- Graduating an experimental surface to semver-stable public API requires an owning issue and an
+  independently justified consumer story.
+- Breaking changes or removals of experimental surfaces do not trigger semver-major bumps, but they
+  must be documented in `CHANGELOG.md` under an `### Experimental` subsection.
+- Downstream consumers access experimental surfaces by adding `@_spi(Experimental)` to module
+  imports (e.g. `@_spi(Experimental) import PKContracts`).
+
 ## Before Tagging
 
 1. Merge every intended change into `CHANGELOG.md` under `Unreleased` and close out the open

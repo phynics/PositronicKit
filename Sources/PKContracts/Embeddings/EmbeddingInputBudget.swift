@@ -5,6 +5,7 @@ import Foundation
 /// Clients declare their budget so callers can reject oversized input before any network or
 /// inference work. ``EmbeddingClientProtocol/embedDocuments(_:)`` also uses the budget to split a
 /// large document set into admitted batches.
+@_spi(Experimental)
 public struct EmbeddingInputBudget: Sendable, Equatable {
     /// Maximum number of texts allowed in a single request.
     public let maxTextCount: Int

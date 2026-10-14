@@ -1,6 +1,7 @@
 import Foundation
 
 /// A batch of texts to embed as one provider request.
+@_spi(Experimental)
 public struct EmbeddingRequest: Sendable, Equatable {
     /// The texts to embed, in the order the caller wants the embeddings returned.
     public var inputs: [String]
@@ -20,6 +21,7 @@ public struct EmbeddingRequest: Sendable, Equatable {
 }
 
 /// Token accounting reported by an embedding provider.
+@_spi(Experimental)
 public struct EmbeddingUsage: Sendable, Codable, Equatable {
     /// Input tokens consumed by the request.
     public let inputTokens: Int
@@ -30,6 +32,7 @@ public struct EmbeddingUsage: Sendable, Codable, Equatable {
 }
 
 /// The embeddings returned for an ``EmbeddingRequest``.
+@_spi(Experimental)
 public struct EmbeddingResponse: Sendable, Equatable {
     /// Embeddings in the same order and count as the request inputs.
     public let embeddings: [Embedding]
