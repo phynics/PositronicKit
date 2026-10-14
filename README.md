@@ -146,7 +146,10 @@ case .unavailable(let reason):
 }
 ```
 
-Use `await kit.model.readiness() == .ready` when a Boolean check is needed.
+Use `await kit.model.readiness() == .ready` when a Boolean check is needed. Unlike the removed
+`isConfigured`, `readiness()` also requires a resolved primary client, so `== .ready` can be false
+while the configuration is still valid; test `LLMConfiguration.isValid` when only configuration
+validity matters.
 Use `try await kit.model.checkHealth()` separately for provider connectivity. A health check may
 perform network I/O; it throws `ModelHealthError.unsupported` when a custom client does not
 conform to `HealthCheckable`. Neither check guarantees that a later request will succeed. Treat

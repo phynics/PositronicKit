@@ -1,7 +1,7 @@
 import Foundation
 
 /// Shared `JSONEncoder`/`JSONDecoder` instances with consistent date handling, for callers
-/// that need to encode/decode without timelineing their own configured coder.
+/// that need to encode or decode without hand-rolling a configured coder.
 @usableFromInline
 package enum SerializationUtils {
     /// A `JSONEncoder` configured to encode `Date` as ISO 8601.

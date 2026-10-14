@@ -134,7 +134,9 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
 
     /// Designated: explicit configuration plus the client set to dispatch through.
     ///
-    /// The service is immediately ready — no storage load is performed.
+    /// The service is immediately ready — no storage load is performed. The supplied clients are
+    /// pinned: ``updateConfiguration(_:)`` replaces the configuration but keeps dispatching through
+    /// this client set, so hosts whose clients depend on configuration build a new service.
     public init(
         configuration: LLMConfiguration,
         clients: LLMClientSet,
