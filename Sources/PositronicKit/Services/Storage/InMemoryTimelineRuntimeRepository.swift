@@ -5,10 +5,10 @@ import PKUtilities
 /// An actor-backed reference implementation of ``TimelineRuntimeRepository``.
 ///
 /// The actor gives tests and local hosts one serialization boundary. The transition rules
-/// themselves live in ``TurnLedger``: each method loads a ``TurnLedgerSnapshot``, asks the ledger
-/// for a decision, and applies the returned ``TurnLedgerCommit`` without an actor suspension, so
-/// the snapshot and the commit are one actor-isolated transition. A database-backed adapter
-/// implements the same shape against a storage transaction.
+/// themselves live in the package-scoped `TurnLedger`: each method loads a ledger snapshot, asks
+/// the ledger for a decision, and applies the returned commit without an actor suspension, so the
+/// snapshot and the commit are one actor-isolated transition. A database-backed adapter implements
+/// the same shape against a storage transaction.
 public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, WorkspaceBindingRepository {
     private struct ToolKey: Hashable {
         let turnID: UUID
