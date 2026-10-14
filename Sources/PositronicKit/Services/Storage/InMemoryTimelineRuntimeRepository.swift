@@ -4,9 +4,11 @@ import PKUtilities
 
 /// An actor-backed reference implementation of ``TimelineRuntimeRepository``.
 ///
-/// The actor gives tests and local hosts one serialization boundary with the same transition
-/// rules that a database-backed adapter must preserve. It is intentionally ephemeral; production
-/// adapters should implement the protocol against a durable transaction.
+/// The actor gives tests and local hosts one serialization boundary. The transition rules
+/// themselves live in ``TurnLedger``: each method loads a ``TurnLedgerSnapshot``, asks the ledger
+/// for a decision, and applies the returned ``TurnLedgerCommit`` without an actor suspension, so
+/// the snapshot and the commit are one actor-isolated transition. A database-backed adapter
+/// implements the same shape against a storage transaction.
 public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, WorkspaceBindingRepository {
     private struct ToolKey: Hashable {
         let turnID: UUID
@@ -108,122 +110,19 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         turnID: UUID,
         now: Date
     ) async throws -> TurnAdmission {
-        guard timelines[timelineID] != nil else {
-            throw TimelineRuntimeRepositoryError.timelineNotFound(timelineID)
-        }
-
-        if let inputMessage, inputMessage.timelineID != timelineID {
-            throw TimelineRuntimeRepositoryError.inputMessageTimelineMismatch(
-                messageID: inputMessage.id,
-                expectedTimelineID: timelineID,
-                actualTimelineID: inputMessage.timelineID
-            )
-        }
-
-        let callerIntent = TurnCallerIntent(requestID: requestID, fingerprint: callerIntentFingerprint)
-        let matching = turns.values
-            .filter { $0.timelineID == timelineID && $0.callerIntent.requestID == requestID }
-            .max { $0.createdAt < $1.createdAt }
-        var retryRelation: TurnRetryRelation?
-        if let matching {
-            if matching.callerIntent.fingerprint == callerIntentFingerprint, !matching.isTerminal {
-                return TurnAdmission(disposition: .joined, turn: matching)
-            }
-            if matching.callerIntent.fingerprint == callerIntentFingerprint,
-               isCompleted(matching.outcome)
-            {
-                return TurnAdmission(disposition: .replayed, turn: matching)
-            }
-            if matching.isQuarantined {
-                // A quarantined Timeline rejects admission until an operator releases it; the
-                // original request ID may not be replayed while the side effect is unreconciled.
-                throw TimelineRuntimeRepositoryError.timelineQuarantined(
-                    timelineID: timelineID,
-                    turnID: matching.identity.turnID
-                )
-            }
-            // A failed/cancelled/interrupted attempt may be retried with the same request ID,
-            // whether the retry repeats the exact input or supplies changed tool outputs. The
-            // retry is a new durable Turn linked to the failed attempt; completed Turns and
-            // active attempts remain strict idempotency conflicts.
-            guard matching.isTerminal,
-                  !isCompleted(matching.outcome)
-            else {
-                throw TimelineRuntimeRepositoryError.idempotencyConflict(requestID: requestID)
-            }
-            retryRelation = TurnRetryRelation(
-                retriedTurnID: matching.identity.turnID,
-                attempt: (matching.retryRelation?.attempt ?? 0) + 1
-            )
-        }
-
-        if let quarantineTurnID = quarantinedTurns[timelineID] {
-            throw TimelineRuntimeRepositoryError.timelineQuarantined(timelineID: timelineID, turnID: quarantineTurnID)
-        }
-        if let activeTurnID = activeTurns[timelineID] {
-            throw TimelineRuntimeRepositoryError.timelineBusy(timelineID: timelineID, activeTurnID: activeTurnID)
-        }
-
-        let identity = TurnIdentity(turnID: turnID, requestID: requestID, modelRoundIndex: 0)
-        let record = TurnRecord(
-            identity: identity,
+        let decision = try TurnLedger.decideAdmission(
+            snapshot: ledgerSnapshot(forTimeline: timelineID),
             timelineID: timelineID,
-            callerIntent: callerIntent,
+            requestID: requestID,
+            callerIntentFingerprint: callerIntentFingerprint,
+            inputMessage: inputMessage,
             executionKind: executionKind,
             capturedAgentID: capturedAgentID,
-            lifecycle: .admitted,
-            notices: [TurnNotice(kind: "turn-admitted", createdAt: now)],
-            retryRelation: retryRelation,
-            memberMessageIDs: inputMessage.map { [$0.id] } ?? [],
-            createdAt: now,
-            updatedAt: now
+            turnID: turnID,
+            now: now
         )
-        if let inputMessage {
-            if let existing = messages[timelineID]?.first(where: { $0.id == inputMessage.id }) {
-                // Reusing a durable input is only valid for a retry of the Turn that owns it.
-                // Otherwise admission would claim an unrelated writer's existing message.
-                guard let matching, retryRelation != nil else {
-                    throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: inputMessage.id)
-                }
-                // Older failed Turns predate membership tracking. Their membership is unknown,
-                // so preserve the legacy retry path and rely on the existing message equivalence
-                // check below rather than falsely treating unknown as unowned.
-                guard matching.memberMessageIDs == nil || matching.memberMessageIDs?.contains(inputMessage.id) == true else {
-                    throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: inputMessage.id)
-                }
-                guard messagesEquivalentIgnoringTimestamp(existing, inputMessage) else {
-                    throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: inputMessage.id)
-                }
-            } else {
-                try appendMessage(inputMessage)
-            }
-        }
-        turns[turnID] = record
-        activeTurns[timelineID] = turnID
-        return TurnAdmission(disposition: .admitted, turn: record)
-    }
-
-    public func fetchTurn(id: UUID) async throws -> TurnRecord? {
-        turns[id]
-    }
-
-    public func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws {
-        var turn = try openTurn(turnID, on: message.timelineID)
-        if messages[message.timelineID]?.contains(where: { $0.id == message.id }) == true,
-           turn.memberMessageIDs?.contains(message.id) != true
-        {
-            throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: message.id)
-        }
-        try appendMessage(message)
-        if turn.memberMessageIDs?.contains(message.id) == false {
-            turn.memberMessageIDs?.append(message.id)
-        }
-        turns[turnID] = turn
-    }
-
-    public func fetchActiveTurn(for timelineID: UUID) async throws -> TurnRecord? {
-        guard let id = activeTurns[timelineID] else { return nil }
-        return turns[id]
+        try apply(decision.commit)
+        return decision.result
     }
 
     public func admitRetry(
@@ -238,39 +137,58 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         attempt: Int,
         now: Date
     ) async throws -> TurnAdmission {
-        guard let previous = turns[previousTurnID], previous.timelineID == timelineID else {
-            throw TimelineRuntimeRepositoryError.turnNotFound(previousTurnID)
-        }
-        var admission = try await admitTurn(
+        let decision = try TurnLedger.decideAdmitRetry(
+            snapshot: ledgerSnapshot(forTimeline: timelineID),
             timelineID: timelineID,
+            previousTurnID: previousTurnID,
             requestID: requestID,
             callerIntentFingerprint: callerIntentFingerprint,
             inputMessage: inputMessage,
             executionKind: executionKind,
             capturedAgentID: capturedAgentID,
             turnID: turnID,
+            attempt: attempt,
             now: now
         )
-        guard admission.disposition == .admitted else { return admission }
-        var record = admission.turn
-        record.retryRelation = TurnRetryRelation(retriedTurnID: previousTurnID, attempt: attempt)
-        turns[turnID] = record
-        admission = TurnAdmission(disposition: .admitted, turn: record)
-        return admission
+        try apply(decision.commit)
+        return decision.result
+    }
+
+    public func fetchTurn(id: UUID) async throws -> TurnRecord? {
+        turns[id]
+    }
+
+    public func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws {
+        let decision = try TurnLedger.decideRecordTurnMessage(
+            snapshot: try ledgerSnapshot(forTurn: turnID),
+            turnID: turnID,
+            message: message
+        )
+        try apply(decision.commit)
+    }
+
+    public func fetchActiveTurn(for timelineID: UUID) async throws -> TurnRecord? {
+        guard let id = activeTurns[timelineID] else { return nil }
+        return turns[id]
     }
 
     public func appendNotice(turnID: UUID, notice: TurnNotice) async throws {
-        var turn = try mutableTurn(turnID)
-        turn.notices.append(notice)
-        turn.updatedAt = notice.createdAt
-        turns[turnID] = turn
+        let decision = try TurnLedger.decideAppendNotice(
+            snapshot: try ledgerSnapshot(forTurn: turnID),
+            turnID: turnID,
+            notice: notice
+        )
+        try apply(decision.commit)
     }
 
     public func appendCorrelation(turnID: UUID, correlation: TurnCorrelation, now: Date) async throws {
-        var turn = try openTurn(turnID)
-        turn.correlations.append(correlation)
-        turn.updatedAt = now
-        turns[turnID] = turn
+        let decision = try TurnLedger.decideAppendCorrelation(
+            snapshot: try ledgerSnapshot(forTurn: turnID),
+            turnID: turnID,
+            correlation: correlation,
+            now: now
+        )
+        try apply(decision.commit)
     }
 
     public func fetchNotices(turnID: UUID) async throws -> [TurnNotice] {
@@ -284,18 +202,13 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
     // MARK: Ordering barriers
 
     public func beginModelRound(turnID: UUID, modelRoundIndex: Int, now: Date) async throws {
-        var turn = try openTurn(turnID)
-        let unresolved = intents.values
-            .filter { $0.turnID == turnID && $0.modelRoundIndex < modelRoundIndex }
-            .first { results[ToolKey(turnID: $0.turnID, toolCallID: $0.toolCallID)] == nil }
-        if let unresolved {
-            throw TimelineRuntimeRepositoryError.toolIntentRequired(turnID: turnID, toolCallID: unresolved.toolCallID)
-        }
-        turn.lifecycle = .running
-        turn.currentModelRoundIndex = modelRoundIndex
-        turn.updatedAt = now
-        turn.notices.append(TurnNotice(kind: "model-round-started", message: "(modelRoundIndex)", createdAt: now))
-        turns[turnID] = turn
+        let decision = try TurnLedger.decideBeginModelRound(
+            snapshot: try ledgerSnapshot(forTurn: turnID),
+            turnID: turnID,
+            modelRoundIndex: modelRoundIndex,
+            now: now
+        )
+        try apply(decision.commit)
     }
 
     public func recordProviderRequest(
@@ -304,33 +217,38 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         correlation: TurnCorrelation?,
         now: Date
     ) async throws {
-        var turn = try openTurn(turnID)
-        turn.lifecycle = .running
-        turn.updatedAt = now
-        turn.notices.append(TurnNotice(kind: "provider-request-durable", message: "(modelRoundIndex)", createdAt: now))
-        if let correlation { turn.correlations.append(correlation) }
-        turns[turnID] = turn
+        let decision = try TurnLedger.decideRecordProviderRequest(
+            snapshot: try ledgerSnapshot(forTurn: turnID),
+            turnID: turnID,
+            correlation: correlation,
+            now: now
+        )
+        try apply(decision.commit)
     }
 
     public func recordToolIntent(_ intent: RuntimeToolIntent) async throws {
-        var turn = try openTurn(intent.turnID, on: intent.timelineID)
-        let key = ToolKey(turnID: intent.turnID, toolCallID: intent.toolCallID)
-        if intents[key] != nil {
-            throw TimelineRuntimeRepositoryError.duplicateToolIntent(turnID: intent.turnID, toolCallID: intent.toolCallID)
-        }
-        intents[key] = intent
-        turn.lifecycle = .awaitingTool
-        turn.updatedAt = intent.createdAt
-        turn.notices.append(TurnNotice(kind: "tool-intent-durable", message: intent.toolCallID, createdAt: intent.createdAt))
-        turns[intent.turnID] = turn
+        let decision = try TurnLedger.decideRecordToolIntent(
+            snapshot: try ledgerSnapshot(forTurn: intent.turnID),
+            intent: intent
+        )
+        try apply(decision.commit)
     }
 
     public func recordToolResult(_ result: RuntimeToolResult) async throws {
-        try commitToolResult(result, appending: nil)
+        try await commitToolResult(result, message: nil)
     }
 
     public func recordToolResult(_ result: RuntimeToolResult, message: TimelineMessage) async throws {
-        try commitToolResult(result, appending: message)
+        try await commitToolResult(result, message: message)
+    }
+
+    private func commitToolResult(_ result: RuntimeToolResult, message: TimelineMessage?) async throws {
+        let decision = try TurnLedger.decideRecordToolResult(
+            snapshot: try ledgerSnapshot(forTurn: result.turnID),
+            result: result,
+            message: message
+        )
+        try apply(decision.commit)
     }
 
     public func fetchToolIntents(turnID: UUID) async throws -> [RuntimeToolIntent] {
@@ -350,43 +268,16 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         terminalHandle: TurnTerminalHandle?,
         now: Date
     ) async throws -> TurnRecord {
-        var turn = try mutableTurn(turnID)
-        guard !turn.isTerminal else {
-            return turn
-        }
-        if case .completed = outcome,
-           let pending = try await firstUnresolvedToolIntent(turnID: turnID)
-        {
-            throw TimelineRuntimeRepositoryError.toolIntentRequired(turnID: turnID, toolCallID: pending.toolCallID)
-        }
-        if let finalMessage {
-            guard finalMessage.timelineID == turn.timelineID else {
-                throw TimelineRuntimeRepositoryError.finalMessageTimelineMismatch(
-                    messageID: finalMessage.id,
-                    expectedTimelineID: turn.timelineID,
-                    actualTimelineID: finalMessage.timelineID
-                )
-            }
-            // A pre-existing assistant message may be the current Turn's already-recorded
-            // intermediate row. Never claim an unrelated writer's row as a new member.
-            let alreadyPresent = messages[turn.timelineID]?.contains(where: { $0.id == finalMessage.id }) ?? false
-            if alreadyPresent, turn.memberMessageIDs?.contains(finalMessage.id) != true {
-                throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: finalMessage.id)
-            }
-            try appendMessage(finalMessage)
-            if !alreadyPresent, turn.memberMessageIDs?.contains(finalMessage.id) == false {
-                turn.memberMessageIDs?.append(finalMessage.id)
-            }
-        }
-        turn.outcome = outcome
-        turn.lifecycle = lifecycle(for: outcome)
-        turn.terminalHandle = terminalHandle
-        turn.terminalMessageID = finalMessage?.id
-        turn.updatedAt = now
-        turn.notices.append(TurnNotice(kind: "turn-terminal", message: terminalMessage(for: outcome), createdAt: now))
-        activeTurns.removeValue(forKey: turn.timelineID)
-        turns[turnID] = turn
-        return turn
+        let decision = try TurnLedger.decideCompleteTurn(
+            snapshot: try ledgerSnapshot(forTurn: turnID),
+            turnID: turnID,
+            outcome: outcome,
+            finalMessage: finalMessage,
+            terminalHandle: terminalHandle,
+            now: now
+        )
+        try apply(decision.commit)
+        return decision.result
     }
 
     public func interruptTurn(
@@ -395,32 +286,15 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         disposition: TurnInterruptDisposition,
         now: Date
     ) async throws -> TurnInterruptResult {
-        var turn = try mutableTurn(turnID)
-        guard !turn.isTerminal else {
-            // First-writer-wins: the Turn's owner already committed a terminal outcome, so the
-            // interruption changes nothing and reports the durable record.
-            return .alreadyTerminal(turn)
-        }
-        turn.outcome = .interrupted(reason: reason)
-        turn.lifecycle = .interrupted
-        turn.updatedAt = now
-        switch disposition {
-        case .retryable:
-            turn.quarantine = nil
-            // Only clear this Turn's own quarantine marker; a marker for a different Turn (for
-            // example one quarantined by `deleteTimeline`) stays until the operator releases it.
-            if quarantinedTurns[turn.timelineID] == turnID {
-                quarantinedTurns.removeValue(forKey: turn.timelineID)
-            }
-            turn.notices.append(TurnNotice(kind: "turn-interrupted", message: reason, createdAt: now))
-        case let .quarantined(message):
-            turn.quarantine = TurnQuarantine(reason: message, createdAt: now)
-            quarantinedTurns[turn.timelineID] = turnID
-            turn.notices.append(TurnNotice(kind: "turn-quarantined", message: message, createdAt: now))
-        }
-        activeTurns.removeValue(forKey: turn.timelineID)
-        turns[turnID] = turn
-        return .interrupted(turn)
+        let decision = try TurnLedger.decideInterruptTurn(
+            snapshot: try ledgerSnapshot(forTurn: turnID),
+            turnID: turnID,
+            reason: reason,
+            disposition: disposition,
+            now: now
+        )
+        try apply(decision.commit)
+        return decision.result
     }
 
     public func releaseQuarantine(
@@ -429,21 +303,15 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         confirmation: QuarantineReleaseConfirmation,
         now: Date
     ) async throws -> TurnRecord {
-        guard confirmation.phrase == QuarantineReleaseConfirmation.requiredPhrase else {
-            throw TimelineRuntimeRepositoryError.confirmationRequired
-        }
-        var turn = try mutableTurn(turnID)
-        guard turn.timelineID == timelineID, turn.isQuarantined else {
-            throw TimelineRuntimeRepositoryError.quarantineNotFound(timelineID: timelineID, turnID: turnID)
-        }
-        turn.quarantine = nil
-        turn.updatedAt = now
-        turn.notices.append(TurnNotice(kind: "turn-quarantine-released", createdAt: now))
-        turns[turnID] = turn
-        if quarantinedTurns[timelineID] == turnID {
-            quarantinedTurns.removeValue(forKey: timelineID)
-        }
-        return turn
+        let decision = try TurnLedger.decideReleaseQuarantine(
+            snapshot: try ledgerSnapshot(forTurn: turnID),
+            timelineID: timelineID,
+            turnID: turnID,
+            confirmation: confirmation,
+            now: now
+        )
+        try apply(decision.commit)
+        return decision.result
     }
 
     // MARK: WorkspaceBindingRepository
@@ -486,6 +354,67 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         workspaceBindings.timelineID(for: workspaceID)
     }
 
+    // MARK: Ledger adapter
+
+    /// Loads the Timeline-scoped ledger snapshot: every Turn and message for the Timeline plus
+    /// its active and quarantine pointers.
+    private func ledgerSnapshot(forTimeline timelineID: UUID) -> TurnLedgerSnapshot {
+        TurnLedgerSnapshot(
+            timelineExists: timelines[timelineID] != nil,
+            turns: turns.values.filter { $0.timelineID == timelineID },
+            messages: messages[timelineID, default: []],
+            activeTurnID: activeTurns[timelineID],
+            quarantinedTurnID: quarantinedTurns[timelineID]
+        )
+    }
+
+    /// Loads the Turn-scoped ledger snapshot. The Turn must already exist, so its Timeline is
+    /// known before the load. The ledger compares any caller-supplied Timeline and reports a
+    /// mismatch, so the snapshot is always scoped to the Turn's own Timeline.
+    private func ledgerSnapshot(forTurn turnID: UUID) throws -> TurnLedgerSnapshot {
+        guard let turn = turns[turnID] else {
+            throw TimelineRuntimeRepositoryError.turnNotFound(turnID)
+        }
+        let scope = turn.timelineID
+        return TurnLedgerSnapshot(
+            timelineExists: timelines[scope] != nil,
+            turns: turns.values.filter { $0.timelineID == scope },
+            messages: messages[scope, default: []],
+            activeTurnID: activeTurns[scope],
+            quarantinedTurnID: quarantinedTurns[scope],
+            toolIntents: intents.values.filter { $0.turnID == turnID },
+            toolResults: results.values.filter { $0.turnID == turnID }
+        )
+    }
+
+    /// Applies one ledger commit without an actor suspension. The ledger has already validated
+    /// append-only history, so a conflict here is a runtime defect rather than a caller error.
+    private func apply(_ commit: TurnLedgerCommit) throws {
+        for message in commit.appendedMessages {
+            try appendMessage(message)
+        }
+        for turn in commit.upsertedTurns {
+            turns[turn.identity.turnID] = turn
+        }
+        for intent in commit.upsertedToolIntents {
+            intents[ToolKey(turnID: intent.turnID, toolCallID: intent.toolCallID)] = intent
+        }
+        for result in commit.upsertedToolResults {
+            results[ToolKey(turnID: result.turnID, toolCallID: result.toolCallID)] = result
+        }
+        guard let timelineID = commit.pointerTimelineID else { return }
+        if let activeTurnID = commit.activeTurnID {
+            activeTurns[timelineID] = activeTurnID
+        } else {
+            activeTurns.removeValue(forKey: timelineID)
+        }
+        if let quarantinedTurnID = commit.quarantinedTurnID {
+            quarantinedTurns[timelineID] = quarantinedTurnID
+        } else {
+            quarantinedTurns.removeValue(forKey: timelineID)
+        }
+    }
+
     // MARK: Internal transition helpers
 
     private func mutableTurn(_ turnID: UUID) throws -> TurnRecord {
@@ -493,94 +422,5 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
             throw TimelineRuntimeRepositoryError.turnNotFound(turnID)
         }
         return turn
-    }
-
-    /// The Turn if it can still transition: it exists, is not terminal, and (when given)
-    /// belongs to `timelineID`.
-    private func openTurn(_ turnID: UUID, on timelineID: UUID? = nil) throws -> TurnRecord {
-        let turn = try mutableTurn(turnID)
-        guard !turn.isTerminal, timelineID.map({ $0 == turn.timelineID }) ?? true else {
-            throw TimelineRuntimeRepositoryError.invalidTransition(turnID: turnID, lifecycle: turn.lifecycle)
-        }
-        return turn
-    }
-
-    /// Records a tool result against its durable intent, optionally appending the tool message
-    /// in the same transition so the message and result become visible together.
-    private func commitToolResult(_ result: RuntimeToolResult, appending message: TimelineMessage?) throws {
-        var turn = try openTurn(result.turnID, on: result.timelineID)
-        if let message, message.timelineID != result.timelineID {
-            throw TimelineRuntimeRepositoryError.invalidTransition(turnID: result.turnID, lifecycle: turn.lifecycle)
-        }
-        let key = ToolKey(turnID: result.turnID, toolCallID: result.toolCallID)
-        guard intents[key] != nil else {
-            throw TimelineRuntimeRepositoryError.toolIntentRequired(turnID: result.turnID, toolCallID: result.toolCallID)
-        }
-        guard results[key] == nil else {
-            throw TimelineRuntimeRepositoryError.duplicateToolResult(turnID: result.turnID, toolCallID: result.toolCallID)
-        }
-        // Validate the append before mutating either side of the transition.
-        if let message {
-            if messages[message.timelineID]?.contains(where: { $0.id == message.id }) == true,
-               turn.memberMessageIDs?.contains(message.id) != true
-            {
-                throw TimelineRuntimeRepositoryError.appendOnlyViolation(messageID: message.id)
-            }
-            try appendMessage(message)
-        }
-        if let message, turn.memberMessageIDs?.contains(message.id) == false {
-            turn.memberMessageIDs?.append(message.id)
-        }
-        results[key] = result
-        turn.lifecycle = .running
-        turn.updatedAt = result.createdAt
-        turn.notices.append(TurnNotice(kind: "tool-result-durable", message: result.toolCallID, createdAt: result.createdAt))
-        turns[result.turnID] = turn
-    }
-
-    private func firstUnresolvedToolIntent(turnID: UUID) async throws -> RuntimeToolIntent? {
-        intents.values
-            .filter { $0.turnID == turnID }
-            .sorted { $0.createdAt < $1.createdAt }
-            .first { results[ToolKey(turnID: turnID, toolCallID: $0.toolCallID)] == nil }
-    }
-
-    private func lifecycle(for outcome: TurnOutcome) -> TurnLifecycle {
-        switch outcome {
-        case .completed: return .completed
-        case .failed: return .failed
-        case .cancelled: return .cancelled
-        case .interrupted: return .interrupted
-        }
-    }
-
-    private func isCompleted(_ outcome: TurnOutcome?) -> Bool {
-        if case .completed? = outcome { return true }
-        return false
-    }
-
-    private func messagesEquivalentIgnoringTimestamp(_ lhs: TimelineMessage, _ rhs: TimelineMessage) -> Bool {
-        lhs.id == rhs.id
-            && lhs.timelineID == rhs.timelineID
-            && lhs.role == rhs.role
-            && lhs.messageContent == rhs.messageContent
-            && lhs.parentID == rhs.parentID
-            && lhs.reasoning == rhs.reasoning
-            && lhs.toolCalls == rhs.toolCalls
-            && lhs.toolCallID == rhs.toolCallID
-            && lhs.agentID == rhs.agentID
-            && lhs.executionKind == rhs.executionKind
-            && lhs.remoteDepth == rhs.remoteDepth
-            && lhs.snapshotData == rhs.snapshotData
-            && lhs.status == rhs.status
-    }
-
-    private func terminalMessage(for outcome: TurnOutcome) -> String {
-        switch outcome {
-        case .completed: return "completed"
-        case let .failed(message): return "failed: \(message)"
-        case let .cancelled(reason): return "cancelled\(reason.map { ": \($0)" } ?? "")"
-        case let .interrupted(reason): return "interrupted: \(reason)"
-        }
     }
 }

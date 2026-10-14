@@ -26,6 +26,12 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **The Turn transition rules have one runtime owner.** A new runtime module, the Turn Ledger,
+decides admission, retries, membership, the tool-result barrier, terminal commits, interruption,
+and quarantine release as pure functions over a loaded ledger snapshot and returns the rows to
+write. `InMemoryTimelineRuntimeRepository` becomes a thin atomic-commit adapter over that module,
+so a durable adapter can decide one transition without embedding the in-memory store. The ledger
+is package-scoped; the repository protocol is unchanged in this release (ADR 0017).
 - **OpenAI provider rebuild (no third-party SDK):** `PKOpenAIProvider` now runs on the shared `PKUtilities` Chat Completions wire plumbing with `.sortedKeys`-deterministic bytes and adds stateless Responses API support (`OpenAIAPI.automatic/.chatCompletions/.responses`; Responses for `api.openai.com`, Chat Completions elsewhere, audio forced to Chat Completions). `PKOpenRouterProvider` becomes a thin preset over the same core (attribution headers retained). Removes the `MacPaw/OpenAI` dependency.
 
 ### Added
