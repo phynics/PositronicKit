@@ -39,6 +39,8 @@ internal struct RuntimePolicy: Sendable {
     var clock: any RuntimeClock
     /// The default generation parameters applied when a Turn carries no explicit override.
     var generationParameters: GenerationParameters?
+    /// How the runtime requests provider-side prompt caching when a Turn carries no override.
+    var promptCaching: PromptCachingPolicy
 
     init(
         streamTimeout: TimeInterval = RuntimePolicy.defaultStreamTimeout,
@@ -47,7 +49,8 @@ internal struct RuntimePolicy: Sendable {
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
         loggingConfiguration: LoggingConfiguration = .default,
         clock: any RuntimeClock = ContinuousRuntimeClock(),
-        generationParameters: GenerationParameters? = nil
+        generationParameters: GenerationParameters? = nil,
+        promptCaching: PromptCachingPolicy = .automatic()
     ) {
         self.streamTimeout = Self.resolvedStreamTimeout(streamTimeout)
         self.terminalCommitStallLimit = Self.resolvedTerminalCommitStallLimit(terminalCommitStallLimit)
@@ -56,6 +59,7 @@ internal struct RuntimePolicy: Sendable {
         self.loggingConfiguration = loggingConfiguration
         self.clock = clock
         self.generationParameters = generationParameters
+        self.promptCaching = promptCaching
     }
 
     /// A finite idle timeout inside one millisecond ... one day.

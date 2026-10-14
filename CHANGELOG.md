@@ -30,6 +30,17 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Prompt caching contract (#276):** `PKContracts` gains `PromptCacheDirective`,
+  `PromptCacheBreakpoint`, and `PromptCachingCapability`. `LLMTokenUsagePromptDetails` gains
+  `cacheWriteTokens` and `cacheWriteBreakdown`, and `LLMClientProtocol` gains cache-aware
+  `chatStream`/`chatCompletion` overloads plus `promptCachingCapability`, all defaulted so a
+  conformer written before prompt caching keeps compiling and ignores hints.
+  `RuntimeConfiguration.promptCaching` and `TurnOptions.promptCaching` select the runtime's
+  `PromptCachingPolicy` (`.automatic(retention:)` by default), `LLMPromptRequest` and the
+  `LLMStreamClient` seam carry the directive, and `kit.model` one-shot entry points accept a
+  `promptCaching:` policy. The runtime derives a per-Timeline routing key as
+  `hex(SHA-256("pk.timeline." + timelineID.uuidString)).prefix(32)`; adapters translate the
+  directive in a follow-up.
 - **Runtime-neutral embeddings:** `PKContracts` gains `EmbeddingClientProtocol`,
   `EmbeddingRequest`, `EmbeddingResponse`, `Embedding`, `EmbeddingSpace`, `EmbeddingPurpose`,
   `EmbeddingInputBudget`, and `EmbeddingError` (ADR 0014). `Embedding` carries its

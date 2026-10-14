@@ -18,7 +18,8 @@ extension LLMStreamClient {
         generationParameters: GenerationParameters?,
         modelTier: ModelTier,
         responseModalities: Set<ResponseModality>,
-        audioOutput: AudioOutputOptions?
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective? = nil
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         switch transport {
         case .streaming:
@@ -30,7 +31,8 @@ extension LLMStreamClient {
                 generationParameters: generationParameters,
                 modelTier: modelTier,
                 responseModalities: responseModalities,
-                audioOutput: audioOutput
+                audioOutput: audioOutput,
+                promptCache: promptCache
             )
         case .requestResponse:
             return AsyncThrowingStream { continuation in
@@ -44,7 +46,8 @@ extension LLMStreamClient {
                             generationParameters: generationParameters,
                             modelTier: modelTier,
                             responseModalities: responseModalities,
-                            audioOutput: audioOutput
+                            audioOutput: audioOutput,
+                            promptCache: promptCache
                         )
                         if Task.isCancelled { throw CancellationError() }
                         continuation.yield(chunk)

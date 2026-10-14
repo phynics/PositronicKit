@@ -78,6 +78,8 @@ public struct LLMPromptRequest: Sendable {
     public let requestOriginName: String?
     public let systemInstructions: String?
     public let generationParameters: GenerationParameters?
+    /// Cache hints for this prompt, or `nil` for the adapter's default behavior.
+    public let promptCache: PromptCacheDirective?
 
     public init(
         userQuery: String,
@@ -89,7 +91,8 @@ public struct LLMPromptRequest: Sendable {
         primaryWorkspace: WorkspaceReference?,
         requestOriginName: String?,
         systemInstructions: String? = nil,
-        generationParameters: GenerationParameters? = nil
+        generationParameters: GenerationParameters? = nil,
+        promptCache: PromptCacheDirective? = nil
     ) {
         userContent = MessageContent(userQuery)
         self.turnInstructions = turnInstructions
@@ -101,6 +104,7 @@ public struct LLMPromptRequest: Sendable {
         self.requestOriginName = requestOriginName
         self.systemInstructions = systemInstructions
         self.generationParameters = generationParameters
+        self.promptCache = promptCache
     }
 
     /// Creates a prompt request with ordered multimodal user content.
@@ -114,7 +118,8 @@ public struct LLMPromptRequest: Sendable {
         primaryWorkspace: WorkspaceReference?,
         requestOriginName: String?,
         systemInstructions: String? = nil,
-        generationParameters: GenerationParameters? = nil
+        generationParameters: GenerationParameters? = nil,
+        promptCache: PromptCacheDirective? = nil
     ) {
         self.userContent = userContent
         self.turnInstructions = turnInstructions
@@ -126,6 +131,7 @@ public struct LLMPromptRequest: Sendable {
         self.requestOriginName = requestOriginName
         self.systemInstructions = systemInstructions
         self.generationParameters = generationParameters
+        self.promptCache = promptCache
     }
 }
 
@@ -183,6 +189,25 @@ public protocol LLMStreamClient: Sendable {
         audioOutput: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
 
+    /// Streams a chat response with explicit output modalities and an optional prompt-cache
+    /// directive.
+    ///
+    /// The default drops the directive and forwards to the modality-only requirement, so a
+    /// third-party `LLMStreamClient` written before prompt caching existed keeps compiling and
+    /// ignores the hint. Services that can route the directive to a provider override this
+    /// requirement.
+    func generationStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
+
     /// Performs one non-streamed generation and returns the whole response as one terminal
     /// chunk. See `LLMStreamChunk.folding(_:)` for the response shape.
     ///
@@ -199,6 +224,21 @@ public protocol LLMStreamClient: Sendable {
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?
     ) async throws -> LLMStreamChunk
+
+    /// Performs one non-streamed generation with an optional prompt-cache directive.
+    ///
+    /// The default drops the directive and forwards to the modality-only requirement.
+    func generationCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async throws -> LLMStreamChunk
 }
 
 public extension LLMStreamClient {
@@ -213,14 +253,16 @@ public extension LLMStreamClient {
     }
 
     /// Default-args convenience for the low-level streaming entry point, for callers that
-    /// don't need non-text output modalities.
+    /// don't need non-text output modalities. An optional prompt-cache directive is forwarded
+    /// to the cache-aware requirement, and dropped by clients that do not support caching.
     func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]? = nil,
         toolChoice: LLMToolChoice? = nil,
         responseFormat: LLMResponseFormat? = nil,
         generationParameters: GenerationParameters? = nil,
-        modelTier: ModelTier = .primary
+        modelTier: ModelTier = .primary,
+        promptCache: PromptCacheDirective? = nil
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         await generationStream(
             messages: messages,
@@ -230,7 +272,32 @@ public extension LLMStreamClient {
             generationParameters: generationParameters,
             modelTier: modelTier,
             responseModalities: [.text],
-            audioOutput: nil
+            audioOutput: nil,
+            promptCache: promptCache
+        )
+    }
+
+    /// Drops the prompt-cache directive and forwards to the modality-only requirement.
+    func generationStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache _: PromptCacheDirective?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await generationStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
         )
     }
 
@@ -267,5 +334,29 @@ public extension LLMStreamClient {
             throw LLMServiceError.emptyResponse(provider: provider.rawValue)
         }
         return response
+    }
+
+    /// Drops the prompt-cache directive and forwards to the modality-only requirement.
+    func generationCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache _: PromptCacheDirective?
+    ) async throws -> LLMStreamChunk {
+        try await generationCompletion(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
+        )
     }
 }

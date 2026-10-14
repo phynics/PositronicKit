@@ -9,7 +9,8 @@ public extension LLMStreamClient {
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60,
         modelTier: ModelTier = .primary,
-        transport: GenerationTransport = .streaming
+        transport: GenerationTransport = .streaming,
+        promptCache: PromptCacheDirective? = nil
     ) async throws -> String {
         try await sendStructuredMessage(
             content,
@@ -18,7 +19,8 @@ public extension LLMStreamClient {
             idleTimeout: idleTimeout,
             clock: ContinuousRuntimeClock(),
             modelTier: modelTier,
-            transport: transport
+            transport: transport,
+            promptCache: promptCache
         )
     }
 
@@ -28,7 +30,8 @@ public extension LLMStreamClient {
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
         modelTier: ModelTier = .primary,
-        transport: GenerationTransport = .streaming
+        transport: GenerationTransport = .streaming,
+        promptCache: PromptCacheDirective? = nil
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let prepared = StructuredOutputExecution.prepareRequest(
             messages: messages,
@@ -46,7 +49,8 @@ public extension LLMStreamClient {
             generationParameters: generationParameters,
             modelTier: modelTier,
             responseModalities: [.text],
-            audioOutput: nil
+            audioOutput: nil,
+            promptCache: promptCache
         )
 
         guard let syntheticToolName = prepared.syntheticToolName else {
@@ -64,7 +68,8 @@ public extension LLMStreamClient {
         modelTier: ModelTier = .primary,
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?,
-        transport: GenerationTransport = .streaming
+        transport: GenerationTransport = .streaming,
+        promptCache: PromptCacheDirective? = nil
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let prepared = StructuredOutputExecution.prepareRequest(
             messages: messages,
@@ -81,7 +86,8 @@ public extension LLMStreamClient {
             generationParameters: generationParameters,
             modelTier: modelTier,
             responseModalities: responseModalities,
-            audioOutput: audioOutput
+            audioOutput: audioOutput,
+            promptCache: promptCache
         )
         guard let syntheticToolName = prepared.syntheticToolName else { return stream }
         return StructuredOutputExecution.rewriteSyntheticToolStream(stream, syntheticToolName: syntheticToolName)
@@ -119,7 +125,8 @@ package extension LLMStreamClient {
         idleTimeout: TimeInterval = 60,
         clock: any RuntimeClock,
         modelTier: ModelTier = .primary,
-        transport: GenerationTransport = .streaming
+        transport: GenerationTransport = .streaming,
+        promptCache: PromptCacheDirective? = nil
     ) async throws -> String {
         let stream = await generationStream(
             messages: [LLMMessage(role: .user, content: content)],
@@ -127,7 +134,8 @@ package extension LLMStreamClient {
             structuredOutput: structuredOutput,
             generationParameters: generationParameters,
             modelTier: modelTier,
-            transport: transport
+            transport: transport,
+            promptCache: promptCache
         )
 
         let provider = await configuration.activeProvider

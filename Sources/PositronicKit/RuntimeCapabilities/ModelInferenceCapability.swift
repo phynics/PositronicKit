@@ -25,17 +25,20 @@ public struct ModelInferenceCapability: Sendable {
     private let streamTimeout: TimeInterval
     private let generationParameters: GenerationParameters?
     private let clock: any RuntimeClock
+    private let promptCaching: PromptCachingPolicy
 
     init(
         languageModelClient: any LLMStreamClient,
         streamTimeout: TimeInterval,
         generationParameters: GenerationParameters?,
-        clock: any RuntimeClock
+        clock: any RuntimeClock,
+        promptCaching: PromptCachingPolicy = .automatic()
     ) {
         self.languageModelClient = languageModelClient
         self.streamTimeout = streamTimeout
         self.generationParameters = generationParameters
         self.clock = clock
+        self.promptCaching = promptCaching
     }
 
     /// Returns the model's current non-network readiness snapshot.
@@ -79,13 +82,15 @@ public struct ModelInferenceCapability: Sendable {
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60,
-        transport: GenerationTransport = .streaming
+        transport: GenerationTransport = .streaming,
+        promptCaching: PromptCachingPolicy? = nil
     ) async throws -> LLMResponse {
         try await completeResult(
             prompt,
             generationParameters: generationParameters,
             idleTimeout: idleTimeout,
-            transport: transport
+            transport: transport,
+            promptCaching: promptCaching
         )
     }
 
@@ -116,6 +121,7 @@ public struct ModelInferenceCapability: Sendable {
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60,
         transport: GenerationTransport = .streaming,
+        promptCaching: PromptCachingPolicy? = nil,
         decoder: JSONDecoder = SerializationUtils.jsonDecoder
     ) async throws -> Output
     where
@@ -144,7 +150,8 @@ public struct ModelInferenceCapability: Sendable {
             structuredOutput: request,
             generationParameters: generationParameters,
             idleTimeout: idleTimeout,
-            transport: transport
+            transport: transport,
+            promptCaching: promptCaching
         )
 
         return try StructuredOutputDecoder.decode(Output.self, from: payload, decoder: decoder)
@@ -169,13 +176,15 @@ public struct ModelInferenceCapability: Sendable {
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60,
-        transport: GenerationTransport = .streaming
+        transport: GenerationTransport = .streaming,
+        promptCaching: PromptCachingPolicy? = nil
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         streamChunks(
             prompt,
             generationParameters: generationParameters,
             idleTimeout: idleTimeout,
-            transport: transport
+            transport: transport,
+            promptCaching: promptCaching
         )
     }
 
@@ -205,14 +214,16 @@ public struct ModelInferenceCapability: Sendable {
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval = 60,
-        transport: GenerationTransport = .streaming
+        transport: GenerationTransport = .streaming,
+        promptCaching: PromptCachingPolicy? = nil
     ) async throws -> String {
         try await complete(
             prompt,
             structuredOutput: structuredOutput,
             generationParameters: generationParameters,
             idleTimeout: idleTimeout,
-            transport: transport
+            transport: transport,
+            promptCaching: promptCaching
         )
     }
 }
@@ -238,7 +249,8 @@ extension ModelInferenceCapability {
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval? = nil,
-        transport: GenerationTransport = .streaming
+        transport: GenerationTransport = .streaming,
+        promptCaching: PromptCachingPolicy? = nil
     ) async throws -> LLMResponse {
         var chunks: [LLMStreamChunk] = []
         do {
@@ -246,7 +258,8 @@ extension ModelInferenceCapability {
                 prompt,
                 generationParameters: generationParameters,
                 idleTimeout: idleTimeout ?? configuredStreamTimeout,
-                transport: transport
+                transport: transport,
+                promptCaching: promptCaching
             )
             for try await chunk in stream {
                 chunks.append(chunk)
@@ -289,7 +302,8 @@ extension ModelInferenceCapability {
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
         idleTimeout: TimeInterval? = nil,
-        transport: GenerationTransport = .streaming
+        transport: GenerationTransport = .streaming,
+        promptCaching: PromptCachingPolicy? = nil
     ) async throws -> String {
         try await languageModelClient.sendStructuredMessage(
             prompt,
@@ -298,7 +312,8 @@ extension ModelInferenceCapability {
             idleTimeout: idleTimeout ?? configuredStreamTimeout,
             clock: clock,
             modelTier: .primary,
-            transport: transport
+            transport: transport,
+            promptCache: (promptCaching ?? self.promptCaching).keylessDirective
         )
     }
 
@@ -307,11 +322,13 @@ extension ModelInferenceCapability {
         _ prompt: String,
         generationParameters: GenerationParameters?,
         idleTimeout: TimeInterval,
-        transport: GenerationTransport
+        transport: GenerationTransport,
+        promptCaching: PromptCachingPolicy? = nil
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let client = languageModelClient
         let defaultGenerationParameters = self.generationParameters
         let clock = self.clock
+        let promptCache = (promptCaching ?? self.promptCaching).keylessDirective
         return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
@@ -324,7 +341,8 @@ extension ModelInferenceCapability {
                         generationParameters: generationParameters ?? defaultGenerationParameters,
                         modelTier: .primary,
                         responseModalities: [.text],
-                        audioOutput: nil
+                        audioOutput: nil,
+                        promptCache: promptCache
                     )
                     try await StreamIdleTimeout.run(timeout: idleTimeout, clock: clock) { deadline in
                         for try await chunk in stream {

@@ -163,6 +163,9 @@ struct TurnContext {
     let audioOutput: AudioOutputOptions?
     /// The provider transport selected at Turn admission. Constant across model rounds.
     let transport: GenerationTransport
+    /// The effective prompt-caching policy resolved at Turn admission from the per-Turn override
+    /// and the runtime default. Constant across model rounds.
+    let promptCaching: PromptCachingPolicy
 
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
     /// Created once per `prepareTurn()` call and carried through all model rounds in the loop.
@@ -206,6 +209,7 @@ struct TurnContext {
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil,
         transport: GenerationTransport = .streaming,
+        promptCaching: PromptCachingPolicy = .automatic(),
         outputs: TurnOutputs = TurnOutputs()
     ) {
         self.timelineID = timelineID
@@ -231,6 +235,7 @@ struct TurnContext {
         self.responseModalities = responseModalities
         self.audioOutput = audioOutput
         self.transport = transport
+        self.promptCaching = promptCaching
         self.promptHistory = promptHistory
         self.renderedPrompt = renderedPrompt
         self.promptHistoryUpdate = promptHistoryUpdate
@@ -280,6 +285,7 @@ struct TurnContext {
             responseModalities: responseModalities,
             audioOutput: audioOutput,
             transport: transport,
+            promptCaching: promptCaching,
             outputs: TurnOutputs()
         )
     }
