@@ -23,7 +23,7 @@ private struct CaptureProbeTool: PKTool {
 
 @Suite("MockLLMService contracts")
 struct MockLLMServiceContractTests {
-    @Test("configuration update, clear, export, and import form a truthful lifecycle")
+    @Test("configuration update and clear form a truthful lifecycle")
     func configurationLifecycleRoundTrips() async throws {
         let service = MockLLMService()
         let configuration = LLMConfiguration.fixture(
@@ -37,14 +37,9 @@ struct MockLLMServiceContractTests {
         #expect(await service.isConfigured)
         #expect(await service.configuration == configuration)
 
-        let exported = try await service.exportConfiguration()
         await service.clearConfiguration()
         #expect(await !service.isConfigured)
         #expect(await service.configuration == .openAI)
-
-        try await service.importConfiguration(from: exported)
-        #expect(await service.isConfigured)
-        #expect(await service.configuration == configuration)
     }
 
     @Test("context request and actual model tier are captured completely")

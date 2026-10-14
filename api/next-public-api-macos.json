@@ -4660,88 +4660,6 @@
       "declaration": "let isStrict: Bool?"
     },
     {
-      "precise": "s:11PKContracts17LenientJSONParserO",
-      "module": "PKContracts",
-      "kind": "swift.enum",
-      "path": [
-        "LenientJSONParser"
-      ],
-      "declaration": "enum LenientJSONParser"
-    },
-    {
-      "precise": "s:11PKContracts17LenientJSONParserO11ParseResultV",
-      "module": "PKContracts",
-      "kind": "swift.struct",
-      "path": [
-        "LenientJSONParser",
-        "ParseResult"
-      ],
-      "declaration": "struct ParseResult"
-    },
-    {
-      "precise": "s:11PKContracts17LenientJSONParserO11ParseResultV11wasRepairedSbvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "LenientJSONParser",
-        "ParseResult",
-        "wasRepaired"
-      ],
-      "declaration": "let wasRepaired: Bool"
-    },
-    {
-      "precise": "s:11PKContracts17LenientJSONParserO11ParseResultV5value11wasRepairedAeA10AnyCodableO_Sbtcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "LenientJSONParser",
-        "ParseResult",
-        "init(value:wasRepaired:)"
-      ],
-      "declaration": "init(value: AnyCodable, wasRepaired: Bool)"
-    },
-    {
-      "precise": "s:11PKContracts17LenientJSONParserO11ParseResultV5valueAA10AnyCodableOvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "LenientJSONParser",
-        "ParseResult",
-        "value"
-      ],
-      "declaration": "let value: AnyCodable"
-    },
-    {
-      "precise": "s:11PKContracts17LenientJSONParserO5parse_18sanitizeCodeFencesAC11ParseResultVSS_SbtKFZ",
-      "module": "PKContracts",
-      "kind": "swift.type.method",
-      "path": [
-        "LenientJSONParser",
-        "parse(_:sanitizeCodeFences:)"
-      ],
-      "declaration": "static func parse(_ payload: String, sanitizeCodeFences: Bool = false) throws -> LenientJSONParser.ParseResult"
-    },
-    {
-      "precise": "s:11PKContracts17LenientJSONParserO8jsonData4from10Foundation0E0VAA10AnyCodableO_tKFZ",
-      "module": "PKContracts",
-      "kind": "swift.type.method",
-      "path": [
-        "LenientJSONParser",
-        "jsonData(from:)"
-      ],
-      "declaration": "static func jsonData(from value: AnyCodable) throws -> Data"
-    },
-    {
-      "precise": "s:11PKContracts17LenientJSONParserO8sanitizeyS2SFZ",
-      "module": "PKContracts",
-      "kind": "swift.type.method",
-      "path": [
-        "LenientJSONParser",
-        "sanitize(_:)"
-      ],
-      "declaration": "static func sanitize(_ payload: String) -> String"
-    },
-    {
       "precise": "s:11PKContracts17PromptFormattableP",
       "module": "PKContracts",
       "kind": "swift.protocol",
@@ -5093,35 +5011,6 @@
         "image(_:)"
       ],
       "declaration": "case image(ImageContent)"
-    },
-    {
-      "precise": "s:11PKContracts18SerializationUtilsO",
-      "module": "PKContracts",
-      "kind": "swift.enum",
-      "path": [
-        "SerializationUtils"
-      ],
-      "declaration": "enum SerializationUtils"
-    },
-    {
-      "precise": "s:11PKContracts18SerializationUtilsO11jsonDecoder10Foundation11JSONDecoderCvpZ",
-      "module": "PKContracts",
-      "kind": "swift.type.property",
-      "path": [
-        "SerializationUtils",
-        "jsonDecoder"
-      ],
-      "declaration": "static let jsonDecoder: JSONDecoder"
-    },
-    {
-      "precise": "s:11PKContracts18SerializationUtilsO11jsonEncoder10Foundation11JSONEncoderCvpZ",
-      "module": "PKContracts",
-      "kind": "swift.type.property",
-      "path": [
-        "SerializationUtils",
-        "jsonEncoder"
-      ],
-      "declaration": "static let jsonEncoder: JSONEncoder"
     },
     {
       "precise": "s:11PKContracts18ToolApprovalPolicyP",
@@ -6936,65 +6825,6 @@
         "embedDocuments(_:)"
       ],
       "declaration": "func embedDocuments(_ texts: [String]) async throws -> [Embedding]"
-    },
-    {
-      "precise": "s:11PKContracts23LenientJSONParsingErrorO",
-      "module": "PKContracts",
-      "kind": "swift.enum",
-      "path": [
-        "LenientJSONParsingError"
-      ],
-      "declaration": "enum LenientJSONParsingError"
-    },
-    {
-      "precise": "s:11PKContracts23LenientJSONParsingErrorO11errorDomainSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "LenientJSONParsingError",
-        "errorDomain"
-      ],
-      "declaration": "var errorDomain: String { get }"
-    },
-    {
-      "precise": "s:11PKContracts23LenientJSONParsingErrorO18invalidJSONPayloadyA2CmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "LenientJSONParsingError",
-        "invalidJSONPayload"
-      ],
-      "declaration": "case invalidJSONPayload"
-    },
-    {
-      "precise": "s:11PKContracts23LenientJSONParsingErrorO19serializationFailedyA2CmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "LenientJSONParsingError",
-        "serializationFailed"
-      ],
-      "declaration": "case serializationFailed"
-    },
-    {
-      "precise": "s:11PKContracts23LenientJSONParsingErrorO19userFriendlyMessageSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "LenientJSONParsingError",
-        "userFriendlyMessage"
-      ],
-      "declaration": "var userFriendlyMessage: String { get }"
-    },
-    {
-      "precise": "s:11PKContracts23LenientJSONParsingErrorO9errorCodeSivp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "LenientJSONParsingError",
-        "errorCode"
-      ],
-      "declaration": "var errorCode: Int { get }"
     },
     {
       "precise": "s:11PKContracts23StructuredOutputAdapterP",
@@ -11082,16 +10912,6 @@
       "declaration": "var modelTierHistory: [ModelTier] { get }"
     },
     {
-      "precise": "s:13PKTestSupport14MockLLMServiceC17loadConfigurationyyYaF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockLLMService",
-        "loadConfiguration()"
-      ],
-      "declaration": "func loadConfiguration() async"
-    },
-    {
       "precise": "s:13PKTestSupport14MockLLMServiceC17mockHealthDetailsSDyS2SGSgvp",
       "module": "PKTestSupport",
       "kind": "swift.property",
@@ -11100,16 +10920,6 @@
         "mockHealthDetails"
       ],
       "declaration": "var mockHealthDetails: [String : String]? { get set }"
-    },
-    {
-      "precise": "s:13PKTestSupport14MockLLMServiceC17restoreFromBackupyyYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockLLMService",
-        "restoreFromBackup()"
-      ],
-      "declaration": "func restoreFromBackup() async throws"
     },
     {
       "precise": "s:13PKTestSupport14MockLLMServiceC17stubbedCompletion11PKContracts14LLMStreamChunkVSgvp",
@@ -11130,26 +10940,6 @@
         "clearConfiguration()"
       ],
       "declaration": "func clearConfiguration() async"
-    },
-    {
-      "precise": "s:13PKTestSupport14MockLLMServiceC19exportConfiguration10Foundation4DataVyYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockLLMService",
-        "exportConfiguration()"
-      ],
-      "declaration": "func exportConfiguration() async throws -> Data"
-    },
-    {
-      "precise": "s:13PKTestSupport14MockLLMServiceC19importConfiguration4fromy10Foundation4DataV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockLLMService",
-        "importConfiguration(from:)"
-      ],
-      "declaration": "func importConfiguration(from data: Data) async throws"
     },
     {
       "precise": "s:13PKTestSupport14MockLLMServiceC19updateConfigurationyy11PKContracts16LLMConfigurationVYaKF",
@@ -12821,125 +12611,6 @@
       "declaration": "init()"
     },
     {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceC",
-      "module": "PKTestSupport",
-      "kind": "swift.class",
-      "path": [
-        "MockConfigurationService"
-      ],
-      "declaration": "actor MockConfigurationService"
-    },
-    {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceC06exportD010Foundation4DataVyYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockConfigurationService",
-        "exportConfiguration()"
-      ],
-      "declaration": "func exportConfiguration() async throws -> Data"
-    },
-    {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceC06importD04fromy10Foundation4DataV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockConfigurationService",
-        "importConfiguration(from:)"
-      ],
-      "declaration": "func importConfiguration(from data: Data) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceC12backupConfig11PKContracts16LLMConfigurationVSgvp",
-      "module": "PKTestSupport",
-      "kind": "swift.property",
-      "path": [
-        "MockConfigurationService",
-        "backupConfig"
-      ],
-      "declaration": "var backupConfig: LLMConfiguration?"
-    },
-    {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceC15migrateIfNeededyyYaF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockConfigurationService",
-        "migrateIfNeeded()"
-      ],
-      "declaration": "func migrateIfNeeded() async"
-    },
-    {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceC15setBackupConfigyy11PKContracts16LLMConfigurationVSgF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockConfigurationService",
-        "setBackupConfig(_:)"
-      ],
-      "declaration": "func setBackupConfig(_ config: LLMConfiguration?)"
-    },
-    {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceC17restoreFromBackup11PKContracts16LLMConfigurationVSgyYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockConfigurationService",
-        "restoreFromBackup()"
-      ],
-      "declaration": "func restoreFromBackup() async throws -> LLMConfiguration?"
-    },
-    {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceC4load11PKContracts16LLMConfigurationVyYaF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockConfigurationService",
-        "load()"
-      ],
-      "declaration": "func load() async -> LLMConfiguration"
-    },
-    {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceC4saveyy11PKContracts16LLMConfigurationVYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockConfigurationService",
-        "save(_:)"
-      ],
-      "declaration": "func save(_ config: LLMConfiguration) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceC5clearyyYaF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockConfigurationService",
-        "clear()"
-      ],
-      "declaration": "func clear() async"
-    },
-    {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceC6config11PKContracts16LLMConfigurationVvp",
-      "module": "PKTestSupport",
-      "kind": "swift.property",
-      "path": [
-        "MockConfigurationService",
-        "config"
-      ],
-      "declaration": "var config: LLMConfiguration"
-    },
-    {
-      "precise": "s:13PKTestSupport24MockConfigurationServiceCACycfc",
-      "module": "PKTestSupport",
-      "kind": "swift.init",
-      "path": [
-        "MockConfigurationService",
-        "init()"
-      ],
-      "declaration": "init()"
-    },
-    {
       "precise": "s:13PKTestSupport24MockLLMGenerationCaptureV",
       "module": "PKTestSupport",
       "kind": "swift.struct",
@@ -13793,26 +13464,6 @@
       "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
-      "precise": "s:13PositronicKit10LLMServiceC17loadConfigurationyyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMService",
-        "loadConfiguration()"
-      ],
-      "declaration": "func loadConfiguration() async"
-    },
-    {
-      "precise": "s:13PositronicKit10LLMServiceC17restoreFromBackupyyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMService",
-        "restoreFromBackup()"
-      ],
-      "declaration": "func restoreFromBackup() async throws"
-    },
-    {
       "precise": "s:13PositronicKit10LLMServiceC18clearConfigurationyyYaF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -13821,26 +13472,6 @@
         "clearConfiguration()"
       ],
       "declaration": "func clearConfiguration() async"
-    },
-    {
-      "precise": "s:13PositronicKit10LLMServiceC19exportConfiguration10Foundation4DataVyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMService",
-        "exportConfiguration()"
-      ],
-      "declaration": "func exportConfiguration() async throws -> Data"
-    },
-    {
-      "precise": "s:13PositronicKit10LLMServiceC19importConfiguration4fromy10Foundation4DataV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMService",
-        "importConfiguration(from:)"
-      ],
-      "declaration": "func importConfiguration(from data: Data) async throws"
     },
     {
       "precise": "s:13PositronicKit10LLMServiceC19updateConfigurationyy11PKContracts16LLMConfigurationVYaKF",
@@ -13891,16 +13522,6 @@
         "isReady"
       ],
       "declaration": "var isReady: Bool { get }"
-    },
-    {
-      "precise": "s:13PositronicKit10LLMServiceC7storage14clientResolver6loggerAcA28ConfigurationServiceProtocol_p_AA18LLMClientResolving_p7Logging6LoggerVtcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "LLMService",
-        "init(storage:clientResolver:logger:)"
-      ],
-      "declaration": "init(storage: any ConfigurationServiceProtocol, clientResolver: any LLMClientResolving, logger: Logger = Logger.module(named: \"llm\"))"
     },
     {
       "precise": "s:13PositronicKit10LLMServiceC9readiness11PKContracts14ModelReadinessOvp",
@@ -19008,45 +18629,6 @@
       "declaration": "case streaming"
     },
     {
-      "precise": "s:13PositronicKit19LLMUtilityGeneratorV",
-      "module": "PositronicKit",
-      "kind": "swift.struct",
-      "path": [
-        "LLMUtilityGenerator"
-      ],
-      "declaration": "struct LLMUtilityGenerator"
-    },
-    {
-      "precise": "s:13PositronicKit19LLMUtilityGeneratorV12generateTags3forSaySSGSS_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMUtilityGenerator",
-        "generateTags(for:)"
-      ],
-      "declaration": "func generateTags(for text: String) async throws -> [String]"
-    },
-    {
-      "precise": "s:13PositronicKit19LLMUtilityGeneratorV12streamClientAcA09LLMStreamF0_p_tcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "LLMUtilityGenerator",
-        "init(streamClient:)"
-      ],
-      "declaration": "init(streamClient: any LLMStreamClient)"
-    },
-    {
-      "precise": "s:13PositronicKit19LLMUtilityGeneratorV13generateTitle3forSSSay11PKContracts7MessageVG_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMUtilityGenerator",
-        "generateTitle(for:)"
-      ],
-      "declaration": "func generateTitle(for messages: [Message]) async throws -> String"
-    },
-    {
       "precise": "s:13PositronicKit19SidecarCommitPolicyO",
       "module": "PositronicKit",
       "kind": "swift.enum",
@@ -20482,16 +20064,6 @@
       "declaration": "func checkHealth() async throws -> HealthStatus"
     },
     {
-      "precise": "s:13PositronicKit24ModelInferenceCapabilityV12isConfiguredSbvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ModelInferenceCapability",
-        "isConfigured"
-      ],
-      "declaration": "var isConfigured: Bool { get async }"
-    },
-    {
       "precise": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeout9transportScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AH010GenerationH0VSgSdAA0P9TransportOtF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -21524,174 +21096,6 @@
         "failureRequirement"
       ],
       "declaration": "var failureRequirement: TurnContextContributionRequirement { get }"
-    },
-    {
-      "precise": "s:13PositronicKit28ConfigurationServiceProtocolP",
-      "module": "PositronicKit",
-      "kind": "swift.protocol",
-      "path": [
-        "ConfigurationServiceProtocol"
-      ],
-      "declaration": "protocol ConfigurationServiceProtocol : Sendable"
-    },
-    {
-      "precise": "s:13PositronicKit28ConfigurationServiceProtocolP06exportC010Foundation4DataVyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ConfigurationServiceProtocol",
-        "exportConfiguration()"
-      ],
-      "declaration": "func exportConfiguration() async throws -> Data"
-    },
-    {
-      "precise": "s:13PositronicKit28ConfigurationServiceProtocolP06importC04fromy10Foundation4DataV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ConfigurationServiceProtocol",
-        "importConfiguration(from:)"
-      ],
-      "declaration": "func importConfiguration(from data: Data) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit28ConfigurationServiceProtocolP15migrateIfNeededyyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ConfigurationServiceProtocol",
-        "migrateIfNeeded()"
-      ],
-      "declaration": "func migrateIfNeeded() async"
-    },
-    {
-      "precise": "s:13PositronicKit28ConfigurationServiceProtocolP17restoreFromBackup11PKContracts16LLMConfigurationVSgyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ConfigurationServiceProtocol",
-        "restoreFromBackup()"
-      ],
-      "declaration": "func restoreFromBackup() async throws -> LLMConfiguration?"
-    },
-    {
-      "precise": "s:13PositronicKit28ConfigurationServiceProtocolP4load11PKContracts16LLMConfigurationVyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ConfigurationServiceProtocol",
-        "load()"
-      ],
-      "declaration": "func load() async -> LLMConfiguration"
-    },
-    {
-      "precise": "s:13PositronicKit28ConfigurationServiceProtocolP4saveyy11PKContracts16LLMConfigurationVYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ConfigurationServiceProtocol",
-        "save(_:)"
-      ],
-      "declaration": "func save(_ config: LLMConfiguration) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit28ConfigurationServiceProtocolP5clearyyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ConfigurationServiceProtocol",
-        "clear()"
-      ],
-      "declaration": "func clear() async"
-    },
-    {
-      "precise": "s:13PositronicKit28InMemoryConfigurationServiceC",
-      "module": "PositronicKit",
-      "kind": "swift.class",
-      "path": [
-        "InMemoryConfigurationService"
-      ],
-      "declaration": "actor InMemoryConfigurationService"
-    },
-    {
-      "precise": "s:13PositronicKit28InMemoryConfigurationServiceC06exportE010Foundation4DataVyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryConfigurationService",
-        "exportConfiguration()"
-      ],
-      "declaration": "func exportConfiguration() async throws -> Data"
-    },
-    {
-      "precise": "s:13PositronicKit28InMemoryConfigurationServiceC06importE04fromy10Foundation4DataV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryConfigurationService",
-        "importConfiguration(from:)"
-      ],
-      "declaration": "func importConfiguration(from data: Data) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit28InMemoryConfigurationServiceC15migrateIfNeededyyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryConfigurationService",
-        "migrateIfNeeded()"
-      ],
-      "declaration": "func migrateIfNeeded() async"
-    },
-    {
-      "precise": "s:13PositronicKit28InMemoryConfigurationServiceC17restoreFromBackup11PKContracts16LLMConfigurationVSgyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryConfigurationService",
-        "restoreFromBackup()"
-      ],
-      "declaration": "func restoreFromBackup() async throws -> LLMConfiguration?"
-    },
-    {
-      "precise": "s:13PositronicKit28InMemoryConfigurationServiceC4load11PKContracts16LLMConfigurationVyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryConfigurationService",
-        "load()"
-      ],
-      "declaration": "func load() async -> LLMConfiguration"
-    },
-    {
-      "precise": "s:13PositronicKit28InMemoryConfigurationServiceC4saveyy11PKContracts16LLMConfigurationVYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryConfigurationService",
-        "save(_:)"
-      ],
-      "declaration": "func save(_ config: LLMConfiguration) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit28InMemoryConfigurationServiceC5clearyyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryConfigurationService",
-        "clear()"
-      ],
-      "declaration": "func clear() async"
-    },
-    {
-      "precise": "s:13PositronicKit28InMemoryConfigurationServiceC6configAC11PKContracts16LLMConfigurationV_tcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "InMemoryConfigurationService",
-        "init(config:)"
-      ],
-      "declaration": "init(config: LLMConfiguration = .openAI)"
     },
     {
       "precise": "s:13PositronicKit28InMemoryWorkspacePersistenceC",
@@ -30920,27 +30324,6 @@
     {
       "module": "PKContracts",
       "kind": "conformsTo",
-      "source": "s:11PKContracts17LenientJSONParserO11ParseResultV",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts17LenientJSONParserO11ParseResultV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts17LenientJSONParserO11ParseResultV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
       "source": "s:11PKContracts17PromptFormattableP",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
@@ -31942,61 +31325,6 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts23EmbeddingClientProtocolP",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO",
-      "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "Foundation.LocalizedError"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO",
-      "target": "s:11PKContracts7PKErrorP"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO",
-      "target": "s:8ErrorKit9ThrowableP",
-      "targetFallback": "ErrorKit.Throwable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO",
-      "target": "s:SH",
-      "targetFallback": "Swift.Hashable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO",
-      "target": "s:s5ErrorP",
-      "targetFallback": "Swift.Error"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -35786,34 +35114,6 @@
     {
       "module": "PKTestSupport",
       "kind": "conformsTo",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC",
-      "target": "s:13PositronicKit28ConfigurationServiceProtocolP",
-      "targetFallback": "PositronicKit.ConfigurationServiceProtocol"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC",
-      "target": "s:ScA",
-      "targetFallback": "_Concurrency.Actor"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
       "source": "s:13PKTestSupport24MockLLMGenerationCaptureV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
@@ -39225,47 +38525,6 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit27TurnHistoryProjectionSourceP",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit28ConfigurationServiceProtocolP",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit28ConfigurationServiceProtocolP",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC",
-      "target": "s:13PositronicKit28ConfigurationServiceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC",
-      "target": "s:ScA",
-      "targetFallback": "_Concurrency.Actor"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -43133,48 +42392,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts17LenientJSONParserO11ParseResultV",
-      "target": "s:11PKContracts17LenientJSONParserO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts17LenientJSONParserO11ParseResultV11wasRepairedSbvp",
-      "target": "s:11PKContracts17LenientJSONParserO11ParseResultV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts17LenientJSONParserO11ParseResultV5value11wasRepairedAeA10AnyCodableO_Sbtcfc",
-      "target": "s:11PKContracts17LenientJSONParserO11ParseResultV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts17LenientJSONParserO11ParseResultV5valueAA10AnyCodableOvp",
-      "target": "s:11PKContracts17LenientJSONParserO11ParseResultV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts17LenientJSONParserO5parse_18sanitizeCodeFencesAC11ParseResultVSS_SbtKFZ",
-      "target": "s:11PKContracts17LenientJSONParserO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts17LenientJSONParserO8jsonData4from10Foundation0E0VAA10AnyCodableO_tKFZ",
-      "target": "s:11PKContracts17LenientJSONParserO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts17LenientJSONParserO8sanitizeyS2SFZ",
-      "target": "s:11PKContracts17LenientJSONParserO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts17SidecarCompletionV4fromACs7Decoder_p_tKcfc",
       "target": "s:11PKContracts17SidecarCompletionV",
       "sourceOrigin": {
@@ -43347,18 +42564,6 @@
       "kind": "memberOf",
       "source": "s:11PKContracts18MessageContentPartO5imageyAcA05ImageC0VcACmF",
       "target": "s:11PKContracts18MessageContentPartO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts18SerializationUtilsO11jsonDecoder10Foundation11JSONDecoderCvpZ",
-      "target": "s:11PKContracts18SerializationUtilsO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts18SerializationUtilsO11jsonEncoder10Foundation11JSONEncoderCvpZ",
-      "target": "s:11PKContracts18SerializationUtilsO"
     },
     {
       "module": "PKContracts",
@@ -44389,48 +43594,6 @@
       "kind": "memberOf",
       "source": "s:11PKContracts23EmbeddingClientProtocolPAAE14embedDocumentsySayAA0B0VGSaySSGYaKF",
       "target": "s:11PKContracts23EmbeddingClientProtocolP"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO11errorDomainSSvp",
-      "target": "s:11PKContracts23LenientJSONParsingErrorO",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts7PKErrorP11errorDomainSSvp",
-        "displayName": "PKError.errorDomain"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO18invalidJSONPayloadyA2CmF",
-      "target": "s:11PKContracts23LenientJSONParsingErrorO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO19serializationFailedyA2CmF",
-      "target": "s:11PKContracts23LenientJSONParsingErrorO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO19userFriendlyMessageSSvp",
-      "target": "s:11PKContracts23LenientJSONParsingErrorO",
-      "sourceOrigin": {
-        "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp",
-        "displayName": "Throwable.userFriendlyMessage"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts23LenientJSONParsingErrorO9errorCodeSivp",
-      "target": "s:11PKContracts23LenientJSONParsingErrorO",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp",
-        "displayName": "PKError.errorCode"
-      }
     },
     {
       "module": "PKContracts",
@@ -49436,19 +48599,7 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport14MockLLMServiceC17loadConfigurationyyYaF",
-      "target": "s:13PKTestSupport14MockLLMServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC17mockHealthDetailsSDyS2SGSgvp",
-      "target": "s:13PKTestSupport14MockLLMServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport14MockLLMServiceC17restoreFromBackupyyYaKF",
       "target": "s:13PKTestSupport14MockLLMServiceC"
     },
     {
@@ -49461,18 +48612,6 @@
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC18clearConfigurationyyYaF",
-      "target": "s:13PKTestSupport14MockLLMServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport14MockLLMServiceC19exportConfiguration10Foundation4DataVyYaKF",
-      "target": "s:13PKTestSupport14MockLLMServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport14MockLLMServiceC19importConfiguration4fromy10Foundation4DataV_tYaKF",
       "target": "s:13PKTestSupport14MockLLMServiceC"
     },
     {
@@ -50662,100 +49801,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC06exportD010Foundation4DataVyYaKF",
-      "target": "s:13PKTestSupport24MockConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP06exportC010Foundation4DataVyYaKF",
-        "displayName": "ConfigurationServiceProtocol.exportConfiguration()"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC06importD04fromy10Foundation4DataV_tYaKF",
-      "target": "s:13PKTestSupport24MockConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP06importC04fromy10Foundation4DataV_tYaKF",
-        "displayName": "ConfigurationServiceProtocol.importConfiguration(from:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC12backupConfig11PKContracts16LLMConfigurationVSgvp",
-      "target": "s:13PKTestSupport24MockConfigurationServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC15migrateIfNeededyyYaF",
-      "target": "s:13PKTestSupport24MockConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP15migrateIfNeededyyYaF",
-        "displayName": "ConfigurationServiceProtocol.migrateIfNeeded()"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC15setBackupConfigyy11PKContracts16LLMConfigurationVSgF",
-      "target": "s:13PKTestSupport24MockConfigurationServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC17restoreFromBackup11PKContracts16LLMConfigurationVSgyYaKF",
-      "target": "s:13PKTestSupport24MockConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP17restoreFromBackup11PKContracts16LLMConfigurationVSgyYaKF",
-        "displayName": "ConfigurationServiceProtocol.restoreFromBackup()"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC4load11PKContracts16LLMConfigurationVyYaF",
-      "target": "s:13PKTestSupport24MockConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP4load11PKContracts16LLMConfigurationVyYaF",
-        "displayName": "ConfigurationServiceProtocol.load()"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC4saveyy11PKContracts16LLMConfigurationVYaKF",
-      "target": "s:13PKTestSupport24MockConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP4saveyy11PKContracts16LLMConfigurationVYaKF",
-        "displayName": "ConfigurationServiceProtocol.save(_:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC5clearyyYaF",
-      "target": "s:13PKTestSupport24MockConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP5clearyyYaF",
-        "displayName": "ConfigurationServiceProtocol.clear()"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24MockConfigurationServiceC6config11PKContracts16LLMConfigurationVvp",
-      "target": "s:13PKTestSupport24MockConfigurationServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport24MockConfigurationServiceCACycfc",
-      "target": "s:13PKTestSupport24MockConfigurationServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport24MockLLMGenerationCaptureV10toolChoice11PKContracts07LLMToolG0OSgvp",
       "target": "s:13PKTestSupport24MockLLMGenerationCaptureV"
     },
@@ -51310,31 +50355,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit10LLMServiceC17loadConfigurationyyYaF",
-      "target": "s:13PositronicKit10LLMServiceC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10LLMServiceC17restoreFromBackupyyYaKF",
-      "target": "s:13PositronicKit10LLMServiceC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit10LLMServiceC18clearConfigurationyyYaF",
-      "target": "s:13PositronicKit10LLMServiceC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10LLMServiceC19exportConfiguration10Foundation4DataVyYaKF",
-      "target": "s:13PositronicKit10LLMServiceC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10LLMServiceC19importConfiguration4fromy10Foundation4DataV_tYaKF",
       "target": "s:13PositronicKit10LLMServiceC"
     },
     {
@@ -51373,12 +50394,6 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10LLMServiceC7isReadySbvp",
-      "target": "s:13PositronicKit10LLMServiceC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10LLMServiceC7storage14clientResolver6loggerAcA28ConfigurationServiceProtocol_p_AA18LLMClientResolving_p7Logging6LoggerVtcfc",
       "target": "s:13PositronicKit10LLMServiceC"
     },
     {
@@ -54132,24 +53147,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit19LLMUtilityGeneratorV12generateTags3forSaySSGSS_tYaKF",
-      "target": "s:13PositronicKit19LLMUtilityGeneratorV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit19LLMUtilityGeneratorV12streamClientAcA09LLMStreamF0_p_tcfc",
-      "target": "s:13PositronicKit19LLMUtilityGeneratorV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit19LLMUtilityGeneratorV13generateTitle3forSSSay11PKContracts7MessageVG_tYaKF",
-      "target": "s:13PositronicKit19LLMUtilityGeneratorV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit19SidecarCommitPolicyO15everyModelRoundyA2CmF",
       "target": "s:13PositronicKit19SidecarCommitPolicyO"
     },
@@ -54968,12 +53965,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24ModelInferenceCapabilityV12isConfiguredSbvp",
-      "target": "s:13PositronicKit24ModelInferenceCapabilityV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeout9transportScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AH010GenerationH0VSgSdAA0P9TransportOtF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
@@ -55342,82 +54333,6 @@
         "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
         "displayName": "Decodable.init(from:)"
       }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC06exportE010Foundation4DataVyYaKF",
-      "target": "s:13PositronicKit28InMemoryConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP06exportC010Foundation4DataVyYaKF",
-        "displayName": "ConfigurationServiceProtocol.exportConfiguration()"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC06importE04fromy10Foundation4DataV_tYaKF",
-      "target": "s:13PositronicKit28InMemoryConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP06importC04fromy10Foundation4DataV_tYaKF",
-        "displayName": "ConfigurationServiceProtocol.importConfiguration(from:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC15migrateIfNeededyyYaF",
-      "target": "s:13PositronicKit28InMemoryConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP15migrateIfNeededyyYaF",
-        "displayName": "ConfigurationServiceProtocol.migrateIfNeeded()"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC17restoreFromBackup11PKContracts16LLMConfigurationVSgyYaKF",
-      "target": "s:13PositronicKit28InMemoryConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP17restoreFromBackup11PKContracts16LLMConfigurationVSgyYaKF",
-        "displayName": "ConfigurationServiceProtocol.restoreFromBackup()"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC4load11PKContracts16LLMConfigurationVyYaF",
-      "target": "s:13PositronicKit28InMemoryConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP4load11PKContracts16LLMConfigurationVyYaF",
-        "displayName": "ConfigurationServiceProtocol.load()"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC4saveyy11PKContracts16LLMConfigurationVYaKF",
-      "target": "s:13PositronicKit28InMemoryConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP4saveyy11PKContracts16LLMConfigurationVYaKF",
-        "displayName": "ConfigurationServiceProtocol.save(_:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC5clearyyYaF",
-      "target": "s:13PositronicKit28InMemoryConfigurationServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit28ConfigurationServiceProtocolP5clearyyYaF",
-        "displayName": "ConfigurationServiceProtocol.clear()"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit28InMemoryConfigurationServiceC6configAC11PKContracts16LLMConfigurationV_tcfc",
-      "target": "s:13PositronicKit28InMemoryConfigurationServiceC"
     },
     {
       "module": "PositronicKit",
@@ -57554,48 +56469,6 @@
       "kind": "requirementOf",
       "source": "s:13PositronicKit27TurnHistoryProjectionSourceP18failureRequirementAA0c19ContextContributionH0Ovp",
       "target": "s:13PositronicKit27TurnHistoryProjectionSourceP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit28ConfigurationServiceProtocolP06exportC010Foundation4DataVyYaKF",
-      "target": "s:13PositronicKit28ConfigurationServiceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit28ConfigurationServiceProtocolP06importC04fromy10Foundation4DataV_tYaKF",
-      "target": "s:13PositronicKit28ConfigurationServiceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit28ConfigurationServiceProtocolP15migrateIfNeededyyYaF",
-      "target": "s:13PositronicKit28ConfigurationServiceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit28ConfigurationServiceProtocolP17restoreFromBackup11PKContracts16LLMConfigurationVSgyYaKF",
-      "target": "s:13PositronicKit28ConfigurationServiceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit28ConfigurationServiceProtocolP4load11PKContracts16LLMConfigurationVyYaF",
-      "target": "s:13PositronicKit28ConfigurationServiceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit28ConfigurationServiceProtocolP4saveyy11PKContracts16LLMConfigurationVYaKF",
-      "target": "s:13PositronicKit28ConfigurationServiceProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit28ConfigurationServiceProtocolP5clearyyYaF",
-      "target": "s:13PositronicKit28ConfigurationServiceProtocolP"
     },
     {
       "module": "PositronicKit",

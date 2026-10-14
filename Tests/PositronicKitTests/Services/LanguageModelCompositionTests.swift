@@ -36,7 +36,7 @@ struct LanguageModelCompositionTests {
         languageModel.mockIsConfigured = true
         let kit = PKRuntime(languageModel: languageModel)
 
-        #expect(await kit.model.isConfigured)
+        #expect(await kit.model.readiness() == .ready)
     }
 
     @Test("the facade reports an unconfigured language model")
@@ -45,7 +45,7 @@ struct LanguageModelCompositionTests {
         languageModel.mockIsConfigured = false
         let kit = PKRuntime(languageModel: languageModel)
 
-        #expect(await !kit.model.isConfigured)
+        #expect(await kit.model.readiness() != .ready)
     }
 
     @Test("the facade reflects live language-model readiness changes")
@@ -54,11 +54,11 @@ struct LanguageModelCompositionTests {
         languageModel.mockIsConfigured = false
         let kit = PKRuntime(languageModel: languageModel)
 
-        #expect(await !kit.model.isConfigured)
+        #expect(await kit.model.readiness() != .ready)
 
         languageModel.mockIsConfigured = true
 
-        #expect(await kit.model.isConfigured)
+        #expect(await kit.model.readiness() == .ready)
     }
 
     @Test("the model capability distinguishes invalid configuration")
@@ -131,6 +131,6 @@ struct LanguageModelCompositionTests {
     func acceptsStreamOnlyClient() async {
         let kit = PKRuntime(languageModel: StreamOnlyClient())
 
-        #expect(await kit.model.isConfigured)
+        #expect(await kit.model.readiness() == .ready)
     }
 }

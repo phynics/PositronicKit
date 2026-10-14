@@ -36,8 +36,8 @@ struct StructuredOutputServiceTests {
         mockClient.nextResponse = "{" + #""tags":["swift"]"# + "}"
 
         let service = LLMService(
-            storage: MockConfigurationService(),
-            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+            configuration: .openAI,
+            clients: .init(primary: mockClient)
         )
         try await service.updateConfiguration(.fixture(activeProvider: .ollama))
 
@@ -74,8 +74,8 @@ struct StructuredOutputServiceTests {
             mockClient.nextResponse = "{" + #""tags":["swift"]"# + "}"
 
             let service = LLMService(
-                storage: MockConfigurationService(),
-                clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+                configuration: .openAI,
+                clients: .init(primary: mockClient)
             )
             try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: provider))
 
@@ -102,8 +102,8 @@ struct StructuredOutputServiceTests {
         mockClient.nextToolCalls = [[MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: "{" + #""tags":["swift"]"# + "}")]]
 
         let service = LLMService(
-            storage: MockConfigurationService(),
-            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+            configuration: .openAI,
+            clients: .init(primary: mockClient)
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
 
@@ -134,8 +134,8 @@ struct StructuredOutputServiceTests {
         mockClient.nextResponse = "{" + #""tags":["swift"]"# + "}"
 
         let service = LLMService(
-            storage: MockConfigurationService(),
-            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+            configuration: .openAI,
+            clients: .init(primary: mockClient)
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .openAICompatible))
 
@@ -180,8 +180,8 @@ struct StructuredOutputServiceTests {
         ]]
 
         let service = LLMService(
-            storage: MockConfigurationService(),
-            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+            configuration: .openAI,
+            clients: .init(primary: mockClient)
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
 

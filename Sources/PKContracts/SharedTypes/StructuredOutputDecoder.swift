@@ -47,7 +47,7 @@ public enum StructuredOutputDecoder {
     private static let logger = Logger(label: "com.positronickit.structured-output-decoder")
 
     /// Decodes `payload` as `type`, first checking strict JSON syntax and falling back to
-    /// ``LenientJSONParser`` repair (e.g. trailing commas, unquoted keys) if that fails. A
+    /// lenient JSON repair (e.g. trailing commas, unquoted keys) if that fails. A
     /// successful repair is logged at `warning` level. The type decoder runs exactly once after
     /// the payload has been parsed, so custom decoding failures cannot be mistaken for malformed
     /// JSON or executed a second time.

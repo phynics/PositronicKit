@@ -38,10 +38,6 @@ public struct ModelInferenceCapability: Sendable {
         self.clock = clock
     }
 
-    public var isConfigured: Bool {
-        get async { await languageModelClient.isConfigured }
-    }
-
     /// Returns the model's current non-network readiness snapshot.
     ///
     /// This does not read credentials, mutate configuration, or contact a provider. A
