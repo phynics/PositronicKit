@@ -1138,13 +1138,6 @@
       "targetFallback": "Swift.Sendable"
     },
     {
-      "module": "PKObservable",
-      "kind": "conformsTo",
-      "source": "s:12PKObservable18TimelineControllerC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
       "module": "PKOllamaProvider",
       "kind": "conformsTo",
       "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
@@ -1203,48 +1196,6 @@
     {
       "module": "PKTestSupport",
       "kind": "conformsTo",
-      "source": "s:11PKContracts7MessageV",
-      "target": "s:7Testing21CustomTestReflectableP",
-      "targetFallback": "Testing.CustomTestReflectable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts7MessageV",
-      "target": "s:s8CopyableP",
-      "targetFallback": "Swift.Copyable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts7MessageV",
-      "target": "s:s9EscapableP",
-      "targetFallback": "Swift.Escapable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts9TurnEventO",
-      "target": "s:7Testing21CustomTestReflectableP",
-      "targetFallback": "Testing.CustomTestReflectable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts9TurnEventO",
-      "target": "s:s8CopyableP",
-      "targetFallback": "Swift.Copyable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts9TurnEventO",
-      "target": "s:s9EscapableP",
-      "targetFallback": "Swift.Escapable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
       "source": "s:13PKTestSupport19MockEmbeddingClientC",
       "target": "s:11PKContracts23EmbeddingClientProtocolP",
       "targetFallback": "PKContracts.EmbeddingClientProtocol"
@@ -1262,27 +1213,6 @@
       "source": "s:13PKTestSupport19MockEmbeddingClientC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11TurnOutcomeO",
-      "target": "s:7Testing21CustomTestReflectableP",
-      "targetFallback": "Testing.CustomTestReflectable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11TurnOutcomeO",
-      "target": "s:s8CopyableP",
-      "targetFallback": "Swift.Copyable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11TurnOutcomeO",
-      "target": "s:s9EscapableP",
-      "targetFallback": "Swift.Escapable"
     },
     {
       "module": "PKContracts",
@@ -1679,66 +1609,6 @@
       "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC"
     },
     {
-      "module": "PKPrompt",
-      "kind": "memberOf",
-      "source": "s:Sl8PKPromptE12duplicateIDs9idKeyPathSayqd__Gs0eF0Cy7ElementQzqd__G_tSLRd__SHRd__lF",
-      "target": "s:Sl",
-      "targetFallback": "Swift.Collection"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:11PKContracts16LLMConfigurationV13PKTestSupportE7fixture8endpoint9modelName12utilityModel04fastJ06apiKey14activeProvider18memoryContextLimit08documentqR015timeoutInterval10maxRetries11temperature0V6Tokens4topP16frequencyPenalty15presencePenalty4seed14applicationURL16applicationTitleACSSSg_A4xA11LLMProviderOS2iSdSgSiSgA_A0_A_A_A_A0_A2XtFZ",
-      "target": "s:11PKContracts16LLMConfigurationV",
-      "targetFallback": "PKContracts.LLMConfiguration"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:11PKContracts18WorkspaceReferenceV13PKTestSupportE7fixture2id3uri8location8originID8rootPath5tools6statusAC10Foundation4UUIDV_AA0B3URIVAC0B8LocationOAOSgSSSgSayAA04ToolC0OGAC0B6StatusOtFZ",
-      "target": "s:11PKContracts18WorkspaceReferenceV",
-      "targetFallback": "PKContracts.WorkspaceReference"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV13PKTestSupportE16customTestMirrors0G0Vvp",
-      "target": "s:11PKContracts7MessageV",
-      "targetFallback": "PKContracts.Message",
-      "sourceOrigin": {
-        "identifier": "s:7Testing21CustomTestReflectableP06customC6Mirrors0F0Vvp",
-        "displayName": "CustomTestReflectable.customTestMirror"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV13PKTestSupportE7fixture2id4role7content9timestampAC10Foundation4UUIDV_AC0B4RoleOSSAJ4DateVtFZ",
-      "target": "s:11PKContracts7MessageV",
-      "targetFallback": "PKContracts.Message"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO13PKTestSupportE16customTestMirrors0H0Vvp",
-      "target": "s:11PKContracts9TurnEventO",
-      "targetFallback": "PKContracts.TurnEvent",
-      "sourceOrigin": {
-        "identifier": "s:7Testing21CustomTestReflectableP06customC6Mirrors0F0Vvp",
-        "displayName": "CustomTestReflectable.customTestMirror"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport18MockLocalWorkspaceC2id10Foundation4UUIDVvp",
-      "target": "s:13PKTestSupport18MockLocalWorkspaceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit17WorkspaceProviderPAAE2id10Foundation4UUIDVvp",
-        "displayName": "WorkspaceProvider.id"
-      }
-    },
-    {
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport19MockEmbeddingClientC11inputBudget11PKContracts0d5InputG0Vvp",
@@ -1799,66 +1669,6 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO3run6client6inputsy11PKContracts0cD8Protocol_p_SaySSGtYaKFZ",
       "target": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnOutcomeO13PKTestSupportE16customTestMirrors0I0Vvp",
-      "target": "s:13PositronicKit11TurnOutcomeO",
-      "targetFallback": "PositronicKit.TurnOutcome",
-      "sourceOrigin": {
-        "identifier": "s:7Testing21CustomTestReflectableP06customC6Mirrors0F0Vvp",
-        "displayName": "CustomTestReflectable.customTestMirror"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:8PKPrompt14RenderedPromptV7SectionV13PKTestSupportE7fixture2id7content4role8priority15estimatedTokens11compression4type11cachePolicy4path8parentIDAESS_AA0cD0V7ContentOAA0cD4RoleOS2iAA19CompressionStrategyOAA0cD4TypeOAA05CacheQ0OSaySSGSgSSSgtFZ",
-      "target": "s:8PKPrompt14RenderedPromptV7SectionV",
-      "targetFallback": "PKPrompt.RenderedPrompt.Section"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:ScS13PKTestSupportE7collectSayxGyYaF",
-      "target": "s:ScS",
-      "targetFallback": "_Concurrency.AsyncStream"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:Scs13PKTestSupportE7collectSayxGyYaKF",
-      "target": "s:Scs",
-      "targetFallback": "_Concurrency.AsyncThrowingStream"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:11PKContracts23WorkspaceToolDefinitionV13PositronicKitE4fromAcA6PKTool_p_tcfc",
-      "target": "s:11PKContracts23WorkspaceToolDefinitionV",
-      "targetFallback": "PKContracts.WorkspaceToolDefinition"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6PKToolP13PositronicKitE19toLLMToolDefinitionAA0fG0VyF",
-      "target": "s:11PKContracts6PKToolP",
-      "targetFallback": "PKContracts.PKTool"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:8PKPrompt14RenderedPromptV13PositronicKitE13buildMessagesSay11PKContracts10LLMMessageVGyF",
-      "target": "s:8PKPrompt14RenderedPromptV",
-      "targetFallback": "PKPrompt.RenderedPrompt"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:8PKPrompt14RenderedPromptV13PositronicKitE21buildTimelineMessagesSay11PKContracts7MessageVGyF",
-      "target": "s:8PKPrompt14RenderedPromptV",
-      "targetFallback": "PKPrompt.RenderedPrompt"
     },
     {
       "module": "PKContracts",

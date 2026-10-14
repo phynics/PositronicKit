@@ -775,801 +775,801 @@
   ],
   "relationships": [
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingErrorO",
       "target": "s:11PKContracts7PKErrorP"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingErrorO",
       "target": "s:20FoundationEssentials14LocalizedErrorP",
       "targetFallback": "FoundationEssentials.LocalizedError"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingErrorO",
       "target": "s:8ErrorKit9ThrowableP",
       "targetFallback": "ErrorKit.Throwable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingErrorO",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingErrorO",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingErrorO",
       "target": "s:s5ErrorP",
       "targetFallback": "Swift.Error"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingErrorO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingSpaceV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingSpaceV",
       "target": "s:SH",
       "targetFallback": "Swift.Hashable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingSpaceV",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingSpaceV",
       "target": "s:Se",
       "targetFallback": "Swift.Decodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingSpaceV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingSpaceV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingUsageV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingUsageV",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingUsageV",
       "target": "s:Se",
       "targetFallback": "Swift.Decodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingUsageV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14EmbeddingUsageV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts16EmbeddingPurposeO",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts16EmbeddingPurposeO",
       "target": "s:SH",
       "targetFallback": "Swift.Hashable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts16EmbeddingPurposeO",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts16EmbeddingPurposeO",
       "target": "s:SY",
       "targetFallback": "Swift.RawRepresentable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts16EmbeddingPurposeO",
       "target": "s:Se",
       "targetFallback": "Swift.Decodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts16EmbeddingPurposeO",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts16EmbeddingPurposeO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts16EmbeddingRequestV",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts16EmbeddingRequestV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts16EmbeddingRequestV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts17EmbeddingResponseV",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts17EmbeddingResponseV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts17EmbeddingResponseV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts20EmbeddingInputBudgetV",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts20EmbeddingInputBudgetV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts20EmbeddingInputBudgetV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts23EmbeddingClientProtocolP",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts23EmbeddingClientProtocolP",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts9EmbeddingV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts9EmbeddingV",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts9EmbeddingV",
       "target": "s:Se",
       "targetFallback": "Swift.Decodable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts9EmbeddingV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts9EmbeddingV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOllamaProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
       "target": "s:11PKContracts23EmbeddingClientProtocolP",
       "targetFallback": "PKContracts.EmbeddingClientProtocol"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOllamaProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
       "target": "s:ScA",
       "targetFallback": "_Concurrency.Actor"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOllamaProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOllamaProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
       "target": "s:11PKContracts23EmbeddingClientProtocolP",
       "targetFallback": "PKContracts.EmbeddingClientProtocol"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
       "target": "s:ScA",
       "targetFallback": "_Concurrency.Actor"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKOpenAIProvider",
+      "kind": "conformsTo",
       "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
-      "kind": "conformsTo",
       "module": "PKTestSupport",
+      "kind": "conformsTo",
       "source": "s:13PKTestSupport19MockEmbeddingClientC",
       "target": "s:11PKContracts23EmbeddingClientProtocolP",
       "targetFallback": "PKContracts.EmbeddingClientProtocol"
     },
     {
-      "kind": "conformsTo",
       "module": "PKTestSupport",
+      "kind": "conformsTo",
       "source": "s:13PKTestSupport19MockEmbeddingClientC",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
     },
     {
-      "kind": "conformsTo",
       "module": "PKTestSupport",
+      "kind": "conformsTo",
       "source": "s:13PKTestSupport19MockEmbeddingClientC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
     {
+      "module": "PKContracts",
       "kind": "memberOf",
-      "module": "PKContracts",
       "source": "s:11PKContracts14EmbeddingErrorO11errorDomainSSvp",
+      "target": "s:11PKContracts14EmbeddingErrorO",
       "sourceOrigin": {
-        "displayName": "PKError.errorDomain",
-        "identifier": "s:11PKContracts7PKErrorP11errorDomainSSvp"
-      },
-      "target": "s:11PKContracts14EmbeddingErrorO"
+        "identifier": "s:11PKContracts7PKErrorP11errorDomainSSvp",
+        "displayName": "PKError.errorDomain"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingErrorO16generationFailedyA2CmF",
       "target": "s:11PKContracts14EmbeddingErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingErrorO16modelUnavailableyA2CmF",
       "target": "s:11PKContracts14EmbeddingErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingErrorO18incompatibleSpacesyAcA0B5SpaceV_AFtcACmF",
       "target": "s:11PKContracts14EmbeddingErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingErrorO19userFriendlyMessageSSvp",
+      "target": "s:11PKContracts14EmbeddingErrorO",
       "sourceOrigin": {
-        "displayName": "Throwable.userFriendlyMessage",
-        "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp"
-      },
-      "target": "s:11PKContracts14EmbeddingErrorO"
+        "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp",
+        "displayName": "Throwable.userFriendlyMessage"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingErrorO21responseCountMismatchyACSi_SitcACmF",
       "target": "s:11PKContracts14EmbeddingErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingErrorO24perTextByteLimitExceededyACSi_SitcACmF",
       "target": "s:11PKContracts14EmbeddingErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingErrorO27batchTextCountLimitExceededyACSi_SitcACmF",
       "target": "s:11PKContracts14EmbeddingErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingErrorO27totalBatchByteLimitExceededyACSi_SitcACmF",
       "target": "s:11PKContracts14EmbeddingErrorO"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingErrorO9errorCodeSivp",
+      "target": "s:11PKContracts14EmbeddingErrorO",
       "sourceOrigin": {
-        "displayName": "PKError.errorCode",
-        "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp"
-      },
-      "target": "s:11PKContracts14EmbeddingErrorO"
+        "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp",
+        "displayName": "PKError.errorCode"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingSpaceV10dimensionsSivp",
       "target": "s:11PKContracts14EmbeddingSpaceV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingSpaceV12isNormalizedSbvp",
       "target": "s:11PKContracts14EmbeddingSpaceV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingSpaceV4fromACs7Decoder_p_tKcfc",
+      "target": "s:11PKContracts14EmbeddingSpaceV",
       "sourceOrigin": {
-        "displayName": "Decodable.init(from:)",
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc"
-      },
-      "target": "s:11PKContracts14EmbeddingSpaceV"
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingSpaceV5modelSSvp",
       "target": "s:11PKContracts14EmbeddingSpaceV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingSpaceV8provider5model10dimensions12isNormalizedACSS_SSSiSbtcfc",
       "target": "s:11PKContracts14EmbeddingSpaceV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingSpaceV8providerSSvp",
       "target": "s:11PKContracts14EmbeddingSpaceV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingUsageV11inputTokensACSi_tcfc",
       "target": "s:11PKContracts14EmbeddingUsageV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingUsageV11inputTokensSivp",
       "target": "s:11PKContracts14EmbeddingUsageV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14EmbeddingUsageV4fromACs7Decoder_p_tKcfc",
+      "target": "s:11PKContracts14EmbeddingUsageV",
       "sourceOrigin": {
-        "displayName": "Decodable.init(from:)",
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc"
-      },
-      "target": "s:11PKContracts14EmbeddingUsageV"
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts16EmbeddingPurposeO5queryyA2CmF",
       "target": "s:11PKContracts16EmbeddingPurposeO"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts16EmbeddingPurposeO8documentyA2CmF",
       "target": "s:11PKContracts16EmbeddingPurposeO"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts16EmbeddingPurposeO8rawValueACSgSS_tcfc",
+      "target": "s:11PKContracts16EmbeddingPurposeO",
       "sourceOrigin": {
-        "displayName": "RawRepresentable.init(rawValue:)",
-        "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc"
-      },
-      "target": "s:11PKContracts16EmbeddingPurposeO"
+        "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc",
+        "displayName": "RawRepresentable.init(rawValue:)"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts16EmbeddingRequestV10dimensionsSiSgvp",
       "target": "s:11PKContracts16EmbeddingRequestV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts16EmbeddingRequestV6inputs7purpose10dimensionsACSaySSG_AA0B7PurposeOSiSgtcfc",
       "target": "s:11PKContracts16EmbeddingRequestV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts16EmbeddingRequestV6inputsSaySSGvp",
       "target": "s:11PKContracts16EmbeddingRequestV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts16EmbeddingRequestV7purposeAA0B7PurposeOvp",
       "target": "s:11PKContracts16EmbeddingRequestV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts17EmbeddingResponseV10embeddings5usageACSayAA0B0VG_AA0B5UsageVSgtcfc",
       "target": "s:11PKContracts17EmbeddingResponseV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts17EmbeddingResponseV10embeddingsSayAA0B0VGvp",
       "target": "s:11PKContracts17EmbeddingResponseV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts17EmbeddingResponseV5usageAA0B5UsageVSgvp",
       "target": "s:11PKContracts17EmbeddingResponseV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts20EmbeddingInputBudgetV12maxTextCount0e8BytesPerF00e5TotalH0ACSi_S2itcfc",
       "target": "s:11PKContracts20EmbeddingInputBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts20EmbeddingInputBudgetV12maxTextCountSivp",
       "target": "s:11PKContracts20EmbeddingInputBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts20EmbeddingInputBudgetV13maxTotalBytesSivp",
       "target": "s:11PKContracts20EmbeddingInputBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts20EmbeddingInputBudgetV15maxBytesPerTextSivp",
       "target": "s:11PKContracts20EmbeddingInputBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts20EmbeddingInputBudgetV7batchesySaySaySSGGAEKF",
       "target": "s:11PKContracts20EmbeddingInputBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts20EmbeddingInputBudgetV7defaultACvpZ",
       "target": "s:11PKContracts20EmbeddingInputBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts20EmbeddingInputBudgetV8validateyySSKF",
       "target": "s:11PKContracts20EmbeddingInputBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts20EmbeddingInputBudgetV8validateyySaySSGKF",
       "target": "s:11PKContracts20EmbeddingInputBudgetV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts23EmbeddingClientProtocolPAAE10embedQueryyAA0B0VSSYaKF",
       "target": "s:11PKContracts23EmbeddingClientProtocolP"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts23EmbeddingClientProtocolPAAE14embedDocumentsySayAA0B0VGSaySSGYaKF",
       "target": "s:11PKContracts23EmbeddingClientProtocolP"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts9EmbeddingV16cosineSimilarity2toSfAC_tKF",
       "target": "s:11PKContracts9EmbeddingV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts9EmbeddingV4fromACs7Decoder_p_tKcfc",
+      "target": "s:11PKContracts9EmbeddingV",
       "sourceOrigin": {
-        "displayName": "Decodable.init(from:)",
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc"
-      },
-      "target": "s:11PKContracts9EmbeddingV"
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts9EmbeddingV5spaceAA0B5SpaceVvp",
       "target": "s:11PKContracts9EmbeddingV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts9EmbeddingV6vector5spaceACSaySfG_AA0B5SpaceVtcfc",
       "target": "s:11PKContracts9EmbeddingV"
     },
     {
-      "kind": "memberOf",
       "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts9EmbeddingV6vectorSaySfGvp",
       "target": "s:11PKContracts9EmbeddingV"
     },
     {
-      "kind": "memberOf",
       "module": "PKOllamaProvider",
+      "kind": "memberOf",
       "source": "s:16PKOllamaProvider0A0O19makeEmbeddingClient5model8endpoint15timeoutInterval10maxRetriesAA06OllamadE0CSS_SSSdSitFZ",
       "target": "s:16PKOllamaProvider0A0O"
     },
     {
-      "kind": "memberOf",
       "module": "PKOllamaProvider",
+      "kind": "memberOf",
       "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC11inputBudget11PKContracts0d5InputG0Vvp",
+      "target": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
       "sourceOrigin": {
-        "displayName": "EmbeddingClientProtocol.inputBudget",
-        "identifier": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp"
-      },
-      "target": "s:16PKOllamaProvider21OllamaEmbeddingClientC"
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp",
+        "displayName": "EmbeddingClientProtocol.inputBudget"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKOllamaProvider",
+      "kind": "memberOf",
       "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC5embedy11PKContracts0D8ResponseVAE0D7RequestVYaKF",
+      "target": "s:16PKOllamaProvider21OllamaEmbeddingClientC",
       "sourceOrigin": {
-        "displayName": "EmbeddingClientProtocol.embed(_:)",
-        "identifier": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF"
-      },
-      "target": "s:16PKOllamaProvider21OllamaEmbeddingClientC"
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF",
+        "displayName": "EmbeddingClientProtocol.embed(_:)"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKOllamaProvider",
+      "kind": "memberOf",
       "source": "s:16PKOllamaProvider21OllamaEmbeddingClientC8endpoint9modelName15timeoutInterval10maxRetries11inputBudgetACSS_SSSdSi11PKContracts0d5InputN0Vtcfc",
       "target": "s:16PKOllamaProvider21OllamaEmbeddingClientC"
     },
     {
-      "kind": "memberOf",
       "module": "PKOpenAIProvider",
+      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider0A2AIO19makeEmbeddingClient6apiKey5model4host4port6scheme15timeoutInterval10maxRetriesAA015OpenAIEmbeddingF0CSS_S2SSiSSSdSitFZ",
       "target": "s:16PKOpenAIProvider0A2AIO"
     },
     {
-      "kind": "memberOf",
       "module": "PKOpenAIProvider",
+      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC11inputBudget11PKContracts014EmbeddingInputG0Vvp",
+      "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
       "sourceOrigin": {
-        "displayName": "EmbeddingClientProtocol.inputBudget",
-        "identifier": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp"
-      },
-      "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC"
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp",
+        "displayName": "EmbeddingClientProtocol.inputBudget"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKOpenAIProvider",
+      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC18defaultInputBudget11PKContracts09EmbeddinggH0VvpZ",
       "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC"
     },
     {
-      "kind": "memberOf",
       "module": "PKOpenAIProvider",
+      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC5embedy11PKContracts17EmbeddingResponseVAE0H7RequestVYaKF",
+      "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC",
       "sourceOrigin": {
-        "displayName": "EmbeddingClientProtocol.embed(_:)",
-        "identifier": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF"
-      },
-      "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC"
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF",
+        "displayName": "EmbeddingClientProtocol.embed(_:)"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKOpenAIProvider",
+      "kind": "memberOf",
       "source": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC6apiKey9modelName4host4port6scheme15timeoutInterval10maxRetries11inputBudgetACSS_S2SSiSSSdSi11PKContracts014EmbeddingInputR0Vtcfc",
       "target": "s:16PKOpenAIProvider21OpenAIEmbeddingClientC"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport19MockEmbeddingClientC11inputBudget11PKContracts0d5InputG0Vvp",
+      "target": "s:13PKTestSupport19MockEmbeddingClientC",
       "sourceOrigin": {
-        "displayName": "EmbeddingClientProtocol.inputBudget",
-        "identifier": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp"
-      },
-      "target": "s:13PKTestSupport19MockEmbeddingClientC"
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp",
+        "displayName": "EmbeddingClientProtocol.inputBudget"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport19MockEmbeddingClientC12errorToThrow11PKContracts0D5ErrorOSgvp",
       "target": "s:13PKTestSupport19MockEmbeddingClientC"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport19MockEmbeddingClientC16recordedRequestsSay11PKContracts0D7RequestVGvp",
       "target": "s:13PKTestSupport19MockEmbeddingClientC"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport19MockEmbeddingClientC21responseCountOverrideSiSgvp",
       "target": "s:13PKTestSupport19MockEmbeddingClientC"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport19MockEmbeddingClientC5embedy11PKContracts0D8ResponseVAE0D7RequestVYaKF",
+      "target": "s:13PKTestSupport19MockEmbeddingClientC",
       "sourceOrigin": {
-        "displayName": "EmbeddingClientProtocol.embed(_:)",
-        "identifier": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF"
-      },
-      "target": "s:13PKTestSupport19MockEmbeddingClientC"
+        "identifier": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF",
+        "displayName": "EmbeddingClientProtocol.embed(_:)"
+      }
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport19MockEmbeddingClientC5space11PKContracts0D5SpaceVvp",
       "target": "s:13PKTestSupport19MockEmbeddingClientC"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport19MockEmbeddingClientC5space11inputBudgetAC11PKContracts0D5SpaceV_AF0d5InputH0Vtcfc",
       "target": "s:13PKTestSupport19MockEmbeddingClientC"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO3run6client6inputs15expectedVectorsy11PKContracts0cD8Protocol_p_SaySSGSaySaySfGGtYaKFZ",
       "target": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO"
     },
     {
-      "kind": "memberOf",
       "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO3run6client6inputsy11PKContracts0cD8Protocol_p_SaySSGtYaKFZ",
       "target": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO"
     },
     {
-      "kind": "requirementOf",
       "module": "PKContracts",
+      "kind": "requirementOf",
       "source": "s:11PKContracts23EmbeddingClientProtocolP11inputBudgetAA0b5InputF0Vvp",
       "target": "s:11PKContracts23EmbeddingClientProtocolP"
     },
     {
-      "kind": "requirementOf",
       "module": "PKContracts",
+      "kind": "requirementOf",
       "source": "s:11PKContracts23EmbeddingClientProtocolP5embedyAA0B8ResponseVAA0B7RequestVYaKF",
       "target": "s:11PKContracts23EmbeddingClientProtocolP"
     }

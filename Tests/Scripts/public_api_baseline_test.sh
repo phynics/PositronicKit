@@ -112,8 +112,9 @@ chmod +x "$fake_bin/swift"
 # Hermetic stand-in for the Xcode toolchain pieces the baseline gate invokes
 # on Darwin: `--show-sdk-path` and `swift-symbolgraph-extract`. It regenerates
 # the requested module graph unless the module is deliberately omitted, which
-# keeps the missing-graph rejection meaningful on macOS. Linux runs never
-# reach for xcrun, so behavior there is unchanged.
+# keeps the missing-graph rejection meaningful on macOS. It also mirrors the
+# real extractor's `-include-spi-symbols` behavior, which the Linux SPI pass
+# now depends on.
 cat > "$fake_bin/xcrun" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -143,7 +144,12 @@ if [ "${1:-}" = "swift-symbolgraph-extract" ]; then
   if [ "$module" = "${OMIT_MODULE:-}" ]; then
     exit 0
   fi
-  printf '{"module":{"name":"%s"},"symbols":[],"relationships":[]}\n' "$module" \
+  symbols="[]"
+  if [ "$module" = "PKContracts" ] && [[ " $* " == *" -include-spi-symbols "* ]] \
+      && [ "${EMIT_SPI:-1}" != "0" ]; then
+    symbols='[{"identifier":{"precise":"s:10PKContracts16ExperimentalPeekV"},"kind":{"identifier":"swift.struct"},"pathComponents":["ExperimentalPeek"],"declarationFragments":[{"spelling":"struct ExperimentalPeek"}]}]'
+  fi
+  printf '{"module":{"name":"%s"},"symbols":%s,"relationships":[]}\n' "$module" "$symbols" \
     > "$output_dir/$module.symbols.json"
   exit 0
 fi

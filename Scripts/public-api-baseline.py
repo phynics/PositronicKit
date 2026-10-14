@@ -9,6 +9,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -91,89 +92,17 @@ def reported_graph_directory(output: str) -> Path:
     return path if path.is_absolute() else ROOT / path
 
 
-def inventory(include_spi: bool = False) -> dict:
-    """Build the reviewed symbol inventory for the catalog's public modules.
-
-    Callers run this twice: once with SPI symbols excluded to produce the
-    semver-stable baseline, and once with SPI symbols included so
-    ``experimental_delta`` can isolate the experimental surfaces.
-    """
-    modules = public_modules()
-    bin_path = Path(run("swift", "build", "--show-bin-path").splitlines()[-1])
-    # SwiftPM places the graphs beside the configuration directory (for
-    # example `.build/x86_64-unknown-linux-gnu/symbolgraph`), so resolve from
-    # the bin directory rather than the package `.build` root.
-    graph_dir = bin_path.parent / "symbolgraph"
-    graph_dir.mkdir(parents=True, exist_ok=True)
-    for graph in graph_dir.rglob("*.symbols.json"):
-        graph.unlink()
-
-    dump_arguments = [
-        "swift", "package", "dump-symbol-graph",
-        "--minimum-access-level", "public",
-        "--skip-synthesized-members",
-        "--skip-inherited-docs",
-    ]
-    if include_spi:
-        dump_arguments.append("--include-spi-symbols")
-
-    dump_status, dump_output = run_result(*dump_arguments)
-    try:
-        graph_dir = reported_graph_directory(dump_output)
-    except SystemExit:
-        print(dump_output, end="", file=sys.stderr)
-        raise SystemExit(
-            f"swift package dump-symbol-graph exited {dump_status} without reporting its output directory"
-        )
-    print(
-        f"swift package dump-symbol-graph output: {graph_dir} (exit status {dump_status})",
-        file=sys.stderr,
-    )
-
-    graph_paths = sorted(graph_dir.rglob("*.symbols.json"))
-    observed_graph_modules = {
-        json.loads(path.read_text())["module"]["name"]
-        for path in graph_paths
-    }
-    if platform.system() == "Darwin":
-        generated_module_maps = bin_path.parent.parent / "Intermediates.noindex" / "GeneratedModuleMaps"
-        sdk = run("xcrun", "--show-sdk-path")
-        if include_spi:
-            fallback_modules = set(modules)
-        else:
-            fallback_modules = set(modules) - observed_graph_modules
-            fallback_modules.add("PKContracts")
-        for module in sorted(fallback_modules):
-            for graph in graph_dir.rglob("*.symbols.json"):
-                if json.loads(graph.read_text())["module"]["name"] == module:
-                    graph.unlink()
-            candidates = list(bin_path.parent.parent.rglob(f"{module}.swiftmodule"))
-            if not candidates:
-                continue
-            extract_cmd = [
-                *symbolgraph_extract_command(),
-                "-module-name", module,
-                "-I", str(candidates[0].parent),
-                "-I", str(generated_module_maps),
-                "-sdk", sdk,
-                "-output-dir", str(graph_dir),
-                "-minimum-access-level", "public",
-                "-skip-synthesized-members",
-                "-skip-inherited-docs",
-            ]
-            if include_spi:
-                extract_cmd.append("-include-spi-symbols")
-            run(*extract_cmd)
-
+def read_graphs(graph_dir: Path, modules: list[str]) -> tuple[dict[str, dict], dict[str, dict], set[str]]:
+    """Read symbol graphs into precise-keyed symbol and relationship maps."""
     symbols: dict[str, dict] = {}
     relationships: dict[str, dict] = {}
-    observed_modules: set[str] = set()
+    observed: set[str] = set()
     for graph_path in sorted(graph_dir.rglob("*.symbols.json")):
         graph = json.loads(graph_path.read_text())
         module = graph["module"]["name"]
         if module not in modules:
             continue
-        observed_modules.add(module)
+        observed.add(module)
         for symbol in graph["symbols"]:
             precise = symbol["identifier"]["precise"]
             entry = {
@@ -195,9 +124,127 @@ def inventory(include_spi: bool = False) -> dict:
                     if key in relationship
                 },
             }
-            key = json.dumps(entry, sort_keys=True)
-            relationships[key] = entry
+            relationships[json.dumps(entry, sort_keys=True)] = entry
+    return symbols, relationships, observed
 
+
+def extract_graphs(modules: list[str], bin_path: Path, graph_dir: Path, include_spi: bool) -> None:
+    """Extract ``modules`` with swift-symbolgraph-extract into ``graph_dir``.
+
+    SwiftPM's ``dump-symbol-graph --include-spi-symbols`` does not emit SPI
+    symbols on Linux, so the experimental pass uses the extractor on every
+    platform. Both extractor passes run together so the SPI delta cannot pick up
+    an extractor-versus-SwiftPM difference in the stable surface.
+    """
+    generated_module_maps: Path | None = None
+    sdk: str | None = None
+    if platform.system() == "Darwin":
+        generated_module_maps = bin_path.parent.parent / "Intermediates.noindex" / "GeneratedModuleMaps"
+        sdk = run("xcrun", "--show-sdk-path")
+    graph_dir.mkdir(parents=True, exist_ok=True)
+    for module in modules:
+        candidates = list(bin_path.parent.parent.rglob(f"{module}.swiftmodule"))
+        if not candidates:
+            raise SystemExit(f"missing compiled module: {module}")
+        command = [
+            *symbolgraph_extract_command(),
+            "-module-name", module,
+            "-I", str(candidates[0].parent),
+            "-output-dir", str(graph_dir),
+            "-minimum-access-level", "public",
+            "-skip-synthesized-members",
+            "-skip-inherited-docs",
+        ]
+        if generated_module_maps is not None:
+            command += ["-I", str(generated_module_maps), "-sdk", sdk]
+        if include_spi:
+            command.append("-include-spi-symbols")
+        run(*command)
+
+
+def _extract_and_read(
+    modules: list[str], bin_path: Path, graph_dir: Path, include_spi: bool
+) -> tuple[dict[str, dict], dict[str, dict], set[str]]:
+    extract_graphs(modules, bin_path, graph_dir, include_spi)
+    symbols, relationships, observed = read_graphs(graph_dir, modules)
+    missing = sorted(set(modules) - observed)
+    if missing:
+        raise SystemExit("missing SPI symbol graphs: " + ", ".join(missing))
+    return symbols, relationships, observed
+
+
+def inventory(include_spi: bool = False) -> dict:
+    """Build the reviewed symbol inventory for the catalog's public modules.
+
+    The stable pass records SwiftPM's ``dump-symbol-graph`` output. The SPI pass
+    extracts every module twice with the same extractor, so the experimental
+    baseline holds only the surfaces SPI adds and never an extractor artifact.
+    """
+    modules = public_modules()
+    bin_path = Path(run("swift", "build", "--show-bin-path").splitlines()[-1])
+    if include_spi:
+        with tempfile.TemporaryDirectory() as scratch:
+            full_symbols, full_relationships, _ = _extract_and_read(
+                modules, bin_path, Path(scratch) / "full", include_spi=True
+            )
+            stable_symbols, stable_relationships, _ = _extract_and_read(
+                modules, bin_path, Path(scratch) / "stable", include_spi=False
+            )
+        symbols = {precise: entry for precise, entry in full_symbols.items() if precise not in stable_symbols}
+        relationships = {
+            key: entry for key, entry in full_relationships.items() if key not in stable_relationships
+        }
+        return {
+            "schemaVersion": 2,
+            "release": BASELINE_RELEASE,
+            "platform": PLATFORM,
+            "modules": modules,
+            "symbols": [dict(precise=precise, **symbols[precise]) for precise in sorted(symbols)],
+            "relationships": [relationships[key] for key in sorted(relationships)],
+        }
+
+    # SwiftPM places the graphs beside the configuration directory (for
+    # example `.build/x86_64-unknown-linux-gnu/symbolgraph`), so resolve from
+    # the bin directory rather than the package `.build` root.
+    graph_dir = bin_path.parent / "symbolgraph"
+    graph_dir.mkdir(parents=True, exist_ok=True)
+    for graph in graph_dir.rglob("*.symbols.json"):
+        graph.unlink()
+
+    dump_status, dump_output = run_result(
+        "swift", "package", "dump-symbol-graph",
+        "--minimum-access-level", "public",
+        "--skip-synthesized-members",
+        "--skip-inherited-docs",
+    )
+    try:
+        graph_dir = reported_graph_directory(dump_output)
+    except SystemExit:
+        print(dump_output, end="", file=sys.stderr)
+        raise SystemExit(
+            f"swift package dump-symbol-graph exited {dump_status} without reporting its output directory"
+        )
+    print(
+        f"swift package dump-symbol-graph output: {graph_dir} (exit status {dump_status})",
+        file=sys.stderr,
+    )
+
+    observed_graph_modules = {
+        json.loads(path.read_text())["module"]["name"]
+        for path in sorted(graph_dir.rglob("*.symbols.json"))
+    }
+    if platform.system() == "Darwin":
+        # SwiftPM skips some Apple-only modules, so re-extract them (and
+        # PKContracts for its cross-module relationships) to keep the stable
+        # surface complete.
+        fallback_modules = sorted({*set(modules) - observed_graph_modules, "PKContracts"})
+        for module in fallback_modules:
+            for graph in graph_dir.rglob("*.symbols.json"):
+                if json.loads(graph.read_text())["module"]["name"] == module:
+                    graph.unlink()
+        extract_graphs(fallback_modules, bin_path, graph_dir, include_spi=False)
+
+    symbols, relationships, observed_modules = read_graphs(graph_dir, modules)
     missing = sorted(set(modules) - observed_modules)
     if missing:
         if dump_status:
