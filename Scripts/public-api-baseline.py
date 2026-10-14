@@ -71,7 +71,6 @@ def symbolgraph_extract_command() -> list[str]:
 
 PRIMARY_BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{PLATFORM}.json"
 EXPERIMENTAL_BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-experimental-api-{PLATFORM}.json"
-BASELINE = PRIMARY_BASELINE
 
 
 def public_modules() -> list[str]:
@@ -93,6 +92,12 @@ def reported_graph_directory(output: str) -> Path:
 
 
 def inventory(include_spi: bool = False) -> dict:
+    """Build the reviewed symbol inventory for the catalog's public modules.
+
+    Callers run this twice: once with SPI symbols excluded to produce the
+    semver-stable baseline, and once with SPI symbols included so
+    ``experimental_delta`` can isolate the experimental surfaces.
+    """
     modules = public_modules()
     bin_path = Path(run("swift", "build", "--show-bin-path").splitlines()[-1])
     # SwiftPM places the graphs beside the configuration directory (for

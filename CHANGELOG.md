@@ -34,9 +34,7 @@ for tagged releases beginning with `1.0.0`.
   `EmbeddingRequest`, `EmbeddingResponse`, `Embedding`, `EmbeddingSpace`, `EmbeddingPurpose`,
   `EmbeddingInputBudget`, and `EmbeddingError` (ADR 0014). Experimental surfaces ship behind
   `@_spi(Experimental)` with an independent experimental API baseline (`api/next-experimental-api-*.json`),
-  excluding them from the semver-stable public API contract (#268).
-  `EmbeddingRequest`, `EmbeddingResponse`, `Embedding`, `EmbeddingSpace`, `EmbeddingPurpose`,
-  `EmbeddingInputBudget`, and `EmbeddingError` (ADR 0014). `Embedding` carries its
+  excluding them from the semver-stable public API contract (#268). `Embedding` carries its
   `EmbeddingSpace`, and `cosineSimilarity(to:)` throws `EmbeddingError.incompatibleSpaces` when two
   vectors come from different providers or models. The runtime performs no retrieval; hosts rank
   their own data and contribute through `AgentContextSource` or `TurnContextSource`.
