@@ -50,7 +50,6 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
 
     public var healthDetails: [String: String]? {
         get async {
-            await prepareIfNeeded()
             var details: [String: String] = [
                 "model": snapshot.configuration.activeProviderConfiguration.modelName,
                 "provider": snapshot.configuration.activeProvider.rawValue,
@@ -68,7 +67,6 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
     }
 
     public func checkHealth() async -> HealthStatus {
-        await prepareIfNeeded()
         switch snapshot.readiness {
         case .invalidConfiguration, .clientUnavailable:
             return .degraded
@@ -89,60 +87,19 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
     // MARK: - Runtime State
 
     private var snapshot: LLMRuntimeSnapshot
-    private let configurationRepository: LLMConfigurationRepository
     private let clientResolver: any LLMClientResolving
 
     nonisolated let logger: Logger
 
-    private enum PreparationState {
-        case pending
-        case loading(Task<LLMConfiguration, Never>)
-        case ready
-    }
-
-    private var preparationState: PreparationState
-
     /// Applies a configuration through the resolver, clearing clients when it is invalid.
     ///
-    /// This is the only path that transitions runtime state; no load, import, restore,
-    /// update, or clear operation assigns configuration and clients separately.
+    /// This is the only path that transitions runtime state; no update or clear operation
+    /// assigns configuration and clients separately.
     private func apply(_ configuration: LLMConfiguration) {
         let clients = configuration.isValid
             ? clientResolver.clients(for: configuration)
             : .empty
         snapshot = LLMRuntimeSnapshot(configuration: configuration, clients: clients)
-    }
-
-    private func apply(_ configuration: LLMConfiguration, clients: LLMClientSet) {
-        snapshot = LLMRuntimeSnapshot(configuration: configuration, clients: clients)
-    }
-
-    /// Coalesces the one-shot migration/load task inside the actor, capturing only the
-    /// repository — never `self`.
-    func prepareIfNeeded() async {
-        let task: Task<LLMConfiguration, Never> // swiftlint:disable:this concurrency_stored_task -- actor method-local coalesced task (see docs/Concurrency/exception-manifest.md)
-
-        switch preparationState {
-        case .ready:
-            return
-        case let .loading(existing):
-            task = existing
-        case .pending:
-            let repository = configurationRepository
-            task = Task {
-                await repository.migrateAndLoad()
-            }
-            preparationState = .loading(task)
-        }
-
-        let configuration = await task.value
-
-        // A second re-entrant caller may already have applied it.
-        guard case .ready = preparationState else {
-            apply(configuration)
-            preparationState = .ready
-            return
-        }
     }
 
     /// Resolves the client and generation defaults for a model tier.
@@ -167,7 +124,6 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
     public func structuredOutputAdapter(
         for modelTier: ModelTier
     ) async -> any StructuredOutputAdapter {
-        await prepareIfNeeded()
         guard let client = snapshot.clients.client(for: modelTier) else {
             return DefaultStructuredOutputAdapter()
         }
@@ -178,9 +134,7 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
 
     /// Designated: explicit configuration plus the client set to dispatch through.
     ///
-    /// The service is immediately ready — no storage load is performed. Clients are kept
-    /// regardless of later `updateConfiguration(_:)` calls; hosts that need clients to track
-    /// configuration changes should use ``init(storage:clientResolver:logger:)`` instead.
+    /// The service is immediately ready — no storage load is performed.
     public init(
         configuration: LLMConfiguration,
         clients: LLMClientSet,
@@ -205,92 +159,38 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
         )
     }
 
-    /// Designated: load the configuration from storage, resolving clients through a resolver.
-    ///
-    /// The first public operation waits for migration + load; the resolved configuration
-    /// (not the initializer arguments) becomes authoritative.
-    public init(
-        storage: any ConfigurationServiceProtocol,
+    /// Package designated init: explicit configuration plus a client resolver.
+    package init(
+        configuration: LLMConfiguration,
         clientResolver: any LLMClientResolving,
         logger: Logger = Logger.module(named: "llm")
     ) {
         self.logger = logger
-        configurationRepository = LLMConfigurationRepository(storage: storage)
-        self.clientResolver = clientResolver
-        snapshot = LLMRuntimeSnapshot(configuration: .openAI, clients: .empty)
-        preparationState = .pending
-    }
-
-    /// Internal designated init: explicit configuration plus a client resolver.
-    init(
-        configuration: LLMConfiguration,
-        clientResolver: any LLMClientResolving,
-        logger: Logger
-    ) {
-        self.logger = logger
-        configurationRepository = LLMConfigurationRepository(
-            storage: InMemoryConfigurationService(config: configuration)
-        )
         self.clientResolver = clientResolver
         snapshot = LLMRuntimeSnapshot(
             configuration: configuration,
             clients: configuration.isValid ? clientResolver.clients(for: configuration) : .empty
         )
-        preparationState = .ready
     }
 
     // MARK: - Configuration Lifecycle
 
-    public func loadConfiguration() async {
-        await prepareIfNeeded()
-        let config = await configurationRepository.load()
-        apply(config)
-        logLoaded(config)
-    }
-
-    public func restoreFromBackup() async throws {
-        await prepareIfNeeded()
-        if let restored = try await configurationRepository.restoreFromBackup() {
-            logger.info("Restored configuration from backup")
-            apply(restored)
-        }
-    }
-
-    public func exportConfiguration() async throws -> Data {
-        await prepareIfNeeded()
-        return try await configurationRepository.exportConfiguration()
-    }
-
-    public func importConfiguration(from data: Data) async throws {
-        await prepareIfNeeded()
-        logger.info("Importing configuration")
-        try await configurationRepository.importConfiguration(from: data)
-        let config = await configurationRepository.load()
-        apply(config)
-        logLoaded(config)
-    }
-
     public func updateConfiguration(_ config: LLMConfiguration) async throws {
-        await prepareIfNeeded()
         let providerConfig = config.activeProviderConfiguration
         logger.info(
             "Updating configuration to models: \(providerConfig.modelName) / \(providerConfig.utilityModel) / \(providerConfig.fastModel)"
         )
-        try await configurationRepository.save(config)
         apply(config)
     }
 
     public func clearConfiguration() async {
-        await prepareIfNeeded()
         logger.warning("Clearing configuration")
-        await configurationRepository.clear()
         apply(.openAI)
     }
 
     // MARK: - Dispatch
 
     public func fetchAvailableModels() async throws -> [String]? {
-        await prepareIfNeeded()
         let resolved: ResolvedLLMClient
         do {
             resolved = try resolve(tier: .primary)
@@ -298,17 +198,5 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
             return nil
         }
         return try await resolved.client.fetchAvailableModels()
-    }
-
-    // MARK: - Helpers
-
-    private func logLoaded(_ configuration: LLMConfiguration) {
-        if configuration.isValid {
-            let providerConfig = configuration.activeProviderConfiguration
-            let modelInfo = "Main: \(providerConfig.modelName), Utility: \(providerConfig.utilityModel), Fast: \(providerConfig.fastModel)"
-            logger.info("Loaded configuration. \(modelInfo)")
-        } else {
-            logger.notice("LLM service not yet configured")
-        }
     }
 }

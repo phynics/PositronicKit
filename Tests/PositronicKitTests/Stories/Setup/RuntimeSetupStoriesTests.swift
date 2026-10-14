@@ -11,8 +11,8 @@ import Testing
     @Test("PKRuntime default initialization")
     func defaultInitialization() async {
         let chat = PKRuntime()
-        let isConfigured = await chat.model.isConfigured
-        #expect(!isConfigured, "Default init should not be configured")
+        let readiness = await chat.model.readiness()
+        #expect(readiness != .ready, "Default init should not be configured")
     }
 
     @Test("Unconfigured facade run fails before attempting execution")

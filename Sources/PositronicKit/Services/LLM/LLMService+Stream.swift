@@ -60,7 +60,6 @@ public extension LLMService {
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        await prepareIfNeeded()
         let resolved: ResolvedLLMClient
         do {
             resolved = try resolve(tier: modelTier)
@@ -91,7 +90,6 @@ public extension LLMService {
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?
     ) async throws -> LLMStreamChunk {
-        await prepareIfNeeded()
         let resolved = try resolve(tier: modelTier)
         let parameters = generationParameters ?? resolved.generationParameters
         return try await resolved.client.chatCompletion(
