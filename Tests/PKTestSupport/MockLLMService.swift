@@ -432,10 +432,8 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
 ///
 /// `generationCaptureHistory`, `generationRequestHistory`, and `modelTierHistory` capture calls
 /// before delegation or `stubbedStream` selection, so errors and stubs remain observable. The service starts
-/// configured with `.openAI`; `updateConfiguration` and successful import mark it configured,
-/// while `clearConfiguration` restores `.openAI` and marks it unconfigured. Export/import performs
-/// JSON work after taking a state snapshot and before committing decoded state;
-/// `loadConfiguration` and `restoreFromBackup` are no-op hooks. No lock crosses JSON work,
+/// configured with `.openAI`; `updateConfiguration` marks it configured,
+/// while `clearConfiguration` restores `.openAI` and marks it unconfigured. No lock crosses
 /// delegated streaming, stream iteration, or caller-provided execution.
 public final class MockLLMService: LLMStreamClient, HealthCheckable {
     private struct State: Sendable {
@@ -555,8 +553,6 @@ public final class MockLLMService: LLMStreamClient, HealthCheckable {
 
     public init() {}
 
-    public func loadConfiguration() async {}
-
     public func updateConfiguration(_ config: LLMConfiguration) async throws {
         state.withLock {
             $0.mockConfig = config
@@ -568,21 +564,6 @@ public final class MockLLMService: LLMStreamClient, HealthCheckable {
         state.withLock {
             $0.mockConfig = .openAI
             $0.mockIsConfigured = false
-        }
-    }
-
-    public func restoreFromBackup() async throws {}
-
-    public func exportConfiguration() async throws -> Data {
-        let configuration = state.withLock { $0.mockConfig }
-        return try JSONEncoder().encode(configuration)
-    }
-
-    public func importConfiguration(from data: Data) async throws {
-        let configuration = try JSONDecoder().decode(LLMConfiguration.self, from: data)
-        state.withLock {
-            $0.mockConfig = configuration
-            $0.mockIsConfigured = true
         }
     }
 

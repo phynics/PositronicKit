@@ -146,7 +146,10 @@ case .unavailable(let reason):
 }
 ```
 
-The coarser `await kit.model.isConfigured` signal remains available when a Boolean is sufficient.
+Use `await kit.model.readiness() == .ready` when a Boolean check is needed. Unlike the removed
+`isConfigured`, `readiness()` also requires a resolved primary client, so `== .ready` can be false
+while the configuration is still valid; test `LLMConfiguration.isValid` when only configuration
+validity matters.
 Use `try await kit.model.checkHealth()` separately for provider connectivity. A health check may
 perform network I/O; it throws `ModelHealthError.unsupported` when a custom client does not
 conform to `HealthCheckable`. Neither check guarantees that a later request will succeed. Treat
@@ -491,10 +494,8 @@ The harness follows these contracts:
   before surfacing injected errors; `MockLLMService` records low-level captures and model tiers
   before returning `stubbedStream`, and records full context requests before delegation. Legacy
   `last…` properties remain convenience views of the latest capture.
-- `MockLLMService` starts configured with `.openAI`. `updateConfiguration` and successful
-  `importConfiguration` mark it configured; `clearConfiguration` resets to `.openAI` and marks it
-  unconfigured. Export/import performs a real JSON round trip. `loadConfiguration` and
-  `restoreFromBackup` remain no-op test hooks.
+- `MockLLMService` starts configured with `.openAI`. `updateConfiguration` marks it configured;
+  `clearConfiguration` resets to `.openAI` and marks it unconfigured.
 - `MockLLMClient(clock:)` drives `nextStreamWait` through the injected clock before each finite
   raw or text chunk. Terminating those streams cancels their producer task; cancellation is checked
   around each clock sleep. The mock never holds its mutex while sleeping, yielding, encoding,

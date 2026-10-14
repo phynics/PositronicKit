@@ -1,22 +1,22 @@
 import Foundation
 import PartialJSON
 
-public enum LenientJSONParsingError: PKError, Equatable {
+package enum LenientJSONParsingError: PKError, Equatable {
     case invalidJSONPayload
     case serializationFailed
 
-    public var errorDomain: String {
+    package var errorDomain: String {
         PKErrorDomain.shared
     }
 
-    public var errorCode: Int {
+    package var errorCode: Int {
         switch self {
         case .invalidJSONPayload: return 201
         case .serializationFailed: return 202
         }
     }
 
-    public var userFriendlyMessage: String {
+    package var userFriendlyMessage: String {
         switch self {
         case .invalidJSONPayload:
             return "The JSON payload could not be parsed, even after lenient repair."
@@ -26,18 +26,18 @@ public enum LenientJSONParsingError: PKError, Equatable {
     }
 }
 
-public enum LenientJSONParser {
-    public struct ParseResult: Sendable, Equatable {
-        public let value: AnyCodable
-        public let wasRepaired: Bool
+package enum LenientJSONParser {
+    package struct ParseResult: Sendable, Equatable {
+        package let value: AnyCodable
+        package let wasRepaired: Bool
 
-        public init(value: AnyCodable, wasRepaired: Bool) {
+        package init(value: AnyCodable, wasRepaired: Bool) {
             self.value = value
             self.wasRepaired = wasRepaired
         }
     }
 
-    public static func sanitize(_ payload: String) -> String {
+    package static func sanitize(_ payload: String) -> String {
         var cleaned = payload.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let fencedJSON = extractFencedJSON(from: cleaned) {
@@ -57,7 +57,7 @@ public enum LenientJSONParser {
         return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    public static func parse(_ payload: String, sanitizeCodeFences: Bool = false) throws -> ParseResult {
+    package static func parse(_ payload: String, sanitizeCodeFences: Bool = false) throws -> ParseResult {
         let cleaned = sanitizeCodeFences ? sanitize(payload) : payload.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else {
             throw LenientJSONParsingError.invalidJSONPayload
@@ -75,7 +75,7 @@ public enum LenientJSONParser {
         }
     }
 
-    public static func jsonData(from value: AnyCodable) throws -> Data {
+    package static func jsonData(from value: AnyCodable) throws -> Data {
         let encoder = JSONEncoder()
         do {
             return try encoder.encode(value)

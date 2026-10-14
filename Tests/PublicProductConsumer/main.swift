@@ -142,7 +142,7 @@ let durableConfiguredKit = PKRuntime(configuration: .init(
 ))
 _ = durableConfiguredKit.model
 
-// A stream-only implementation is sufficient for the facade and strict utility generator;
+// A stream-only implementation is sufficient for the facade;
 // configuration administration and health capabilities are deliberately not required here.
 private let streamOnly = StreamOnlyLLMClient()
 let streamConfiguredKit = PKRuntime(configuration: .init(
@@ -150,7 +150,6 @@ let streamConfiguredKit = PKRuntime(configuration: .init(
     persistence: .inMemory()
 ))
 _ = streamConfiguredKit.model
-_ = LLMUtilityGenerator(streamClient: streamOnly)
 
 // E-01 regression gate: `Configuration.logging` must be constructible by a consumer that only
 // imports PositronicKit — `LoggingConfiguration` and `LogRedactionPolicy` must be nameable

@@ -51,8 +51,8 @@ struct StructuredOutputPromptFlowTests {
         let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
         let service = LLMService(
-            storage: MockConfigurationService(),
-            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+            configuration: .openAI,
+            clients: .init(primary: mockClient)
         )
         try await service.updateConfiguration(.fixture(activeProvider: .ollama))
 
@@ -104,8 +104,8 @@ struct StructuredOutputPromptFlowTests {
         ]]
 
         let service = LLMService(
-            storage: MockConfigurationService(),
-            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+            configuration: .openAI,
+            clients: .init(primary: mockClient)
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
 
@@ -143,8 +143,8 @@ struct StructuredOutputPromptFlowTests {
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
 
         let service = LLMService(
-            storage: MockConfigurationService(),
-            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+            configuration: .openAI,
+            clients: .init(primary: mockClient)
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .openAICompatible))
 

@@ -91,6 +91,24 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Removed host settings persistence leftovers and utility generators (#269):** The runtime stops
+  shipping app-settings persistence and one-off utility generators. A host keeps its own settings
+  storage and passes a configured `LLMService(configuration:clients:)`. Persist `LLMConfiguration`
+  with your own store; it is `Codable`. Removed `ConfigurationServiceProtocol`,
+  `InMemoryConfigurationService`, `LLMConfigurationRepository`, `LLMService.init(storage:...)`,
+  `loadConfiguration()`, `restoreFromBackup()`, `exportConfiguration()`,
+  `importConfiguration(from:)`, and matching `MockLLMService` hooks. Removed `LLMUtilityGenerator`
+  (`generateTags`, `generateTitle`) and its private `UtilityGenerationDirective` support type.
+  `LLMService(configuration:clients:)` pins the supplied client set: `updateConfiguration(_:)`
+  replaces the configuration but does not rebuild clients.
+- **Trimmed public API: package-scope JSON helpers and drop kit.model.isConfigured (#284):**
+  `kit.model.isConfigured` (`ModelInferenceCapability.isConfigured`) is removed. It only reported
+  configuration validity, while `await kit.model.readiness() == .ready` additionally requires a
+  resolved primary client. Use `== .ready` where a usable client is required, and test
+  `LLMConfiguration.isValid` directly where only configuration validity matters. (Note:
+  `LLMServiceProtocol.isConfigured` and `LLMStreamClient.isConfigured` requirements remain).
+  `LenientJSONParser`, `LenientJSONParser.ParseResult`, `LenientJSONParsingError`, and
+  `SerializationUtils` are scoped to `package`.
 - `TimelineRuntimeRepository` conformers must implement `recordTurnMessage(_:turnID:)` and record
   membership atomically at admission, intermediate assistant/tool writes, and terminal commits.
   `TimelineRuntimeRepositoryConformanceSuite` checks this invariant.
