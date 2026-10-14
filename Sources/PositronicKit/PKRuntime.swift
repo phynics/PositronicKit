@@ -96,7 +96,8 @@ public final class PKRuntime: Sendable {
             languageModelClient: languageModelClient,
             streamTimeout: dependencies.policy.streamTimeout,
             generationParameters: dependencies.policy.generationParameters,
-            clock: dependencies.policy.clock
+            clock: dependencies.policy.clock,
+            promptCaching: dependencies.policy.promptCaching
         )
     }
     

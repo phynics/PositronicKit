@@ -36,6 +36,25 @@ private struct StreamOnlyLLMClient: LLMStreamClient {
     }
 }
 
+/// A third-party `LLMClientProtocol` conformer written before prompt caching existed.
+///
+/// It implements only the original five-argument `chatStream` requirement. The cache-aware
+/// `chatStream`/`chatCompletion` overloads and `promptCachingCapability` must stay defaulted, so
+/// this type keeps compiling unchanged and ignores cache hints.
+private struct LegacyStreamOnlyProviderClient: LLMClientProtocol {
+    func chatStream(
+        messages _: [LLMMessage],
+        tools _: [LLMToolDefinition]?,
+        toolChoice _: LLMToolChoice?,
+        responseFormat _: LLMResponseFormat?,
+        generationParameters _: GenerationParameters?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        AsyncThrowingStream { continuation in
+            continuation.finish()
+        }
+    }
+}
+
 // This target is intentionally small: its job is to prove that every public library
 // product remains consumable through ordinary imports, without @testable access.
 _ = String(describing: PKRuntime.self)
@@ -145,6 +164,26 @@ _ = durableConfiguredKit.model
 // A stream-only implementation is sufficient for the facade;
 // configuration administration and health capabilities are deliberately not required here.
 private let streamOnly = StreamOnlyLLMClient()
+// The legacy provider client exercises the defaulted cache-aware protocol overloads through an
+// existential, proving a pre-caching conformer dispatches without implementing them.
+let legacyProviderClient: any LLMClientProtocol = LegacyStreamOnlyProviderClient()
+_ = legacyProviderClient.promptCachingCapability
+_ = await legacyProviderClient.chatStream(
+    messages: [],
+    tools: nil,
+    toolChoice: nil,
+    responseFormat: nil,
+    generationParameters: nil,
+    promptCache: nil
+)
+_ = try? await legacyProviderClient.chatCompletion(
+    messages: [],
+    tools: nil,
+    toolChoice: nil,
+    responseFormat: nil,
+    generationParameters: nil,
+    promptCache: nil
+)
 let streamConfiguredKit = PKRuntime(configuration: .init(
     languageModel: streamOnly,
     persistence: .inMemory()

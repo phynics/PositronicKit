@@ -258,6 +258,11 @@ public extension PKRuntime {
         /// Controls whether required turn degradations fail the turn.
         public let degradationPolicy: TurnDegradationPolicy
 
+        /// How the runtime requests provider-side prompt caching for Turns that do not override
+        /// the policy. Defaults to `.automatic()`, which is a no-op for adapters that declare no
+        /// prompt-caching capability.
+        public let promptCaching: PromptCachingPolicy
+
         /// How long, in seconds, a Turn's terminal commit may stay pending before admission
         /// treats the Turn as abandoned and interrupts it (ADR 0010).
         ///
@@ -294,6 +299,8 @@ public extension PKRuntime {
         ///   - terminalCommitStallLimit: How long a pending terminal commit may stay pending
         ///     before admission interrupts the Turn, in seconds. A non-finite or non-positive
         ///     value falls back to 300.
+        ///   - promptCaching: How the runtime requests provider-side prompt caching. Defaults to
+        ///     `.automatic()`.
         public init(
             workspaceProfile: WorkspaceProfile = .noWorkspace,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
@@ -303,7 +310,8 @@ public extension PKRuntime {
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired,
             streamTimeout: TimeInterval = 60,
-            terminalCommitStallLimit: TimeInterval = 300
+            terminalCommitStallLimit: TimeInterval = 300,
+            promptCaching: PromptCachingPolicy = .automatic()
         ) {
             self.workspaceProfile = workspaceProfile
             self.workspaceCreator = workspaceCreator
@@ -316,6 +324,7 @@ public extension PKRuntime {
             self.terminalCommitStallLimit = RuntimePolicy.resolvedTerminalCommitStallLimit(
                 terminalCommitStallLimit
             )
+            self.promptCaching = promptCaching
         }
 
         /// The default runtime configuration: no workspaces or customization, deny-all tool approval.

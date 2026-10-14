@@ -48,6 +48,11 @@ public struct TurnOptions: Sendable {
     /// asks the provider for one complete response and delivers it as a single terminal chunk.
     public let transport: GenerationTransport
 
+    /// Per-Turn override for how the runtime requests provider-side prompt caching.
+    ///
+    /// `nil` uses the runtime's ``PKRuntime/RuntimeConfiguration/promptCaching`` default.
+    public let promptCaching: PromptCachingPolicy?
+
     /// Creates per-Turn options without repeating the destination TimelineRecord identity.
     public init(
         requestID: UUID? = nil,
@@ -62,7 +67,8 @@ public struct TurnOptions: Sendable {
         promptAssemblyLogger: Logger? = nil,
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil,
-        transport: GenerationTransport = .streaming
+        transport: GenerationTransport = .streaming,
+        promptCaching: PromptCachingPolicy? = nil
     ) {
         self.requestID = requestID
         self.tools = tools.map { AnyTool($0) }
@@ -77,6 +83,7 @@ public struct TurnOptions: Sendable {
         self.responseModalities = responseModalities
         self.audioOutput = audioOutput
         self.transport = transport
+        self.promptCaching = promptCaching
     }
 
     func makeRequest(
@@ -100,7 +107,8 @@ public struct TurnOptions: Sendable {
             promptAssemblyLogger: promptAssemblyLogger,
             responseModalities: responseModalities,
             audioOutput: audioOutput,
-            transport: transport
+            transport: transport,
+            promptCaching: promptCaching
         )
     }
 }
@@ -129,5 +137,6 @@ extension TurnOptions {
         responseModalities = options.responseModalities
         audioOutput = options.audioOutput
         transport = options.transport
+        promptCaching = options.promptCaching
     }
 }

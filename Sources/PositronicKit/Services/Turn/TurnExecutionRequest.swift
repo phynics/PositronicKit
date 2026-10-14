@@ -65,6 +65,7 @@ struct TurnExecutionRequest: Sendable {
             canonicalFingerprint(request.responseModalities.map(\.rawValue).sorted()),
             canonicalFingerprint(request.audioOutput),
             String(describing: request.transport),
+            String(describing: request.promptCaching),
         ].joined(separator: "\u{1F}")
     }
 

@@ -223,13 +223,27 @@ public struct LLMMessage: Sendable, Codable, Equatable {
 public struct LLMTokenUsagePromptDetails: Sendable, Codable, Equatable {
     /// Number of prompt tokens served from cache, where the provider reports it.
     public let cachedTokens: Int?
+    /// Number of prompt tokens written to the provider's cache, where the provider reports it.
+    public let cacheWriteTokens: Int?
+    /// Number of cache-write tokens split by the requested retention window, where the provider
+    /// reports it. `nil` when the provider reports no write tokens or does not distinguish
+    /// retention windows.
+    public let cacheWriteBreakdown: [PromptCacheDirective.Retention: Int]?
 
     enum CodingKeys: String, CodingKey {
         case cachedTokens = "cached_tokens"
+        case cacheWriteTokens = "cache_write_tokens"
+        case cacheWriteBreakdown = "cache_write_breakdown"
     }
 
-    public init(cachedTokens: Int? = nil) {
+    public init(
+        cachedTokens: Int? = nil,
+        cacheWriteTokens: Int? = nil,
+        cacheWriteBreakdown: [PromptCacheDirective.Retention: Int]? = nil
+    ) {
         self.cachedTokens = cachedTokens
+        self.cacheWriteTokens = cacheWriteTokens
+        self.cacheWriteBreakdown = cacheWriteBreakdown
     }
 }
 
@@ -388,6 +402,12 @@ public protocol LLMClientProtocol: Sendable {
     /// The structured-output preparation behavior supported by this client.
     var structuredOutputAdapter: any StructuredOutputAdapter { get async }
 
+    /// The prompt-caching mechanism this adapter supports.
+    ///
+    /// The default is `.none`. Adapters that can honor a ``PromptCacheDirective`` override this
+    /// requirement so the runtime can route hints to them.
+    var promptCachingCapability: PromptCachingCapability { get }
+
     /// Streams a chat completion for the given messages/tools/parameters.
     func chatStream(
         messages: [LLMMessage],
@@ -420,6 +440,36 @@ public protocol LLMClientProtocol: Sendable {
         audioOutput: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
 
+    /// Streams a chat completion with explicit output modalities and an optional prompt-cache
+    /// directive.
+    ///
+    /// The default drops the directive and forwards to the modality-only requirement, so a
+    /// stream-only conformer written before prompt caching existed keeps compiling and ignores
+    /// the hint. Adapters opt in by overriding this requirement.
+    func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
+
+    /// Performs one non-streamed chat completion with explicit output modalities and an optional
+    /// prompt-cache directive.
+    func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async throws -> LLMStreamChunk
+
     /// Sends a single non-streamed message and returns the full text response.
     func sendMessage(
         _ content: String,
@@ -435,6 +485,96 @@ public protocol LLMClientProtocol: Sendable {
 public extension LLMClientProtocol {
     var structuredOutputAdapter: any StructuredOutputAdapter {
         DefaultStructuredOutputAdapter()
+    }
+
+    var promptCachingCapability: PromptCachingCapability {
+        .none
+    }
+
+    /// Drops the prompt-cache directive and forwards to the modality-only requirement.
+    func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache _: PromptCacheDirective?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await chatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
+        )
+    }
+
+    /// Drops the prompt-cache directive and forwards to the modality-only requirement.
+    func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache _: PromptCacheDirective?
+    ) async throws -> LLMStreamChunk {
+        try await chatCompletion(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
+        )
+    }
+
+    /// Streams a text-only chat completion with an optional prompt-cache directive.
+    func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        promptCache: PromptCacheDirective?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await chatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: [.text],
+            audioOutput: nil,
+            promptCache: promptCache
+        )
+    }
+
+    /// Completes a text-only chat request with an optional prompt-cache directive.
+    func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        promptCache: PromptCacheDirective?
+    ) async throws -> LLMStreamChunk {
+        try await chatCompletion(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: [.text],
+            audioOutput: nil,
+            promptCache: promptCache
+        )
     }
 
     func chatStream(

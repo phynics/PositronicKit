@@ -67,7 +67,8 @@ extension RuntimeDependencies {
                 diagnosticSnapshotConfiguration: configuration.runtime.diagnosticSnapshotConfiguration,
                 loggingConfiguration: configuration.logging,
                 clock: clock,
-                generationParameters: configuration.generationParameters
+                generationParameters: configuration.generationParameters,
+                promptCaching: configuration.runtime.promptCaching
             )
         )
     }

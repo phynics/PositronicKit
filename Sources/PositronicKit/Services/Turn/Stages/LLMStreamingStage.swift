@@ -39,6 +39,10 @@ struct LLMStreamingStage: PipelineStage {
                 try SidecarSchemaComposer.compose(directives: context.sidecars)
             }
 
+        // The routing key keeps this Timeline's requests on one provider cache; the tiered
+        // breakpoint layout is attached by the layout planner, not here.
+        let promptCache = context.promptCaching.directive(for: context.timelineID)
+
         for warning in ProviderCapabilityObservability.warnings(
             provider: configuration.activeProvider,
             model: configuration.activeProviderConfiguration.modelName,
@@ -68,7 +72,8 @@ struct LLMStreamingStage: PipelineStage {
                 modelTier: .primary,
                 responseModalities: context.responseModalities,
                 audioOutput: context.audioOutput,
-                transport: context.transport
+                transport: context.transport,
+                promptCache: promptCache
             )
         } else {
             streamData = await llmService.generation(
@@ -80,7 +85,8 @@ struct LLMStreamingStage: PipelineStage {
                 generationParameters: context.generationParameters,
                 modelTier: .primary,
                 responseModalities: context.responseModalities,
-                audioOutput: context.audioOutput
+                audioOutput: context.audioOutput,
+                promptCache: promptCache
             )
         }
 
