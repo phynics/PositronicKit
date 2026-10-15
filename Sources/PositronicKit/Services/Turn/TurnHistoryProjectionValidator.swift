@@ -8,6 +8,7 @@ import PKContracts
 /// meaning of the Turn rather than silently dropping, reordering, or splitting history.
 enum TurnHistoryProjectionValidator {
     struct Applied: Equatable {
+        let coveredMessageIDs: [UUID]
         let replacement: String
         let retainedHistory: [Message]
     }
@@ -71,6 +72,7 @@ enum TurnHistoryProjectionValidator {
         }
 
         return Applied(
+            coveredMessageIDs: projection.coveredMessageIDs,
             replacement: projection.replacement,
             retainedHistory: Array(history.dropFirst(coveredCount))
         )

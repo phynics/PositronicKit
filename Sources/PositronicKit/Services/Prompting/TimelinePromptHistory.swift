@@ -21,6 +21,7 @@ actor TimelinePromptHistory {
     private var pressure: AppendPressure
     private(set) var lastDiff: PromptDiff?
     private var nextUpdateFailure: TimelinePromptHistoryError? = nil
+    private var historyProjectionCoverageWatermark: UUID?
 
     var appendedMessageCount: Int { pressure.appendedMessageCount }
     var appendedTokens: Int { pressure.appendedTokens }
@@ -157,6 +158,21 @@ actor TimelinePromptHistory {
         }
         pressure.reset()
         lastDiff = nil
+    }
+
+    /// The durable message ID up to which the most recent applied history projection covered.
+    ///
+    /// Process-scoped with the rest of the runtime prompt bookkeeping. `nil` means no projection is
+    /// currently in effect for this Timeline, so the next ``TurnHistoryProjectionSource`` request is
+    /// cold.
+    func historyProjectionWatermark() -> UUID? {
+        historyProjectionCoverageWatermark
+    }
+
+    /// Records the coverage boundary of the most recently applied history projection, or clears it
+    /// when history was left raw.
+    func recordHistoryProjectionWatermark(_ messageID: UUID?) {
+        historyProjectionCoverageWatermark = messageID
     }
 
     func structuredDiffHint() -> StructuredDiffHint? {
