@@ -2,7 +2,6 @@ import ErrorKit
 import Foundation
 import Logging
 import PKContracts
-import PKPrompt
 import PKUtilities
 import Synchronization
 

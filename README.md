@@ -33,7 +33,7 @@ revalidates ordinary bindings before side effects, and serializes local executio
 
 The package also includes:
 
-- `PKPrompt` for prompt composition, compression, rendering, and prompt journaling.
+- `PKPrompt` (optional) for prompt composition, compression, rendering, and prompt journaling outside the Turn runtime.
 - Structured output and sidecar directives on provider-neutral Turn contracts.
 - Separate adapters for OpenAI, OpenRouter, Ollama, Anthropic, and Apple's Foundation Models.
 - A runtime-neutral `EmbeddingClientProtocol` in `PKContracts`, with OpenAI, Ollama, and Apple Natural Language clients in the provider products.
@@ -264,6 +264,10 @@ marked `swift skip` is syntax-checked only. The same gate covers the guides
 under `docs/`.
 
 ### Prompt composition with PKPrompt
+
+`PKPrompt` is optional. The runtime builds its own provider requests from an internal tiered
+layout; use `PKPrompt` when you want the authoring DSL, standalone assembly, compression, or
+journaling outside the Turn loop.
 
 Author prompts as structured trees, then assemble and render them into validated sections.
 
@@ -515,8 +519,8 @@ Core modules:
 
 - `PositronicKit` contains Turn execution, Timeline and Agent capabilities, Workspace management, tool
   routing, and provider-neutral model orchestration.
-- `PKPrompt` contains the `@PromptBuilder` DSL, structured compression, cache-aware assembly, and
-  prompt journaling.
+- `PKPrompt` is the optional prompt authoring product: the `@PromptBuilder` DSL, structured
+  compression, cache-aware assembly, and prompt journaling. The runtime does not import it.
 - `PKContracts` contains provider-neutral messages, tools, structured output, and diagnostics.
 
 Provider targets ship separately so you opt in only to the integrations you want:

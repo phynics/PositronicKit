@@ -1,5 +1,5 @@
 import Foundation
-import PKPrompt
+import PKUtilities
 
 // MARK: - TimelinePromptJournals
 

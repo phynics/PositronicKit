@@ -8,7 +8,7 @@
 public extension Prompt {
     /// Assembles this declarative prompt tree into a validated, ordered prompt artifact.
     ///
-    /// - Throws: ``PromptAssemblyError`` when the concrete section graph is invalid.
+    /// - Throws: `PromptAssemblyError` when the concrete section graph is invalid.
     func assemblePrompt() throws -> AssembledPrompt {
         try AssembledPrompt(sections: resolveSections(in: .init()))
     }
@@ -18,9 +18,9 @@ public extension Prompt {
     /// Returns `nil` when the assembled prompt has no renderable content (e.g. every section
     /// rendered to empty text). Structural assembly failures — duplicate section identifiers or
     /// multiple user-query sections — are not swallowed; they propagate as
-    /// ``PromptAssemblyError``.
+    /// `PromptAssemblyError`.
     ///
-    /// - Throws: ``PromptAssemblyError`` when the concrete section graph is invalid.
+    /// - Throws: `PromptAssemblyError` when the concrete section graph is invalid.
     func renderToString() async throws -> String? {
         let rendered = try await assemblePrompt().render().string
         return rendered.isEmpty ? nil : rendered

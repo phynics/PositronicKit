@@ -166,8 +166,14 @@ the downstream audit and migration boundary.
 
 - `PKContracts` owns runtime-neutral provider, tool, structured-output, and diagnostic
   contracts. It imports no PositronicKit project target.
-- `PKPrompt` owns prompt IR, composition, assembly, rendering, compression, and journaling.
-- `PositronicKit` owns domain state, orchestration, durability, and Workspace dispatch.
+- `PKPrompt` is the optional prompt authoring product: the `@PromptBuilder` DSL, composition,
+  assembly, and journaling. It depends only on `PKContracts` and the package-internal
+  `PKUtilities` prompt core, and it renders `[LLMMessage]` directly. The runtime never imports it.
+- `PKUtilities` is the package-internal support target. It hosts the shared prompt section model,
+  token budgeting, compression, and journal-support values that both `PKPrompt` and the runtime
+  use, and it is not a public product.
+- `PositronicKit` owns domain state, orchestration, durability, Workspace dispatch, and an
+  internal tiered `PromptLayout` that it renders into provider requests.
 - Provider products adapt concrete services to `PKContracts`; they do not import the runtime.
 - Runtime adapters (`PKObservable`, planned `PKSQLiteStorage`, planned `PKMCP`) import
   `PositronicKit` to implement its host-facing protocols, use only public API, and are never

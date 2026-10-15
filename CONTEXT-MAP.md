@@ -7,8 +7,8 @@ relationships between them are translation boundaries, not shared ownership.
 
 - [PositronicKit runtime](Sources/PositronicKit/CONTEXT.md) — durable Timelines, Turns, Agents,
   Workspaces, and execution authority.
-- [PKPrompt](Sources/PKPrompt/CONTEXT.md) — prompt composition, assembly, rendering, and
-  journaling.
+- [PKPrompt](Sources/PKPrompt/CONTEXT.md) — optional prompt authoring: composition, assembly,
+  rendering, and journaling.
 - [PKContracts](Sources/PKContracts/CONTEXT.md) — provider-neutral messages, model clients,
   tools, structured output, and diagnostics.
 
@@ -17,8 +17,12 @@ relationships between them are translation boundaries, not shared ownership.
 - **PKPrompt / providers → PKContracts**: these lower-level products consume
   runtime-neutral contracts without owning runtime entities; PKContracts points inward to no
   PositronicKit project module.
-- **PositronicKit → PKContracts + PKPrompt**: the runtime composes model contracts and prompt
-  artifacts into Turns; it does not redefine either vocabulary.
+- **PKPrompt → PKUtilities**: the optional authoring product consumes the shared prompt section
+  model, token budgeting, compression, and journal-support values from the package-internal
+  `PKUtilities` target and re-exports them.
+- **PositronicKit → PKContracts + PKUtilities**: the runtime composes model contracts and its own
+  internal tiered `PromptLayout` into Turns; it does not import `PKPrompt` and does not redefine
+  either vocabulary.
 - **Observation / examples / integrations → PositronicKit**: outward-facing layers consume the
   runtime capabilities without owning orchestration internals.
 - **Gnostic adapter → PositronicKit**: Gnostic’s downstream domain term maps to a PositronicKit

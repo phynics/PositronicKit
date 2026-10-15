@@ -62,6 +62,20 @@ struct PromptAssemblyTests {
         }
     }
 
+    private func makeSection(id: String, content: String = "test content") -> PromptSection {
+        PromptSection(
+            id: id,
+            role: .context,
+            priority: 10,
+            estimatedTokens: TokenEstimator.estimate(text: content),
+            compression: .keep,
+            type: .text,
+            cachePolicy: .volatile,
+            path: ["prompt", "MockSection", "volatile", id],
+            render: { _ in .text(content) }
+        )
+    }
+
     @Test("PromptBuilder composes sections")
     func builderComposesSections() throws {
         @PromptBuilder
@@ -82,7 +96,7 @@ struct PromptAssemblyTests {
         let prompt = try await PromptAssembler.assemble(
             makeRequest(userQuery: "test"),
             options: PromptAssemblyOptions(
-                customSections: { [MockSection(id: "custom")] }
+                customSections: { [makeSection(id: "custom")] }
             )
         )
 
@@ -104,7 +118,7 @@ struct PromptAssemblyTests {
         let prompt = try await PromptAssembler.assemble(
             makeRequest(userQuery: "test"),
             options: PromptAssemblyOptions(
-                customSections: { [MockSection(id: "override_assembly")] }
+                customSections: { [makeSection(id: "override_assembly")] }
             )
         )
 
@@ -138,7 +152,7 @@ struct PromptAssemblyTests {
                 makeRequest(userQuery: "test"),
                 options: PromptAssemblyOptions(
                     customSections: {
-                        [MockSection(id: "duplicate", content: "one"), MockSection(id: "duplicate", content: "two")]
+                        [makeSection(id: "duplicate", content: "one"), makeSection(id: "duplicate", content: "two")]
                     }
                 )
             )
@@ -150,7 +164,7 @@ struct PromptAssemblyTests {
         let prompt = try await PromptAssembler.assemble(
             makeRequest(userQuery: "test"),
             options: PromptAssemblyOptions(
-                customSections: { [MockSection(id: "from_options")] }
+                customSections: { [makeSection(id: "from_options")] }
             )
         )
 
@@ -165,6 +179,37 @@ struct PromptAssemblyTests {
 
         let messages = rendered.buildMessages()
         #expect(messages.count >= 1)
+    }
+
+    @Test("Internal layout rendering matches the PKPrompt projection byte-for-byte")
+    func internalLayoutMatchesPKPromptProjection() async throws {
+        let request = LLMPromptRequest(
+            userContent: MessageContent(parts: [.text("Latest question")]),
+            chatHistory: [
+                Message(content: "Question", role: .user),
+                Message(content: "Answer", role: .assistant, reasoning: "Reasoning"),
+                Message(content: "PKTool output", role: .tool),
+            ],
+            tools: [],
+            workspaces: [],
+            primaryWorkspace: nil,
+            requestOriginName: nil,
+            systemInstructions: "System rules"
+        )
+        let rendered = try await PromptAssembler.assemble(request)
+        let layout = PromptLayoutBuilder.build(from: rendered)
+
+        let layoutMessages = layout.renderMessages()
+        let promptMessages = rendered.buildMessages()
+        #expect(layoutMessages == promptMessages)
+
+        let layoutTimeline = layout.renderTimelineMessages()
+        let promptTimeline = rendered.buildTimelineMessages()
+        #expect(layoutTimeline.count == promptTimeline.count)
+        for (lhs, rhs) in zip(layoutTimeline, promptTimeline) {
+            #expect(lhs.role == rhs.role)
+            #expect(lhs.content == rhs.content)
+        }
     }
 
     @Test("RenderedPrompt builds provider-neutral timeline messages")

@@ -1,9 +1,8 @@
 import Foundation
 import PKContracts
-import PKUtilities
 
-extension RenderedPrompt.Section {
-    /// Derives structured node metadata for this rendered section using its content.
+extension PromptSection {
+    /// Derives structured node metadata for this section using its resolved content.
     public func nodeMetadata(renderedContent: String) -> StructuredNodeMetadata {
         StructuredNodeMetadata(
             path: path,

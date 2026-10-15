@@ -1,67 +1,248 @@
 import Foundation
-import PKPrompt
 import PKContracts
 import PKUtilities
 
-public struct SystemInstructions: Prompt {
-    public let instructions: String
+// MARK: - Runtime Prompt Producers
 
-    public init(_ instructions: String) {
-        self.instructions = instructions
+/// A runtime-owned producer of concrete prompt sections.
+///
+/// Runtime section types build `PromptSection`s directly instead of conforming to the
+/// optional `PKPrompt` authoring DSL. The produced sections carry the same identity,
+/// ordering, cache policy, and rendering behavior the runtime used before the runtime was
+/// decoupled from `PKPrompt`.
+protocol RuntimePromptProducer: Sendable {
+    func makeSections() -> [PromptSection]
+}
+
+extension RuntimePromptProducer {
+    /// Renders the produced sections into their canonical plain-text representation.
+    ///
+    /// Returns `nil` when the produced prompt has no renderable content.
+    func renderToString() async throws -> String? {
+        let assembled = try AssembledPrompt(sections: makeSections())
+        let rendered = await assembled.render().string
+        return rendered.isEmpty ? nil : rendered
+    }
+}
+
+/// Builds concrete `PromptSection`s for the runtime without the authoring DSL.
+enum RuntimePromptSectionFactory {
+    static func text(
+        id: String,
+        role: PromptSectionRole,
+        priority: Int,
+        estimatedTokens: Int,
+        compression: CompressionStrategy = .keep,
+        cachePolicy: CachePolicy,
+        path: [String],
+        parentID: String? = nil,
+        render: @escaping @Sendable () async -> String?
+    ) -> PromptSection {
+        PromptSection(
+            id: id,
+            role: role,
+            priority: priority,
+            estimatedTokens: estimatedTokens,
+            compression: compression,
+            type: .text,
+            cachePolicy: cachePolicy,
+            path: path,
+            parentID: parentID,
+            render: { limit in
+                guard let content = await render(), !content.isEmpty else { return nil }
+                guard let constrained = constrain(content, tokens: limit, strategy: compression) else {
+                    return nil
+                }
+                return .text(constrained)
+            }
+        )
     }
 
-    public var body: some Prompt {
-        if !instructions.isEmpty {
-            SystemPrompt(
-                """
-                # System Instructions
+    static func messages(
+        id: String,
+        role: PromptSectionRole,
+        priority: Int,
+        estimatedTokens: Int,
+        compression: CompressionStrategy = .keep,
+        cachePolicy: CachePolicy,
+        path: [String],
+        parentID: String? = nil,
+        messages: [Message]
+    ) -> PromptSection {
+        PromptSection(
+            id: id,
+            role: role,
+            priority: priority,
+            estimatedTokens: estimatedTokens,
+            compression: compression,
+            type: .list,
+            cachePolicy: cachePolicy,
+            path: path,
+            parentID: parentID,
+            render: { _ in messages.isEmpty ? nil : .messages(messages) }
+        )
+    }
 
-                \(instructions)
-                """,
-                estimatedTokens: TokenEstimator.estimate(text: instructions)
+    static func multimodal(
+        id: String,
+        role: PromptSectionRole,
+        priority: Int,
+        estimatedTokens: Int,
+        compression: CompressionStrategy = .keep,
+        cachePolicy: CachePolicy,
+        path: [String],
+        parentID: String? = nil,
+        content: MessageContent
+    ) -> PromptSection {
+        PromptSection(
+            id: id,
+            role: role,
+            priority: priority,
+            estimatedTokens: estimatedTokens,
+            compression: compression,
+            type: .text,
+            cachePolicy: cachePolicy,
+            path: path,
+            parentID: parentID,
+            render: { _ in content.parts.isEmpty ? nil : .multimodal(content) }
+        )
+    }
+
+    /// Builds a user-query section. Plain text stays plain text so downstream projections keep
+    /// the single-text fast path; ordered multimodal parts render as multimodal content.
+    static func userQuery(
+        id: String,
+        priority: Int,
+        estimatedTokens: Int,
+        cachePolicy: CachePolicy,
+        path: [String],
+        content: MessageContent
+    ) -> PromptSection {
+        if content.requiresContentPartsEncoding {
+            return multimodal(
+                id: id,
+                role: .userQuery,
+                priority: priority,
+                estimatedTokens: estimatedTokens,
+                cachePolicy: cachePolicy,
+                path: path,
+                content: content
             )
-        } else {
-            EmptyPrompt()
+        }
+        return text(
+            id: id,
+            role: .userQuery,
+            priority: priority,
+            estimatedTokens: estimatedTokens,
+            cachePolicy: cachePolicy,
+            path: path,
+            render: { content.text }
+        )
+    }
+
+    private static func constrain(
+        _ content: String,
+        tokens: Int?,
+        strategy: CompressionStrategy
+    ) -> String? {
+        guard let tokens else { return content }
+        assert(tokens > 0)
+        let estimate = TokenEstimator.estimate(text: content)
+        guard estimate > tokens else { return content }
+        switch strategy {
+        case .keep:
+            return content
+        case let .truncate(retention):
+            let charLimit = tokens * 2
+            switch retention {
+            case .head:
+                return String(content.prefix(charLimit)) + "\n... [Truncated]"
+            case .tail:
+                return "... [Truncated]\n" + String(content.suffix(charLimit))
+            }
+        case .summarize:
+            return content
+        case .drop:
+            return nil
         }
     }
 }
 
-public struct Tools: Prompt {
-    public let tools: [AnyTool]
+// MARK: - Sections
 
-    public init(_ tools: [AnyTool]) {
-        self.tools = tools
+/// Runtime-owned stable system instructions section.
+struct SystemInstructions: RuntimePromptProducer {
+    let instructions: String
+
+    init(_ instructions: String) {
+        self.instructions = instructions
     }
 
-    public var body: some Prompt {
-        TextPrompt(
-            id: "tools",
-            priority: 80,
-            compression: .keep,
-            cachePolicy: .semiStable,
-            estimatedTokens: tools.count * 50,
-            render: renderContent
-        )
-    }
+    func makeSections() -> [PromptSection] {
+        guard !instructions.isEmpty else { return [] }
+        let text = """
+        # System Instructions
 
-    private func renderContent() async -> String? {
-        guard !tools.isEmpty else { return nil }
-        return await tools.formattedForPrompt()
+        \(instructions)
+        """
+        return [RuntimePromptSectionFactory.text(
+            id: "system",
+            role: .system,
+            priority: PromptPriority.critical.rawValue,
+            estimatedTokens: TokenEstimator.estimate(text: instructions),
+            cachePolicy: .stable,
+            path: ["prompt", "SystemInstructions", "SystemPrompt", "stable", "system"],
+            render: { text }
+        )]
     }
 }
 
-public struct ChatHistory: Prompt {
-    public let messages: [Message]
+/// Runtime-owned tool catalog section.
+struct Tools: RuntimePromptProducer {
+    let tools: [AnyTool]
 
-    public init(_ messages: [Message]) {
+    init(_ tools: [AnyTool]) {
+        self.tools = tools
+    }
+
+    func makeSections() -> [PromptSection] {
+        [RuntimePromptSectionFactory.text(
+            id: "tools",
+            role: .context,
+            priority: 80,
+            estimatedTokens: tools.count * 50,
+            cachePolicy: .semiStable,
+            path: ["prompt", "Tools", "TextPrompt", "semiStable", "tools"],
+            render: { [tools] in
+                guard !tools.isEmpty else { return nil }
+                return await tools.formattedForPrompt()
+            }
+        )]
+    }
+}
+
+/// Runtime-owned chat-history section.
+struct ChatHistory: RuntimePromptProducer {
+    let messages: [Message]
+
+    init(_ messages: [Message]) {
         self.messages = messages
     }
 
-    public var body: some Prompt {
-        HistoryPrompt(messages)
+    func makeSections() -> [PromptSection] {
+        [RuntimePromptSectionFactory.messages(
+            id: "chat_history",
+            role: .chatHistory,
+            priority: 70,
+            estimatedTokens: estimatedTokens,
+            compression: .truncate(keeping: .tail),
+            cachePolicy: .volatile,
+            path: ["prompt", "ChatHistory", "HistoryPrompt", "volatile", "chat_history"],
+            messages: messages
+        )]
     }
 
-    public func constrained(to tokens: Int) -> ChatHistory {
+    func constrained(to tokens: Int) -> ChatHistory {
         guard estimatedTokens > tokens else { return self }
 
         var accumulated = 0
@@ -82,7 +263,7 @@ public struct ChatHistory: Prompt {
     /// The estimated number of tokens across all message content.
     ///
     /// - Complexity: O(n), where n is the total number of characters in `messages`.
-    public var estimatedTokens: Int {
+    var estimatedTokens: Int {
         TokenEstimator.estimate(parts: messages.map(\.content))
     }
 }
@@ -92,82 +273,95 @@ public struct ChatHistory: Prompt {
 /// Rendered as one semi-stable history section with a stable identity so prompt-history
 /// diffing treats a projection change as a deliberate prefix reset rather than an
 /// inconsistency. The retained tail stays in the ordinary `chat_history` section.
-struct HistoryProjectionSection: Prompt {
+struct HistoryProjectionSection: RuntimePromptProducer {
     let replacement: String
 
     init(replacement: String) {
         self.replacement = replacement
     }
 
-    var body: some Prompt {
-        HistoryPrompt(
-            [Message(content: replacement, role: .summary, isSummary: true)],
+    func makeSections() -> [PromptSection] {
+        [RuntimePromptSectionFactory.messages(
             id: "runtime.history-projection",
+            role: .chatHistory,
             priority: 71,
-            cachePolicy: .semiStable
-        )
+            estimatedTokens: TokenEstimator.estimate(text: replacement),
+            cachePolicy: .semiStable,
+            path: ["prompt", "HistoryProjectionSection", "HistoryPrompt", "semiStable", "runtime.history-projection"],
+            messages: [Message(content: replacement, role: .summary, isSummary: true)]
+        )]
     }
 }
 
 /// Bounded host-provided values captured for one Turn.
-public struct TurnContextContributions: Prompt {
-    public let contributions: [TurnContextContribution]
+struct TurnContextContributions: RuntimePromptProducer {
+    let contributions: [TurnContextContribution]
 
-    public init(_ contributions: [TurnContextContribution]) {
+    init(_ contributions: [TurnContextContribution]) {
         self.contributions = contributions
     }
 
-    public var body: some Prompt {
-        TextPrompt(
+    func makeSections() -> [PromptSection] {
+        [RuntimePromptSectionFactory.text(
             id: "turn.context-contributions",
+            role: .context,
             priority: 89,
+            estimatedTokens: TokenEstimator.estimate(parts: contributions.map { $0.value.textValue }),
             compression: .truncate(keeping: .head),
             cachePolicy: .volatile,
-            estimatedTokens: TokenEstimator.estimate(parts: contributions.map { $0.value.textValue }),
-            render: renderContent
-        )
-    }
-
-    private func renderContent() async -> String? {
-        guard !contributions.isEmpty else { return nil }
-        let values = contributions.map { contribution in
-            "[\(contribution.namespace).\(contribution.key)]\n\(contribution.value.textValue)"
-        }.joined(separator: "\n\n")
-        return "## Turn Context\n\n\(values)"
+            path: ["prompt", "TurnContextContributions", "TextPrompt", "volatile", "turn.context-contributions"],
+            render: { [contributions] in
+                guard !contributions.isEmpty else { return nil }
+                let values = contributions.map { contribution in
+                    "[\(contribution.namespace).\(contribution.key)]\n\(contribution.value.textValue)"
+                }.joined(separator: "\n\n")
+                return "## Turn Context\n\n\(values)"
+            }
+        )]
     }
 }
-public struct UserQuery: Prompt {
-    public let content: MessageContent
-    public var query: String { content.text }
+
+/// Runtime-owned current user query section.
+struct UserQuery: RuntimePromptProducer {
+    let content: MessageContent
+    var query: String { content.text }
     /// Optional per-turn instructions rendered after the query inside the same
     /// `.userQuery` section (single-section invariant preserved; volatile cache policy).
-    public let turnInstructions: String?
+    let turnInstructions: String?
 
-    public init(_ query: String, turnInstructions: String? = nil) {
+    init(_ query: String, turnInstructions: String? = nil) {
         content = MessageContent(query)
         self.turnInstructions = turnInstructions
     }
 
-    public init(_ content: MessageContent, turnInstructions: String? = nil) {
+    init(_ content: MessageContent, turnInstructions: String? = nil) {
         self.content = content
         self.turnInstructions = turnInstructions
     }
 
-    public var body: some Prompt {
+    func makeSections() -> [PromptSection] {
         let resolved: MessageContent = {
             guard let turnInstructions, !turnInstructions.isEmpty else { return content }
             return MessageContent(parts: content.parts + [.text("\n" + turnInstructions)])
         }()
-        UserPrompt(resolved, estimatedTokens: resolved.estimatedTokens)
+        return [RuntimePromptSectionFactory.userQuery(
+            id: "user_query",
+            priority: 10,
+            estimatedTokens: resolved.estimatedTokens,
+            cachePolicy: .volatile,
+            path: ["prompt", "UserQuery", "UserPrompt", "volatile", "user_query"],
+            content: resolved
+        )]
     }
 }
 
-public struct WorkspacesContext: Prompt {
-    public let workspaces: [WorkspaceReference]
-    public let primaryWorkspace: WorkspaceReference?
-    public let requestOriginName: String?
+/// Runtime-owned workspace catalog section.
+struct WorkspacesContext: RuntimePromptProducer {
+    let workspaces: [WorkspaceReference]
+    let primaryWorkspace: WorkspaceReference?
+    let requestOriginName: String?
 
-    public init(
+    init(
         workspaces: [WorkspaceReference],
         primaryWorkspace: WorkspaceReference?,
         requestOriginName: String?
@@ -177,18 +371,29 @@ public struct WorkspacesContext: Prompt {
         self.requestOriginName = requestOriginName
     }
 
-    public var body: some Prompt {
-        TextPrompt(
+    func makeSections() -> [PromptSection] {
+        [RuntimePromptSectionFactory.text(
             id: "workspaces",
+            role: .context,
             priority: 75,
-            compression: .keep,
-            cachePolicy: .semiStable,
             estimatedTokens: estimatedTokens,
-            render: renderContent
-        )
+            cachePolicy: .semiStable,
+            path: ["prompt", "WorkspacesContext", "TextPrompt", "semiStable", "workspaces"],
+            render: { [workspaces, primaryWorkspace, requestOriginName] in
+                Self.renderContent(
+                    workspaces: workspaces,
+                    primaryWorkspace: primaryWorkspace,
+                    requestOriginName: requestOriginName
+                )
+            }
+        )]
     }
 
-    private func renderContent() async -> String? {
+    private static func renderContent(
+        workspaces: [WorkspaceReference],
+        primaryWorkspace: WorkspaceReference?,
+        requestOriginName: String?
+    ) -> String? {
         var output = ""
 
         if let requestOriginName {
@@ -240,42 +445,46 @@ public struct WorkspacesContext: Prompt {
     }
 }
 
-public struct AgentContext: Prompt {
-    public let snapshot: AgentContextSnapshot
-    public let timelineTitle: String?
+/// Runtime-owned Agent identity section.
+struct AgentContext: RuntimePromptProducer {
+    let snapshot: AgentContextSnapshot
+    let timelineTitle: String?
 
-    public init(_ agent: Agent, timelineTitle: String? = nil) {
-        self.snapshot = AgentContextSnapshot(agent: agent)
+    init(_ agent: Agent, timelineTitle: String? = nil) {
+        snapshot = AgentContextSnapshot(agent: agent)
         self.timelineTitle = timelineTitle
     }
 
-    public init(_ snapshot: AgentContextSnapshot, timelineTitle: String? = nil) {
+    init(_ snapshot: AgentContextSnapshot, timelineTitle: String? = nil) {
         self.snapshot = snapshot
         self.timelineTitle = timelineTitle
     }
 
-    public var body: some Prompt {
-        AgentIdentityContext(snapshot: snapshot, timelineTitle: timelineTitle)
+    func makeSections() -> [PromptSection] {
+        AgentIdentityContext(snapshot: snapshot, timelineTitle: timelineTitle).makeSections()
     }
 }
 
 /// Stable Agent identity section owned by the runtime.
-public struct AgentIdentityContext: Prompt {
-    public let snapshot: AgentContextSnapshot
-    public let timelineTitle: String?
+struct AgentIdentityContext: RuntimePromptProducer {
+    let snapshot: AgentContextSnapshot
+    let timelineTitle: String?
 
-    public init(snapshot: AgentContextSnapshot, timelineTitle: String? = nil) {
+    init(snapshot: AgentContextSnapshot, timelineTitle: String? = nil) {
         self.snapshot = snapshot
         self.timelineTitle = timelineTitle
     }
 
-    public var body: some Prompt {
-        SystemPrompt(
-            text,
+    func makeSections() -> [PromptSection] {
+        [RuntimePromptSectionFactory.text(
             id: "agent.identity",
+            role: .system,
             priority: 95,
-            estimatedTokens: TokenEstimator.estimate(text: text)
-        )
+            estimatedTokens: TokenEstimator.estimate(text: text),
+            cachePolicy: .stable,
+            path: ["prompt", "AgentIdentityContext", "SystemPrompt", "stable", "agent.identity"],
+            render: { [text] in text }
+        )]
     }
 
     private var text: String {
@@ -292,120 +501,129 @@ public struct AgentIdentityContext: Prompt {
 }
 
 /// Stable Agent instructions section captured for the Turn.
-public struct AgentInstructionsContext: Prompt {
-    public let instructions: String
+struct AgentInstructionsContext: RuntimePromptProducer {
+    let instructions: String
 
-    public init(_ instructions: String) {
+    init(_ instructions: String) {
         self.instructions = instructions
     }
 
-    public var body: some Prompt {
-        SystemPrompt(
-            instructions,
+    func makeSections() -> [PromptSection] {
+        [RuntimePromptSectionFactory.text(
             id: "agent.instructions",
+            role: .system,
             priority: 94,
-            estimatedTokens: TokenEstimator.estimate(text: instructions)
-        )
+            estimatedTokens: TokenEstimator.estimate(text: instructions),
+            cachePolicy: .stable,
+            path: ["prompt", "AgentInstructionsContext", "SystemPrompt", "stable", "agent.instructions"],
+            render: { [instructions] in instructions }
+        )]
     }
 }
 
 /// Semi-stable Agent continuity items selected by the authoritative context source.
-public struct AgentMemoryContext: Prompt {
-    public let memories: [AgentContextMemory]
+struct AgentMemoryContext: RuntimePromptProducer {
+    let memories: [AgentContextMemory]
 
-    public init(_ memories: [AgentContextMemory]) {
+    init(_ memories: [AgentContextMemory]) {
         self.memories = memories
     }
 
-    public var body: some Prompt {
-        TextPrompt(
+    func makeSections() -> [PromptSection] {
+        [RuntimePromptSectionFactory.text(
             id: "agent.memory",
+            role: .context,
             priority: 88,
+            estimatedTokens: TokenEstimator.estimate(parts: memories.map(\.content)),
             compression: .summarize,
             cachePolicy: .semiStable,
-            estimatedTokens: TokenEstimator.estimate(parts: memories.map(\.content)),
-            render: renderContent
-        )
-    }
-
-    private func renderContent() async -> String? {
-        guard !memories.isEmpty else { return nil }
-        let content = memories.map { memory in
-            if let source = memory.source {
-                return "[\(source)]\n\(memory.content)"
+            path: ["prompt", "AgentMemoryContext", "TextPrompt", "semiStable", "agent.memory"],
+            render: { [memories] in
+                guard !memories.isEmpty else { return nil }
+                let content = memories.map { memory in
+                    if let source = memory.source {
+                        return "[\(source)]\n\(memory.content)"
+                    }
+                    return memory.content
+                }.joined(separator: "\n\n")
+                return "## Agent Continuity\n\n\(content)"
             }
-            return memory.content
-        }.joined(separator: "\n\n")
-        return "## Agent Continuity\n\n\(content)"
+        )]
     }
 }
 
 /// Compact catalog of discoverable Agent Notes. Full file contents stay out of the prompt until
 /// the model requests them through the generic workspace file tools.
-public struct AgentResourceCatalogContext: Prompt {
-    public let resources: [AgentContextResource]
+struct AgentResourceCatalogContext: RuntimePromptProducer {
+    let resources: [AgentContextResource]
 
-    public init(_ resources: [AgentContextResource]) {
+    init(_ resources: [AgentContextResource]) {
         self.resources = resources
     }
 
-    public var body: some Prompt {
-        TextPrompt(
+    func makeSections() -> [PromptSection] {
+        [RuntimePromptSectionFactory.text(
             id: "agent.resource-catalog",
+            role: .context,
             priority: 89,
+            estimatedTokens: TokenEstimator.estimate(parts: resources.map { "\($0.path) \($0.description)" }),
             compression: .summarize,
             cachePolicy: .semiStable,
-            estimatedTokens: TokenEstimator.estimate(parts: resources.map { "\($0.path) \($0.description)" }),
-            render: renderContent
-        )
-    }
-
-    private func renderContent() async -> String? {
-        guard !resources.isEmpty else { return nil }
-        let lines = resources.map { "- `\($0.path)`: \($0.description)" }.joined(separator: "\n")
-        return "## Agent Notes Catalog\n\nThe following Markdown files are available in the private workspace. Read a file when its contents are relevant; do not assume the catalog is the file contents.\n\n\(lines)"
+            path: ["prompt", "AgentResourceCatalogContext", "TextPrompt", "semiStable", "agent.resource-catalog"],
+            render: { [resources] in
+                guard !resources.isEmpty else { return nil }
+                let lines = resources.map { "- `\($0.path)`: \($0.description)" }.joined(separator: "\n")
+                return "## Agent Notes Catalog\n\nThe following Markdown files are available in the private workspace. Read a file when its contents are relevant; do not assume the catalog is the file contents.\n\n\(lines)"
+            }
+        )]
     }
 }
 
 /// Semi-stable optional summary of the Agent-owned primary Timeline.
-public struct AgentPrimaryTimelineSummaryContext: Prompt {
-    public let summary: String?
+struct AgentPrimaryTimelineSummaryContext: RuntimePromptProducer {
+    let summary: String?
 
-    public init(_ summary: String?) {
+    init(_ summary: String?) {
         self.summary = summary
     }
 
-    public var body: some Prompt {
-        TextPrompt(
-            summary ?? "",
+    func makeSections() -> [PromptSection] {
+        [RuntimePromptSectionFactory.text(
             id: "agent.primary-timeline-summary",
+            role: .context,
             priority: 87,
+            estimatedTokens: TokenEstimator.estimate(text: summary ?? ""),
             cachePolicy: .semiStable,
-            estimatedTokens: TokenEstimator.estimate(text: summary ?? "")
-        )
+            path: ["prompt", "AgentPrimaryTimelineSummaryContext", "TextPrompt", "semiStable", "agent.primary-timeline-summary"],
+            render: { [summary] in summary }
+        )]
     }
-
 }
 
-public struct TimelineContext: Prompt {
-    public let timeline: TimelineRecord
-    public var timelineTitle: String { timeline.title }
+/// Runtime-owned current Timeline section.
+struct TimelineContext: RuntimePromptProducer {
+    let timeline: TimelineRecord
+    var timelineTitle: String { timeline.title }
 
-    public init(_ timeline: TimelineRecord) {
+    init(_ timeline: TimelineRecord) {
         self.timeline = timeline
     }
 
-    public var body: some Prompt {
-        TextPrompt(
-            """
-            ## Current Timeline
-            - ID: `\(timeline.id.uuidString)`
-            - Title: \(timeline.title)
-            """,
+    func makeSections() -> [PromptSection] {
+        [RuntimePromptSectionFactory.text(
             id: "timeline_context",
+            role: .context,
             priority: 72,
+            estimatedTokens: TokenEstimator.estimate(text: timeline.title) + 20,
             cachePolicy: .semiStable,
-            estimatedTokens: TokenEstimator.estimate(text: timeline.title) + 20
-        )
+            path: ["prompt", "TimelineContext", "TextPrompt", "semiStable", "timeline_context"],
+            render: { [timeline] in
+                """
+                ## Current Timeline
+                - ID: `\(timeline.id.uuidString)`
+                - Title: \(timeline.title)
+                """
+            }
+        )]
     }
 }

@@ -1,5 +1,10 @@
 # PKPrompt composition
 
+`PKPrompt` is an optional product for building and rendering prompts outside the Turn runtime.
+The runtime does not import it; it builds provider requests from its own internal `PromptLayout`.
+Use `PKPrompt` when you want the authoring DSL, standalone assembly, token budgeting,
+compression, or prompt journaling.
+
 `PKPrompt` uses a body-based composition model inspired by SwiftUI.
 
 ## Authoring model
@@ -44,7 +49,7 @@ let prompt = AnyPrompt.build {
 
 ## Resolution pipeline
 
-Before prompt content is consumed by the runtime, composed sections are resolved into semantic leaves.
+Before assembled prompt content is consumed, composed sections are resolved into semantic leaves.
 
 - rendering operates on resolved leaves
 - token budgeting and compression operate on resolved leaves
@@ -60,9 +65,10 @@ durable tool audit and opt-in logging rather than a transient prompt/debug buffe
 
 ## Runtime integration
 
-`PKPrompt` itself stays transport-neutral and does not own a logging backend. The runtime assembles
-prompts through its internal `PromptAssembler`. Verbose assembly diagnostics flow through
-`swift-log` when you pass a `Logger` to `TurnOptions(promptAssemblyLogger:)`.
+`PKPrompt` itself stays transport-neutral and does not own a logging backend. The runtime builds
+its provider requests through its internal `PromptAssembler` and tiered `PromptLayout`, and it does
+not import `PKPrompt`. Verbose assembly diagnostics flow through `swift-log` when you pass a
+`Logger` to `TurnOptions(promptAssemblyLogger:)`.
 
 ## Journaling vs. runtime prompt history
 

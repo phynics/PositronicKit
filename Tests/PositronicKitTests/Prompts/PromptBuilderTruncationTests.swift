@@ -32,9 +32,9 @@ struct PromptBuilderTruncationTests {
         let messages = (1 ... 20).map { Message.fixture(content: "msg \($0)") }
         let history = ChatHistory(messages)
 
-        let sections: [any Prompt] = [system, history]
+        let sections: [PromptSection] = system.makeSections() + history.makeSections()
         let budget = TokenBudget(maxTokens: 30, reserveForResponse: 0)
-        let processed = try! await budget.result(forPrompts: sections).sections
+        let processed = try! await budget.result(forResolvedSections: sections).sections
 
         #expect(processed.count == 2)
 
