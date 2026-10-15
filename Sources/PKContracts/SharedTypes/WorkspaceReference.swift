@@ -19,7 +19,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public var contextInjection: String?
     /// Optional host-owned metadata persisted with the reference.
     ///
-    /// The runtime never interprets these values. A ``WorkspaceFactory`` adapter uses them to
+    /// The runtime never interprets these values. A `WorkspaceFactory` adapter uses them to
     /// rebuild a live provider (for example an MCP server configuration). Values must not contain
     /// secret material; a reference should carry a host-resolved secret identifier instead.
     public var metadata: [String: AnyCodable]?

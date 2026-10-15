@@ -6,7 +6,7 @@ import PositronicKit
 /// Inject one into ``PKRuntime/Configuration`` (through ``PKRuntime/RuntimeConfiguration``) so the
 /// runtime can resolve an MCP Workspace created by
 /// ``WorkspaceCapability/createMCPWorkspace(_:for:)``. The factory holds no connection state; each
-/// resolved reference gets its own ``MCPWorkspaceProvider``.
+/// resolved reference gets its own MCP provider actor.
 ///
 /// The runtime has a single workspace factory, so it also resolves the runtime's timeline and
 /// agent-primary Workspaces. References that do not carry an MCP configuration are delegated to
