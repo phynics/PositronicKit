@@ -105,7 +105,14 @@ public final class PKRuntime: Sendable {
         )
     }
     public var agents: AgentCapability { AgentCapability(agentManager: agentManager) }
-    public var workspaces: WorkspaceCapability { WorkspaceCapability(workspaceCatalog: workspaceCatalog) }
+    public var workspaces: WorkspaceCapability {
+        WorkspaceCapability(
+            workspaceCatalog: workspaceCatalog,
+            attachWorkspaceToTimeline: { [timelineManager] workspaceID, timelineID in
+                try await timelineManager.attachWorkspace(workspaceID, to: timelineID)
+            }
+        )
+    }
     public var model: ModelInferenceCapability {
         ModelInferenceCapability(
             languageModelClient: languageModelClient,

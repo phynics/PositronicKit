@@ -128,6 +128,26 @@ def read_graphs(graph_dir: Path, modules: list[str]) -> tuple[dict[str, dict], d
     return symbols, relationships, observed
 
 
+def c_module_flags() -> list[str]:
+    """Return ``-Xcc`` flags for every checked-out C module map.
+
+    ``swift package dump-symbol-graph`` resolves the Clang modules SwiftPM
+    builds from the dependency checkouts, but ``swift-symbolgraph-extract``
+    does not. Without these flags the extractor cannot load a module whose
+    public interface reaches a C-backed dependency (for example the
+    ``swift-system`` module the MCP transport uses), so the SPI delta pass
+    fails to load that module at all.
+    """
+    flags: list[str] = []
+    checkouts = ROOT / ".build" / "checkouts"
+    if not checkouts.is_dir():
+        return flags
+    for module_map in sorted(checkouts.rglob("include/module.modulemap")):
+        flags += ["-Xcc", f"-fmodule-map-file={module_map}"]
+        flags += ["-Xcc", f"-I{module_map.parent}"]
+    return flags
+
+
 def extract_graphs(modules: list[str], bin_path: Path, graph_dir: Path, include_spi: bool) -> None:
     """Extract ``modules`` with swift-symbolgraph-extract into ``graph_dir``.
 
@@ -142,6 +162,7 @@ def extract_graphs(modules: list[str], bin_path: Path, graph_dir: Path, include_
         generated_module_maps = bin_path.parent.parent / "Intermediates.noindex" / "GeneratedModuleMaps"
         sdk = run("xcrun", "--show-sdk-path")
     graph_dir.mkdir(parents=True, exist_ok=True)
+    c_flags = c_module_flags()
     for module in modules:
         candidates = list(bin_path.parent.parent.rglob(f"{module}.swiftmodule"))
         if not candidates:
@@ -154,6 +175,7 @@ def extract_graphs(modules: list[str], bin_path: Path, graph_dir: Path, include_
             "-minimum-access-level", "public",
             "-skip-synthesized-members",
             "-skip-inherited-docs",
+            *c_flags,
         ]
         if generated_module_maps is not None:
             command += ["-I", str(generated_module_maps), "-sdk", sdk]

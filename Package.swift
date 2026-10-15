@@ -29,6 +29,7 @@ let package = Package(
         .library(name: "PKOllamaProvider", targets: ["PKOllamaProvider"]),
         .library(name: "PKAnthropicProvider", targets: ["PKAnthropicProvider"]),
         .library(name: "PKFoundationModelsProvider", targets: ["PKFoundationModelsProvider"]),
+        .library(name: "PKMCP", targets: ["PKMCP"]),
         .library(name: "PKTestSupport", targets: ["PKTestSupport"]),
         .executable(name: "PositronicKitExamples", targets: ["PositronicKitExamples"]),
         .executable(name: "PKTestSupportConsumer", targets: ["PKTestSupportConsumer"]),
@@ -39,6 +40,7 @@ let package = Package(
         .package(url: "https://github.com/ajevans99/swift-json-schema", exact: "0.11.2"),
         .package(url: "https://github.com/apple/swift-crypto.git", exact: "3.15.1"),
         .package(url: "https://github.com/itruf/PartialJSON.git", exact: "0.0.2"),
+        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", exact: "0.12.1"),
     ],
     targets: [
         .target(
@@ -91,6 +93,15 @@ let package = Package(
             name: "PKObservable",
             dependencies: ["PositronicKit"],
             path: "Sources/PKObservable",
+            swiftSettings: approachableConcurrency
+        ),
+        .target(
+            name: "PKMCP",
+            dependencies: [
+                "PositronicKit",
+                .product(name: "MCP", package: "swift-sdk"),
+            ],
+            path: "Sources/PKMCP",
             swiftSettings: approachableConcurrency
         ),
         .target(
@@ -178,6 +189,7 @@ let package = Package(
                 "PKOllamaProvider",
                 "PKAnthropicProvider",
                 "PKFoundationModelsProvider",
+                "PKMCP",
                 "PKTestSupport",
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
@@ -189,6 +201,7 @@ let package = Package(
             dependencies: [
                 "PositronicKit",
                 "PKObservable",
+                "PKMCP",
                 "PKContracts",
                 "PKPrompt",
                 "PKOpenAIProvider",
@@ -262,6 +275,18 @@ let package = Package(
             name: "PKObservableTests",
             dependencies: ["PKObservable", "PKTestSupport"],
             path: "Tests/PKObservableTests",
+            swiftSettings: approachableConcurrency
+        ),
+        .testTarget(
+            name: "PKMCPTests",
+            dependencies: [
+                "PKMCP",
+                "PositronicKit",
+                "PKContracts",
+                "PKTestSupport",
+                .product(name: "MCP", package: "swift-sdk"),
+            ],
+            path: "Tests/PKMCPTests",
             swiftSettings: approachableConcurrency
         ),
         .testTarget(

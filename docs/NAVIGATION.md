@@ -9,6 +9,7 @@ Stable [6.1.0](stable/6.1.0/) is the default immutable channel. [Next](next/) fo
 | [Setup](Setup.md) | Provider-neutral configuration, readiness and health, stream timing, offline examples, persistence, customization, logging, and stable error identity. |
 | [Usage](Usage.md) | Managed and direct Turns, durable Timeline history, typed and raw one-shot structured generation, cancellation, SOUL/Notes Agent memory, lifecycle, and Workspace routing. |
 | [SwiftUI](SwiftUI.md) | App-owned runtime service, TimelineController binding, outcome joins, and fork sessions. |
+| [MCP workspaces](MCP.md) | Connect Model Context Protocol servers as Workspaces through the official swift-sdk, with secrets, approval, and mapping rules. |
 | [Architecture](Architecture.md) | Domain boundaries, capability values, durability, execution authority, and the runtime adapter tier. |
 | [Prompt composition](PKPromptComposition.md) | Prompt IR, assembly, rendering, compression, and PromptJournal. |
 | [Sidecar directives](SidecarDirectives.md) | Auxiliary structured results carried by the same Turn. |
@@ -26,6 +27,7 @@ Stable [6.1.0](stable/6.1.0/) is the default immutable channel. [Next](next/) fo
 | `PKPrompt` | library | `PublicProductConsumer` | [docs/PKPromptComposition.md](PKPromptComposition.md) |
 | `PositronicKit` | library | `PublicProductConsumer` | [docs/Usage.md](Usage.md) |
 | `PKObservable` | library | `PublicProductConsumer` | [docs/SwiftUI.md](SwiftUI.md) |
+| `PKMCP` | library | `PublicProductConsumer` | [docs/MCP.md](MCP.md) |
 | `PKOpenAIProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |
 | `PKOpenRouterProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |
 | `PKOllamaProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |

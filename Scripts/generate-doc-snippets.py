@@ -45,6 +45,7 @@ DEFAULT_IMPORTS = [
     "import Logging",
     "import PKContracts",
     "import PKObservable",
+    "import PKMCP",
     "import PKOpenAIProvider",
     "import PKOllamaProvider",
     "import PKAnthropicProvider",

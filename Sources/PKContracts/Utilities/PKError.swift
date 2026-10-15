@@ -92,5 +92,7 @@ public enum PKErrorDomain {
     public static let persistence = "com.positronickit.core.persistence"
     public static let rpc = "com.positronickit.core.rpc"
     public static let filesystem = "com.positronickit.core.filesystem"
+    /// Stable error domain for MCP adapter failures.
+    public static let mcp = "com.positronickit.mcp"
     public static let utilities = "com.positronickit.utilities"
 }
