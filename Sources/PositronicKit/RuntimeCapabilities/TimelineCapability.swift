@@ -46,31 +46,105 @@ public struct TimelineCapability: Sendable {
     }
 
     /// Opens a handle without performing persistence I/O.
+    ///
+    /// For an ephemeral Timeline the returned handle joins that Timeline's lifetime: the runtime
+    /// deletes the Timeline once the last handed-out handle is released.
     public func open(_ timelineID: UUID) -> TimelineHandle {
-        TimelineHandle(timelineID: timelineID, engine: turnEngine)
+        TimelineHandle(
+            timelineID: timelineID,
+            engine: turnEngine,
+            ephemeralToken: runtime.ephemeralRegistry.token(for: timelineID)
+        )
     }
 
-    /// Clones a Timeline's session into a detached, ephemeral fork.
+    /// Clones a Timeline's session into a detached, private, ephemeral Timeline in this runtime.
     ///
-    /// The fork copies the source Timeline's durable history into its own in-memory runtime and
-    /// runs direct Turns with read-only tool access. Writing to the fork never touches the source
-    /// Timeline. The fork's runtime is released when the returned handle is released.
+    /// The fork is an ordinary Timeline in the runtime's own repository: it carries no attached
+    /// Agent, is marked private and ephemeral, and records `forkedFrom` lineage. Its semantic
+    /// message history is copied with fresh message IDs, with `parentID` remapped to the clone's
+    /// ancestors, so writing to the fork never touches the source Timeline. Turns, tool intents,
+    /// and tool results are not copied: the fork is a new session, not a replay of the source's
+    /// ledger.
+    ///
+    /// The returned handle starts direct Turns through
+    /// ``TimelineHandle/startDirectTurn(_:context:options:)``. The fork supplies no tools of its
+    /// own; pass the tools the Turn should be limited to through ``TurnOptions/tools``, for
+    /// example ``RuntimeToolSets/readOnlyFilesystem(root:)``. The runtime deletes the ephemeral
+    /// Timeline and its messages when the last handle is released, after any Turn still in flight
+    /// finishes.
     ///
     /// - Parameters:
     ///   - timelineID: The source Timeline to clone.
-    ///   - context: The explicit direct-Turn authority the fork's Turns run with.
-    /// - Returns: A fork handle owning the cloned session.
+    ///   - title: The fork's title, or `nil` to derive one from the source title.
+    /// - Returns: A handle for the fork's ephemeral Timeline.
     /// - Throws: ``TimelineError/timelineNotFound`` when no Timeline has `timelineID`.
-    public func fork(
-        from timelineID: UUID,
-        context: DirectTurnContext
-    ) async throws -> TimelineFork {
-        try await runtime.fork(from: timelineID, context: context)
+    public func fork(from timelineID: UUID, title: String? = nil) async throws -> TimelineHandle {
+        await timelineManager.ensureEphemeralSweepStarted()
+        await timelineManager.awaitEphemeralSweep()
+
+        guard let source = try await timelineManager.timelineStore.fetchTimeline(id: timelineID) else {
+            throw TimelineError.timelineNotFound
+        }
+        let sourceMessages = try await messageStore.fetchMessages(for: timelineID)
+
+        let now = Date()
+        let forkTimelineID = UUID()
+        let forkRecord = TimelineRecord(
+            id: forkTimelineID,
+            title: title ?? "Fork of \(source.title)",
+            createdAt: now,
+            updatedAt: now,
+            attachedAgentID: nil,
+            isPrivate: true,
+            isEphemeral: true,
+            forkedFrom: TimelineForkOrigin(
+                timelineID: source.id,
+                throughMessageID: sourceMessages.last?.id,
+                at: now
+            )
+        )
+        try await timelineManager.timelineStore.saveTimeline(forkRecord)
+
+        var messageIDMap: [UUID: UUID] = [:]
+        for message in sourceMessages {
+            let clone = TimelineMessage(
+                id: UUID(),
+                timelineID: forkTimelineID,
+                role: message.messageRole,
+                content: message.messageContent,
+                timestamp: message.timestamp,
+                parentID: message.parentID.flatMap { messageIDMap[$0] },
+                reasoning: message.reasoning,
+                toolCalls: message.toolCalls,
+                toolCallID: message.toolCallID,
+                agentID: message.agentID,
+                executionKind: message.executionKind,
+                remoteDepth: message.remoteDepth,
+                snapshotData: message.snapshotData,
+                status: message.status
+            )
+            messageIDMap[message.id] = clone.id
+            try await messageStore.saveMessage(clone)
+        }
+
+        runtime.ephemeralRegistry.register(timelineID: forkTimelineID) { [timelineManager] id in
+            await timelineManager.releaseEphemeralTimeline(id: id)
+        }
+        return open(forkTimelineID)
     }
 
     /// Lists persisted Timelines.
-    public func list(includeArchived: Bool = true) async throws -> [TimelineRecord] {
-        try await timelineManager.timelineStore.fetchAllTimelines(includeArchived: includeArchived)
+    ///
+    /// Ephemeral Timelines are excluded unless `includeEphemeral` is `true`; they are private
+    /// fork sessions owned by live handles, not durable history.
+    public func list(
+        includeArchived: Bool = true,
+        includeEphemeral: Bool = false
+    ) async throws -> [TimelineRecord] {
+        let timelines = try await timelineManager.timelineStore
+            .fetchAllTimelines(includeArchived: includeArchived)
+        guard !includeEphemeral else { return timelines }
+        return timelines.filter { !$0.isEphemeral }
     }
 
     /// Reads one cached or persisted Timeline.

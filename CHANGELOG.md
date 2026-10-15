@@ -82,15 +82,20 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   existing stream seam, so structured output, tool calls, and terminal durability are unchanged.
   `LLMStreamClient.generationCompletion(...)` is a new requirement with a folding default, so
   existing stream-only conformers keep compiling.
-- `PKRuntime.timelines.fork(from:context:)` (also on `PKRuntime`) clones a Timeline's session into
-  a detached, ephemeral `TimelineFork`. The fork runs ordinary direct Turns with read-only tool
-  access against an in-memory runtime that shares the language model, Agent store, and Workspace
-  stores but keeps its own repository and prompt-journal state, so fork writes never reach the
-  source Timeline. The fork's runtime is released when its handle is released.
+- `kit.timelines.fork(from:title:)` returns an ordinary detached `TimelineHandle` for a private,
+  ephemeral Timeline in the same runtime. The fork copies the source's semantic history with fresh
+  message IDs and `forkedFrom` lineage (`TimelineForkOrigin`), then runs ordinary direct Turns. The
+  runtime deletes the ephemeral Timeline and its messages when the last handle is released, after
+  any in-flight Turn finishes, and sweeps orphaned ephemeral Timelines at `PKRuntime` start.
+  `TimelineRecord` gains `isEphemeral` (absent decodes as `false`) and `forkedFrom`; `timelines.list()`
+  excludes ephemeral Timelines unless `includeEphemeral` is `true`. `TimelineRuntimeRepository`
+  gains `deleteEphemeralTimeline(id:)` and `purgeEphemeralTimelines()`. A fork injects no tools;
+  `RuntimeToolSets.readOnlyFilesystem(root:)` supplies the read-only set a caller passes through
+  `TurnOptions.tools`. There is no `TimelineFork` type and no `PKRuntime.fork` spelling.
 - `TimelineController` records the durable terminal truth of each send: `lastTurnID`,
   `lastOutcome` (via `TurnHandle.outcome()`), and `lastError`, plus a `cancel()` entry point for
-  UI cancellation. `TimelineFork` exposes `handle` and `directContext`, and `PKObservable` gains
-  `TimelineController(fork:)` for binding fork sessions to SwiftUI views.
+  UI cancellation. A fork is an ordinary `TimelineHandle`, so `PKObservable` binds one through the
+  existing direct-path initializer `TimelineController(_:context:)`.
 - `docs/SwiftUI.md` documents the app-owned runtime service, managed/direct binding, outcome
   joins, cancellation, and fork sessions with type-checked snippets. CI builds and tests
   `PKObservable` on the iOS Simulator.

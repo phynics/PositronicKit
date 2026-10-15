@@ -19,6 +19,20 @@ public struct TimelineRecord: Identifiable, Sendable {
     /// Private timelines are excluded from general listing.
     public var isPrivate: Bool
 
+    /// True for a Timeline whose lifetime is owned by live handles rather than by durable
+    /// storage.
+    ///
+    /// The runtime deletes an ephemeral Timeline and its messages when the last handle to it is
+    /// released, and sweeps orphaned ephemeral Timelines at runtime start. Ephemeral Timelines
+    /// are excluded from ``TimelineCapability/list(includeArchived:includeEphemeral:)`` by
+    /// default. Absent on decode means `false` so records persisted before this field existed
+    /// round-trip unchanged.
+    public var isEphemeral: Bool
+
+    /// Lineage for a Timeline created by forking another Timeline. `nil` for an ordinary
+    /// Timeline.
+    public var forkedFrom: TimelineForkOrigin?
+
     public init(
         id: UUID = UUID(),
         title: String = "New Timeline",
@@ -27,7 +41,9 @@ public struct TimelineRecord: Identifiable, Sendable {
         isArchived: Bool = false,
         workingDirectory: String? = nil,
         attachedAgentID: UUID? = nil,
-        isPrivate: Bool = false
+        isPrivate: Bool = false,
+        isEphemeral: Bool = false,
+        forkedFrom: TimelineForkOrigin? = nil
     ) {
         self.id = id
         self.title = title
@@ -37,6 +53,8 @@ public struct TimelineRecord: Identifiable, Sendable {
         self.workingDirectory = workingDirectory
         self.attachedAgentID = attachedAgentID
         self.isPrivate = isPrivate
+        self.isEphemeral = isEphemeral
+        self.forkedFrom = forkedFrom
     }
 
 }
@@ -47,7 +65,7 @@ extension TimelineRecord: Codable {
     enum CodingKeys: String, CodingKey {
         case id, title, createdAt, updatedAt, isArchived, workingDirectory
         case attachedAgentID = "attachedAgentId"
-        case isPrivate
+        case isPrivate, isEphemeral, forkedFrom
     }
 
     public init(from decoder: Decoder) throws {
@@ -60,6 +78,8 @@ extension TimelineRecord: Codable {
         workingDirectory = try container.decodeIfPresent(String.self, forKey: .workingDirectory)
         attachedAgentID = try container.decodeIfPresent(UUID.self, forKey: .attachedAgentID)
         isPrivate = (try? container.decode(Bool.self, forKey: .isPrivate)) ?? false
+        isEphemeral = (try? container.decode(Bool.self, forKey: .isEphemeral)) ?? false
+        forkedFrom = try container.decodeIfPresent(TimelineForkOrigin.self, forKey: .forkedFrom)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -72,5 +92,7 @@ extension TimelineRecord: Codable {
         try container.encodeIfPresent(workingDirectory, forKey: .workingDirectory)
         try container.encodeIfPresent(attachedAgentID, forKey: .attachedAgentID)
         try container.encode(isPrivate, forKey: .isPrivate)
+        try container.encode(isEphemeral, forKey: .isEphemeral)
+        try container.encodeIfPresent(forkedFrom, forKey: .forkedFrom)
     }
 }

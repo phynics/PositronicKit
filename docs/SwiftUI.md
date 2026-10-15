@@ -53,17 +53,17 @@ await watched.cancel()
 
 ## Run auxiliary work on a fork
 
-`timelines.fork(from:context:)` clones a Timeline's session into a detached, ephemeral
-`TimelineFork` with read-only tool access. Bind it with the fork initializer; the fork's runtime
-is released with the fork handle.
+`timelines.fork(from:title:)` returns an ordinary detached `TimelineHandle` for an ephemeral
+Timeline in the same runtime. Bind it with the direct-path controller initializer; the runtime
+deletes the ephemeral Timeline when the last handle is released.
 
 ```swift main-actor
 let source = try await kit.timelines.create(title: "Source", attaching: agent.id)
-let fork = try await kit.timelines.fork(
-    from: source.timelineID,
+let fork = try await kit.timelines.fork(from: source.timelineID)
+let forked = TimelineController(
+    fork,
     context: DirectTurnContext(systemInstructions: "You audit the previous answer.")
 )
-let forked = TimelineController(fork)
 try await forked.send("Audit the last answer for contradictions.")
 ```
 

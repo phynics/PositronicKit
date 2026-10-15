@@ -101,6 +101,28 @@ not statically `Sendable`. The Turn loop builds it once, the finalizer task read
 finishing the stream, and it is never shared mutably. It exists only because a Turn's terminal
 error comes from arbitrary provider and pipeline paths.
 
+`TurnFinalizer` also stores each pending commit `Task` keyed by Turn so ephemeral Timeline cleanup
+can join a terminal commit that is still writing before it deletes the Timeline. The task is owned
+by the finalizer actor, which clears the entry when the commit completes; the inline annotation on
+the stored `Task` property is the reviewed disposition.
+
+## Ephemeral Timeline lifetime
+
+`EphemeralTimelineRegistry` (`Sources/PositronicKit/Services/Timeline/EphemeralTimelineRegistry.swift`)
+tracks live handles for ephemeral fork Timelines. Handles are value types, so the registry hands
+each one an `EphemeralTimelineToken`; the token's `deinit` decrements a `Mutex`-guarded lease, and
+the last release spawns one unstructured cleanup task. A value-typed handle cannot own asynchronous
+lifetime work, so the cleanup task is the only place this state transitions out of memory. The task
+captures the runtime's `TimelineManager`, not the facade, so the registry never retains `PKRuntime`.
+
+The per-handle live count and the release-once flag live in one `Synchronization.Mutex<State>`, so a
+join that races a release is serialized without an actor hop.
+
+`TimelineManager.ensureEphemeralSweepStarted()` also stores the runtime-start recovery sweep task so
+`fork` can await it before creating an ephemeral Timeline. It is an actor-owned stored `Task`
+(`concurrency_stored_task` annotation at the site) and is the one predicate that keeps a sweep from
+deleting a fork the runtime just made.
+
 ## Cancellation-aware permit boundaries
 
 `FIFOLane` (`Sources/PositronicKit/Services/Concurrency/FIFOLane.swift`) stores keyed lane state

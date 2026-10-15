@@ -60,6 +60,14 @@ actor FailingTerminalRepository: TimelineRuntimeRepository {
         try await base.deleteTimeline(id: id)
     }
 
+    func deleteEphemeralTimeline(id: UUID) async throws {
+        try await base.deleteEphemeralTimeline(id: id)
+    }
+
+    func purgeEphemeralTimelines() async throws {
+        try await base.purgeEphemeralTimelines()
+    }
+
     func saveMessage(_ message: TimelineMessage) async throws {
         try await base.saveMessage(message)
     }

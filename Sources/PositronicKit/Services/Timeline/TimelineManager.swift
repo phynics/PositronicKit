@@ -87,6 +87,11 @@ actor TimelineManager {
     /// Shared per-Timeline lane for Turn admission and authority mutations.
     let timelineAuthorityCoordinator: TimelineAuthorityCoordinator
 
+    /// The runtime-start recovery sweep for orphaned ephemeral Timelines, created once.
+    /// `fork` joins this task before it creates an ephemeral Timeline so a sweep can never delete
+    /// a fork the runtime just made. Owner is this actor; see the concurrency exception manifest.
+    var ephemeralSweepTask: Task<Void, Never>? // swiftlint:disable:this concurrency_stored_task -- owned by actor (see docs/Concurrency/exception-manifest.md)
+
     // MARK: - Dependencies
 
     let timelineStore: any TimelinePersistenceProtocol

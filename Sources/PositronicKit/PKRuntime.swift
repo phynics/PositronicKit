@@ -68,6 +68,22 @@ public final class PKRuntime: Sendable {
     
     /// Runtime-owned identities that must survive provider reconfiguration.
     private let runtimeState: RuntimeState
+
+    /// Live ephemeral Timeline lifetimes shared by every replacement view of this runtime
+    /// identity. A fork's handle carries a token from here; releasing the last token deletes the
+    /// fork Timeline.
+    var ephemeralRegistry: EphemeralTimelineRegistry { runtimeState.ephemeralRegistry }
+
+    /// Waits for the runtime to finish deleting an ephemeral Timeline after its last handle is
+    /// released. A bounded diagnostic and test seam: the release path schedules cleanup in an
+    /// unstructured task because a value-typed handle cannot own asynchronous lifetime work.
+    func awaitEphemeralTimelineReleased(_ timelineID: UUID, timeout: Duration = .seconds(5)) async {
+        let deadline = ContinuousClock.now + timeout
+        while ephemeralRegistry.contains(timelineID), ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+    }
+
     /// Internal coordinator shared by the capability values and turn engine.
     let timelineManager: TimelineManager
     /// Internal agent coordinator shared by the capability values and turn engine.
@@ -140,6 +156,12 @@ public final class PKRuntime: Sendable {
             toolRouter: router,
             activitySink: activitySink
         )
+
+        // Recovery sweep: an ephemeral Timeline present before this runtime created one is an
+        // orphan from a previous process. The manager stores the sweep task so `fork` can await
+        // it before creating a new ephemeral Timeline.
+        let sweepManager = state.timelineManager
+        Task { await sweepManager.ensureEphemeralSweepStarted() }
     }
 
     /// Returns a new provider-facing view with a replacement language model and, optionally,

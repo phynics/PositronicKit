@@ -214,11 +214,11 @@ struct TimelineControllerTests {
         let driver = try await kit.timelines.create(title: "Controller")
         let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
         try await kit.agents.attach(agent.id, to: driver.id)
-        let fork = try await kit.timelines.fork(
-            from: driver.timelineID,
+        let fork = try await kit.timelines.fork(from: driver.timelineID)
+        let controller = TimelineController(
+            fork,
             context: DirectTurnContext(systemInstructions: "Audit.")
         )
-        let controller = TimelineController(fork)
 
         try await controller.send("Audit this.")
 

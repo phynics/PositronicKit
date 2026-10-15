@@ -12195,16 +12195,6 @@
       "declaration": "@MainActor init(_ driver: TimelineHandle, context: DirectTurnContext, messages: [Message] = [])"
     },
     {
-      "precise": "s:12PKObservable18TimelineControllerC_8messagesAC13PositronicKit0B4ForkC_Say11PKContracts7MessageVGtcfc",
-      "module": "PKObservable",
-      "kind": "swift.init",
-      "path": [
-        "TimelineController",
-        "init(_:messages:)"
-      ],
-      "declaration": "@MainActor init(_ fork: TimelineFork, messages: [Message] = [])"
-    },
-    {
       "precise": "s:12PKObservable18TimelineControllerC_8messagesAC13PositronicKit0B6HandleV_Say11PKContracts7MessageVGtcfc",
       "module": "PKObservable",
       "kind": "swift.init",
@@ -14231,6 +14221,26 @@
       "declaration": "func recordProviderRequest(turnID: UUID, modelRoundIndex: Int, correlation: TurnCorrelation?, now: Date) async throws"
     },
     {
+      "precise": "s:13PKTestSupport22MockPersistenceServiceC23deleteEphemeralTimeline2idy20FoundationEssentials4UUIDV_tYaKF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "MockPersistenceService",
+        "deleteEphemeralTimeline(id:)"
+      ],
+      "declaration": "func deleteEphemeralTimeline(id: UUID) async throws"
+    },
+    {
+      "precise": "s:13PKTestSupport22MockPersistenceServiceC23purgeEphemeralTimelinesyyYaKF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "MockPersistenceService",
+        "purgeEphemeralTimelines()"
+      ],
+      "declaration": "func purgeEphemeralTimelines() async throws"
+    },
+    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC23saveMessageFailureAfterSiSgvp",
       "module": "PKTestSupport",
       "kind": "swift.property",
@@ -16214,85 +16224,6 @@
       "declaration": "var errorCode: Int { get }"
     },
     {
-      "precise": "s:13PositronicKit12TimelineForkC",
-      "module": "PositronicKit",
-      "kind": "swift.class",
-      "path": [
-        "TimelineFork"
-      ],
-      "declaration": "final class TimelineFork"
-    },
-    {
-      "precise": "s:13PositronicKit12TimelineForkC10timelineID20FoundationEssentials4UUIDVvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TimelineFork",
-        "timelineID"
-      ],
-      "declaration": "let timelineID: UUID"
-    },
-    {
-      "precise": "s:13PositronicKit12TimelineForkC13directContextAA010DirectTurnF0Vvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TimelineFork",
-        "directContext"
-      ],
-      "declaration": "var directContext: DirectTurnContext { get }"
-    },
-    {
-      "precise": "s:13PositronicKit12TimelineForkC6cancelyyYaF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineFork",
-        "cancel()"
-      ],
-      "declaration": "func cancel() async"
-    },
-    {
-      "precise": "s:13PositronicKit12TimelineForkC6handleAA0C6HandleVvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TimelineFork",
-        "handle"
-      ],
-      "declaration": "var handle: TimelineHandle { get }"
-    },
-    {
-      "precise": "s:13PositronicKit12TimelineForkC8messagesSayAA0C7MessageVGyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineFork",
-        "messages()"
-      ],
-      "declaration": "func messages() async throws -> [TimelineMessage]"
-    },
-    {
-      "precise": "s:13PositronicKit12TimelineForkC9startTurn_7optionsAA0F6HandleV11PKContracts14MessageContentV_AA0F7OptionsVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineFork",
-        "startTurn(_:options:)"
-      ],
-      "declaration": "func startTurn(_ content: MessageContent, options: TurnOptions = .init()) async throws -> TurnHandle"
-    },
-    {
-      "precise": "s:13PositronicKit12TimelineForkC9startTurn_7optionsAA0F6HandleVSS_AA0F7OptionsVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "TimelineFork",
-        "startTurn(_:options:)"
-      ],
-      "declaration": "func startTurn(_ message: String, options: TurnOptions = .init()) async throws -> TurnHandle"
-    },
-    {
       "precise": "s:13PositronicKit13AgentActivityV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -16782,6 +16713,16 @@
       "declaration": "struct TimelineRecord"
     },
     {
+      "precise": "s:13PositronicKit14TimelineRecordV10forkedFromAA0C10ForkOriginVSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TimelineRecord",
+        "forkedFrom"
+      ],
+      "declaration": "var forkedFrom: TimelineForkOrigin?"
+    },
+    {
       "precise": "s:13PositronicKit14TimelineRecordV10isArchivedSbvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -16790,6 +16731,16 @@
         "isArchived"
       ],
       "declaration": "var isArchived: Bool"
+    },
+    {
+      "precise": "s:13PositronicKit14TimelineRecordV11isEphemeralSbvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TimelineRecord",
+        "isEphemeral"
+      ],
+      "declaration": "var isEphemeral: Bool"
     },
     {
       "precise": "s:13PositronicKit14TimelineRecordV15attachedAgentID20FoundationEssentials4UUIDVSgvp",
@@ -16822,14 +16773,14 @@
       "declaration": "var id: UUID"
     },
     {
-      "precise": "s:13PositronicKit14TimelineRecordV2id5title9createdAt07updatedH010isArchived16workingDirectory15attachedAgentID0J7PrivateAC20FoundationEssentials4UUIDV_SSAL4DateVAPSbSSSgANSgSbtcfc",
+      "precise": "s:13PositronicKit14TimelineRecordV2id5title9createdAt07updatedH010isArchived16workingDirectory15attachedAgentID0J7Private0J9Ephemeral10forkedFromAC20FoundationEssentials4UUIDV_SSAN4DateVARSbSSSgAPSgS2bAA0C10ForkOriginVSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "TimelineRecord",
-        "init(id:title:createdAt:updatedAt:isArchived:workingDirectory:attachedAgentID:isPrivate:)"
+        "init(id:title:createdAt:updatedAt:isArchived:workingDirectory:attachedAgentID:isPrivate:isEphemeral:forkedFrom:)"
       ],
-      "declaration": "init(id: UUID = UUID(), title: String = \"New Timeline\", createdAt: Date = Date(), updatedAt: Date = Date(), isArchived: Bool = false, workingDirectory: String? = nil, attachedAgentID: UUID? = nil, isPrivate: Bool = false)"
+      "declaration": "init(id: UUID = UUID(), title: String = \"New Timeline\", createdAt: Date = Date(), updatedAt: Date = Date(), isArchived: Bool = false, workingDirectory: String? = nil, attachedAgentID: UUID? = nil, isPrivate: Bool = false, isEphemeral: Bool = false, forkedFrom: TimelineForkOrigin? = nil)"
     },
     {
       "precise": "s:13PositronicKit14TimelineRecordV4fromACs7Decoder_p_tKcfc",
@@ -17551,6 +17502,25 @@
         "rawPrompt"
       ],
       "declaration": "let rawPrompt: String"
+    },
+    {
+      "precise": "s:13PositronicKit15RuntimeToolSetsO",
+      "module": "PositronicKit",
+      "kind": "swift.enum",
+      "path": [
+        "RuntimeToolSets"
+      ],
+      "declaration": "enum RuntimeToolSets"
+    },
+    {
+      "precise": "s:13PositronicKit15RuntimeToolSetsO18readOnlyFilesystem4rootSay11PKContracts6PKTool_pG20FoundationEssentials3URLV_tFZ",
+      "module": "PositronicKit",
+      "kind": "swift.type.method",
+      "path": [
+        "RuntimeToolSets",
+        "readOnlyFilesystem(root:)"
+      ],
+      "declaration": "static func readOnlyFilesystem(root: URL) -> [any PKTool]"
     },
     {
       "precise": "s:13PositronicKit15TimelineMessageV",
@@ -19948,24 +19918,24 @@
       "declaration": "func get(_ timelineID: UUID) async throws -> TimelineRecord?"
     },
     {
-      "precise": "s:13PositronicKit18TimelineCapabilityV4fork4from7contextAA0C4ForkC20FoundationEssentials4UUIDV_AA17DirectTurnContextVtYaKF",
+      "precise": "s:13PositronicKit18TimelineCapabilityV4fork4from5titleAA0C6HandleV20FoundationEssentials4UUIDV_SSSgtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "TimelineCapability",
-        "fork(from:context:)"
+        "fork(from:title:)"
       ],
-      "declaration": "func fork(from timelineID: UUID, context: DirectTurnContext) async throws -> TimelineFork"
+      "declaration": "func fork(from timelineID: UUID, title: String? = nil) async throws -> TimelineHandle"
     },
     {
-      "precise": "s:13PositronicKit18TimelineCapabilityV4list15includeArchivedSayAA0C6RecordVGSb_tYaKF",
+      "precise": "s:13PositronicKit18TimelineCapabilityV4list15includeArchived0F9EphemeralSayAA0C6RecordVGSb_SbtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "TimelineCapability",
-        "list(includeArchived:)"
+        "list(includeArchived:includeEphemeral:)"
       ],
-      "declaration": "func list(includeArchived: Bool = true) async throws -> [TimelineRecord]"
+      "declaration": "func list(includeArchived: Bool = true, includeEphemeral: Bool = false) async throws -> [TimelineRecord]"
     },
     {
       "precise": "s:13PositronicKit18TimelineCapabilityV4openyAA0C6HandleV20FoundationEssentials4UUIDVF",
@@ -20006,6 +19976,65 @@
         "messages(for:)"
       ],
       "declaration": "func messages(for timelineID: UUID) async throws -> [TimelineMessage]"
+    },
+    {
+      "precise": "s:13PositronicKit18TimelineForkOriginV",
+      "module": "PositronicKit",
+      "kind": "swift.struct",
+      "path": [
+        "TimelineForkOrigin"
+      ],
+      "declaration": "struct TimelineForkOrigin"
+    },
+    {
+      "precise": "s:13PositronicKit18TimelineForkOriginV10timelineID014throughMessageG02atAC20FoundationEssentials4UUIDV_AISgAG4DateVtcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "TimelineForkOrigin",
+        "init(timelineID:throughMessageID:at:)"
+      ],
+      "declaration": "init(timelineID: UUID, throughMessageID: UUID?, at: Date)"
+    },
+    {
+      "precise": "s:13PositronicKit18TimelineForkOriginV10timelineID20FoundationEssentials4UUIDVvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TimelineForkOrigin",
+        "timelineID"
+      ],
+      "declaration": "let timelineID: UUID"
+    },
+    {
+      "precise": "s:13PositronicKit18TimelineForkOriginV16throughMessageID20FoundationEssentials4UUIDVSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TimelineForkOrigin",
+        "throughMessageID"
+      ],
+      "declaration": "let throughMessageID: UUID?"
+    },
+    {
+      "precise": "s:13PositronicKit18TimelineForkOriginV2at20FoundationEssentials4DateVvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TimelineForkOrigin",
+        "at"
+      ],
+      "declaration": "let at: Date"
+    },
+    {
+      "precise": "s:13PositronicKit18TimelineForkOriginV4fromACs7Decoder_p_tKcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "TimelineForkOrigin",
+        "init(from:)"
+      ],
+      "declaration": "init(from decoder: any Decoder) throws"
     },
     {
       "precise": "s:13PositronicKit18TurnContextRequestV",
@@ -21834,6 +21863,16 @@
       "declaration": "protocol TimelineRuntimeRepository : TimelineMessageStoreProtocol, TimelinePersistenceProtocol"
     },
     {
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP015deleteEphemeralC02idy20FoundationEssentials4UUIDV_tYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineRuntimeRepository",
+        "deleteEphemeralTimeline(id:)"
+      ],
+      "declaration": "func deleteEphemeralTimeline(id: UUID) async throws"
+    },
+    {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP10admitRetry10timelineID012previousTurnI007requestI023callerIntentFingerprint12inputMessage13executionKind013capturedAgentI004turnI07attempt3nowAA0K9AdmissionV20FoundationEssentials4UUIDV_A2SSSAA0cQ0VSgAA0k9ExecutionS0OASSgASSiAQ4DateVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -22012,6 +22051,16 @@
         "recordProviderRequest(turnID:modelRoundIndex:correlation:now:)"
       ],
       "declaration": "func recordProviderRequest(turnID: UUID, modelRoundIndex: Int, correlation: TurnCorrelation?, now: Date) async throws"
+    },
+    {
+      "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP23purgeEphemeralTimelinesyyYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineRuntimeRepository",
+        "purgeEphemeralTimelines()"
+      ],
+      "declaration": "func purgeEphemeralTimelines() async throws"
     },
     {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP9admitTurn10timelineID07requestI023callerIntentFingerprint12inputMessage13executionKind013capturedAgentI004turnI03nowAA0G9AdmissionV20FoundationEssentials4UUIDV_AQSSAA0cO0VSgAA0g9ExecutionQ0OAQSgAqO4DateVtYaKF",
@@ -23425,6 +23474,16 @@
       "declaration": "actor InMemoryTimelineRuntimeRepository"
     },
     {
+      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC015deleteEphemeralE02idy20FoundationEssentials4UUIDV_tYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "InMemoryTimelineRuntimeRepository",
+        "deleteEphemeralTimeline(id:)"
+      ],
+      "declaration": "func deleteEphemeralTimeline(id: UUID) async throws"
+    },
+    {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC04saveE0yyAA0E6RecordVYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -23663,6 +23722,16 @@
         "recordProviderRequest(turnID:modelRoundIndex:correlation:now:)"
       ],
       "declaration": "func recordProviderRequest(turnID: UUID, modelRoundIndex _: Int, correlation: TurnCorrelation?, now: Date) async throws"
+    },
+    {
+      "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC23purgeEphemeralTimelinesyyYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "InMemoryTimelineRuntimeRepository",
+        "purgeEphemeralTimelines()"
+      ],
+      "declaration": "func purgeEphemeralTimelines() async throws"
     },
     {
       "precise": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC5claim11workspaceID3for3nowAA16WorkspaceBindingV20FoundationEssentials4UUIDV_AlJ4DateVtYaKF",
@@ -24510,16 +24579,6 @@
         "inMemory()"
       ],
       "declaration": "static func inMemory() -> PersistenceConfiguration"
-    },
-    {
-      "precise": "s:13PositronicKit9PKRuntimeC4fork4from7contextAA12TimelineForkC20FoundationEssentials4UUIDV_AA17DirectTurnContextVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "PKRuntime",
-        "fork(from:context:)"
-      ],
-      "declaration": "func fork(from timelineID: UUID, context: DirectTurnContext) async throws -> TimelineFork"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC5modelAA24ModelInferenceCapabilityVvp",
@@ -34361,20 +34420,6 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
-      "source": "s:13PositronicKit12TimelineForkC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit12TimelineForkC",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
       "source": "s:13PositronicKit13AgentActivityV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
@@ -35940,6 +35985,48 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit18TimelineCapabilityV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit18TimelineForkOriginV",
+      "target": "s:SE",
+      "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit18TimelineForkOriginV",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit18TimelineForkOriginV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit18TimelineForkOriginV",
+      "target": "s:Se",
+      "targetFallback": "Swift.Decodable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit18TimelineForkOriginV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit18TimelineForkOriginV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -44123,12 +44210,6 @@
     {
       "module": "PKObservable",
       "kind": "memberOf",
-      "source": "s:12PKObservable18TimelineControllerC_8messagesAC13PositronicKit0B4ForkC_Say11PKContracts7MessageVGtcfc",
-      "target": "s:12PKObservable18TimelineControllerC"
-    },
-    {
-      "module": "PKObservable",
-      "kind": "memberOf",
       "source": "s:12PKObservable18TimelineControllerC_8messagesAC13PositronicKit0B6HandleV_Say11PKContracts7MessageVGtcfc",
       "target": "s:12PKObservable18TimelineControllerC"
     },
@@ -47998,6 +48079,26 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC23deleteEphemeralTimeline2idy20FoundationEssentials4UUIDV_tYaKF",
+      "target": "s:13PKTestSupport22MockPersistenceServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP015deleteEphemeralC02idy20FoundationEssentials4UUIDV_tYaKF",
+        "displayName": "TimelineRuntimeRepository.deleteEphemeralTimeline(id:)"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC23purgeEphemeralTimelinesyyYaKF",
+      "target": "s:13PKTestSupport22MockPersistenceServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP23purgeEphemeralTimelinesyyYaKF",
+        "displayName": "TimelineRuntimeRepository.purgeEphemeralTimelines()"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC23saveMessageFailureAfterSiSgvp",
       "target": "s:13PKTestSupport22MockPersistenceServiceC"
     },
@@ -49255,48 +49356,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit12TimelineForkC10timelineID20FoundationEssentials4UUIDVvp",
-      "target": "s:13PositronicKit12TimelineForkC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12TimelineForkC13directContextAA010DirectTurnF0Vvp",
-      "target": "s:13PositronicKit12TimelineForkC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12TimelineForkC6cancelyyYaF",
-      "target": "s:13PositronicKit12TimelineForkC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12TimelineForkC6handleAA0C6HandleVvp",
-      "target": "s:13PositronicKit12TimelineForkC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12TimelineForkC8messagesSayAA0C7MessageVGyYaKF",
-      "target": "s:13PositronicKit12TimelineForkC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12TimelineForkC9startTurn_7optionsAA0F6HandleV11PKContracts14MessageContentV_AA0F7OptionsVtYaKF",
-      "target": "s:13PositronicKit12TimelineForkC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12TimelineForkC9startTurn_7optionsAA0F6HandleVSS_AA0F7OptionsVtYaKF",
-      "target": "s:13PositronicKit12TimelineForkC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit13AgentActivityV10timelineID20FoundationEssentials4UUIDVvp",
       "target": "s:13PositronicKit13AgentActivityV"
     },
@@ -49591,7 +49650,19 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit14TimelineRecordV10forkedFromAA0C10ForkOriginVSgvp",
+      "target": "s:13PositronicKit14TimelineRecordV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit14TimelineRecordV10isArchivedSbvp",
+      "target": "s:13PositronicKit14TimelineRecordV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit14TimelineRecordV11isEphemeralSbvp",
       "target": "s:13PositronicKit14TimelineRecordV"
     },
     {
@@ -49619,7 +49690,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit14TimelineRecordV2id5title9createdAt07updatedH010isArchived16workingDirectory15attachedAgentID0J7PrivateAC20FoundationEssentials4UUIDV_SSAL4DateVAPSbSSSgANSgSbtcfc",
+      "source": "s:13PositronicKit14TimelineRecordV2id5title9createdAt07updatedH010isArchived16workingDirectory15attachedAgentID0J7Private0J9Ephemeral10forkedFromAC20FoundationEssentials4UUIDV_SSAN4DateVARSbSSSgAPSgS2bAA0C10ForkOriginVSgtcfc",
       "target": "s:13PositronicKit14TimelineRecordV"
     },
     {
@@ -49899,6 +49970,12 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit15LLMStreamResultV9rawPromptSSvp",
       "target": "s:13PositronicKit15LLMStreamResultV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit15RuntimeToolSetsO18readOnlyFilesystem4rootSay11PKContracts6PKTool_pG20FoundationEssentials3URLV_tFZ",
+      "target": "s:13PositronicKit15RuntimeToolSetsO"
     },
     {
       "module": "PositronicKit",
@@ -51197,13 +51274,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit18TimelineCapabilityV4fork4from7contextAA0C4ForkC20FoundationEssentials4UUIDV_AA17DirectTurnContextVtYaKF",
+      "source": "s:13PositronicKit18TimelineCapabilityV4fork4from5titleAA0C6HandleV20FoundationEssentials4UUIDV_SSSgtYaKF",
       "target": "s:13PositronicKit18TimelineCapabilityV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit18TimelineCapabilityV4list15includeArchivedSayAA0C6RecordVGSb_tYaKF",
+      "source": "s:13PositronicKit18TimelineCapabilityV4list15includeArchived0F9EphemeralSayAA0C6RecordVGSb_SbtYaKF",
       "target": "s:13PositronicKit18TimelineCapabilityV"
     },
     {
@@ -51229,6 +51306,40 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit18TimelineCapabilityV8messages3forSayAA0C7MessageVG20FoundationEssentials4UUIDV_tYaKF",
       "target": "s:13PositronicKit18TimelineCapabilityV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit18TimelineForkOriginV10timelineID014throughMessageG02atAC20FoundationEssentials4UUIDV_AISgAG4DateVtcfc",
+      "target": "s:13PositronicKit18TimelineForkOriginV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit18TimelineForkOriginV10timelineID20FoundationEssentials4UUIDVvp",
+      "target": "s:13PositronicKit18TimelineForkOriginV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit18TimelineForkOriginV16throughMessageID20FoundationEssentials4UUIDVSgvp",
+      "target": "s:13PositronicKit18TimelineForkOriginV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit18TimelineForkOriginV2at20FoundationEssentials4DateVvp",
+      "target": "s:13PositronicKit18TimelineForkOriginV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit18TimelineForkOriginV4fromACs7Decoder_p_tKcfc",
+      "target": "s:13PositronicKit18TimelineForkOriginV",
+      "sourceOrigin": {
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
     },
     {
       "module": "PositronicKit",
@@ -52991,6 +53102,16 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC015deleteEphemeralE02idy20FoundationEssentials4UUIDV_tYaKF",
+      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP015deleteEphemeralC02idy20FoundationEssentials4UUIDV_tYaKF",
+        "displayName": "TimelineRuntimeRepository.deleteEphemeralTimeline(id:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC04saveE0yyAA0E6RecordVYaKF",
       "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
       "sourceOrigin": {
@@ -53226,6 +53347,16 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP21recordProviderRequest6turnID15modelRoundIndex11correlation3nowy20FoundationEssentials4UUIDV_SiAA15TurnCorrelationVSgAI4DateVtYaKF",
         "displayName": "TimelineRuntimeRepository.recordProviderRequest(turnID:modelRoundIndex:correlation:now:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC23purgeEphemeralTimelinesyyYaKF",
+      "target": "s:13PositronicKit33InMemoryTimelineRuntimeRepositoryC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit25TimelineRuntimeRepositoryP23purgeEphemeralTimelinesyyYaKF",
+        "displayName": "TimelineRuntimeRepository.purgeEphemeralTimelines()"
       }
     },
     {
@@ -53733,12 +53864,6 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV8inMemoryAEyFZ",
       "target": "s:13PositronicKit9PKRuntimeC24PersistenceConfigurationV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC4fork4from7contextAA12TimelineForkC20FoundationEssentials4UUIDV_AA17DirectTurnContextVtYaKF",
-      "target": "s:13PositronicKit9PKRuntimeC"
     },
     {
       "module": "PositronicKit",
@@ -54335,6 +54460,12 @@
     {
       "module": "PositronicKit",
       "kind": "requirementOf",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP015deleteEphemeralC02idy20FoundationEssentials4UUIDV_tYaKF",
+      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "requirementOf",
       "source": "s:13PositronicKit25TimelineRuntimeRepositoryP10admitRetry10timelineID012previousTurnI007requestI023callerIntentFingerprint12inputMessage13executionKind013capturedAgentI004turnI07attempt3nowAA0K9AdmissionV20FoundationEssentials4UUIDV_A2SSSAA0cQ0VSgAA0k9ExecutionS0OASSgASSiAQ4DateVtYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
@@ -54438,6 +54569,12 @@
       "module": "PositronicKit",
       "kind": "requirementOf",
       "source": "s:13PositronicKit25TimelineRuntimeRepositoryP21recordProviderRequest6turnID15modelRoundIndex11correlation3nowy20FoundationEssentials4UUIDV_SiAA15TurnCorrelationVSgAI4DateVtYaKF",
+      "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "requirementOf",
+      "source": "s:13PositronicKit25TimelineRuntimeRepositoryP23purgeEphemeralTimelinesyyYaKF",
       "target": "s:13PositronicKit25TimelineRuntimeRepositoryP"
     },
     {
