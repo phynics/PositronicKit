@@ -3,6 +3,7 @@ import JSONSchemaBuilder
 import PKAnthropicProvider
 import PKContracts
 import PKFoundationModelsProvider
+import PKMCP
 import PKObservable
 import PKOllamaProvider
 import PKOpenAIProvider
@@ -67,6 +68,8 @@ _ = String(describing: Message.self)
 _ = String(describing: TimelineRecord.self)
 _ = String(describing: (any PKTool).self)
 _ = String(describing: TimelineController.self)
+_ = String(describing: MCPWorkspaceFactory.self)
+_ = String(describing: MCPServerConfiguration.self)
 _ = String(describing: PKOpenAI.self)
 _ = String(describing: PKOpenRouter.self)
 _ = String(describing: PKOllama.self)
