@@ -70,6 +70,21 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         }
     }
 
+    public func deleteEphemeralTimeline(id: UUID) async throws {
+        guard let timeline = timelines[id] else { return }
+        guard timeline.isEphemeral else {
+            throw TimelineRuntimeRepositoryError.historyDeletionForbidden(timelineID: id)
+        }
+        try await deleteTimeline(id: id)
+    }
+
+    public func purgeEphemeralTimelines() async throws {
+        let ephemeralIDs = timelines.values.filter(\.isEphemeral).map(\.id)
+        for id in ephemeralIDs {
+            try await deleteTimeline(id: id)
+        }
+    }
+
     // MARK: TimelineMessageStoreProtocol
 
     public func saveMessage(_ message: TimelineMessage) async throws {

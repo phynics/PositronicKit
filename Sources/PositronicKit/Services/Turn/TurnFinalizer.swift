@@ -66,6 +66,15 @@ actor TurnFinalizer {
     /// classification to bound how long a Timeline stays busy for a stalled commit.
     private var pendingSince: [UUID: ContinuousClock.Instant] = [:]
 
+    /// The commit task for each handed-off Turn, keyed by Turn, so ephemeral Timeline cleanup
+    /// can join a commit that is still writing before it deletes the Timeline.
+    private struct PendingCommit: Sendable {
+        let timelineID: UUID
+        let task: Task<Void, Never> // swiftlint:disable:this concurrency_stored_task -- owned by actor (see docs/Concurrency/exception-manifest.md)
+    }
+
+    private var pendingCommits: [UUID: PendingCommit] = [:]
+
     init(
         repository: any TimelineRuntimeRepository,
         agentActivitySink: any AgentActivitySink?,
@@ -87,10 +96,12 @@ actor TurnFinalizer {
     func submit(_ commit: TerminalCommit) {
         pendingSince[commit.turnID] = clock.now()
         let turnID = commit.turnID
-        Task {
+        let timelineID = commit.timelineID
+        let task = Task {
             await self.perform(commit)
             self.clearPending(turnID: turnID)
         }
+        pendingCommits[turnID] = PendingCommit(timelineID: timelineID, task: task)
     }
 
     /// When the given Turn's terminal commit was handed off, or `nil` if none is pending.
@@ -98,8 +109,22 @@ actor TurnFinalizer {
         pendingSince[turnID]
     }
 
+    /// Waits for every terminal commit the finalizer is still performing for a Timeline.
+    ///
+    /// Ephemeral Timeline cleanup joins this before deleting so a Turn that is still completing
+    /// is never deleted out from under its own terminal commit.
+    func awaitPendingCommits(forTimeline timelineID: UUID) async {
+        let tasks = pendingCommits.values
+            .filter { $0.timelineID == timelineID }
+            .map(\.task)
+        for task in tasks {
+            await task.value
+        }
+    }
+
     private func clearPending(turnID: UUID) {
         pendingSince.removeValue(forKey: turnID)
+        pendingCommits.removeValue(forKey: turnID)
     }
 
     // MARK: - Commit

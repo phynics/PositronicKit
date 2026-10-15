@@ -247,6 +247,25 @@ public final class MockPersistenceService: TimelineRuntimeRepository, WorkspaceS
         try await turnRuntime.deleteTimeline(id: id)
     }
 
+    public func deleteEphemeralTimeline(id: UUID) async throws {
+        defer { recordPersistenceAccess() }
+        guard let timeline = try await timelinesMock.fetchTimeline(id: id) else { return }
+        guard timeline.isEphemeral else {
+            throw TimelineRuntimeRepositoryError.historyDeletionForbidden(timelineID: id)
+        }
+        try await deleteTimeline(id: id)
+    }
+
+    public func purgeEphemeralTimelines() async throws {
+        defer { recordPersistenceAccess() }
+        let ephemeralIDs = try await timelinesMock.fetchAllTimelines(includeArchived: true)
+            .filter(\.isEphemeral)
+            .map(\.id)
+        for id in ephemeralIDs {
+            try await deleteTimeline(id: id)
+        }
+    }
+
     // MARK: - WorkspaceStore
 
     public var workspaces: [WorkspaceReference] {

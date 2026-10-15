@@ -22,10 +22,19 @@ public struct TimelineHandle: Identifiable, Sendable {
     }
 
     private let engine: TurnEngine
+    /// Holds the ephemeral Timeline's lifetime for as long as this handle is alive. `nil` for an
+    /// ordinary durable Timeline. Never read; it exists so releasing the last handle releases the
+    /// Timeline.
+    private let ephemeralToken: EphemeralTimelineToken?
 
-    init(timelineID: UUID, engine: TurnEngine) {
+    init(
+        timelineID: UUID,
+        engine: TurnEngine,
+        ephemeralToken: EphemeralTimelineToken? = nil
+    ) {
         self.timelineID = timelineID
         self.engine = engine
+        self.ephemeralToken = ephemeralToken
     }
 
     /// Starts a managed Turn whose Agent is captured from this TimelineRecord at admission.

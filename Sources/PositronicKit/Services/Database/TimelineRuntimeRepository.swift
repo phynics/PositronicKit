@@ -650,6 +650,24 @@ public protocol TimelineRuntimeRepository: TimelinePersistenceProtocol, Timeline
         confirmation: QuarantineReleaseConfirmation,
         now: Date
     ) async throws -> TurnRecord
+
+    /// Deletes one ephemeral Timeline and its history.
+    ///
+    /// The runtime owns this path: it is the only sanctioned way to remove an ephemeral Timeline
+    /// once the last handle to it is released. Implementations MUST cascade history deletion
+    /// exactly as ``TimelinePersistenceProtocol/deleteTimeline(id:)`` does. A missing Timeline is
+    /// a no-op. A Timeline that exists but is not ephemeral MUST be rejected with
+    /// ``TimelineRuntimeRepositoryError/historyDeletionForbidden(timelineID:)`` so an ephemeral
+    /// cleanup can never destroy ordinary durable history.
+    func deleteEphemeralTimeline(id: UUID) async throws
+
+    /// Deletes every ephemeral Timeline and its history.
+    ///
+    /// This is the recovery sweep the runtime runs at start: an ephemeral Timeline is owned by
+    /// the process that created it, so any ephemeral Timeline present before this process
+    /// created one is an orphan. Implementations MUST use the same cascade and rejection rules
+    /// as ``deleteEphemeralTimeline(id:)``.
+    func purgeEphemeralTimelines() async throws
 }
 
 public extension TimelineRuntimeRepository {

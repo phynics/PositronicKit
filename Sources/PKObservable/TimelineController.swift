@@ -16,9 +16,10 @@ public struct TimelineControllerError: Error, Sendable {
 /// A SwiftUI-friendly controller for a PKRuntime timeline handle.
 ///
 /// Create a controller from a `TimelineHandle` for an Agent-attached Timeline (managed Turns),
-/// from a `TimelineHandle` plus `DirectTurnContext` for a detached Timeline (direct Turns), or
-/// from a `TimelineFork` for a fork session. The initializer selects the admission path; `send(_:)`
-/// behavior is identical on all three.
+/// or from a `TimelineHandle` plus `DirectTurnContext` for a detached Timeline (direct Turns). A
+/// session fork returns an ordinary detached `TimelineHandle`, so bind it with the direct-path
+/// initializer. The initializer selects the admission path; `send(_:)` behavior is identical on
+/// both.
 ///
 /// Issuing a new `send(_:)` while one is already in flight cancels/supersedes it: the prior
 /// task is cancelled, the driver's underlying generation is cancelled, and the new send starts
@@ -57,7 +58,8 @@ public final class TimelineController {
 
     /// Creates a direct-path controller for a detached Timeline, optionally seeded with prior
     /// messages. `send(_:)` admits direct Turns through
-    /// `TimelineHandle.startDirectTurn(_:context:)` using the captured context.
+    /// `TimelineHandle.startDirectTurn(_:context:)` using the captured context. A session fork
+    /// returns an ordinary detached `TimelineHandle`, so it binds here too.
     public init(
         _ driver: TimelineHandle,
         context: DirectTurnContext,
@@ -65,14 +67,6 @@ public final class TimelineController {
     ) {
         self.driver = driver
         self.directContext = context
-        self.messages = messages
-    }
-
-    /// Creates a controller bound to a fork's ephemeral Timeline. `send(_:)` admits direct
-    /// Turns through the fork with its bound context.
-    public init(_ fork: TimelineFork, messages: [Message] = []) {
-        self.driver = fork.handle
-        self.directContext = fork.directContext
         self.messages = messages
     }
 

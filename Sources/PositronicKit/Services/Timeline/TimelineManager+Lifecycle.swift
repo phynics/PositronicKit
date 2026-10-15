@@ -485,6 +485,59 @@ extension TimelineManager {
     }
 }
 
+// MARK: - Ephemeral Timelines
+
+extension TimelineManager {
+    /// Starts the one-time recovery sweep for orphaned ephemeral Timelines.
+    ///
+    /// An ephemeral Timeline is owned by the process that created it, so any ephemeral Timeline
+    /// present at runtime start is an orphan from an earlier process. The sweep task is stored so
+    /// ``awaitEphemeralSweep()`` and `fork` can join it.
+    func ensureEphemeralSweepStarted() {
+        guard ephemeralSweepTask == nil else { return }
+        let repository = runtimeRepository
+        let logger = logger
+        ephemeralSweepTask = Task {
+            do {
+                try await repository.purgeEphemeralTimelines()
+            } catch {
+                logger.warning("""
+                ephemeral sweep: purge failed — operation: purgeEphemeralTimelines, \
+                error: \(ErrorKit.userFriendlyMessage(for: error))
+                """)
+            }
+        }
+    }
+
+    /// Waits for the recovery sweep started by ``ensureEphemeralSweepStarted()``.
+    func awaitEphemeralSweep() async {
+        await ephemeralSweepTask?.value
+    }
+
+    /// Deletes one ephemeral Timeline after its last live handle is released.
+    ///
+    /// A Turn still in flight finishes first: the sweep joins the stream-driving task and waits
+    /// for any terminal commit the finalizer is still performing, then deletes the Timeline and
+    /// its messages and drops the in-memory state. Deletion is best-effort; a store failure is
+    /// logged rather than thrown because the release path has no caller to receive it.
+    func releaseEphemeralTimeline(id: UUID) async {
+        if let task = await activeTaskCompletion(for: id) {
+            _ = await task.value
+        }
+        await finalizer?.awaitPendingCommits(forTimeline: id)
+
+        do {
+            try await runtimeRepository.deleteEphemeralTimeline(id: id)
+        } catch {
+            logger.warning("""
+            releaseEphemeralTimeline: delete failed — timeline: \(id.uuidString.prefix(8)), \
+            operation: deleteEphemeralTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
+        }
+        await evictTimelineFromMemory(id: id)
+    }
+}
+
 // MARK: - Component Setup & Eviction
 
 private extension TimelineManager {

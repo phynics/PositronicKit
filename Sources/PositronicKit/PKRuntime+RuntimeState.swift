@@ -14,6 +14,9 @@ internal extension PKRuntime {
         let promptHistoryRegistry: TimelinePromptJournals
         let agentAuthorityCoordinator: AgentAuthorityCoordinator
         let eventHub: TurnEventHub
+        /// Per-runtime-identity registry of live ephemeral Timeline handles. Shared across
+        /// replacement views so a handle opened from any view joins the same fork lifetime.
+        let ephemeralRegistry: EphemeralTimelineRegistry
         /// Scoped to this runtime identity (not process-global) so two `PKRuntime`
         /// instances — documented to start independent histories — never contend over the
         /// same `(timelineID, toolCallId)` reservation keys (D-03).
@@ -27,6 +30,7 @@ internal extension PKRuntime {
             promptHistoryRegistry: TimelinePromptJournals,
             agentAuthorityCoordinator: AgentAuthorityCoordinator,
             eventHub: TurnEventHub,
+            ephemeralRegistry: EphemeralTimelineRegistry,
             submissionGate: ExternalToolOutputSubmissionGate,
             finalizer: TurnFinalizer
         ) {
@@ -34,6 +38,7 @@ internal extension PKRuntime {
             self.promptHistoryRegistry = promptHistoryRegistry
             self.agentAuthorityCoordinator = agentAuthorityCoordinator
             self.eventHub = eventHub
+            self.ephemeralRegistry = ephemeralRegistry
             self.submissionGate = submissionGate
             self.finalizer = finalizer
         }
@@ -83,6 +88,7 @@ internal extension PKRuntime {
                 promptHistoryRegistry: dependencies.sharedRegistry,
                 agentAuthorityCoordinator: dependencies.agentAuthorityCoordinator ?? AgentAuthorityCoordinator(),
                 eventHub: TurnEventHub(),
+                ephemeralRegistry: EphemeralTimelineRegistry(),
                 submissionGate: ExternalToolOutputSubmissionGate(),
                 finalizer: finalizer
             )

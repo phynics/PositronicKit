@@ -64,6 +64,12 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
         try await runScenario("timeline.quarantine.release") {
             try await quarantinesAndReleasesTimeline(makeRepository: makeRepository)
         }
+        try await runScenario("timeline.ephemeral.delete") {
+            try await deletesOnlyEphemeralTimeline(makeRepository: makeRepository)
+        }
+        try await runScenario("timeline.ephemeral.purge") {
+            try await purgesEphemeralTimelines(makeRepository: makeRepository)
+        }
     }
 
     private struct ScenarioError: Error, CustomStringConvertible {
@@ -826,6 +832,81 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
         try #require(try await repository.fetchMessages(for: timelineID).isEmpty, "timeline.completion.wrong-timeline.no-target-message")
         try #require(try await repository.fetchMessages(for: otherTimelineID).isEmpty, "timeline.completion.wrong-timeline.no-source-message")
         try #require(try await repository.fetchActiveTurn(for: timelineID)?.identity.turnID == admission.turn.identity.turnID, "timeline.completion.wrong-timeline.remains-active")
+    }
+
+    private static func deletesOnlyEphemeralTimeline(
+        makeRepository: () async throws -> any TimelineRuntimeRepository
+    ) async throws {
+        let repository = try await makeRepository()
+        let ephemeralID = UUID()
+        let durableID = UUID()
+        try await repository.saveTimeline(TimelineRecord(id: ephemeralID, isEphemeral: true))
+        try await repository.saveTimeline(TimelineRecord(id: durableID))
+        try await repository.saveMessage(TimelineMessage(timelineID: ephemeralID, role: .user, content: "fork history"))
+        try await repository.saveMessage(TimelineMessage(timelineID: durableID, role: .user, content: "durable history"))
+
+        // An unknown Timeline is a no-op, not an error.
+        try await repository.deleteEphemeralTimeline(id: UUID())
+
+        do {
+            try await repository.deleteEphemeralTimeline(id: durableID)
+            Issue.record("timeline.ephemeral.delete.non-ephemeral-must-fail")
+            return
+        } catch let error as TimelineRuntimeRepositoryError {
+            try #require(
+                error == .historyDeletionForbidden(timelineID: durableID),
+                "timeline.ephemeral.delete.non-ephemeral-error"
+            )
+        }
+        try #require(
+            try await repository.fetchTimeline(id: durableID) != nil,
+            "timeline.ephemeral.delete.durable-survives"
+        )
+        try #require(
+            try await repository.fetchMessages(for: durableID).count == 1,
+            "timeline.ephemeral.delete.durable-history-survives"
+        )
+
+        try await repository.deleteEphemeralTimeline(id: ephemeralID)
+        try #require(
+            try await repository.fetchTimeline(id: ephemeralID) == nil,
+            "timeline.ephemeral.delete.record"
+        )
+        try #require(
+            try await repository.fetchMessages(for: ephemeralID).isEmpty,
+            "timeline.ephemeral.delete.cascade"
+        )
+    }
+
+    private static func purgesEphemeralTimelines(
+        makeRepository: () async throws -> any TimelineRuntimeRepository
+    ) async throws {
+        let repository = try await makeRepository()
+        let ephemeralID = UUID()
+        let durableID = UUID()
+        try await repository.saveTimeline(TimelineRecord(id: ephemeralID, isEphemeral: true))
+        try await repository.saveTimeline(TimelineRecord(id: durableID))
+        try await repository.saveMessage(TimelineMessage(timelineID: ephemeralID, role: .user, content: "orphan"))
+        try await repository.saveMessage(TimelineMessage(timelineID: durableID, role: .user, content: "durable"))
+
+        try await repository.purgeEphemeralTimelines()
+
+        try #require(
+            try await repository.fetchTimeline(id: ephemeralID) == nil,
+            "timeline.ephemeral.purge.record"
+        )
+        try #require(
+            try await repository.fetchMessages(for: ephemeralID).isEmpty,
+            "timeline.ephemeral.purge.cascade"
+        )
+        try #require(
+            try await repository.fetchTimeline(id: durableID) != nil,
+            "timeline.ephemeral.purge.durable-survives"
+        )
+        try #require(
+            try await repository.fetchMessages(for: durableID).count == 1,
+            "timeline.ephemeral.purge.durable-history-survives"
+        )
     }
 
     private static func fixedDate(_ seconds: TimeInterval) -> Date {
