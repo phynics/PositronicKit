@@ -11,6 +11,7 @@
     "PKOpenAIProvider",
     "PKOpenRouterProvider",
     "PKPrompt",
+    "PKSQLiteStorage",
     "PKTestSupport",
     "PositronicKit"
   ],

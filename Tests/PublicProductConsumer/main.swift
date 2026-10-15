@@ -8,6 +8,7 @@ import PKOllamaProvider
 import PKOpenAIProvider
 import PKOpenRouterProvider
 import PKPrompt
+import PKSQLiteStorage
 import PKTestSupport
 import PositronicKit
 
@@ -58,6 +59,9 @@ private struct LegacyStreamOnlyProviderClient: LLMClientProtocol {
 // This target is intentionally small: its job is to prove that every public library
 // product remains consumable through ordinary imports, without @testable access.
 _ = String(describing: PKRuntime.self)
+// PKSQLiteStorage is both the module and its facade type; the module selector disambiguates
+// without @testable access.
+_ = String(describing: PKSQLiteStorage::PKSQLiteStorage.self)
 // SE-0491 module selectors (ADR 0012): the docs-snippet gate type-checks the shadowed
 // spelling, and this proves the same selector resolves to the shipped facade from a
 // downstream consumer that imports PositronicKit normally.

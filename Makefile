@@ -315,6 +315,7 @@ verify-agent-harness:
 	@bash Tests/Scripts/validate_docs_test.sh
 	@bash Tests/Scripts/run_linux_coverage_test.sh
 	@bash Tests/Scripts/list_library_products_test.sh
+	@bash Tests/Scripts/update_vendored_sqlite_test.sh
 	@bash Tests/Scripts/test_fast_test.sh
 	@python3 -B Tests/Scripts/provider_capability_matrix_test.py
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py

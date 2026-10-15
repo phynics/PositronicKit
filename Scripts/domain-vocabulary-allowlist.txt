@@ -1,4 +1,6 @@
 # path|line regular expression
+# Third-party SQLite build define in Package.swift; not PositronicKit vocabulary.
+Package.swift|SQLITE_THREADSAFE
 # Only serialized compatibility spellings and model-facing identifiers belong here. Swift API
 # names, labels, filenames, and current prose must use Timeline terminology.
 Sources/PositronicKit/CONTEXT.md|^_Avoid_:

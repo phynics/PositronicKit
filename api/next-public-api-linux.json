@@ -11,6 +11,7 @@
     "PKOpenAIProvider",
     "PKOpenRouterProvider",
     "PKPrompt",
+    "PKSQLiteStorage",
     "PKTestSupport",
     "PositronicKit"
   ],
@@ -24750,6 +24751,293 @@
       "declaration": "var errorCode: Int { get }"
     },
     {
+      "precise": "s:15PKSQLiteStorage0aB5ErrorO",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum",
+      "path": [
+        "PKSQLiteStorageError"
+      ],
+      "declaration": "enum PKSQLiteStorageError"
+    },
+    {
+      "precise": "s:15PKSQLiteStorage0aB5ErrorO10constraintyACSS_tcACmF",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKSQLiteStorageError",
+        "constraint(message:)"
+      ],
+      "declaration": "case constraint(message: String)"
+    },
+    {
+      "precise": "s:15PKSQLiteStorage0aB5ErrorO10openFailedyACSS_SStcACmF",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKSQLiteStorageError",
+        "openFailed(path:message:)"
+      ],
+      "declaration": "case openFailed(path: String, message: String)"
+    },
+    {
+      "precise": "s:15PKSQLiteStorage0aB5ErrorO11descriptionSSvp",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.property",
+      "path": [
+        "PKSQLiteStorageError",
+        "description"
+      ],
+      "declaration": "var description: String { get }"
+    },
+    {
+      "precise": "s:15PKSQLiteStorage0aB5ErrorO11errorDomainSSvp",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.property",
+      "path": [
+        "PKSQLiteStorageError",
+        "errorDomain"
+      ],
+      "declaration": "var errorDomain: String { get }"
+    },
+    {
+      "precise": "s:15PKSQLiteStorage0aB5ErrorO15migrationFailedyACSi_SiSStcACmF",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKSQLiteStorageError",
+        "migrationFailed(from:to:message:)"
+      ],
+      "declaration": "case migrationFailed(from: Int, to: Int, message: String)"
+    },
+    {
+      "precise": "s:15PKSQLiteStorage0aB5ErrorO19userFriendlyMessageSSvp",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.property",
+      "path": [
+        "PKSQLiteStorageError",
+        "userFriendlyMessage"
+      ],
+      "declaration": "var userFriendlyMessage: String { get }"
+    },
+    {
+      "precise": "s:15PKSQLiteStorage0aB5ErrorO6closedyA2CmF",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKSQLiteStorageError",
+        "closed"
+      ],
+      "declaration": "case closed"
+    },
+    {
+      "precise": "s:15PKSQLiteStorage0aB5ErrorO7corruptyACSS_tcACmF",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKSQLiteStorageError",
+        "corrupt(message:)"
+      ],
+      "declaration": "case corrupt(message: String)"
+    },
+    {
+      "precise": "s:15PKSQLiteStorage0aB5ErrorO8databaseyACSi_S2StcACmF",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKSQLiteStorageError",
+        "database(code:message:context:)"
+      ],
+      "declaration": "case database(code: Int, message: String, context: String)"
+    },
+    {
+      "precise": "s:15PKSQLiteStorage0aB5ErrorO9errorCodeSivp",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.property",
+      "path": [
+        "PKSQLiteStorageError",
+        "errorCode"
+      ],
+      "declaration": "var errorCode: Int { get }"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.struct",
+      "path": [
+        "PKSQLiteStorage"
+      ],
+      "declaration": "struct PKSQLiteStorage"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV11JournalModeO",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum",
+      "path": [
+        "PKSQLiteStorage",
+        "JournalMode"
+      ],
+      "declaration": "enum JournalMode"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV11JournalModeO3walyA2DmF",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKSQLiteStorage",
+        "JournalMode",
+        "wal"
+      ],
+      "declaration": "case wal"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV11JournalModeO6deleteyA2DmF",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKSQLiteStorage",
+        "JournalMode",
+        "delete"
+      ],
+      "declaration": "case delete"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV11JournalModeO6memoryyA2DmF",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKSQLiteStorage",
+        "JournalMode",
+        "memory"
+      ],
+      "declaration": "case memory"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV11JournalModeO8rawValueADSgSS_tcfc",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.init",
+      "path": [
+        "PKSQLiteStorage",
+        "JournalMode",
+        "init(rawValue:)"
+      ],
+      "declaration": "init?(rawValue: String)"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV11JournalModeO8truncateyA2DmF",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.enum.case",
+      "path": [
+        "PKSQLiteStorage",
+        "JournalMode",
+        "truncate"
+      ],
+      "declaration": "case truncate"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV24persistenceConfiguration13PositronicKit9PKRuntimeC011PersistenceD0Vvp",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.property",
+      "path": [
+        "PKSQLiteStorage",
+        "persistenceConfiguration"
+      ],
+      "declaration": "let persistenceConfiguration: PKRuntime.PersistenceConfiguration"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV4open2at7optionsAB20FoundationEssentials3URLV_AB7OptionsVtYaKFZ",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.type.method",
+      "path": [
+        "PKSQLiteStorage",
+        "open(at:options:)"
+      ],
+      "declaration": "static func open(at url: URL, options: Options = Options()) async throws -> PKSQLiteStorage"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV5closeyyYaKF",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.method",
+      "path": [
+        "PKSQLiteStorage",
+        "close()"
+      ],
+      "declaration": "func close() async throws"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV7OptionsV",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.struct",
+      "path": [
+        "PKSQLiteStorage",
+        "Options"
+      ],
+      "declaration": "struct Options"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV7OptionsV11busyTimeout11journalMode11foreignKeysADSd_AB07JournalG0OSbtcfc",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.init",
+      "path": [
+        "PKSQLiteStorage",
+        "Options",
+        "init(busyTimeout:journalMode:foreignKeys:)"
+      ],
+      "declaration": "init(busyTimeout: TimeInterval = 5, journalMode: JournalMode = .wal, foreignKeys: Bool = true)"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV7OptionsV11busyTimeoutSdvp",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.property",
+      "path": [
+        "PKSQLiteStorage",
+        "Options",
+        "busyTimeout"
+      ],
+      "declaration": "var busyTimeout: TimeInterval"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV7OptionsV11foreignKeysSbvp",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.property",
+      "path": [
+        "PKSQLiteStorage",
+        "Options",
+        "foreignKeys"
+      ],
+      "declaration": "var foreignKeys: Bool"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV7OptionsV11journalModeAB07JournalE0Ovp",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.property",
+      "path": [
+        "PKSQLiteStorage",
+        "Options",
+        "journalMode"
+      ],
+      "declaration": "var journalMode: JournalMode"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV8inMemory7optionsA2B7OptionsV_tYaKFZ",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.type.method",
+      "path": [
+        "PKSQLiteStorage",
+        "inMemory(options:)"
+      ],
+      "declaration": "static func inMemory(options: Options = Options()) async throws -> PKSQLiteStorage"
+    },
+    {
+      "precise": "s:15PKSQLiteStorageAAV9isDurableSbvp",
+      "module": "PKSQLiteStorage",
+      "kind": "swift.property",
+      "path": [
+        "PKSQLiteStorage",
+        "isDurable"
+      ],
+      "declaration": "let isDurable: Bool"
+    },
+    {
       "precise": "s:16PKOllamaProvider0A0O",
       "module": "PKOllamaProvider",
       "kind": "swift.enum",
@@ -33487,6 +33775,153 @@
       "module": "PKPrompt",
       "kind": "conformsTo",
       "source": "s:8PKPrompt9AnyPromptV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO",
+      "target": "s:11PKContracts7PKErrorP",
+      "targetFallback": "PKContracts.PKError"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO",
+      "target": "s:20FoundationEssentials14LocalizedErrorP",
+      "targetFallback": "FoundationEssentials.LocalizedError"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO",
+      "target": "s:8ErrorKit9ThrowableP",
+      "targetFallback": "ErrorKit.Throwable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO",
+      "target": "s:s23CustomStringConvertibleP",
+      "targetFallback": "Swift.CustomStringConvertible"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO",
+      "target": "s:s5ErrorP",
+      "targetFallback": "Swift.Error"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO",
+      "target": "s:s8CopyableP",
+      "targetFallback": "Swift.Copyable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO",
+      "target": "s:s9EscapableP",
+      "targetFallback": "Swift.Escapable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorageAAV",
+      "target": "s:13PositronicKit15DurabilityAwareP",
+      "targetFallback": "PositronicKit.DurabilityAware"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorageAAV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorageAAV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO",
+      "target": "s:SY",
+      "targetFallback": "Swift.RawRepresentable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO",
+      "target": "s:s12CaseIterableP",
+      "targetFallback": "Swift.CaseIterable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorageAAV7OptionsV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "conformsTo",
+      "source": "s:15PKSQLiteStorageAAV7OptionsV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -46734,6 +47169,186 @@
       "source": "s:Sl11PKUtilitiesE12duplicateIDs9idKeyPathSayqd__Gs0eF0Cy7ElementQzqd__G_tSLRd__SHRd__lF",
       "target": "s:e:s:Sl11PKUtilitiesE12duplicateIDs9idKeyPathSayqd__Gs0eF0Cy7ElementQzqd__G_tSLRd__SHRd__lF",
       "targetFallback": "Swift.Collection"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO10constraintyACSS_tcACmF",
+      "target": "s:15PKSQLiteStorage0aB5ErrorO"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO10openFailedyACSS_SStcACmF",
+      "target": "s:15PKSQLiteStorage0aB5ErrorO"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO11descriptionSSvp",
+      "target": "s:15PKSQLiteStorage0aB5ErrorO",
+      "sourceOrigin": {
+        "identifier": "s:s23CustomStringConvertibleP11descriptionSSvp",
+        "displayName": "CustomStringConvertible.description"
+      }
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO11errorDomainSSvp",
+      "target": "s:15PKSQLiteStorage0aB5ErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP11errorDomainSSvp",
+        "displayName": "PKError.errorDomain"
+      }
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO15migrationFailedyACSi_SiSStcACmF",
+      "target": "s:15PKSQLiteStorage0aB5ErrorO"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO19userFriendlyMessageSSvp",
+      "target": "s:15PKSQLiteStorage0aB5ErrorO",
+      "sourceOrigin": {
+        "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp",
+        "displayName": "Throwable.userFriendlyMessage"
+      }
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO6closedyA2CmF",
+      "target": "s:15PKSQLiteStorage0aB5ErrorO"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO7corruptyACSS_tcACmF",
+      "target": "s:15PKSQLiteStorage0aB5ErrorO"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO8databaseyACSi_S2StcACmF",
+      "target": "s:15PKSQLiteStorage0aB5ErrorO"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorage0aB5ErrorO9errorCodeSivp",
+      "target": "s:15PKSQLiteStorage0aB5ErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp",
+        "displayName": "PKError.errorCode"
+      }
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO",
+      "target": "s:15PKSQLiteStorageAAV"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO3walyA2DmF",
+      "target": "s:15PKSQLiteStorageAAV11JournalModeO"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO6deleteyA2DmF",
+      "target": "s:15PKSQLiteStorageAAV11JournalModeO"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO6memoryyA2DmF",
+      "target": "s:15PKSQLiteStorageAAV11JournalModeO"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO8rawValueADSgSS_tcfc",
+      "target": "s:15PKSQLiteStorageAAV11JournalModeO",
+      "sourceOrigin": {
+        "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc",
+        "displayName": "RawRepresentable.init(rawValue:)"
+      }
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV11JournalModeO8truncateyA2DmF",
+      "target": "s:15PKSQLiteStorageAAV11JournalModeO"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV24persistenceConfiguration13PositronicKit9PKRuntimeC011PersistenceD0Vvp",
+      "target": "s:15PKSQLiteStorageAAV"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV4open2at7optionsAB20FoundationEssentials3URLV_AB7OptionsVtYaKFZ",
+      "target": "s:15PKSQLiteStorageAAV"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV5closeyyYaKF",
+      "target": "s:15PKSQLiteStorageAAV"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV7OptionsV",
+      "target": "s:15PKSQLiteStorageAAV"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV7OptionsV11busyTimeout11journalMode11foreignKeysADSd_AB07JournalG0OSbtcfc",
+      "target": "s:15PKSQLiteStorageAAV7OptionsV"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV7OptionsV11busyTimeoutSdvp",
+      "target": "s:15PKSQLiteStorageAAV7OptionsV"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV7OptionsV11foreignKeysSbvp",
+      "target": "s:15PKSQLiteStorageAAV7OptionsV"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV7OptionsV11journalModeAB07JournalE0Ovp",
+      "target": "s:15PKSQLiteStorageAAV7OptionsV"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV8inMemory7optionsA2B7OptionsV_tYaKFZ",
+      "target": "s:15PKSQLiteStorageAAV"
+    },
+    {
+      "module": "PKSQLiteStorage",
+      "kind": "memberOf",
+      "source": "s:15PKSQLiteStorageAAV9isDurableSbvp",
+      "target": "s:15PKSQLiteStorageAAV",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit15DurabilityAwareP9isDurableSbvp",
+        "displayName": "DurabilityAware.isDurable"
+      }
     },
     {
       "module": "PKTestSupport",

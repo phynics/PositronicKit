@@ -29,6 +29,7 @@ let package = Package(
         .library(name: "PKOllamaProvider", targets: ["PKOllamaProvider"]),
         .library(name: "PKAnthropicProvider", targets: ["PKAnthropicProvider"]),
         .library(name: "PKFoundationModelsProvider", targets: ["PKFoundationModelsProvider"]),
+        .library(name: "PKSQLiteStorage", targets: ["PKSQLiteStorage"]),
         .library(name: "PKTestSupport", targets: ["PKTestSupport"]),
         .executable(name: "PositronicKitExamples", targets: ["PositronicKitExamples"]),
         .executable(name: "PKTestSupportConsumer", targets: ["PKTestSupportConsumer"]),
@@ -59,6 +60,26 @@ let package = Package(
             dependencies: ["PKContracts", "PKUtilities"],
             path: "Sources/PKPrompt",
             exclude: ["CONTEXT.md"],
+            swiftSettings: approachableConcurrency
+        ),
+        .target(
+            name: "CPKSQLite",
+            path: "Sources/CPKSQLite",
+            publicHeadersPath: "include",
+            cSettings: [
+                .define("SQLITE_THREADSAFE=2"),
+                .define("SQLITE_DEFAULT_WAL_SYNCHRONOUS=1"),
+                .define("SQLITE_DQS=0"),
+                .define("SQLITE_OMIT_DEPRECATED"),
+                .define("SQLITE_OMIT_LOAD_EXTENSION"),
+                .define("SQLITE_DEFAULT_FOREIGN_KEYS=1"),
+                .define("SQLITE_ENABLE_JSON1"),
+            ]
+        ),
+        .target(
+            name: "PKSQLiteStorage",
+            dependencies: ["PositronicKit", "PKContracts", "PKUtilities", "CPKSQLite"],
+            path: "Sources/PKSQLiteStorage",
             swiftSettings: approachableConcurrency
         ),
         .target(
@@ -178,6 +199,7 @@ let package = Package(
                 "PKOllamaProvider",
                 "PKAnthropicProvider",
                 "PKFoundationModelsProvider",
+                "PKSQLiteStorage",
                 "PKTestSupport",
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
@@ -194,6 +216,7 @@ let package = Package(
                 "PKOpenAIProvider",
                 "PKOllamaProvider",
                 "PKAnthropicProvider",
+                "PKSQLiteStorage",
                 "PKTestSupport",
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
@@ -256,6 +279,25 @@ let package = Package(
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
             path: "Tests/PKProviderIntegrationTests",
+            swiftSettings: approachableConcurrency
+        ),
+        .executableTarget(
+            name: "PKSQLiteCrashFixture",
+            dependencies: ["PKSQLiteStorage", "PositronicKit", "PKContracts"],
+            path: "Tests/PKSQLiteCrashFixture",
+            swiftSettings: approachableConcurrency
+        ),
+        .testTarget(
+            name: "PKSQLiteStorageTests",
+            dependencies: [
+                "PKSQLiteStorage",
+                "CPKSQLite",
+                "PositronicKit",
+                "PKContracts",
+                "PKUtilities",
+                "PKTestSupport",
+            ],
+            path: "Tests/PKSQLiteStorageTests",
             swiftSettings: approachableConcurrency
         ),
         .testTarget(

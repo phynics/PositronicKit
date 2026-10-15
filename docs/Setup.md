@@ -127,6 +127,39 @@ outcome only after the runtime repository accepts it.
 
 Tests and host code can inject doubles directly through the facade initializers; lower-level wiring should remain inside the components you own.
 
+### Durable storage
+
+Import `PKSQLiteStorage` for a durable persistence configuration backed by one database file. The
+package vendors a pinned SQLite amalgamation, so it needs no system `libsqlite3` and no other
+Swift package. Every store — the Timeline runtime repository, the Workspace store, the Workspace
+binding authority, the Agent store, and the request-origin store — writes through one actor-owned
+connection, so each repository operation is a single `BEGIN IMMEDIATE` transaction.
+
+```swift
+import Foundation
+import PKSQLiteStorage
+
+let databaseURL = URL(fileURLWithPath: "positronic.sqlite")
+let storage = try await PKSQLiteStorage.open(at: databaseURL)
+let kit = PKRuntime(configuration: .init(
+    provider: provider,
+    persistence: storage.persistenceConfiguration
+))
+
+// Every store survives process restart.
+let report = storage.persistenceConfiguration.validateDurability()
+precondition(!report.isMixed && report.ephemeralStores.isEmpty)
+```
+
+Keep the `PKSQLiteStorage` value alive for as long as the runtime needs the stores, then call
+`storage.close()` to release the database file. `PKSQLiteStorage.inMemory()` returns an isolated
+database whose stores report `isDurable == false`; use it in tests.
+
+`PKSQLiteStorage.Options` tunes the connection: `busyTimeout`, `journalMode` (`.wal` by default),
+and `foreignKeys`. A file-backed database migrates forward with `PRAGMA user_version`; the first
+schema is version 1. The vendored SQLite is symbol-isolated from the system library, so it is safe
+to load in a process that also uses Apple frameworks backed by `libsqlite3`.
+
 ### Reusable persistence conformance suites
 
 Downstream adapters can use the public runners in `PKTestSupport` from their own Swift Testing

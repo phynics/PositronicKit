@@ -59,6 +59,7 @@ done < <(
     grep -RIniE --binary-files=without-match \
         --exclude=check-domain-vocabulary.sh \
         --exclude=domain-vocabulary-allowlist.txt \
+        --exclude-dir=CPKSQLite \
         "$forbidden" \
         Sources Tests docs Scripts .github README.md AGENTS.md CONTEXT-MAP.md CHANGELOG.md Package.swift llms.txt \
         2>/dev/null || true

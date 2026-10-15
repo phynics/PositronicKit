@@ -1,0 +1,13 @@
+# Third-party notices
+
+## SQLite
+
+PositronicKit includes a vendored copy of the SQLite amalgamation under
+`Sources/CPKSQLite`, built into the optional `PKSQLiteStorage` product.
+
+SQLite is in the **public domain**. The SQLite authors dedicate the source code to the public
+domain; see <https://www.sqlite.org/copyright.html>. The vendored version, its pinned SHA3-256,
+and the exact download URL are recorded in `Sources/CPKSQLite/VENDORED.md`.
+
+The vendored copy is compiled with every public `sqlite3_*` symbol renamed to `pk_sqlite3_*` for
+symbol isolation from the system `libsqlite3`.
