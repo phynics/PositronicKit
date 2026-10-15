@@ -157,6 +157,12 @@ def extract_graphs(modules: list[str], bin_path: Path, graph_dir: Path, include_
         ]
         if generated_module_maps is not None:
             command += ["-I", str(generated_module_maps), "-sdk", sdk]
+        # In-package C targets (for example the vendored SQLite) are not SwiftPM
+        # packages, so their clang module maps are not on the extractor's search
+        # path. Add every source include directory so a Swift module that imports
+        # such a target can load.
+        for include_dir in sorted((ROOT / "Sources").glob("*/include")):
+            command += ["-Xcc", f"-I{include_dir}"]
         if include_spi:
             command.append("-include-spi-symbols")
         run(*command)

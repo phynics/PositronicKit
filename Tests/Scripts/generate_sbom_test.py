@@ -48,9 +48,13 @@ def make_document(
         for product in products
     ]
     components.append(dict(OPENAI_COMPONENT))
+    components.extend(dict(component) for component in MODULE.VENDORED_COMPONENTS)
     dependencies = []
     for product in products:
         depends_on = ["openai:OpenAI"] if product in openai_from else []
+        for vendored_product, vendored_ref in MODULE.VENDORED_EDGES:
+            if product == vendored_product:
+                depends_on = [*depends_on, vendored_ref]
         dependencies.append({"ref": f"workspace:{product}", "dependsOn": depends_on})
     return {
         "bomFormat": bom_format,
@@ -87,6 +91,25 @@ def test_non_cyclonedx_is_rejected() -> None:
     assert any("CycloneDX" in error for error in errors), errors
 
 
+def test_missing_vendored_component_is_rejected() -> None:
+    document = make_document()
+    document["components"] = [
+        component for component in document["components"] if component["name"] != "SQLite"
+    ]
+    errors = MODULE.validate_sbom(document, ("PKContracts", "PKOpenAIProvider"))
+    assert any("SQLite" in error for error in errors), errors
+
+
+def test_injected_vendored_edge_is_validated() -> None:
+    document = MODULE.inject_vendored_components({
+        "bomFormat": "CycloneDX",
+        "components": [{"bom-ref": "workspace:PKSQLiteStorage", "name": "PKSQLiteStorage", "type": "library"}],
+        "dependencies": [{"ref": "workspace:PKSQLiteStorage", "dependsOn": []}],
+    })
+    errors = MODULE.validate_sbom(document, ("PKSQLiteStorage",))
+    assert errors == [], errors
+
+
 def test_build_command_uses_swiftbuild() -> None:
     command = MODULE.swift_command("cyclonedx", Path("/tmp/sbom"), build=True)
     assert command[:2] == ["swift", "build"]
@@ -118,6 +141,8 @@ if __name__ == "__main__":
         test_no_macpaw_dependency_edge_is_required,
         test_forbidden_dependency_edge_is_rejected,
         test_non_cyclonedx_is_rejected,
+        test_missing_vendored_component_is_rejected,
+        test_injected_vendored_edge_is_validated,
         test_build_command_uses_swiftbuild,
         test_check_entry_point_accepts_a_valid_document,
     ]

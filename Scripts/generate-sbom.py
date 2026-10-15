@@ -41,6 +41,61 @@ ATTRIBUTION_CHECKS = (
     ("PKContracts", "MacPaw/openai", "excludes"),
 )
 
+# Components that ship inside a product as vendored source rather than as a
+# resolved SwiftPM package. SwiftPM cannot see them, so the release SBOM names
+# them explicitly with their provenance and public-domain license.
+VENDORED_COMPONENTS = (
+    {
+        "bom-ref": "vendored:sqlite@3.54.0",
+        "name": "SQLite",
+        "type": "library",
+        "version": "3.54.0",
+        "licenses": [{"license": {"name": "Public Domain"}}],
+        "externalReferences": [
+            {
+                "type": "website",
+                "url": "https://www.sqlite.org/2026/sqlite-amalgamation-3540000.zip",
+            }
+        ],
+    },
+)
+
+# product -> vendored component bom-ref the product's binary links in.
+VENDORED_EDGES = (("PKSQLiteStorage", "vendored:sqlite@3.54.0"),)
+
+
+def inject_vendored_components(document: dict) -> dict:
+    """Add the vendored components and their product edges to a generated SBOM."""
+    components = document.setdefault("components", [])
+    present = {
+        component.get("name")
+        for component in components
+        if isinstance(component, dict)
+    }
+    for component in VENDORED_COMPONENTS:
+        if component["name"] not in present:
+            components.append(dict(component))
+
+    dependencies = document.setdefault("dependencies", [])
+    for product, vendored_ref in VENDORED_EDGES:
+        product_component = next(
+            (
+                component
+                for component in components
+                if isinstance(component, dict) and component.get("name") == product
+            ),
+            None,
+        )
+        if product_component is None:
+            continue
+        for entry in dependencies:
+            if isinstance(entry, dict) and entry.get("ref") == product_component.get("bom-ref"):
+                depends_on = entry.setdefault("dependsOn", [])
+                if vendored_ref not in depends_on:
+                    depends_on.append(vendored_ref)
+                break
+    return document
+
 
 def required_products_from_catalog(catalog_path: Path = ROOT / "docs" / "catalog.json") -> tuple[str, ...]:
     """Return the public library products the SBOM must list as components."""
@@ -121,6 +176,17 @@ def validate_sbom(
         elif relation == "excludes" and found:
             errors.append(f"{product} must not depend on {marker}")
 
+    for component in VENDORED_COMPONENTS:
+        if component["name"] not in by_name:
+            errors.append(f"SBOM is missing vendored component {component['name']!r}")
+    for product, vendored_ref in VENDORED_EDGES:
+        component = by_name.get(product)
+        if component is None:
+            continue
+        references = dependencies.get(component.get("bom-ref", ""), [])
+        if vendored_ref not in references:
+            errors.append(f"{product} must depend on vendored component {vendored_ref!r}")
+
     return errors
 
 
@@ -166,6 +232,7 @@ def generate(format: str, output_dir: Path, version: str | None, build: bool) ->
             )
 
         document = json.loads(generated[0].read_text(encoding="utf-8"))
+        document = inject_vendored_components(document)
         errors = validate_sbom(document, required_products_from_catalog())
         if errors:
             raise SystemExit("generate-sbom: " + "; ".join(errors))

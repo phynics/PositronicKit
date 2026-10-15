@@ -1,0 +1,4 @@
+module CPKSQLite {
+    header "pk_sqlite.h"
+    export *
+}

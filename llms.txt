@@ -38,6 +38,7 @@
 - `PKOllamaProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)
 - `PKAnthropicProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)
 - `PKFoundationModelsProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)
+- `PKSQLiteStorage` (library): [docs/Setup.md](docs/Setup.md)
 - `PKTestSupport` (library): [README.md](README.md)
 - `PositronicKitExamples` (executable): [Sources/PositronicKitExamples](Sources/PositronicKitExamples)
 - `PKTestSupportConsumer` (executable): [README.md](README.md)

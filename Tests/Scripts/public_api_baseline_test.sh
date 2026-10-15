@@ -27,6 +27,7 @@ cat > "$fixture/api/$baseline_release-public-api-linux.json" <<EOF
     "PKOpenAIProvider",
     "PKOpenRouterProvider",
     "PKPrompt",
+    "PKSQLiteStorage",
     "PKTestSupport",
     "PositronicKit"
   ],
@@ -84,6 +85,7 @@ if [ "${1:-}" = "package" ] && [ "${2:-}" = "dump-symbol-graph" ]; then
   for module in \
     PKAnthropicProvider PKContracts PKFoundationModelsProvider PKObservable \
     PKOllamaProvider PKOpenAIProvider PKOpenRouterProvider PKPrompt \
+    PKSQLiteStorage \
     PKTestSupport PositronicKit; do
     if [ "${OMIT_MODULE:-}" = "$module" ]; then
       continue

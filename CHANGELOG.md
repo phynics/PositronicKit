@@ -43,6 +43,17 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
 
 ### Added
 
+- **Durable storage adapter (`PKSQLiteStorage`, #265):** a new optional product persists every
+  runtime store — `TimelineRuntimeRepository`, `WorkspaceStore`, `WorkspaceBindingRepository`,
+  `AgentStoreProtocol`, and `RequestOriginStoreProtocol` — through one actor-owned SQLite
+  connection. `PKSQLiteStorage.open(at:)` opens or creates a file, migrates it forward with
+  `PRAGMA user_version`, and returns a `persistenceConfiguration` whose `validateDurability()`
+  reports no ephemeral stores; `PKSQLiteStorage.inMemory()` returns an isolated database for
+  tests. The product vendors a pinned SQLite 3.54.0 amalgamation compiled with every public
+  `sqlite3_*` symbol renamed to `pk_sqlite3_*`, so it needs no system library and cannot collide
+  with Apple frameworks backed by `libsqlite3`. Turn admission, terminal commits, ordered
+  membership, and the tool-result barrier reuse the runtime-owned Turn Ledger inside one
+  `BEGIN IMMEDIATE` transaction.
 - **Prompt caching contract (#276):** `PKContracts` gains `PromptCacheDirective`,
   `PromptCacheBreakpoint`, and `PromptCachingCapability`. `LLMTokenUsagePromptDetails` gains
   `cacheWriteTokens` and `cacheWriteBreakdown`, and `LLMClientProtocol` gains cache-aware
