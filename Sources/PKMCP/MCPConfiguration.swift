@@ -17,8 +17,8 @@ public enum MCPPermissionPolicy: String, Codable, Sendable, Hashable, CaseIterab
 
 /// A host-resolved secret identifier.
 ///
-/// The referenced value is never persisted in a ``WorkspaceReference``; a host resolves it at
-/// connect time through an ``MCPSecretResolver``.
+/// The referenced value is never persisted in a `WorkspaceReference`; a host resolves it at
+/// connect time through an `MCPSecretResolver`.
 public struct MCPSecretReference: Codable, Sendable, Hashable, CustomStringConvertible {
     /// The host-chosen key for the secret.
     public let key: String
@@ -37,11 +37,11 @@ public struct MCPSecretReference: Codable, Sendable, Hashable, CustomStringConve
 /// Resolves a host-held secret for an MCP server connection.
 ///
 /// The runtime calls this at connect time. Implementations must not persist the resolved value
-/// into a ``WorkspaceReference``.
+/// into a `WorkspaceReference`.
 public protocol MCPSecretResolver: Sendable {
     /// Resolves the value for `reference`.
     ///
-    /// Throw ``MCPWorkspaceError/secretResolutionFailed(key:)`` when the key is unknown.
+    /// Throw `MCPWorkspaceError/secretResolutionFailed(key:)` when the key is unknown.
     func resolveSecret(_ reference: MCPSecretReference) async throws -> String
 }
 
@@ -89,14 +89,14 @@ public struct MCPDictionarySecretResolver: MCPSecretResolver {
 /// The persisted, secret-free description of one MCP server connection.
 ///
 /// One configuration maps to one Workspace. The configuration is stored on the workspace
-/// reference and rebuilt by ``MCPWorkspaceFactory`` when the Workspace is resolved.
+/// reference and rebuilt by `MCPWorkspaceFactory` when the Workspace is resolved.
 public struct MCPServerConfiguration: Codable, Sendable, Hashable {
     /// How the client reaches the MCP server.
     public enum Transport: Codable, Sendable, Hashable {
         /// Spawn a local server process and speak MCP over its standard streams.
         ///
         /// Available on macOS and Linux. On iOS the runtime reports
-        /// ``MCPWorkspaceError/unsupportedTransport(_:)``.
+        /// `MCPWorkspaceError/unsupportedTransport(_:)`.
         case stdio(executable: String, arguments: [String], environment: [String: MCPSecretValue])
         /// Connect to a Streamable HTTP MCP endpoint.
         case streamableHTTP(url: URL, headers: [String: MCPSecretValue])
@@ -142,7 +142,7 @@ extension MCPServerConfiguration {
 
     /// Decodes a configuration from a workspace reference's metadata.
     ///
-    /// Throws ``MCPWorkspaceError/invalidConfiguration(_:)`` when the metadata is missing or
+    /// Throws `MCPWorkspaceError/invalidConfiguration(_:)` when the metadata is missing or
     /// malformed.
     static func fromPersistedMetadata(_ metadata: [String: AnyCodable]?) throws -> MCPServerConfiguration {
         guard let encoded = metadata?[metadataKey] else {
