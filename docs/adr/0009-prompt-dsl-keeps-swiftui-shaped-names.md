@@ -36,3 +36,10 @@ rule does not reach it. `TimelineRecord` and every other durable-history name ar
 
 No compatibility alias, second spelling, or `PromptForEach` shim is introduced, consistent with
 #156 and ADR 0008. Documentation describes exactly one way to write each construct.
+
+## Amendment (issue #287)
+
+`PKPrompt` is now an optional authoring product rather than the runtime's prompt model. The
+SwiftUI-shaped DSL names are unchanged, and the product's public surface is preserved by
+re-exporting the package-internal `PKUtilities` prompt core. The runtime builds provider requests
+from an internal tiered `PromptLayout` and does not import `PKPrompt`.

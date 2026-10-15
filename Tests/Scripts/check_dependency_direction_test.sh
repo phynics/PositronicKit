@@ -21,11 +21,20 @@ make_fixture() {
     local fixture="$1"
     local variant="$2"
     mkdir -p "$fixture/Scripts" "$fixture/Sources/PKContracts" \
+        "$fixture/Sources/PKPrompt" "$fixture/Sources/PositronicKit" \
         "$fixture/Sources/PKOpenAIProvider" "$fixture/Sources/PKOpenRouterProvider" \
         "$fixture/Sources/PKOllamaProvider" "$fixture/Sources/PKAnthropicProvider" \
         "$fixture/Sources/PKFoundationModelsProvider"
     cp "$repo_root/Scripts/check-dependency-direction.sh" "$fixture/Scripts/"
     : > "$fixture/Sources/PKContracts/Empty.swift"
+    : > "$fixture/Sources/PKPrompt/Empty.swift"
+    : > "$fixture/Sources/PositronicKit/Empty.swift"
+    if [ "$variant" = "runtime-imports-pkprompt" ]; then
+        printf 'import PKPrompt\n' > "$fixture/Sources/PositronicKit/Bad.swift"
+    fi
+    if [ "$variant" = "pkprompt-imports-runtime" ]; then
+        printf 'import PositronicKit\n' > "$fixture/Sources/PKPrompt/Bad.swift"
+    fi
     for module in PKOpenAIProvider PKOpenRouterProvider PKOllamaProvider \
         PKAnthropicProvider PKFoundationModelsProvider; do
         : > "$fixture/Sources/$module/Empty.swift"
@@ -106,6 +115,8 @@ run_case() {
 run_case "clean-graph-passes" "clean" 0 "Dependency direction checks passed."
 run_case "provider-dep-in-runtime-tests-fails" "violation" 1 "PositronicKitTests target depends on PKOpenAIProvider"
 run_case "path-before-dependencies-still-fails" "path-first-violation" 1 "PositronicKitTests target depends on PKOpenAIProvider"
+run_case "runtime-imports-pkprompt-fails" "runtime-imports-pkprompt" 1 "PositronicKit imports PKPrompt"
+run_case "pkprompt-imports-runtime-fails" "pkprompt-imports-runtime" 1 "PKPrompt imports PositronicKit"
 
 printf 'check_dependency_direction_test: %s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -78,3 +78,13 @@ contract. No compatibility alias is warranted by the current Gnostic or Yakamoz 
 above: the separately owned contract and its consumer now exist. The automatic global memory
 pipeline stays rejected, and the runtime still performs no retrieval. Hosts rank their own data
 and contribute results through `AgentContextSource` or `TurnContextSource`.
+
+## Amendment (issue #287)
+
+The runtime is decoupled from the optional `PKPrompt` product. The shared prompt section model,
+token budgeting, compression, and journal-support values now live in the package-internal
+`PKUtilities` target, which `PKPrompt` re-exports. Decision 4's primitive leaf machinery stays in
+`PKPrompt`, but the runtime no longer uses it: runtime section types are internal producers that
+build `PromptSection`s directly, and the runtime renders provider requests from its own tiered
+`PromptLayout`. A dependency gate fails if `PositronicKit` imports `PKPrompt` or `PKPrompt` imports
+`PositronicKit`.

@@ -26,6 +26,13 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **The runtime no longer depends on `PKPrompt`.** `PositronicKit` builds provider requests from
+  an internal tiered `PromptLayout`, the 13 runtime section types are internal producers, and the
+  `RenderedPrompt.buildMessages()` / `buildTimelineMessages()` projections move into `PKPrompt` as
+  the optional authoring product's own rendering. The shared prompt section model, token
+  budgeting, and compression live in the package-internal `PKUtilities` target, which `PKPrompt`
+  re-exports so its public surface stays source-compatible. A dependency gate fails if either
+  module imports the other (#287).
 - **The Turn transition rules have one runtime owner.** A new runtime module, the Turn Ledger,
 decides admission, retries, membership, the tool-result barrier, terminal commits, interruption,
 and quarantine release as pure functions over a loaded ledger snapshot and returns the rows to

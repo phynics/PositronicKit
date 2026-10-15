@@ -1,6 +1,5 @@
 import Foundation
 import PKContracts
-import PKUtilities
 
 /// Errors raised when a ``TokenBudget`` is constructed with invalid capacities.
 public enum TokenBudgetError: PKError, Sendable, Equatable {
@@ -96,25 +95,6 @@ public struct TokenBudget: Sendable {
         }
         self.maxTokens = contextWindow
         self.reserveForResponse = outputReserve
-    }
-
-    /// Applies this budget to unresolved prompt values and returns the verified structured result.
-    public func result(
-        forPrompts prompts: [any Prompt],
-        compressor: SectionCompressor? = nil,
-        structuredDiff: StructuredDiffHint? = nil,
-        nodeMetadata: [String: StructuredNodeMetadata] = [:],
-        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
-        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async throws -> TokenBudgetResult {
-        try await result(
-            forResolvedSections: prompts.flatMap { $0.resolveSections() },
-            compressor: compressor,
-            structuredDiff: structuredDiff,
-            nodeMetadata: nodeMetadata,
-            planner: planner,
-            executor: executor
-        )
     }
 
     /// Applies this budget to resolved sections and returns the verified structured result.

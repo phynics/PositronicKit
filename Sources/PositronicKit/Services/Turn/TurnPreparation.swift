@@ -1,7 +1,6 @@
 import ErrorKit
 import Foundation
 import Logging
-import PKPrompt
 import PKContracts
 import PKUtilities
 
@@ -429,7 +428,7 @@ struct TurnPreparation: Sendable {
             )
 
             // 10. Reuse the final rendered artifact for messages + prompt history
-            var initialMessages = renderedPrompt.buildMessages()
+            var initialMessages = PromptLayoutBuilder.build(from: renderedPrompt).renderMessages()
             let resolvedSections = renderedPrompt.sections
 
             // 11. Record prompt snapshot for cache tracking BEFORE committing inputs. This is the

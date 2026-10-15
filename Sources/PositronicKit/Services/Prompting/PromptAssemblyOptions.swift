@@ -1,6 +1,5 @@
 import Foundation
 import Logging
-import PKPrompt
 import PKContracts
 import PKUtilities
 
@@ -13,7 +12,7 @@ import PKUtilities
 /// resolved section metadata and `structuredExecutor`. If the structured result is still over
 /// budget, it falls back to the simpler priority-based `TokenBudget` path.
 struct PromptAssemblyOptions: Sendable {
-    var customSections: (@Sendable () async -> [any Prompt])? = nil
+    var customSections: (@Sendable () async -> [PromptSection])? = nil
     var tokenBudget: TokenBudget?
     var logger: Logger?
     /// Optional summarization service used by `.summarize` compression actions once a prompt is
@@ -31,7 +30,7 @@ struct PromptAssemblyOptions: Sendable {
     var structuredExecutor: StructuredCompressionExecutor
 
     init(
-        customSections: (@Sendable () async -> [any Prompt])? = nil,
+        customSections: (@Sendable () async -> [PromptSection])? = nil,
         tokenBudget: TokenBudget? = nil,
         logger: Logger? = nil,
         compressor: SectionCompressor? = nil,

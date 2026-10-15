@@ -1,5 +1,4 @@
 import Foundation
-import PKUtilities
 
 /// Text-only content fingerprint shared by `SectionSignature` (PKPrompt journal differ) and
 /// `PromptSectionEntry.contentHash` (runtime timeline history).

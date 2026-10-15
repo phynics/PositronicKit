@@ -1,28 +1,28 @@
 import Foundation
-import PKPrompt
 import PKContracts
 import PKUtilities
 import Testing
 @testable import PositronicKit
 
-private struct CompressionMockSection: Prompt, Sendable {
-    let id: String
-    let priority: Int
-    let estimatedTokens: Int
-    let compression: CompressionStrategy
-    let cachePolicy: CachePolicy
-    let text: String
-
-    var body: some Prompt {
-        TextPrompt(
-            id: id,
-            priority: priority,
-            compression: compression,
-            cachePolicy: cachePolicy,
-            estimatedTokens: estimatedTokens,
-            render: { text }
-        )
-    }
+private func makeCompressionSection(
+    id: String,
+    priority: Int,
+    estimatedTokens: Int,
+    compression: CompressionStrategy,
+    cachePolicy: CachePolicy,
+    text: @escaping @Sendable () async -> String
+) -> PromptSection {
+    PromptSection(
+        id: id,
+        role: .context,
+        priority: priority,
+        estimatedTokens: estimatedTokens,
+        compression: compression,
+        type: .text,
+        cachePolicy: cachePolicy,
+        path: ["prompt", "CompressionMockSection", "TextPrompt", cachePolicy.pathComponent, id],
+        render: { _ in .text(await text()) }
+    )
 }
 
 private struct IntegrationCompressor: SectionCompressor {
@@ -49,8 +49,8 @@ struct StructuredCompressionIntegrationTests {
             options: PromptAssemblyOptions(
                 customSections: {
                     [
-                        CompressionMockSection(id: "stable_node", priority: 10, estimatedTokens: 300, compression: .summarize, cachePolicy: .stable, text: "stable text"),
-                        CompressionMockSection(id: "changed_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: "changed text"),
+                        makeCompressionSection(id: "stable_node", priority: 10, estimatedTokens: 300, compression: .summarize, cachePolicy: .stable, text: { "stable text" }),
+                        makeCompressionSection(id: "changed_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: { "changed text" }),
                     ]
                 },
                 tokenBudget: TokenBudget(maxTokens: 180, reserveForResponse: 0),
@@ -82,7 +82,7 @@ struct StructuredCompressionIntegrationTests {
         let options = PromptAssemblyOptions(
             customSections: {
                 [
-                    CompressionMockSection(id: "cache_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: "cache me"),
+                    makeCompressionSection(id: "cache_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: { "cache me" }),
                 ]
             },
             tokenBudget: budget,
@@ -120,8 +120,7 @@ struct StructuredCompressionIntegrationTests {
 
         let options = PromptAssemblyOptions(
             customSections: { [content] in
-                let text = await content.get()
-                return [CompressionMockSection(id: "cache_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: text)]
+                [makeCompressionSection(id: "cache_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: { await content.get() })]
             },
             tokenBudget: budget,
             compressor: compressor,

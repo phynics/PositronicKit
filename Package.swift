@@ -76,7 +76,6 @@ let package = Package(
             name: "PositronicKit",
             dependencies: [
                 "PKContracts",
-                "PKPrompt",
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "ErrorKit", package: "ErrorKit"),

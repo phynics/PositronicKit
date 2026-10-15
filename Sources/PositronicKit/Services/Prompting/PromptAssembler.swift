@@ -1,15 +1,13 @@
 import Foundation
 import Logging
-import PKPrompt
 import PKContracts
 import PKUtilities
 
-/// Pure, stateless runtime adapter over `PKPrompt` assembly.
+/// Pure, stateless runtime prompt assembly.
 ///
 /// `PromptAssembler` is where the runtime turns timeline/chat/tool state into a concrete prompt
-/// artifact for provider submission. It is intentionally not the public prompt authoring surface;
-/// `PKPrompt` owns prompt composition and journaling APIs, while this type owns runtime-side stage
-/// ordering, token-budget policy, and compression metadata wiring.
+/// artifact for provider submission. It builds runtime-owned `PromptSection`s directly; the
+/// optional `PKPrompt` authoring product is not part of this path.
 enum PromptAssembler {
     // MARK: - Assemble
 
@@ -51,7 +49,7 @@ enum PromptAssembler {
         timeline: TimelineRecord? = nil,
         options: PromptAssemblyOptions
     ) async throws -> RenderedPrompt {
-        let sections = try await buildSections(
+        let build = try await buildSections(
             request: request,
             agent: agent,
             agentContext: agentContext,
@@ -60,12 +58,11 @@ enum PromptAssembler {
             historyProjectionReplacement: options.historyProjectionReplacement,
             logger: options.logger
         )
-        let resolvedSections = resolveSections(from: sections)
         options.logger?.debug(
-            "Resolved \(resolvedSections.count) prompt section(s) from \(sections.count) prompt fragment(s)."
+            "Resolved \(build.sections.count) prompt section(s) from \(build.fragmentCount) prompt fragment(s)."
         )
         let prompt = try await assemblePrompt(
-            from: resolvedSections,
+            from: build.sections,
             tokenBudget: options.tokenBudget,
             compressor: options.compressor,
             structuredDiff: options.structuredDiff,
@@ -81,7 +78,8 @@ enum PromptAssembler {
     /// - Throws: An error if assembly fails.
     static func prepare(_ request: LLMPromptRequest) async throws -> (messages: [LLMMessage], rawPrompt: String) {
         let rendered = try await assemble(request)
-        return (messages: rendered.buildMessages(), rawPrompt: rendered.string)
+        let layout = PromptLayoutBuilder.build(from: rendered)
+        return (messages: layout.renderMessages(), rawPrompt: rendered.string)
     }
 
     /// Builds a prompt for LLM submission using explicit advanced assembly options.
@@ -90,7 +88,13 @@ enum PromptAssembler {
         options: PromptAssemblyOptions
     ) async throws -> (messages: [LLMMessage], rawPrompt: String) {
         let rendered = try await assemble(request, options: options)
-        return (messages: rendered.buildMessages(), rawPrompt: rendered.string)
+        let layout = PromptLayoutBuilder.build(from: rendered)
+        return (messages: layout.renderMessages(), rawPrompt: rendered.string)
+    }
+
+    private struct SectionBuild {
+        let fragmentCount: Int
+        let sections: [PromptSection]
     }
 
     private static func buildSections(
@@ -98,80 +102,82 @@ enum PromptAssembler {
         agent: Agent?,
         agentContext: AgentContextSnapshot?,
         timeline: TimelineRecord?,
-        customSections: (@Sendable () async -> [any Prompt])?,
+        customSections: (@Sendable () async -> [PromptSection])?,
         historyProjectionReplacement: String?,
         logger: Logger?
-    ) async throws -> [any Prompt] {
+    ) async throws -> SectionBuild {
         if let customSections {
             let sections = await customSections()
-            let duplicateIDs = sections.flatMap { $0.resolveSections() }.duplicateIDs(idKeyPath: \.id)
+            let duplicateIDs = sections.duplicateIDs(idKeyPath: \.id)
             guard duplicateIDs.isEmpty else {
                 throw PromptAssemblyError.duplicateSectionIDs(duplicateIDs)
             }
-            return sections
+            return SectionBuild(fragmentCount: sections.count, sections: sections)
         }
 
-        var sections: [any Prompt] = []
-        try sections.append(withLogging("SystemInstructions", logger: logger) {
+        var fragments: [RuntimePromptProducer] = []
+        try fragments.append(withLogging("SystemInstructions", logger: logger) {
             SystemInstructions(request.systemInstructions ?? DefaultInstructions.system())
         })
         if let agentContext {
-            try sections.append(withLogging("AgentIdentity", logger: logger) {
+            try fragments.append(withLogging("AgentIdentity", logger: logger) {
                 AgentIdentityContext(snapshot: agentContext, timelineTitle: timeline?.title)
             })
             if !agentContext.instructions.isEmpty {
-                try sections.append(withLogging("AgentInstructions", logger: logger) {
+                try fragments.append(withLogging("AgentInstructions", logger: logger) {
                     AgentInstructionsContext(agentContext.instructions)
                 })
             }
             if !agentContext.memories.isEmpty {
-                try sections.append(withLogging("AgentMemory", logger: logger) {
+                try fragments.append(withLogging("AgentMemory", logger: logger) {
                     AgentMemoryContext(agentContext.memories)
                 })
             }
             if !agentContext.resources.isEmpty {
-                try sections.append(withLogging("AgentResourceCatalog", logger: logger) {
+                try fragments.append(withLogging("AgentResourceCatalog", logger: logger) {
                     AgentResourceCatalogContext(agentContext.resources)
                 })
             }
             if agentContext.primaryTimelineSummary != nil {
-                try sections.append(withLogging("AgentPrimaryTimelineSummary", logger: logger) {
+                try fragments.append(withLogging("AgentPrimaryTimelineSummary", logger: logger) {
                     AgentPrimaryTimelineSummaryContext(agentContext.primaryTimelineSummary)
                 })
             }
         } else if let agent {
-            try sections.append(withLogging("AgentContext", logger: logger) {
+            try fragments.append(withLogging("AgentContext", logger: logger) {
                 AgentContext(agent, timelineTitle: timeline?.title)
             })
         }
         if !request.contextContributions.isEmpty {
-            try sections.append(withLogging("TurnContextContributions", logger: logger) {
+            try fragments.append(withLogging("TurnContextContributions", logger: logger) {
                 TurnContextContributions(request.contextContributions)
             })
         }
-        try sections.append(withLogging("Tools", logger: logger) { Tools(request.tools) })
-        try sections.append(withLogging("WorkspacesContext", logger: logger) {
+        try fragments.append(withLogging("Tools", logger: logger) { Tools(request.tools) })
+        try fragments.append(withLogging("WorkspacesContext", logger: logger) {
             WorkspacesContext(workspaces: request.workspaces, primaryWorkspace: request.primaryWorkspace, requestOriginName: request.requestOriginName)
         })
         if let timeline {
-            try sections.append(withLogging("TimelineContext", logger: logger) { TimelineContext(timeline) })
+            try fragments.append(withLogging("TimelineContext", logger: logger) { TimelineContext(timeline) })
         }
         if let historyProjectionReplacement {
-            try sections.append(withLogging("HistoryProjection", logger: logger) {
+            try fragments.append(withLogging("HistoryProjection", logger: logger) {
                 HistoryProjectionSection(replacement: historyProjectionReplacement)
             })
         }
-        try sections.append(withLogging("ChatHistory", logger: logger) {
+        try fragments.append(withLogging("ChatHistory", logger: logger) {
             ChatHistory(PromptHistoryOptimizer.optimizeForDefaultBudget(request.chatHistory))
         })
-        try sections.append(withLogging("UserQuery", logger: logger) {
+        try fragments.append(withLogging("UserQuery", logger: logger) {
             UserQuery(request.userContent, turnInstructions: request.turnInstructions)
         })
-        let duplicateIDs = sections.flatMap { $0.resolveSections() }.duplicateIDs(idKeyPath: \.id)
+
+        let sections = fragments.flatMap { $0.makeSections() }
+        let duplicateIDs = sections.duplicateIDs(idKeyPath: \.id)
         guard duplicateIDs.isEmpty else {
             throw PromptAssemblyError.duplicateSectionIDs(duplicateIDs)
         }
-        return sections
+        return SectionBuild(fragmentCount: fragments.count, sections: sections)
     }
 
     private static func withLogging<T>(_ id: String, logger: Logger?, _ body: () throws -> T) throws -> T {
@@ -187,10 +193,6 @@ enum PromptAssembler {
             logger?.error("Prompt section '\(id)' failed after \(String(format: "%.3f", duration))s: \(error.localizedDescription)")
             throw error
         }
-    }
-
-    private static func resolveSections(from sections: [any Prompt]) -> [PromptSection] {
-        sections.flatMap { $0.resolveSections() }
     }
 
     private static func assemblePrompt(

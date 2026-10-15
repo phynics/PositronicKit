@@ -1,7 +1,10 @@
 # PKPrompt Context
 
-PKPrompt owns the structural language for composing, validating, rendering, and journaling model
-prompts. It does not own runtime entities, persistence, provider transport, or orchestration.
+PKPrompt is the optional authoring product for composing, validating, rendering, and journaling
+model prompts. The runtime does not import it. The shared prompt section model, token budgeting,
+compression, and journal-support values live in the package-internal `PKUtilities` target, which
+PKPrompt re-exports. PKPrompt does not own runtime entities, persistence, provider transport, or
+orchestration.
 
 ## Composition
 

@@ -43,6 +43,24 @@ do
     fi
 done
 
+# The runtime must not import the optional PKPrompt authoring product, and the
+# authoring product must not import the runtime. The shared prompt model lives
+# in the package-internal PKUtilities target (see ADR 0009 and issue #287).
+if [[ -d Sources/PositronicKit ]]; then
+    if matches="$(find_matches '^(@_exported[[:space:]]+)?import[[:space:]]+PKPrompt([[:space:]]|$)' Sources/PositronicKit || true)"; then
+        if [[ -n "$matches" ]]; then
+            report_failure "PositronicKit imports PKPrompt:\n$matches"
+        fi
+    fi
+fi
+if [[ -d Sources/PKPrompt ]]; then
+    if matches="$(find_matches '^(@_exported[[:space:]]+)?import[[:space:]]+PositronicKit([[:space:]]|$)' Sources/PKPrompt || true)"; then
+        if [[ -n "$matches" ]]; then
+            report_failure "PKPrompt imports PositronicKit:\n$matches"
+        fi
+    fi
+fi
+
 # PKUtilities remains package-internal while its helpers are relocated in later
 # work; it must not be advertised as a consumer-facing product.
 if grep -nE '^\s*\.library\(name: "PKUtilities"' Package.swift >/dev/null; then
