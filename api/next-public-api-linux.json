@@ -22900,6 +22900,16 @@
       "declaration": "let toolCallIDs: [String]"
     },
     {
+      "precise": "s:13PositronicKit28TurnHistoryMessageDescriptorV14messageContent11PKContracts0eH0Vvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnHistoryMessageDescriptor",
+        "messageContent"
+      ],
+      "declaration": "let messageContent: MessageContent"
+    },
+    {
       "precise": "s:13PositronicKit28TurnHistoryMessageDescriptorV15estimatedTokensSivp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -22928,6 +22938,16 @@
         "id"
       ],
       "declaration": "let id: UUID"
+    },
+    {
+      "precise": "s:13PositronicKit28TurnHistoryMessageDescriptorV2id4role14messageContent15estimatedTokens11toolCallIDs0m6ResultN2IDAC20FoundationEssentials4UUIDV_11PKContracts0E0V0E4RoleOAM0eJ0VSiSaySSGSSSgtcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "TurnHistoryMessageDescriptor",
+        "init(id:role:messageContent:estimatedTokens:toolCallIDs:toolResultCallID:)"
+      ],
+      "declaration": "init(id: UUID, role: Message.MessageRole, messageContent: MessageContent, estimatedTokens: Int, toolCallIDs: [String] = [], toolResultCallID: String? = nil)"
     },
     {
       "precise": "s:13PositronicKit28TurnHistoryMessageDescriptorV2id4role7content15estimatedTokens11toolCallIDs0l6ResultM2IDAC20FoundationEssentials4UUIDV_11PKContracts0E0V0E4RoleOSSSiSaySSGSSSgtcfc",
@@ -22967,7 +22987,7 @@
         "TurnHistoryMessageDescriptor",
         "content"
       ],
-      "declaration": "let content: String"
+      "declaration": "var content: String { get }"
     },
     {
       "precise": "s:13PositronicKit28TurnHistoryProjectionRequestV",
@@ -22979,14 +22999,14 @@
       "declaration": "struct TurnHistoryProjectionRequest"
     },
     {
-      "precise": "s:13PositronicKit28TurnHistoryProjectionRequestV10timelineID04turnH007requestH005agentH013executionKind8messages6budgetAC20FoundationEssentials4UUIDV_A3MSgAA0c9ExecutionM0OSayAA0cD17MessageDescriptorVGAA0cdE6BudgetVtcfc",
+      "precise": "s:13PositronicKit28TurnHistoryProjectionRequestV10timelineID04turnH007requestH005agentH013executionKind5since8messages6budgetAC20FoundationEssentials4UUIDV_A3NSgAA0c9ExecutionM0OAOSayAA0cD17MessageDescriptorVGAA0cdE6BudgetVtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "TurnHistoryProjectionRequest",
-        "init(timelineID:turnID:requestID:agentID:executionKind:messages:budget:)"
+        "init(timelineID:turnID:requestID:agentID:executionKind:since:messages:budget:)"
       ],
-      "declaration": "init(timelineID: UUID, turnID: UUID, requestID: UUID, agentID: UUID?, executionKind: TurnExecutionKind, messages: [TurnHistoryMessageDescriptor], budget: TurnHistoryProjectionBudget)"
+      "declaration": "init(timelineID: UUID, turnID: UUID, requestID: UUID, agentID: UUID?, executionKind: TurnExecutionKind, since: UUID? = nil, messages: [TurnHistoryMessageDescriptor], budget: TurnHistoryProjectionBudget)"
     },
     {
       "precise": "s:13PositronicKit28TurnHistoryProjectionRequestV10timelineID20FoundationEssentials4UUIDVvp",
@@ -23017,6 +23037,16 @@
         "init(from:)"
       ],
       "declaration": "init(from decoder: any Decoder) throws"
+    },
+    {
+      "precise": "s:13PositronicKit28TurnHistoryProjectionRequestV5since20FoundationEssentials4UUIDVSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnHistoryProjectionRequest",
+        "since"
+      ],
+      "declaration": "let since: UUID?"
     },
     {
       "precise": "s:13PositronicKit28TurnHistoryProjectionRequestV6budgetAA0cdE6BudgetVvp",
@@ -27657,6 +27687,13 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts12AudioContentV",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts12AudioContentV",
       "target": "s:SQ",
       "targetFallback": "Swift.Equatable"
     },
@@ -27757,6 +27794,13 @@
       "source": "s:11PKContracts12ImageContentV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts12ImageContentV",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
     },
     {
       "module": "PKContracts",
@@ -28310,6 +28354,13 @@
       "source": "s:11PKContracts14MessageContentV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14MessageContentV",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
     },
     {
       "module": "PKContracts",
@@ -29226,6 +29277,13 @@
       "source": "s:11PKContracts18MessageContentPartO",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts18MessageContentPartO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
     },
     {
       "module": "PKContracts",
@@ -30684,6 +30742,13 @@
       "source": "s:11PKContracts26AudioContinuationReferenceV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts26AudioContinuationReferenceV",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
     },
     {
       "module": "PKContracts",
@@ -52663,6 +52728,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV14messageContent11PKContracts0eH0Vvp",
+      "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV15estimatedTokensSivp",
       "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
     },
@@ -52676,6 +52747,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV2id20FoundationEssentials4UUIDVvp",
+      "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit28TurnHistoryMessageDescriptorV2id4role14messageContent15estimatedTokens11toolCallIDs0m6ResultN2IDAC20FoundationEssentials4UUIDV_11PKContracts0E0V0E4RoleOAM0eJ0VSiSaySSGSSSgtcfc",
       "target": "s:13PositronicKit28TurnHistoryMessageDescriptorV"
     },
     {
@@ -52709,7 +52786,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit28TurnHistoryProjectionRequestV10timelineID04turnH007requestH005agentH013executionKind8messages6budgetAC20FoundationEssentials4UUIDV_A3MSgAA0c9ExecutionM0OSayAA0cD17MessageDescriptorVGAA0cdE6BudgetVtcfc",
+      "source": "s:13PositronicKit28TurnHistoryProjectionRequestV10timelineID04turnH007requestH005agentH013executionKind5since8messages6budgetAC20FoundationEssentials4UUIDV_A3NSgAA0c9ExecutionM0OAOSayAA0cD17MessageDescriptorVGAA0cdE6BudgetVtcfc",
       "target": "s:13PositronicKit28TurnHistoryProjectionRequestV"
     },
     {
@@ -52733,6 +52810,12 @@
         "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
         "displayName": "Decodable.init(from:)"
       }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit28TurnHistoryProjectionRequestV5since20FoundationEssentials4UUIDVSgvp",
+      "target": "s:13PositronicKit28TurnHistoryProjectionRequestV"
     },
     {
       "module": "PositronicKit",

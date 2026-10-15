@@ -141,14 +141,22 @@ Runtime tools and request-scoped tools are separate from Workspace dispatch. The
 
 ## Runtime customization
 
-`RuntimeCustomization` contains four typed roles:
+`RuntimeCustomization` contains five typed roles:
 
 | Role | Contract |
 | --- | --- |
 | `AgentContextSource` | Authoritative managed-Agent context; failure aborts preparation |
 | `TurnContextSource` | Optional bounded, namespaced additions for an admitted Turn |
+| `TurnHistoryProjectionSource` | Stable 7.0 contract for external context managers; replaces a covered historical prefix with one bounded, plain-text checkpoint |
 | `AgentActivitySink` | Best-effort Agent lifecycle integration; does not mutate Timeline history |
 | `TurnOutcomeSink` | Post-terminal integration after the durable outcome is accepted |
+
+The history-projection source runs during Turn preparation, before budget compression. It receives
+ordered multimodal descriptors and heuristic budget metadata, must end coverage on a tool-transaction
+boundary, and never rewrites durable history. The checkpoint replacement is plain text, capped at
+32,768 characters. `TurnHistoryProjectionRequest.since` is a process-scoped watermark, so a
+stateful source can skip descriptors it already covered. See
+[Setup](Setup.md) for the integration shape.
 
 The bundled Agent context source reads stable instructions and a bounded Notes catalog from the
 Agent primary Workspace. Filesystem memory is an implementation choice, not a mandatory domain

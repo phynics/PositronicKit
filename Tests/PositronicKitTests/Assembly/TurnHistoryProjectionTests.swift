@@ -342,6 +342,103 @@ struct TurnHistoryProjectionTests {
         #expect(prompt.contains("SECOND-SUMMARY"))
     }
 
+    @Test("descriptors preserve multimodal content and expose a text projection")
+    func descriptorPreservesMultimodalContent() throws {
+        let image = ImageContent(
+            data: Data([0x01, 0x02]),
+            mediaType: "image/png",
+            detail: .high,
+            estimatedTokens: 42
+        )
+        let content = MessageContent(parts: [.text("look at "), .image(image), .text("this")])
+        let descriptor = TurnHistoryMessageDescriptor(
+            id: UUID(),
+            role: .user,
+            messageContent: content,
+            estimatedTokens: content.estimatedTokens
+        )
+
+        #expect(descriptor.messageContent == content)
+        #expect(descriptor.content == "look at this")
+        // The image fallback survives the descriptor instead of being flattened away.
+        #expect(descriptor.messageContent.parts.contains { part in
+            if case .image = part { return true }
+            return false
+        })
+
+        // The text-only convenience initializer still projects through `content`.
+        let textOnly = TurnHistoryMessageDescriptor(
+            id: UUID(),
+            role: .assistant,
+            content: "hello",
+            estimatedTokens: 2
+        )
+        #expect(textOnly.messageContent == MessageContent("hello"))
+        #expect(textOnly.content == "hello")
+    }
+
+    @Test("a replacement over the character cap is rejected")
+    func replacementOverCapIsRejected() throws {
+        let messages = [Message(content: "one", role: .user)]
+        let projection = TurnHistoryProjection(
+            coveredMessageIDs: [messages[0].id],
+            replacement: String(repeating: "x", count: TurnHistoryProjection.maximumReplacementCharacters + 1),
+            firstRetainedMessageID: nil
+        )
+
+        #expect(throws: TurnHistoryProjectionError.self) {
+            _ = try TurnHistoryProjectionValidator.apply(projection, to: messages, currentInputID: nil)
+        }
+    }
+
+    // MARK: - Watermark
+
+    @Test("requests carry the previous projection watermark")
+    func requestsCarryPreviousWatermark() async throws {
+        let model = MockLLMService()
+        let repository = InMemoryTimelineRuntimeRepository()
+        let recorder = ProjectionRecorder()
+        let source = RecordingProjectionSource(
+            recorder: recorder,
+            requirement: .optional,
+            error: nil,
+            makeProjection: { request in
+                guard !request.messages.isEmpty else { return nil }
+                return TurnHistoryProjection(
+                    coveredMessageIDs: request.messages.map(\.id),
+                    replacement: "CHECKPOINT",
+                    firstRetainedMessageID: nil
+                )
+            }
+        )
+        let kit = try await makeKit(
+            model: model,
+            repository: repository,
+            customization: RuntimeCustomization(turnHistoryProjectionSource: source)
+        )
+
+        let timeline = try await kit.timelines.create(title: "Watermark")
+        for response in ["one", "two", "three"] {
+            model.mockClient.nextResponse = response
+            let turn = try await timeline.startDirectTurn(
+                "question \(response)",
+                context: DirectTurnContext(systemInstructions: "", contributor: .host)
+            )
+            _ = await turn.events().collect()
+        }
+
+        let requests = await recorder.requests
+        #expect(requests.count == 3)
+        // The first Turn has no history, so the source declines and no watermark is set.
+        #expect(requests[0].since == nil)
+        #expect(requests[0].messages.isEmpty)
+        // The second Turn is still cold because the first projection was declined.
+        #expect(requests[1].since == nil)
+        #expect(!requests[1].messages.isEmpty)
+        // The second Turn covers its whole offered prefix, which becomes the next watermark.
+        #expect(requests[2].since == requests[1].messages.last?.id)
+    }
+
     private func makeKit(
         model: MockLLMService,
         repository: InMemoryTimelineRuntimeRepository,

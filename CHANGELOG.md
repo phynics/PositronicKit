@@ -95,14 +95,22 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   joins, cancellation, and fork sessions with type-checked snippets. CI builds and tests
   `PKObservable` on the iOS Simulator.
 - `TurnHistoryProjectionSource` lets a host supply a bounded, provider-facing replacement for a
-  covered historical prefix on one Turn. `RuntimeCustomization(turnHistoryProjectionSource:)`
+  covered historical prefix on one Turn. It is **stable public API in 7.0**: the main contract for
+  external context managers, and no longer experimental. `RuntimeCustomization(turnHistoryProjectionSource:)`
   receives ordered `TurnHistoryMessageDescriptor`s and budget metadata, and returns a
   `TurnHistoryProjection` that names the covered prefix, one bounded replacement, and the first
-  retained raw message. Projection runs before PKPrompt structured budget compression, requires
-  coverage to end at a tool-transaction boundary, and never rewrites durable history. A source
-  that returns `nil` leaves history unchanged; a source that throws follows its
-  `failureRequirement` (default `.optional`, recorded as `TurnNoticeCode.historyProjectionFailed`).
-  Invalid coverage is rejected with `TurnHistoryProjectionError`.
+  retained raw message. Projection runs before structured budget compression, requires coverage to
+  end at a tool-transaction boundary, and never rewrites durable history. A source that returns
+  `nil` leaves history unchanged; a source that throws follows its `failureRequirement` (default
+  `.optional`, recorded as `TurnNoticeCode.historyProjectionFailed`). Invalid coverage is rejected
+  with `TurnHistoryProjectionError`. Recorded 7.0 boundary decisions:
+  - Descriptors carry the full multimodal `MessageContent` (image and audio parts are preserved);
+    the checkpoint replacement itself stays plain text, capped at 32,768 characters.
+  - `TurnHistoryProjectionRequest.since` is a process-scoped coverage watermark, so a stateful
+    source can skip descriptors it already covered rather than re-curating the full history on
+    every Turn.
+  - `TurnHistoryProjectionBudget` values are heuristic estimates, not tokenizer results; the docs
+    state the estimate source and margin guidance. (Gaps 1-4 of #264.)
 - `PKTestSupport.TestRuntime` is the single deep fixture for runtime suites. It builds a
   `PKRuntime` through the public `PKRuntime.Configuration` from one coherent persistence backing,
   and exposes the scripted `MockLLMService`, the in-memory `MockPersistenceService` repository,

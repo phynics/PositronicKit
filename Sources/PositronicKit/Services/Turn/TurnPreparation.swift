@@ -938,12 +938,17 @@ private extension TurnPreparation {
             return (nil, history)
         }
 
+        // The watermark is process-scoped prompt bookkeeping. Reading it here lets a stateful
+        // source skip descriptors it already covered instead of re-curating the whole history.
+        let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineID)
+        let since = await promptHistory.historyProjectionWatermark()
+
         let descriptors = history.map { message in
             TurnHistoryMessageDescriptor(
                 id: message.id,
                 role: message.role,
-                content: message.content,
-                estimatedTokens: TokenEstimator.estimate(text: message.content),
+                messageContent: message.messageContent,
+                estimatedTokens: message.messageContent.estimatedTokens,
                 toolCallIDs: (message.toolCalls ?? []).map(\.id),
                 toolResultCallID: message.toolCallID
             )
@@ -954,6 +959,7 @@ private extension TurnPreparation {
             requestID: requestID,
             agentID: agentID,
             executionKind: executionKind,
+            since: since,
             messages: descriptors,
             budget: TurnHistoryProjectionBudget(
                 contextWindowTokens: budget.maxTokens,
@@ -976,6 +982,7 @@ private extension TurnPreparation {
             if source.failureRequirement == .required {
                 throw TurnDegradationError.required(diagnostic, error)
             }
+            await promptHistory.recordHistoryProjectionWatermark(nil)
             await appendCustomizationNotice(
                 code: .historyProjectionFailed,
                 turnID: turnID,
@@ -984,13 +991,19 @@ private extension TurnPreparation {
             return (nil, history)
         }
 
-        guard let projection else { return (nil, history) }
+        guard let projection else {
+            // The source declined to project, so raw history is sent and any prior coverage is no
+            // longer in effect.
+            await promptHistory.recordHistoryProjectionWatermark(nil)
+            return (nil, history)
+        }
 
         let applied = try TurnHistoryProjectionValidator.apply(
             projection,
             to: history,
             currentInputID: inputMessageID
         )
+        await promptHistory.recordHistoryProjectionWatermark(applied.coveredMessageIDs.last)
         return (applied.replacement, applied.retainedHistory)
     }
 
