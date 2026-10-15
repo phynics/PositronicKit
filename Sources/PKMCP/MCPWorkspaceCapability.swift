@@ -6,8 +6,8 @@ public extension WorkspaceCapability {
     /// Creates an MCP server Workspace and binds it to `timelineID`.
     ///
     /// The returned reference carries the secret-free server configuration in its metadata. The
-    /// runtime resolves it with the ``MCPWorkspaceFactory`` injected into
-    /// ``PKRuntime/Configuration``. The Workspace uses the `.runtime` location so the runtime
+    /// runtime resolves it with the `MCPWorkspaceFactory` injected into
+    /// `PKRuntime/Configuration`. The Workspace uses the `.runtime` location so the runtime
     /// executes its tools in process through the ordinary `call_tool` dispatcher.
     ///
     /// ```swift

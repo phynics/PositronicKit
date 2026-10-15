@@ -1,11 +1,11 @@
 import PKContracts
 import PositronicKit
 
-/// A ``WorkspaceFactory`` that rebuilds MCP server connections from persisted workspace metadata.
+/// A `WorkspaceFactory` that rebuilds MCP server connections from persisted workspace metadata.
 ///
-/// Inject one into ``PKRuntime/Configuration`` (through ``PKRuntime/RuntimeConfiguration``) so the
+/// Inject one into `PKRuntime/Configuration` (through `PKRuntime/RuntimeConfiguration`) so the
 /// runtime can resolve an MCP Workspace created by
-/// ``WorkspaceCapability/createMCPWorkspace(_:for:)``. The factory holds no connection state; each
+/// `WorkspaceCapability/createMCPWorkspace(_:for:)`. The factory holds no connection state; each
 /// resolved reference gets its own MCP provider actor.
 ///
 /// The runtime has a single workspace factory, so it also resolves the runtime's timeline and
