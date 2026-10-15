@@ -67,7 +67,7 @@ public struct TimelineCapability: Sendable {
     /// ledger.
     ///
     /// The returned handle starts direct Turns through
-    /// ``TimelineHandle/startDirectTurn(_:context:options:)``. The fork supplies no tools of its
+    /// ``TimelineHandle/startDirectTurn(_:context:options:)-(String,_,_)``. The fork supplies no tools of its
     /// own; pass the tools the Turn should be limited to through ``TurnOptions/tools``, for
     /// example ``RuntimeToolSets/readOnlyFilesystem(root:)``. The runtime deletes the ephemeral
     /// Timeline and its messages when the last handle is released, after any Turn still in flight
