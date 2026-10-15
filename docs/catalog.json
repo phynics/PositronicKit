@@ -69,6 +69,11 @@
       "summary": "App-owned runtime service, TimelineController binding, outcome joins, and fork sessions."
     },
     {
+      "title": "MCP workspaces",
+      "path": "docs/MCP.md",
+      "summary": "Connect Model Context Protocol servers as Workspaces through the official swift-sdk, with secrets, approval, and mapping rules."
+    },
+    {
       "title": "Architecture",
       "path": "docs/Architecture.md",
         "summary": "Domain boundaries, capability values, durability, execution authority, and the runtime adapter tier."
@@ -114,6 +119,7 @@
     {"name": "PKPrompt", "kind": "library", "module": "PKPrompt", "docs": "docs/PKPromptComposition.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "(any Prompt).self"},
     {"name": "PositronicKit", "kind": "library", "module": "PositronicKit", "docs": "docs/Usage.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKRuntime.self"},
     {"name": "PKObservable", "kind": "library", "module": "PKObservable", "docs": "docs/SwiftUI.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "TimelineController.self"},
+    {"name": "PKMCP", "kind": "library", "module": "PKMCP", "docs": "docs/MCP.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "MCPWorkspaceFactory.self"},
     {"name": "PKOpenAIProvider", "kind": "library", "module": "PKOpenAIProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOpenAI.self"},
     {"name": "PKOpenRouterProvider", "kind": "library", "module": "PKOpenRouterProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOpenRouter.self"},
     {"name": "PKOllamaProvider", "kind": "library", "module": "PKOllamaProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOllama.self"},

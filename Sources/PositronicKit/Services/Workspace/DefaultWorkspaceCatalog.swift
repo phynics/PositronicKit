@@ -51,11 +51,29 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
         originID: UUID? = nil,
         rootPath: String? = nil
     ) async throws -> WorkspaceReference {
+        try await createWorkspace(
+            uri: uri,
+            location: location,
+            originID: originID,
+            rootPath: rootPath,
+            metadata: nil
+        )
+    }
+
+    /// Creates a new workspace and saves it to persistence with host-owned metadata.
+    public func createWorkspace(
+        uri: WorkspaceURI,
+        location: WorkspaceReference.WorkspaceLocation,
+        originID: UUID? = nil,
+        rootPath: String? = nil,
+        metadata: [String: AnyCodable]?
+    ) async throws -> WorkspaceReference {
         let workspace = WorkspaceReference(
             uri: uri,
             location: location,
             originID: originID,
-            rootPath: rootPath
+            rootPath: rootPath,
+            metadata: metadata
         )
         do {
             try await persistenceService.saveWorkspace(workspace)

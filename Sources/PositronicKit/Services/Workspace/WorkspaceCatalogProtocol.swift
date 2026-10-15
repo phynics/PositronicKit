@@ -12,6 +12,19 @@ public protocol WorkspaceCatalog: Sendable {
         rootPath: String?
     ) async throws -> WorkspaceReference
 
+    /// Creates a new workspace and saves it to persistence with host-owned metadata.
+    ///
+    /// The runtime never interprets `metadata`; a ``WorkspaceFactory`` adapter uses it to rebuild a
+    /// live provider. Conformers that do not persist metadata inherit the default implementation,
+    /// which ignores it.
+    func createWorkspace(
+        uri: WorkspaceURI,
+        location: WorkspaceReference.WorkspaceLocation,
+        originID: UUID?,
+        rootPath: String?,
+        metadata: [String: AnyCodable]?
+    ) async throws -> WorkspaceReference
+
     /// Creates a new agent workspace and seeds it with template files.
     func createAgentWorkspace(
         agentID: UUID,
@@ -55,6 +68,25 @@ public extension WorkspaceCatalog {
         try await createAgentWorkspace(
             agentID: agentID,
             template: template
+        )
+    }
+
+    /// Creates a workspace with host-owned metadata.
+    ///
+    /// The default implementation drops `metadata` so an existing conformer that only implements
+    /// the four-argument requirement keeps compiling; ``DefaultWorkspaceCatalog`` persists it.
+    func createWorkspace(
+        uri: WorkspaceURI,
+        location: WorkspaceReference.WorkspaceLocation,
+        originID: UUID?,
+        rootPath: String?,
+        metadata: [String: AnyCodable]?
+    ) async throws -> WorkspaceReference {
+        try await createWorkspace(
+            uri: uri,
+            location: location,
+            originID: originID,
+            rootPath: rootPath
         )
     }
 

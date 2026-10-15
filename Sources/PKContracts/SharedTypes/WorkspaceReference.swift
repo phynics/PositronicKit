@@ -17,6 +17,12 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public var status: WorkspaceStatus
     /// Optional extra text injected into the prompt context when this workspace is active.
     public var contextInjection: String?
+    /// Optional host-owned metadata persisted with the reference.
+    ///
+    /// The runtime never interprets these values. A ``WorkspaceFactory`` adapter uses them to
+    /// rebuild a live provider (for example an MCP server configuration). Values must not contain
+    /// secret material; a reference should carry a host-resolved secret identifier instead.
+    public var metadata: [String: AnyCodable]?
     public let createdAt: Date
 
     /// Where a workspace lives relative to the runtime.
@@ -85,6 +91,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         lastModifiedBy: UUID? = nil,
         status: WorkspaceStatus = .active,
         contextInjection: String? = nil,
+        metadata: [String: AnyCodable]? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -96,6 +103,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         self.lastModifiedBy = lastModifiedBy
         self.status = status
         self.contextInjection = contextInjection
+        self.metadata = metadata
         self.createdAt = createdAt
     }
 
@@ -111,6 +119,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
             lastModifiedBy: lastModifiedBy,
             status: status,
             contextInjection: contextInjection,
+            metadata: metadata,
             createdAt: createdAt
         )
     }
@@ -133,6 +142,6 @@ private extension WorkspaceReference {
     enum CodingKeys: String, CodingKey {
         case id, uri, location
         case originID = "originId"
-        case tools, rootPath, lastModifiedBy, status, contextInjection, createdAt
+        case tools, rootPath, lastModifiedBy, status, contextInjection, metadata, createdAt
     }
 }

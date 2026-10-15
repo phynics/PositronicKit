@@ -43,6 +43,18 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
 
 ### Added
 
+- **`PKMCP` runtime adapter (#266):** a new optional product connects a Model Context Protocol
+  server as an ordinary Workspace. `MCPServerConfiguration` describes a stdio or Streamable HTTP
+  transport, `WorkspaceCapability.createMCPWorkspace(_:for:)` persists the secret-free
+  configuration and binds the Workspace, and `MCPWorkspaceFactory` rebuilds the live provider from
+  the reference (delegating non-MCP references to a host-supplied fallback). Tool discovery maps
+  `tools/list` to `.custom` definitions, the permission policy derives `requiresPermission` from
+  `readOnlyHint` (or an explicit override), tool results map `content[]` and `isError` to
+  `ToolResult`, `notifications/tools/list_changed` invalidates the next catalog capture, turn
+  cancellation sends `notifications/cancelled`, and a host `MCPSecretResolver` supplies referenced
+  secrets at connect time. `WorkspaceReference` gains optional host-owned `metadata`, and
+  `PKErrorDomain` gains the `mcp` domain. The official `modelcontextprotocol/swift-sdk` is pinned
+  `exact: 0.12.1` inside the adapter only (ADR 0015).
 - **Prompt caching contract (#276):** `PKContracts` gains `PromptCacheDirective`,
   `PromptCacheBreakpoint`, and `PromptCachingCapability`. `LLMTokenUsagePromptDetails` gains
   `cacheWriteTokens` and `cacheWriteBreakdown`, and `LLMClientProtocol` gains cache-aware
