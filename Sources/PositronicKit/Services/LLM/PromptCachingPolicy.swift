@@ -2,10 +2,10 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Runtime resolution helpers for the provider-neutral ``PromptCachingPolicy``.
+/// Runtime resolution helpers for the provider-neutral `PromptCachingPolicy`.
 ///
 /// The policy value itself lives in `PKContracts` so it can ride on the provider-neutral
-/// ``PromptCacheReport``. These helpers depend on runtime-only routing-key derivation and stay
+/// `PromptCacheReport`. These helpers depend on runtime-only routing-key derivation and stay
 /// in the runtime module.
 extension PromptCachingPolicy {
     /// The effective policy for a generation: the per-Turn override when present, otherwise the
