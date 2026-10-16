@@ -100,7 +100,7 @@ def validate_published_table(manifest: dict) -> None:
     published = manifest.get("published")
     headers = published.get("headers") if isinstance(published, dict) else None
     rows = published.get("rows") if isinstance(published, dict) else None
-    if headers != ["Provider", "Image input", "Audio input", "Audio output", "Layout notes"]:
+    if headers != ["Provider", "Image input", "Audio input", "Audio output", "Prompt caching", "Layout notes"]:
         error("manifest published headers do not match the capability matrix contract")
     if not isinstance(rows, list) or {row.get("Provider") for row in rows if isinstance(row, dict)} != PROVIDERS:
         error("manifest published rows must contain exactly the five supported providers")

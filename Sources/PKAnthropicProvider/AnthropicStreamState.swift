@@ -14,7 +14,7 @@ struct AnthropicStreamState {
     private(set) var messageID = ""
     private(set) var model: String
     private var inputTokens: Int?
-    private var cachedTokens: Int?
+    private var promptDetails: LLMTokenUsagePromptDetails?
     private var toolOrdinalByBlockIndex: [Int: Int] = [:]
     private var nextToolOrdinal = 0
 
@@ -30,7 +30,7 @@ struct AnthropicStreamState {
                 messageID = message.id
                 model = message.model
                 inputTokens = message.usage?.inputTokens
-                cachedTokens = message.usage?.cacheReadInputTokens
+                promptDetails = message.usage?.promptDetails
             }
             return nil
         case "content_block_start":
@@ -74,11 +74,15 @@ struct AnthropicStreamState {
         case "message_delta":
             let stopReason = event.delta?.stopReason.map(mapAnthropicStopReason) ?? .stop
             let outputTokens = event.usage?.outputTokens
+            // The final usage frame can repeat or extend the cache fields from `message_start`.
+            if let details = event.usage?.promptDetails {
+                promptDetails = details
+            }
             let usage = LLMTokenUsage(
                 promptTokens: inputTokens,
                 completionTokens: outputTokens,
                 totalTokens: (inputTokens ?? 0) + (outputTokens ?? 0),
-                promptTokensDetails: cachedTokens.map { .init(cachedTokens: $0) }
+                promptTokensDetails: promptDetails
             )
             return makeChunk(
                 delta: LLMStreamDelta(role: .assistant),
