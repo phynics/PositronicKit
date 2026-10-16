@@ -514,6 +514,35 @@ for tier in state.tiers {
 `providerUnsupported`. An empty `resets` array means the previous round's prefix carried over
 byte-for-byte.
 
+### Cache-exact sibling requests
+
+A host that needs auxiliary post-Turn analysis — a critic, a title, or a curation pass — can
+reuse a Timeline's final model round as an exact provider-cache prefix instead of replaying the
+transcript. Enable retention when constructing the runtime, then issue the request through the
+Timeline handle. The sibling call writes nothing to the Timeline and never takes the Timeline
+authority lane, so it cannot block or reorder Turn admission.
+
+```swift
+@_spi(Experimental) import PositronicKit
+import PKContracts
+
+// `kit` was constructed with `RuntimeConfiguration(retainsSiblingPrefix: true)`.
+let driver = kit.timelines.open(timelineID)
+let insight = try await driver.siblingRequest(
+    appending: [LLMMessage(role: .user, content: "List the open risks in one sentence.")],
+    responseFormat: nil
+)
+print(insight.content ?? "")
+if let cached = insight.usage?.promptTokensDetails?.cachedTokens {
+    print("sibling prefix served \(cached) cached tokens")
+}
+```
+
+The call replays the retained messages and tools byte for byte, appends the host messages, and
+reuses the source `routingKey`, retention, and breakpoints. An in-flight Turn, a missing retained
+round, or disabled retention throws `TimelineError.siblingPrefixUnavailable(_:)`; an absent
+Timeline throws `TimelineError.timelineNotFound`.
+
 ## 3. Core Concepts
 
 ### TurnEvent Stream

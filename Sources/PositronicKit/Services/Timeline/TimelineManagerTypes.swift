@@ -11,6 +11,21 @@ public enum TimelineError: PKError, Equatable {
     case permissionDenied
     case invalidState(String)
     case noQuarantinedTurn
+    /// No cache-exact sibling prefix can be served for the requested Timeline. The associated
+    /// reason distinguishes an in-flight Turn from a Timeline that has not retained a final
+    /// model round yet. See `TimelineHandle.siblingRequest(appending:responseFormat:generationParameters:)`.
+    case siblingPrefixUnavailable(SiblingPrefixUnavailability)
+
+    /// Why a cache-exact sibling prefix was unavailable.
+    public enum SiblingPrefixUnavailability: String, Sendable, Equatable {
+        /// A Turn is in flight on the Timeline, so the newest round is not final and mixing
+        /// rounds is forbidden.
+        case turnInFlight
+        /// The Timeline has retained no completed final model round yet.
+        case noRetainedRound
+        /// The runtime was not configured with `retainsSiblingPrefix`.
+        case retentionDisabled
+    }
 
     public var errorDomain: String {
         PKErrorDomain.timeline
@@ -24,6 +39,7 @@ public enum TimelineError: PKError, Equatable {
         case .permissionDenied: return 6004
         case .invalidState: return 6005
         case .noQuarantinedTurn: return 6006
+        case .siblingPrefixUnavailable: return 6007
         }
     }
 
@@ -41,6 +57,15 @@ public enum TimelineError: PKError, Equatable {
             return "The timeline is in an invalid state for this operation."
         case .noQuarantinedTurn:
             return "This conversation has no quarantined Turn to release."
+        case let .siblingPrefixUnavailable(reason):
+            switch reason {
+            case .turnInFlight:
+                return "A Turn is still in flight on this conversation. Retry the sibling request after it completes."
+            case .noRetainedRound:
+                return "This conversation has no completed model round whose prefix can be reused."
+            case .retentionDisabled:
+                return "Sibling-prefix retention is not enabled for this runtime."
+            }
         }
     }
 
@@ -58,6 +83,15 @@ public enum TimelineError: PKError, Equatable {
             return nil
         case .noQuarantinedTurn:
             return "Send a new message to refresh the conversation state."
+        case let .siblingPrefixUnavailable(reason):
+            switch reason {
+            case .turnInFlight:
+                return "Wait for the in-flight Turn to reach a terminal state, then retry."
+            case .noRetainedRound:
+                return "Complete a Turn on this conversation before issuing a sibling request."
+            case .retentionDisabled:
+                return "Construct the runtime with `RuntimeConfiguration(retainsSiblingPrefix: true)`."
+            }
         }
     }
 }
