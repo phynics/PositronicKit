@@ -33,7 +33,7 @@ second runtime-assembly product:
 | `TimelineRuntimeRepository` | `TimelineManager`, `AgentManager`, `ToolRouter`, `TurnEngine`, and Turn pipelines |
 | `TimelineAuthorityCoordinator` | `TimelineManager`, Workspace catalog, `AgentManager`, and Turn admission |
 | `AgentAuthorityCoordinator` | `AgentManager` and Turn admission |
-| `TimelinePromptJournals` | `TimelineManager` and `TurnEngine`; prompt cache state, not Timeline history |
+| `TimelinePromptJournals` | `TimelineManager` and `TurnEngine`; prompt cache and history-trim state, not Timeline history |
 | `TurnEventHub` | `TurnEngine` views that join the same live Turn |
 
 Every Turn execution path receives the same cohesive repository. Independent Timeline and message
@@ -181,7 +181,12 @@ the downstream audit and migration boundary.
   token budgeting, compression, and journal-support values that both `PKPrompt` and the runtime
   use, and it is not a public product.
 - `PositronicKit` owns domain state, orchestration, durability, Workspace dispatch, and an
-  internal tiered `PromptLayout` that it renders into provider requests.
+  internal tiered `PromptLayout` that it renders into provider requests. The layout emits tools,
+  then stable and semi-stable system tiers, prior history, volatile per-Turn context, and the
+  current query last, and it derives cache breakpoints at the stable, semi-stable, and history
+  boundaries (plus a per-round tool-loop boundary) so changing volatile context cannot reset the
+  reusable prefix (#277). Because the tool block leads the cached prefix, hosts should keep a
+  Timeline's tool set stable: changing it resets reuse for the whole prefix.
 - Provider products adapt concrete services to `PKContracts`; they do not import the runtime.
 - Runtime adapters (`PKObservable`, planned `PKSQLiteStorage`, planned `PKMCP`) import
   `PositronicKit` to implement its host-facing protocols, use only public API, and are never

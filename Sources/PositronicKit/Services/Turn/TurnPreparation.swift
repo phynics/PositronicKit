@@ -283,10 +283,18 @@ struct TurnPreparation: Sendable {
 
             let effectiveTools: [AnyTool]
             if let catalog = resolvedWorkspaceToolCatalog, !catalog.isEmpty {
+                // Deterministic tool order (#277): built-in runtime tools (the primary
+                // workspace's generic file tools plus `call_tool`) sorted by name first, then
+                // per-Turn caller tools in caller order last. Anthropic puts `tools` first in
+                // the cached prefix, so a stable order is what keeps the prefix reusable.
                 let directToolNames = Set(catalog.directTools.map(\.callName))
-                effectiveTools = catalog.directTools
-                    + tools.filter { !directToolNames.contains($0.callName) }
-                    + [catalog.callTool]
+                let builtIns = (catalog.directTools + [catalog.callTool])
+                    .sorted { ($0.callName, $0.name) < ($1.callName, $1.name) }
+                let callerTools = tools.filter {
+                    !directToolNames.contains($0.callName)
+                        && $0.callName != WorkspaceToolDispatcher.callName
+                }
+                effectiveTools = builtIns + callerTools
             } else {
                 effectiveTools = tools
             }
@@ -397,12 +405,23 @@ struct TurnPreparation: Sendable {
                 }
             }
 
-            // 9. Build the initial prompt messages
+            // 9. Build the initial prompt messages. Stepwise history trimming (#277) reads and
+            //    writes the per-Timeline cut so a trim happens once and the new prefix survives
+            //    later Turns. The assembly pass applies a default-budget trim again as a safety
+            //    net; the pre-trim below is already at or under that budget, so it is a no-op.
+            let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineID)
+            let structuredDiff = await promptHistory.structuredDiffHint()
+            let historyTrim = PromptHistoryOptimizer.stepwise(
+                history,
+                availableTokens: min(budget.availableTokens, PromptHistoryOptimizer.defaultHistoryBudget),
+                state: await promptHistory.historyTrimState()
+            )
+
             let promptRequest = LLMPromptRequest(
                 userContent: messageContent,
                 turnInstructions: sidecarTurnInstructions,
                 contextContributions: resolvedContributions,
-                chatHistory: history,
+                chatHistory: historyTrim.messages,
                 tools: effectiveTools,
                 workspaces: workspaceResult.attached,
                 primaryWorkspace: workspaceResult.primary,
@@ -410,9 +429,6 @@ struct TurnPreparation: Sendable {
                 systemInstructions: effectiveSystemInstructions,
                 generationParameters: generationParameters
             )
-
-            let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineID)
-            let structuredDiff = await promptHistory.structuredDiffHint()
 
             let renderedPrompt = try await PromptAssembler.assemble(
                 promptRequest,
@@ -426,9 +442,13 @@ struct TurnPreparation: Sendable {
                     historyProjectionReplacement: projectionResult.replacement
                 )
             )
+            await promptHistory.recordHistoryTrimState(historyTrim.state)
 
-            // 10. Reuse the final rendered artifact for messages + prompt history
-            var initialMessages = PromptLayoutBuilder.build(from: renderedPrompt).renderMessages()
+            // 10. Reuse the final rendered artifact for messages + prompt history. The tiered
+            //     layout also yields the cache breakpoints sent with the first model round.
+            let promptLayout = PromptLayoutBuilder.build(from: renderedPrompt)
+            var initialMessages = promptLayout.renderMessages()
+            let promptCacheBreakpoints = promptLayout.cacheBreakpoints()
             let resolvedSections = renderedPrompt.sections
 
             // 11. Record prompt snapshot for cache tracking BEFORE committing inputs. This is the
@@ -553,6 +573,7 @@ struct TurnPreparation: Sendable {
                 promptHistoryUpdate: update,
                 currentMessages: initialMessages,
                 modelRoundIndex: 0,
+                promptCacheBreakpoints: promptCacheBreakpoints,
                 responseModalities: responseModalities,
                 audioOutput: audioOutput,
                 transport: transport,

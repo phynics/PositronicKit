@@ -26,6 +26,16 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **Tiered prompt wire layout (#277).** The runtime renders provider requests in cache tiers:
+  tools, stable system, semi-stable system, prior history, volatile per-Turn context, then the
+  query. `TurnContextContributions` no longer sit at byte zero, so per-Turn context changes no
+  longer reset the whole prefix. The runtime derives `PromptCacheDirective` breakpoints
+  (`stableSystem`, `semiStableSystem`, `history`, and `toolLoop` on later rounds; at most four)
+  from the layout, orders tools deterministically (built-in runtime tools by name, then per-Turn
+  caller tools in caller order), and trims history stepwise to 75% of the budget at a
+  tool-transaction boundary, keeping one cut until the budget is crossed again. The Timeline title
+  moves from the stable Agent identity into the semi-stable Timeline context, so a rename no
+  longer resets the identity prefix.
 - **The runtime no longer depends on `PKPrompt`.** `PositronicKit` builds provider requests from
   an internal tiered `PromptLayout`, the 13 runtime section types are internal producers, and the
   `RenderedPrompt.buildMessages()` / `buildTimelineMessages()` projections move into `PKPrompt` as

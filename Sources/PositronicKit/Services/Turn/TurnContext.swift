@@ -175,6 +175,10 @@ struct TurnContext {
     // Per-turn snapshot (changes each iteration)
     let currentMessages: [LLMMessage]
     let modelRoundIndex: Int
+    /// Cache breakpoints computed from the initial tiered layout at preparation time. The
+    /// streaming stage extends the list with a `toolLoop` breakpoint on rounds that appended
+    /// tool messages; the stable and history boundaries never move once prepared.
+    let promptCacheBreakpoints: [PromptCacheBreakpoint]
 
     /// Mutable stage outputs shared via actor reference across struct copies.
     let outputs: TurnOutputs
@@ -205,6 +209,7 @@ struct TurnContext {
         promptHistoryUpdate: PromptHistoryUpdate? = nil,
         currentMessages: [LLMMessage],
         modelRoundIndex: Int,
+        promptCacheBreakpoints: [PromptCacheBreakpoint] = [],
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil,
         transport: GenerationTransport = .streaming,
@@ -240,6 +245,7 @@ struct TurnContext {
         self.promptHistoryUpdate = promptHistoryUpdate
         self.currentMessages = currentMessages
         self.modelRoundIndex = modelRoundIndex
+        self.promptCacheBreakpoints = promptCacheBreakpoints
         self.outputs = outputs
     }
 
@@ -281,6 +287,7 @@ struct TurnContext {
             promptHistoryUpdate: promptHistoryUpdate ?? self.promptHistoryUpdate,
             currentMessages: messages,
             modelRoundIndex: modelRoundIndex,
+            promptCacheBreakpoints: promptCacheBreakpoints,
             responseModalities: responseModalities,
             audioOutput: audioOutput,
             transport: transport,

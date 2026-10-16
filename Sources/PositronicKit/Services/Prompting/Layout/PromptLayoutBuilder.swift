@@ -29,7 +29,10 @@ enum PromptLayoutBuilder {
     static func tier(for section: RenderedPrompt.Section) -> PromptCacheTier {
         switch section.role {
         case .chatHistory:
-            return .history
+            // A history projection is a deliberate, slice-level replacement for a covered
+            // historical prefix, so it carries the semi-stable tier even though it still renders
+            // in the history region. Ordinary chat history is volatile and self-describing.
+            return section.cachePolicy == .semiStable ? .semiStable : .history
         case .userQuery:
             return .query
         case .system, .context:

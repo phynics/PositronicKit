@@ -121,7 +121,7 @@ enum PromptAssembler {
         })
         if let agentContext {
             try fragments.append(withLogging("AgentIdentity", logger: logger) {
-                AgentIdentityContext(snapshot: agentContext, timelineTitle: timeline?.title)
+                AgentIdentityContext(snapshot: agentContext)
             })
             if !agentContext.instructions.isEmpty {
                 try fragments.append(withLogging("AgentInstructions", logger: logger) {
@@ -145,7 +145,7 @@ enum PromptAssembler {
             }
         } else if let agent {
             try fragments.append(withLogging("AgentContext", logger: logger) {
-                AgentContext(agent, timelineTitle: timeline?.title)
+                AgentContext(agent)
             })
         }
         if !request.contextContributions.isEmpty {

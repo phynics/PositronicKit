@@ -143,10 +143,9 @@ struct LLMServiceTests {
         }
     }
 
-    @Test("Test history optimization (truncation)")
+    @Test("Test history optimization (stepwise truncation)")
     func promptTruncation() {
-        // Create a large history that should be truncated
-        // make sure it exceeds the limit we pass
+        // Create a large history that crosses the limit we pass.
         let limit = 100
 
         let largeHistory = (1 ... 10).map { i in
@@ -157,19 +156,29 @@ struct LLMServiceTests {
             )
         }
 
-        // Call optimizeHistory directly
-        let optimized = PromptHistoryOptimizer.optimize(largeHistory, availableTokens: limit)
+        // Call the optimizer directly. It drops oldest messages at a turn boundary down to 75%
+        // of the budget and retains the most recent suffix.
+        let result = PromptHistoryOptimizer.stepwise(
+            largeHistory,
+            availableTokens: limit,
+            state: HistoryTrimState()
+        )
 
-        // Should have fewer messages than total history
-        #expect(optimized.count < largeHistory.count)
+        // Should have fewer messages than total history, still ending with the newest message.
+        #expect(result.didTrim)
+        #expect(result.messages.count < largeHistory.count)
+        #expect(result.messages.last?.content == largeHistory.last?.content)
+        #expect(PromptHistoryOptimizer.estimatedTokens(result.messages) <= Int(0.75 * Double(limit)))
 
-        // Should contain a summary message at the start
-        if let first = optimized.first {
-            #expect(first.role == .system)
-            #expect(first.isSummary == true)
-        } else {
-            #expect(Bool(false), "Optimized history should not be empty")
-        }
+        // The cut is remembered: re-running over the same full history does not trim again, so
+        // the prefix stays byte-identical until the budget is crossed again.
+        let next = PromptHistoryOptimizer.stepwise(
+            largeHistory,
+            availableTokens: limit,
+            state: result.state
+        )
+        #expect(!next.didTrim)
+        #expect(next.messages.map(\.content) == result.messages.map(\.content))
     }
 
     @Test("LLMService streaming fails when not configured")

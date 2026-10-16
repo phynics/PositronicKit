@@ -38,9 +38,10 @@ struct LLMStreamingStage: PipelineStage {
                 try SidecarSchemaComposer.compose(directives: context.sidecars)
             }
 
-        // The routing key keeps this Timeline's requests on one provider cache; the tiered
-        // breakpoint layout is attached by the layout planner, not here.
-        let promptCache = context.promptCaching.directive(for: context.timelineID)
+        // The routing key keeps this Timeline's requests on one provider cache. The breakpoint
+        // list is derived from the tiered layout prepared for this Turn; the tool-loop tier is
+        // appended once a round carries tool messages so each round reuses the previous prefix.
+        let promptCache = Self.promptCacheDirective(for: context)
 
         for warning in ProviderCapabilityObservability.warnings(
             provider: configuration.activeProvider,
@@ -134,6 +135,36 @@ struct LLMStreamingStage: PipelineStage {
     }
 
     // MARK: - Helpers
+
+    /// Builds the cache directive for a model round from the Turn's prepared tier layout.
+    ///
+    /// The base breakpoints are stable across rounds. A `toolLoop` breakpoint is added on round
+    /// 2+ so each tool round reuses the previous round's prefix; the provider caps the list at
+    /// its own breakpoint limit.
+    static func promptCacheDirective(for context: TurnContext) -> PromptCacheDirective? {
+        guard let base = context.promptCaching.directive(for: context.timelineID) else {
+            return nil
+        }
+        guard !context.promptCacheBreakpoints.isEmpty || context.modelRoundIndex > 1 else {
+            return base
+        }
+
+        var breakpoints = context.promptCacheBreakpoints
+        if context.modelRoundIndex > 1, !context.currentMessages.isEmpty {
+            breakpoints.removeAll { $0.tier == .toolLoop }
+            breakpoints.append(PromptCacheBreakpoint(
+                messageIndex: context.currentMessages.count - 1,
+                tier: .toolLoop,
+                estimatedPrefixTokens: TokenEstimator.estimate(parts: context.currentMessages.map(\.content))
+            ))
+        }
+
+        return PromptCacheDirective(
+            routingKey: base.routingKey,
+            retention: base.retention,
+            breakpoints: breakpoints
+        )
+    }
 
     private func streamResponse(
         _ streamData: AsyncThrowingStream<LLMStreamChunk, Error>,

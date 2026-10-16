@@ -22,6 +22,8 @@ actor TimelinePromptHistory {
     private(set) var lastDiff: PromptDiff?
     private var nextUpdateFailure: TimelinePromptHistoryError? = nil
     private var historyProjectionCoverageWatermark: UUID?
+    /// Per-Timeline stepwise history cut (#277). Empty until the first over-budget Turn.
+    private var trimState = HistoryTrimState()
 
     var appendedMessageCount: Int { pressure.appendedMessageCount }
     var appendedTokens: Int { pressure.appendedTokens }
@@ -173,6 +175,16 @@ actor TimelinePromptHistory {
     /// when history was left raw.
     func recordHistoryProjectionWatermark(_ messageID: UUID?) {
         historyProjectionCoverageWatermark = messageID
+    }
+
+    /// The stepwise history cut currently in effect for this Timeline, or an empty state.
+    func historyTrimState() -> HistoryTrimState {
+        trimState
+    }
+
+    /// Persists the stepwise history cut after a trim pass so later Turns reuse the same prefix.
+    func recordHistoryTrimState(_ state: HistoryTrimState) {
+        trimState = state
     }
 
     func structuredDiffHint() -> StructuredDiffHint? {
