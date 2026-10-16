@@ -44,7 +44,7 @@ public struct MCPWorkspaceFactory: WorkspaceFactory {
     /// registered `profiles`, and delegates non-MCP references to `fallback`.
     ///
     /// Register each reusable server once here, then attach it to any number of Timelines with
-    /// ``WorkspaceCapability/createMCPWorkspace(_:for:)``. A `.pooled` profile creates its shared
+    /// `WorkspaceCapability/createMCPWorkspace(_:for:)`. A `.pooled` profile creates its shared
     /// connection eagerly; it connects lazily on first use.
     public init(
         secretResolver: any MCPSecretResolver,

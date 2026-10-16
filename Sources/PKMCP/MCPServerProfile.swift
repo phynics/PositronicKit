@@ -19,8 +19,8 @@ public enum MCPSessionScope: String, Codable, Sendable, Hashable, CaseIterable {
 /// A reusable MCP server configuration registered once with ``MCPWorkspaceFactory``.
 ///
 /// A profile separates the reusable server configuration from the session Workspace. Register it
-/// with ``MCPWorkspaceFactory``, then attach it to as many Timelines as needed with
-/// ``WorkspaceCapability/createMCPWorkspace(_:for:)``. Each attached Workspace is an ordinary
+/// with `MCPWorkspaceFactory`, then attach it to as many Timelines as needed with
+/// `WorkspaceCapability/createMCPWorkspace(_:for:)`. Each attached Workspace is an ordinary
 /// Workspace: exclusive binding, per-Workspace FIFO serialization, and admission-time authority
 /// are unchanged.
 ///
