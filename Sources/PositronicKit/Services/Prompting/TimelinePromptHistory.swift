@@ -28,6 +28,10 @@ actor TimelinePromptHistory {
     private var lastTierFingerprint: TierFingerprint?
     /// The most recent prompt-layout snapshot surfaced through `TimelineHandle.promptState()`.
     private var lastPromptState: PromptStateSnapshot?
+    /// The newest final model round's provider-neutral request, or `nil` when sibling-prefix
+    /// retention is disabled or no round has completed. Bounded to one entry per Timeline and
+    /// released with this history entry on eviction or deletion.
+    private var retainedSiblingRequest: RetainedSiblingRequest?
 
     var appendedMessageCount: Int { pressure.appendedMessageCount }
     var appendedTokens: Int { pressure.appendedTokens }
@@ -218,6 +222,19 @@ actor TimelinePromptHistory {
     /// The latest prompt-layout state for this Timeline, or an empty snapshot before any round.
     func promptStateSnapshot() -> PromptStateSnapshot {
         lastPromptState ?? .empty
+    }
+
+    /// Retains the provider-neutral request the given model round sent.
+    ///
+    /// Each completed round overwrites the previous one, so the entry always describes the newest
+    /// (and, once a Turn terminates, final) round. The retained value is never logged.
+    func recordSiblingRequest(_ request: RetainedSiblingRequest) {
+        retainedSiblingRequest = request
+    }
+
+    /// The newest retained final-round request, or `nil` when none was retained.
+    func siblingRequest() -> RetainedSiblingRequest? {
+        retainedSiblingRequest
     }
 
     /// Persists the stepwise history cut after a trim pass so later Turns reuse the same prefix.

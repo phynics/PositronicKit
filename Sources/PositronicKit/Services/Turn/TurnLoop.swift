@@ -263,6 +263,12 @@ private extension TurnLoop {
             // even though the owning Turn task is already cancelled. Recheck ownership before any
             // success/tool-routing path can durably complete the Turn.
             try Task.checkCancellation()
+            // Retain the round's provider-neutral request for cache-exact sibling requests (#281).
+            // Recording after the stream closes keeps an in-flight round out of the registry, and
+            // each round overwrites the previous one so only the final round survives.
+            if dependencies.policy.retainsSiblingPrefix, let history = context.promptHistory {
+                await history.recordSiblingRequest(RetainedSiblingRequest.capture(from: context))
+            }
             logger.trace("Turn \(turnLabel): pipeline complete for \(sid)")
             return try await handleToolCallsAfterTurn(context: context, continuation: continuation)
         } catch is CancellationError {

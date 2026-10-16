@@ -196,3 +196,110 @@ public struct TimelineHandle: Identifiable, Sendable {
         }
     }
 }
+
+// MARK: - Cache-exact sibling requests (#281)
+
+@_spi(Experimental)
+public extension TimelineHandle {
+    /// Issues an auxiliary model request that shares the retained final round's provider-facing
+    /// prefix, so post-Turn analysis (critics, titles, curation) can hit the provider cache.
+    ///
+    /// The call replays the retained messages and tools byte for byte, appends `messages` after
+    /// the retained prefix, and reuses the retained cache directive (`routingKey`, retention, and
+    /// breakpoints). It writes nothing to the transcript, Turn ledger, or journal, and it does not
+    /// take the Timeline authority lane, so it never blocks or reorders Turn admission.
+    ///
+    /// Retention must be enabled through ``PKRuntime/RuntimeConfiguration/retainsSiblingPrefix``.
+    ///
+    /// - Parameters:
+    ///   - messages: The host messages to append after the retained prefix.
+    ///   - responseFormat: The response shape to request. When `nil`, the retained round's shape is
+    ///     reused.
+    ///   - generationParameters: Sampling overrides. When `nil`, the retained round's effective
+    ///     parameters are reused.
+    /// - Returns: The assembled response, including provider usage and any cached-token counts.
+    /// - Throws: ``TimelineError/timelineNotFound`` when the Timeline does not exist, or
+    ///   ``TimelineError/siblingPrefixUnavailable(_:)`` when no cache-exact prefix can be served.
+    func siblingRequest(
+        appending messages: [LLMMessage],
+        responseFormat: LLMResponseFormat? = nil,
+        generationParameters: GenerationParameters? = nil
+    ) async throws -> LLMResponse {
+        let retained = try await retainedSiblingRequest()
+        let chunk = try await engine.dependencies.llmService.generationCompletion(
+            messages: retained.messages + messages,
+            tools: retained.tools,
+            toolChoice: retained.toolChoice,
+            responseFormat: responseFormat ?? retained.responseFormat,
+            generationParameters: generationParameters ?? retained.generationParameters,
+            modelTier: retained.modelTier,
+            responseModalities: [.text],
+            audioOutput: nil,
+            promptCache: retained.promptCache
+        )
+        return LLMResponse(
+            content: chunk.choices.first?.delta.content,
+            id: chunk.id,
+            model: chunk.model,
+            usage: chunk.usage,
+            finishReason: chunk.choices.first?.finishReason
+        )
+    }
+
+    /// Streams an auxiliary model request over the retained final round's provider-facing prefix.
+    ///
+    /// The streaming variant of
+    /// ``siblingRequest(appending:responseFormat:generationParameters:)``: it applies the same
+    /// prefix, directive, and read-only isolation, but returns the provider's raw chunk stream so
+    /// the host can render the auxiliary response incrementally. Cancelling the consuming task
+    /// cancels the underlying provider request.
+    ///
+    /// - Parameters:
+    ///   - messages: The host messages to append after the retained prefix.
+    ///   - responseFormat: The response shape to request. When `nil`, the retained round's shape is
+    ///     reused.
+    ///   - generationParameters: Sampling overrides. When `nil`, the retained round's effective
+    ///     parameters are reused.
+    /// - Returns: The provider's chunk stream.
+    /// - Throws: ``TimelineError/timelineNotFound`` when the Timeline does not exist, or
+    ///   ``TimelineError/siblingPrefixUnavailable(_:)`` when no cache-exact prefix can be served.
+    func siblingRequestStream(
+        appending messages: [LLMMessage],
+        responseFormat: LLMResponseFormat? = nil,
+        generationParameters: GenerationParameters? = nil
+    ) async throws -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        let retained = try await retainedSiblingRequest()
+        return await engine.dependencies.llmService.generation(
+            transport: retained.transport,
+            messages: retained.messages + messages,
+            tools: retained.tools,
+            toolChoice: retained.toolChoice,
+            responseFormat: responseFormat ?? retained.responseFormat,
+            generationParameters: generationParameters ?? retained.generationParameters,
+            modelTier: retained.modelTier,
+            responseModalities: [.text],
+            audioOutput: nil,
+            promptCache: retained.promptCache
+        )
+    }
+
+    /// Resolves the retained final-round request, rejecting an in-flight Turn so the sibling
+    /// request never mixes model rounds.
+    private func retainedSiblingRequest() async throws -> RetainedSiblingRequest {
+        let dependencies = engine.dependencies
+        guard dependencies.policy.retainsSiblingPrefix else {
+            throw TimelineError.siblingPrefixUnavailable(.retentionDisabled)
+        }
+        guard try await dependencies.timelineManager.timelineStore.fetchTimeline(id: timelineID) != nil else {
+            throw TimelineError.timelineNotFound
+        }
+        if try await dependencies.runtimeRepository.fetchActiveTurn(for: timelineID) != nil {
+            throw TimelineError.siblingPrefixUnavailable(.turnInFlight)
+        }
+        let history = await dependencies.promptHistoryRegistry.history(for: timelineID)
+        guard let retained = await history.siblingRequest() else {
+            throw TimelineError.siblingPrefixUnavailable(.noRetainedRound)
+        }
+        return retained
+    }
+}

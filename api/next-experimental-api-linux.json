@@ -666,6 +666,26 @@
       "declaration": "static func run(client: any EmbeddingClientProtocol, inputs: [String]) async throws"
     },
     {
+      "precise": "s:13PositronicKit14TimelineHandleV14siblingRequest9appending14responseFormat20generationParameters11PKContracts11LLMResponseVSayAH10LLMMessageVG_AH0mI0OSgAH010GenerationK0VSgtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineHandle",
+        "siblingRequest(appending:responseFormat:generationParameters:)"
+      ],
+      "declaration": "func siblingRequest(appending messages: [LLMMessage], responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil) async throws -> LLMResponse"
+    },
+    {
+      "precise": "s:13PositronicKit14TimelineHandleV20siblingRequestStream9appending14responseFormat20generationParametersScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAH10LLMMessageVG_AH011LLMResponseJ0OSgAH010GenerationL0VSgtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TimelineHandle",
+        "siblingRequestStream(appending:responseFormat:generationParameters:)"
+      ],
+      "declaration": "func siblingRequestStream(appending messages: [LLMMessage], responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil) async throws -> AsyncThrowingStream<LLMStreamChunk, any Error>"
+    },
+    {
       "precise": "s:16PKOllamaProvider0A0O19makeEmbeddingClient5model8endpoint15timeoutInterval10maxRetriesAA06OllamadE0CSS_SSSdSitFZ",
       "module": "PKOllamaProvider",
       "kind": "swift.type.method",
@@ -1561,6 +1581,18 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO3run6client6inputsy11PKContracts0cD8Protocol_p_SaySSGtYaKFZ",
       "target": "s:13PKTestSupport31EmbeddingClientConformanceSuiteO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit14TimelineHandleV14siblingRequest9appending14responseFormat20generationParameters11PKContracts11LLMResponseVSayAH10LLMMessageVG_AH0mI0OSgAH010GenerationK0VSgtYaKF",
+      "target": "s:13PositronicKit14TimelineHandleV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit14TimelineHandleV20siblingRequestStream9appending14responseFormat20generationParametersScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAH10LLMMessageVG_AH011LLMResponseJ0OSgAH010GenerationL0VSgtYaKF",
+      "target": "s:13PositronicKit14TimelineHandleV"
     },
     {
       "module": "PKContracts",

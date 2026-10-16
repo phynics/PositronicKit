@@ -263,6 +263,16 @@ public extension PKRuntime {
         /// prompt-caching capability.
         public let promptCaching: PromptCachingPolicy
 
+        /// Whether the runtime retains each Timeline's final model round so a host can issue a
+        /// cache-exact sibling request through
+        /// ``TimelineHandle/siblingRequest(appending:responseFormat:generationParameters:)``.
+        ///
+        /// Defaults to `false`: retention is opt-in. When enabled, only the newest completed
+        /// model round is kept per Timeline, in memory, and it is released when the Timeline is
+        /// evicted or deleted. The retained request is never logged and never written to the
+        /// Timeline.
+        public let retainsSiblingPrefix: Bool
+
         /// How long, in seconds, a Turn's terminal commit may stay pending before admission
         /// treats the Turn as abandoned and interrupts it (ADR 0010).
         ///
@@ -301,6 +311,8 @@ public extension PKRuntime {
         ///     value falls back to 300.
         ///   - promptCaching: How the runtime requests provider-side prompt caching. Defaults to
         ///     `.automatic()`.
+        ///   - retainsSiblingPrefix: Whether to retain each Timeline's final model round for
+        ///     cache-exact sibling requests. Defaults to `false`.
         public init(
             workspaceProfile: WorkspaceProfile = .noWorkspace,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
@@ -311,7 +323,8 @@ public extension PKRuntime {
             degradationPolicy: TurnDegradationPolicy = .failRequired,
             streamTimeout: TimeInterval = 60,
             terminalCommitStallLimit: TimeInterval = 300,
-            promptCaching: PromptCachingPolicy = .automatic()
+            promptCaching: PromptCachingPolicy = .automatic(),
+            retainsSiblingPrefix: Bool = false
         ) {
             self.workspaceProfile = workspaceProfile
             self.workspaceCreator = workspaceCreator
@@ -325,6 +338,7 @@ public extension PKRuntime {
                 terminalCommitStallLimit
             )
             self.promptCaching = promptCaching
+            self.retainsSiblingPrefix = retainsSiblingPrefix
         }
 
         /// The default runtime configuration: no workspaces or customization, deny-all tool approval.

@@ -13186,6 +13186,16 @@
       "declaration": "var stubbedStream: AsyncThrowingStream<LLMStreamChunk, Error>? { get set }"
     },
     {
+      "precise": "s:13PKTestSupport14MockLLMServiceC16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11promptCacheScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAN10LLMMessageVG_SayAN17LLMToolDefinitionVGSgAN0zJ0OSgAN011LLMResponseL0OSgAN010GenerationM0VSg13PositronicKit05ModelO0OShyAN16ResponseModalityOGAN05AudioR7OptionsVSgAN06PromptT9DirectiveVSgtYaF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "MockLLMService",
+        "generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:promptCache:)"
+      ],
+      "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities _: Set<ResponseModality>, audioOutput _: AudioOutputOptions?, promptCache: PromptCacheDirective?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
+    },
+    {
       "precise": "s:13PKTestSupport14MockLLMServiceC16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0xJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSg13PositronicKit05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -13193,7 +13203,7 @@
         "MockLLMService",
         "generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
       ],
-      "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities _: Set<ResponseModality>, audioOutput _: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
+      "declaration": "func generationStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
       "precise": "s:13PKTestSupport14MockLLMServiceC16mockHealthStatus11PKContracts0fG0Ovp",
@@ -13284,6 +13294,16 @@
         "generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
       ],
       "declaration": "func generationCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async throws -> LLMStreamChunk"
+    },
+    {
+      "precise": "s:13PKTestSupport14MockLLMServiceC20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11promptCache11PKContracts14LLMStreamChunkVSayAN10LLMMessageVG_SayAN17LLMToolDefinitionVGSgAN0yJ0OSgAN011LLMResponseL0OSgAN010GenerationM0VSg13PositronicKit05ModelO0OShyAN16ResponseModalityOGAN05AudioR7OptionsVSgAN06PromptT9DirectiveVSgtYaKF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "MockLLMService",
+        "generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:promptCache:)"
+      ],
+      "declaration": "func generationCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?, promptCache: PromptCacheDirective?) async throws -> LLMStreamChunk"
     },
     {
       "precise": "s:13PKTestSupport14MockLLMServiceC21lastCompletionCaptureAA0c13LLMGenerationG0VSgvp",
@@ -14895,6 +14915,16 @@
       "declaration": "let toolChoice: LLMToolChoice?"
     },
     {
+      "precise": "s:13PKTestSupport24MockLLMGenerationCaptureV11promptCache11PKContracts06PromptG9DirectiveVSgvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockLLMGenerationCapture",
+        "promptCache"
+      ],
+      "declaration": "let promptCache: PromptCacheDirective?"
+    },
+    {
       "precise": "s:13PKTestSupport24MockLLMGenerationCaptureV14responseFormat11PKContracts011LLMResponseG0OSgvp",
       "module": "PKTestSupport",
       "kind": "swift.property",
@@ -14923,6 +14953,16 @@
         "tools"
       ],
       "declaration": "let tools: [LLMToolDefinition]?"
+    },
+    {
+      "precise": "s:13PKTestSupport24MockLLMGenerationCaptureV8messages5tools10toolChoice14responseFormat20generationParameters9modelTier11promptCacheACSay11PKContracts10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tI0OSgAK011LLMResponseK0OSgAK010GenerationM0VSg13PositronicKit05ModelO0OAK06PromptQ9DirectiveVSgtcfc",
+      "module": "PKTestSupport",
+      "kind": "swift.init",
+      "path": [
+        "MockLLMGenerationCapture",
+        "init(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:promptCache:)"
+      ],
+      "declaration": "init(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, promptCache: PromptCacheDirective? = nil)"
     },
     {
       "precise": "s:13PKTestSupport24MockLLMGenerationCaptureV8messagesSay11PKContracts10LLMMessageVGvp",
@@ -16863,6 +16903,70 @@
         "userFriendlyMessage"
       ],
       "declaration": "var userFriendlyMessage: String { get }"
+    },
+    {
+      "precise": "s:13PositronicKit13TimelineErrorO24siblingPrefixUnavailableyA2C07SiblingF14UnavailabilityOcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TimelineError",
+        "siblingPrefixUnavailable(_:)"
+      ],
+      "declaration": "case siblingPrefixUnavailable(SiblingPrefixUnavailability)"
+    },
+    {
+      "precise": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO",
+      "module": "PositronicKit",
+      "kind": "swift.enum",
+      "path": [
+        "TimelineError",
+        "SiblingPrefixUnavailability"
+      ],
+      "declaration": "enum SiblingPrefixUnavailability"
+    },
+    {
+      "precise": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO12turnInFlightyA2EmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TimelineError",
+        "SiblingPrefixUnavailability",
+        "turnInFlight"
+      ],
+      "declaration": "case turnInFlight"
+    },
+    {
+      "precise": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO15noRetainedRoundyA2EmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TimelineError",
+        "SiblingPrefixUnavailability",
+        "noRetainedRound"
+      ],
+      "declaration": "case noRetainedRound"
+    },
+    {
+      "precise": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO17retentionDisabledyA2EmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TimelineError",
+        "SiblingPrefixUnavailability",
+        "retentionDisabled"
+      ],
+      "declaration": "case retentionDisabled"
+    },
+    {
+      "precise": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO8rawValueAESgSS_tcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "TimelineError",
+        "SiblingPrefixUnavailability",
+        "init(rawValue:)"
+      ],
+      "declaration": "init?(rawValue: String)"
     },
     {
       "precise": "s:13PositronicKit13TimelineErrorO7corruptyACSScACmF",
@@ -25223,15 +25327,15 @@
       "declaration": "let workspaceCreator: any WorkspaceFactory"
     },
     {
-      "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV16workspaceProfile0F7Creator13customization17runtimeToolPolicy012toolApprovalL0018diagnosticSnapshotE0011degradationL013streamTimeout24terminalCommitStallLimit13promptCachingAeA09WorkspaceG0O_AA0Z7Factory_pAA0D13CustomizationVAA0dkL0V11PKContracts0knL0_pAW010DiagnosticpE0VAW015TurnDegradationL0OS2dAW06PromptyL0Otcfc",
+      "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV16workspaceProfile0F7Creator13customization17runtimeToolPolicy012toolApprovalL0018diagnosticSnapshotE0011degradationL013streamTimeout24terminalCommitStallLimit13promptCaching20retainsSiblingPrefixAeA09WorkspaceG0O_AA16WorkspaceFactory_pAA0D13CustomizationVAA0dkL0V11PKContracts0knL0_pAX010DiagnosticpE0VAX015TurnDegradationL0OS2dAX06PromptyL0OSbtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "PKRuntime",
         "RuntimeConfiguration",
-        "init(workspaceProfile:workspaceCreator:customization:runtimeToolPolicy:toolApprovalPolicy:diagnosticSnapshotConfiguration:degradationPolicy:streamTimeout:terminalCommitStallLimit:promptCaching:)"
+        "init(workspaceProfile:workspaceCreator:customization:runtimeToolPolicy:toolApprovalPolicy:diagnosticSnapshotConfiguration:degradationPolicy:streamTimeout:terminalCommitStallLimit:promptCaching:retainsSiblingPrefix:)"
       ],
-      "declaration": "init(workspaceProfile: WorkspaceProfile = .noWorkspace, workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(), customization: RuntimeCustomization = .default, runtimeToolPolicy: RuntimeToolPolicy = .default, toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(), diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default, degradationPolicy: TurnDegradationPolicy = .failRequired, streamTimeout: TimeInterval = 60, terminalCommitStallLimit: TimeInterval = 300, promptCaching: PromptCachingPolicy = .automatic())"
+      "declaration": "init(workspaceProfile: WorkspaceProfile = .noWorkspace, workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(), customization: RuntimeCustomization = .default, runtimeToolPolicy: RuntimeToolPolicy = .default, toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(), diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default, degradationPolicy: TurnDegradationPolicy = .failRequired, streamTimeout: TimeInterval = 60, terminalCommitStallLimit: TimeInterval = 300, promptCaching: PromptCachingPolicy = .automatic(), retainsSiblingPrefix: Bool = false)"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV16workspaceProfileAA09WorkspaceG0Ovp",
@@ -25276,6 +25380,17 @@
         "toolApprovalPolicy"
       ],
       "declaration": "let toolApprovalPolicy: any ToolApprovalPolicy"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV20retainsSiblingPrefixSbvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "PKRuntime",
+        "RuntimeConfiguration",
+        "retainsSiblingPrefix"
+      ],
+      "declaration": "let retainsSiblingPrefix: Bool"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV24terminalCommitStallLimitSdvp",
@@ -36743,6 +36858,41 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit13TimelineErrorO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO",
+      "target": "s:SY",
+      "targetFallback": "Swift.RawRepresentable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -50131,6 +50281,16 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport14MockLLMServiceC16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11promptCacheScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAN10LLMMessageVG_SayAN17LLMToolDefinitionVGSgAN0zJ0OSgAN011LLMResponseL0OSgAN010GenerationM0VSg13PositronicKit05ModelO0OShyAN16ResponseModalityOGAN05AudioR7OptionsVSgAN06PromptT9DirectiveVSgtYaF",
+      "target": "s:13PKTestSupport14MockLLMServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit15LLMStreamClientP16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11promptCacheScsy11PKContracts0C5ChunkVs5Error_pGSayAN10LLMMessageVG_SayAN17LLMToolDefinitionVGSgAN0yJ0OSgAN011LLMResponseL0OSgAN010GenerationM0VSgAA05ModelO0OShyAN16ResponseModalityOGAN05AudioR7OptionsVSgAN06PromptT9DirectiveVSgtYaF",
+        "displayName": "LLMStreamClient.generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:promptCache:)"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport14MockLLMServiceC16generationStream8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutputScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0xJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSg13PositronicKit05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaF",
       "target": "s:13PKTestSupport14MockLLMServiceC",
       "sourceOrigin": {
@@ -50194,6 +50354,16 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit15LLMStreamClientP20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11PKContracts0C5ChunkVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0vJ0OSgAM011LLMResponseL0OSgAM010GenerationM0VSgAA05ModelO0OShyAM16ResponseModalityOGAM05AudioR7OptionsVSgtYaKF",
         "displayName": "LLMStreamClient.generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:)"
+      }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport14MockLLMServiceC20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11promptCache11PKContracts14LLMStreamChunkVSayAN10LLMMessageVG_SayAN17LLMToolDefinitionVGSgAN0yJ0OSgAN011LLMResponseL0OSgAN010GenerationM0VSg13PositronicKit05ModelO0OShyAN16ResponseModalityOGAN05AudioR7OptionsVSgAN06PromptT9DirectiveVSgtYaKF",
+      "target": "s:13PKTestSupport14MockLLMServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit15LLMStreamClientP20generationCompletion8messages5tools10toolChoice14responseFormat0E10Parameters9modelTier0K10Modalities11audioOutput11promptCache11PKContracts0C5ChunkVSayAN10LLMMessageVG_SayAN17LLMToolDefinitionVGSgAN0xJ0OSgAN011LLMResponseL0OSgAN010GenerationM0VSgAA05ModelO0OShyAN16ResponseModalityOGAN05AudioR7OptionsVSgAN06PromptT9DirectiveVSgtYaKF",
+        "displayName": "LLMStreamClient.generationCompletion(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:responseModalities:audioOutput:promptCache:)"
       }
     },
     {
@@ -51351,6 +51521,12 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport24MockLLMGenerationCaptureV11promptCache11PKContracts06PromptG9DirectiveVSgvp",
+      "target": "s:13PKTestSupport24MockLLMGenerationCaptureV"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport24MockLLMGenerationCaptureV14responseFormat11PKContracts011LLMResponseG0OSgvp",
       "target": "s:13PKTestSupport24MockLLMGenerationCaptureV"
     },
@@ -51364,6 +51540,12 @@
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport24MockLLMGenerationCaptureV5toolsSay11PKContracts17LLMToolDefinitionVGSgvp",
+      "target": "s:13PKTestSupport24MockLLMGenerationCaptureV"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport24MockLLMGenerationCaptureV8messages5tools10toolChoice14responseFormat20generationParameters9modelTier11promptCacheACSay11PKContracts10LLMMessageVG_SayAK17LLMToolDefinitionVGSgAK0tI0OSgAK011LLMResponseK0OSgAK010GenerationM0VSg13PositronicKit05ModelO0OAK06PromptQ9DirectiveVSgtcfc",
       "target": "s:13PKTestSupport24MockLLMGenerationCaptureV"
     },
     {
@@ -52583,6 +52765,46 @@
       "sourceOrigin": {
         "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp",
         "displayName": "Throwable.userFriendlyMessage"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit13TimelineErrorO24siblingPrefixUnavailableyA2C07SiblingF14UnavailabilityOcACmF",
+      "target": "s:13PositronicKit13TimelineErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO",
+      "target": "s:13PositronicKit13TimelineErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO12turnInFlightyA2EmF",
+      "target": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO15noRetainedRoundyA2EmF",
+      "target": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO17retentionDisabledyA2EmF",
+      "target": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO8rawValueAESgSS_tcfc",
+      "target": "s:13PositronicKit13TimelineErrorO27SiblingPrefixUnavailabilityO",
+      "sourceOrigin": {
+        "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc",
+        "displayName": "RawRepresentable.init(rawValue:)"
       }
     },
     {
@@ -57076,7 +57298,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV16workspaceProfile0F7Creator13customization17runtimeToolPolicy012toolApprovalL0018diagnosticSnapshotE0011degradationL013streamTimeout24terminalCommitStallLimit13promptCachingAeA09WorkspaceG0O_AA0Z7Factory_pAA0D13CustomizationVAA0dkL0V11PKContracts0knL0_pAW010DiagnosticpE0VAW015TurnDegradationL0OS2dAW06PromptyL0Otcfc",
+      "source": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV16workspaceProfile0F7Creator13customization17runtimeToolPolicy012toolApprovalL0018diagnosticSnapshotE0011degradationL013streamTimeout24terminalCommitStallLimit13promptCaching20retainsSiblingPrefixAeA09WorkspaceG0O_AA16WorkspaceFactory_pAA0D13CustomizationVAA0dkL0V11PKContracts0knL0_pAX010DiagnosticpE0VAX015TurnDegradationL0OS2dAX06PromptyL0OSbtcfc",
       "target": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV"
     },
     {
@@ -57101,6 +57323,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV18toolApprovalPolicy11PKContracts04ToolgH0_pvp",
+      "target": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV20retainsSiblingPrefixSbvp",
       "target": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV"
     },
     {

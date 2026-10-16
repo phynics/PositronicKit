@@ -68,7 +68,8 @@ extension RuntimeDependencies {
                 loggingConfiguration: configuration.logging,
                 clock: clock,
                 generationParameters: configuration.generationParameters,
-                promptCaching: configuration.runtime.promptCaching
+                promptCaching: configuration.runtime.promptCaching,
+                retainsSiblingPrefix: configuration.runtime.retainsSiblingPrefix
             )
         )
     }

@@ -41,6 +41,9 @@ internal struct RuntimePolicy: Sendable {
     var generationParameters: GenerationParameters?
     /// How the runtime requests provider-side prompt caching when a Turn carries no override.
     var promptCaching: PromptCachingPolicy
+    /// Whether the runtime retains each Timeline's final model round for cache-exact sibling
+    /// requests (#281).
+    var retainsSiblingPrefix: Bool
 
     init(
         streamTimeout: TimeInterval = RuntimePolicy.defaultStreamTimeout,
@@ -50,7 +53,8 @@ internal struct RuntimePolicy: Sendable {
         loggingConfiguration: LoggingConfiguration = .default,
         clock: any RuntimeClock = ContinuousRuntimeClock(),
         generationParameters: GenerationParameters? = nil,
-        promptCaching: PromptCachingPolicy = .automatic()
+        promptCaching: PromptCachingPolicy = .automatic(),
+        retainsSiblingPrefix: Bool = false
     ) {
         self.streamTimeout = Self.resolvedStreamTimeout(streamTimeout)
         self.terminalCommitStallLimit = Self.resolvedTerminalCommitStallLimit(terminalCommitStallLimit)
@@ -60,6 +64,7 @@ internal struct RuntimePolicy: Sendable {
         self.clock = clock
         self.generationParameters = generationParameters
         self.promptCaching = promptCaching
+        self.retainsSiblingPrefix = retainsSiblingPrefix
     }
 
     /// A finite idle timeout inside one millisecond ... one day.

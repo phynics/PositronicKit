@@ -59,6 +59,19 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
 
 ### Added
 
+- **Cache-exact sibling requests over a Timeline prefix (#281, @_spi(Experimental)).** With
+  `RuntimeConfiguration(retainsSiblingPrefix: true)`, the runtime retains each Timeline's newest
+  final model round as an immutable provider-neutral request (messages, tools, effective
+  generation parameters, and cache directive), bounded to one entry per Timeline and released
+  with the Timeline's prompt-history entry on eviction or deletion. `TimelineHandle.siblingRequest(
+  appending:responseFormat:generationParameters:)` and `siblingRequestStream(...)` replay that
+  prefix byte for byte, append host messages, reuse the source `routingKey`, retention, and
+  breakpoints, and return the provider response with usage (including cached tokens). The calls
+  write nothing to the transcript, Turn ledger, or journal and do not take the Timeline authority
+  lane. Absent Timelines throw `TimelineError.timelineNotFound`; an in-flight Turn, a missing
+  retained round, or disabled retention throws
+  `TimelineError.siblingPrefixUnavailable(_:)`.
+
 - **Per-round prompt-cache reports and read-only prompt state (#280).** Every model round emits a
   `PromptCacheReport` after its usage arrives, carrying the expected reusable prefix, the
   provider's cache reads and writes, the breakpoints sent, and the reasons any prefix reset. The

@@ -15,6 +15,27 @@ public struct MockLLMGenerationCapture: Sendable {
     public let responseFormat: LLMResponseFormat?
     public let generationParameters: GenerationParameters?
     public let modelTier: ModelTier
+    /// The prompt-cache directive carried by this request, when the cache-aware entry point was
+    /// used. `nil` for requests that used a non-cache-aware entry point.
+    public let promptCache: PromptCacheDirective?
+
+    public init(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        promptCache: PromptCacheDirective? = nil
+    ) {
+        self.messages = messages
+        self.tools = tools
+        self.toolChoice = toolChoice
+        self.responseFormat = responseFormat
+        self.generationParameters = generationParameters
+        self.modelTier = modelTier
+        self.promptCache = promptCache
+    }
 }
 
 /// Complete immutable capture of one non-streaming send request.
@@ -590,8 +611,51 @@ public final class MockLLMService: LLMStreamClient, HealthCheckable {
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
         modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await recordAndStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier,
+            promptCache: nil
+        )
+    }
+
+    public func generationStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
         responseModalities _: Set<ResponseModality>,
-        audioOutput _: AudioOutputOptions?
+        audioOutput _: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await recordAndStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier,
+            promptCache: promptCache
+        )
+    }
+
+    /// Records one service-level generation capture and returns the mock client's stream.
+    private func recordAndStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        promptCache: PromptCacheDirective?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let target = state.withLock { state -> (
             stubbed: AsyncThrowingStream<LLMStreamChunk, Error>?,
@@ -603,7 +667,8 @@ public final class MockLLMService: LLMStreamClient, HealthCheckable {
                 toolChoice: toolChoice,
                 responseFormat: responseFormat,
                 generationParameters: generationParameters,
-                modelTier: modelTier
+                modelTier: modelTier,
+                promptCache: promptCache
             )
             state.lastModelTier = modelTier
             state.modelTierHistory.append(modelTier)
@@ -634,6 +699,55 @@ public final class MockLLMService: LLMStreamClient, HealthCheckable {
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?
     ) async throws -> LLMStreamChunk {
+        try await recordAndComplete(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput,
+            promptCache: nil
+        )
+    }
+
+    public func generationCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async throws -> LLMStreamChunk {
+        try await recordAndComplete(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput,
+            promptCache: promptCache
+        )
+    }
+
+    /// Records one service-level completion capture and returns the mock client's result.
+    private func recordAndComplete(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async throws -> LLMStreamChunk {
         let target = state.withLock { state -> (
             stubbed: LLMStreamChunk?,
             client: MockLLMClient,
@@ -645,7 +759,8 @@ public final class MockLLMService: LLMStreamClient, HealthCheckable {
                 toolChoice: toolChoice,
                 responseFormat: responseFormat,
                 generationParameters: generationParameters,
-                modelTier: modelTier
+                modelTier: modelTier,
+                promptCache: promptCache
             )
             state.lastModelTier = modelTier
             state.modelTierHistory.append(modelTier)
