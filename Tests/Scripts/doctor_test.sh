@@ -37,6 +37,9 @@ printf '%s\n' '#!/bin/sh' \
   'fi' > "$fake_docker"
 chmod +x "$fake_docker"
 
+# The Nix dev-shell branch resolves `../lib/swift/linux` relative to `swift`.
+mkdir -p "$tmp_dir/lib/swift/linux"
+
 bash_path="$(command -v bash)"
 no_swift_bin="$tmp_dir/no-swift-bin"
 mkdir -p "$no_swift_bin"
@@ -179,6 +182,50 @@ run_linux_case 'Linux reports a sandbox-blocked runtime' \
   "$fake_podman" 0 1 'escalated container-runtime permissions'
 run_linux_case 'Linux reports a sandbox-blocked Docker' \
   "$fake_docker" 0 1 'escalated container-runtime permissions'
+
+# The Nix dev shell validates the native toolchain and does not require a
+# container runtime, unlike the ordinary Linux path above.
+run_nix_case() {
+  local name="$1"
+  local expected_status="$2"
+  local expected_text="$3"
+  local output
+  local status
+
+  set +e
+  output="$(
+    IN_NIX_SHELL=pure \
+      DOCTOR_HOST_OS=Linux \
+      FAKE_SWIFT_VERSION_OUTPUT='Swift version 6.4.0 (swift-6.4.0-RELEASE)' \
+      FAKE_SWIFTPM_OK=1 \
+      FAKE_FOUNDATION_OK=1 \
+      PATH="$fake_bin:$path_without_swift" \
+      "$bash_path" "$doctor" "" 2>&1
+  )"
+  status=$?
+  set -e
+
+  if [ "$status" -ne "$expected_status" ]; then
+    printf 'FAIL: %s: expected exit %s, got %s\n%s\n' \
+      "$name" "$expected_status" "$status" "$output" >&2
+    exit 1
+  fi
+  if [[ "$output" != *"$expected_text"* ]]; then
+    printf 'FAIL: %s: expected output to contain %q\n%s\n' \
+      "$name" "$expected_text" "$output" >&2
+    exit 1
+  fi
+  printf 'ok: %s\n' "$name"
+}
+
+run_nix_case 'Nix shell validates the native Swift toolchain' 0 \
+  'Swift runtime libraries:'
+run_nix_case 'Nix shell does not require a container runtime' 0 \
+  'container runtime is not required'
+mv "$tmp_dir/lib" "$tmp_dir/lib-hidden"
+run_nix_case 'Nix shell reports missing patched libraries' 1 \
+  'Swift runtime libraries not found'
+mv "$tmp_dir/lib-hidden" "$tmp_dir/lib"
 
 # The doctor's qualified ceiling and the CI next lane each hardcode the version,
 # so fail if they drift apart.
