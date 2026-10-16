@@ -45,7 +45,7 @@ public final class TimelineController {
     /// The controller error thrown by the most recent failed send; nil on success or before sends.
     public private(set) var lastError: TimelineControllerError?
     /// The quarantine currently blocking the bound Timeline, if any; nil means the Timeline
-    /// accepts new work. Mirrors the same durable marker ``TimelineHandle/quarantinedTurn()``
+    /// accepts new work. Mirrors the same durable marker `TimelineHandle.quarantinedTurn()`
     /// returns, so a view can show a recovery prompt instead of a silent "stuck" conversation.
     public private(set) var quarantine: TurnQuarantine?
     /// The ID of the quarantined Turn behind ``quarantine``; nil when none.
@@ -99,11 +99,11 @@ public final class TimelineController {
 
     /// Releases the observed quarantined Turn after an operator confirms the side effect is
     /// reconciled. Run this under the same authority lane as admission via
-    /// ``TimelineHandle/releaseQuarantine(turnID:confirmation:)``; it clears ``quarantine`` on
+    /// `TimelineHandle.releaseQuarantine(turnID:confirmation:)`; it clears ``quarantine`` on
     /// success.
     ///
     /// - Parameter confirmation: The operator confirmation carrying the required phrase.
-    /// - Throws: ``TimelineError/noQuarantinedTurn`` when no quarantine is observed, or the
+    /// - Throws: `TimelineError.noQuarantinedTurn` when no quarantine is observed, or the
     ///   repository's structured release errors.
     public func release(confirmation: QuarantineReleaseConfirmation) async throws {
         guard let turnID = quarantinedTurnID else {
