@@ -169,6 +169,8 @@ extension WorkspaceReference {
 public enum MCPWorkspaceError: PKError, Sendable, Equatable {
     /// The workspace reference did not carry a usable configuration.
     case invalidConfiguration(String)
+    /// A session Workspace referenced a profile the factory does not have registered.
+    case unknownProfile(String)
     /// The configuration requested a transport the current platform cannot provide.
     case unsupportedTransport(String)
     /// The host did not supply a value for a referenced secret.
@@ -193,6 +195,7 @@ public enum MCPWorkspaceError: PKError, Sendable, Equatable {
         case .callTimedOut: return 4005
         case .toolsUnavailable: return 4006
         case .serverError: return 4007
+        case .unknownProfile: return 4008
         }
     }
 
@@ -200,6 +203,8 @@ public enum MCPWorkspaceError: PKError, Sendable, Equatable {
         switch self {
         case let .invalidConfiguration(detail):
             return "The MCP server configuration is invalid: \(detail)."
+        case let .unknownProfile(id):
+            return "The MCP server profile '\(id)' is not registered with this factory."
         case let .unsupportedTransport(detail):
             return "This MCP transport is not available: \(detail)."
         case let .secretResolutionFailed(key):

@@ -20538,6 +20538,16 @@
       "declaration": "func list() async throws -> [WorkspaceReference]"
     },
     {
+      "precise": "s:13PositronicKit19WorkspaceCapabilityV5PKMCPE18createMCPWorkspace_3for11PKContracts0C9ReferenceVAD16MCPServerProfileV_10Foundation4UUIDVtYaKF",
+      "module": "PKMCP",
+      "kind": "swift.method",
+      "path": [
+        "WorkspaceCapability",
+        "createMCPWorkspace(_:for:)"
+      ],
+      "declaration": "func createMCPWorkspace(_ profile: MCPServerProfile, for timelineID: UUID) async throws -> WorkspaceReference"
+    },
+    {
       "precise": "s:13PositronicKit19WorkspaceCapabilityV5PKMCPE18createMCPWorkspace_3for11PKContracts0C9ReferenceVAD22MCPServerConfigurationV_10Foundation4UUIDVtYaKF",
       "module": "PKMCP",
       "kind": "swift.method",
@@ -25808,6 +25818,134 @@
       "declaration": "case secret(MCPSecretReference)"
     },
     {
+      "precise": "s:5PKMCP15MCPSessionScopeO",
+      "module": "PKMCP",
+      "kind": "swift.enum",
+      "path": [
+        "MCPSessionScope"
+      ],
+      "declaration": "enum MCPSessionScope"
+    },
+    {
+      "precise": "s:5PKMCP15MCPSessionScopeO12perWorkspaceyA2CmF",
+      "module": "PKMCP",
+      "kind": "swift.enum.case",
+      "path": [
+        "MCPSessionScope",
+        "perWorkspace"
+      ],
+      "declaration": "case perWorkspace"
+    },
+    {
+      "precise": "s:5PKMCP15MCPSessionScopeO6pooledyA2CmF",
+      "module": "PKMCP",
+      "kind": "swift.enum.case",
+      "path": [
+        "MCPSessionScope",
+        "pooled"
+      ],
+      "declaration": "case pooled"
+    },
+    {
+      "precise": "s:5PKMCP15MCPSessionScopeO8rawValueACSgSS_tcfc",
+      "module": "PKMCP",
+      "kind": "swift.init",
+      "path": [
+        "MCPSessionScope",
+        "init(rawValue:)"
+      ],
+      "declaration": "init?(rawValue: String)"
+    },
+    {
+      "precise": "s:5PKMCP16MCPServerProfileV",
+      "module": "PKMCP",
+      "kind": "swift.struct",
+      "path": [
+        "MCPServerProfile"
+      ],
+      "declaration": "struct MCPServerProfile"
+    },
+    {
+      "precise": "s:5PKMCP16MCPServerProfileV11metadataKeySSvpZ",
+      "module": "PKMCP",
+      "kind": "swift.type.property",
+      "path": [
+        "MCPServerProfile",
+        "metadataKey"
+      ],
+      "declaration": "static let metadataKey: String"
+    },
+    {
+      "precise": "s:5PKMCP16MCPServerProfileV12sessionScopeAA010MCPSessionE0Ovp",
+      "module": "PKMCP",
+      "kind": "swift.property",
+      "path": [
+        "MCPServerProfile",
+        "sessionScope"
+      ],
+      "declaration": "var sessionScope: MCPSessionScope"
+    },
+    {
+      "precise": "s:5PKMCP16MCPServerProfileV13configuration12sessionScopeAcA0B13ConfigurationV_AA010MCPSessionF0Otcfc",
+      "module": "PKMCP",
+      "kind": "swift.init",
+      "path": [
+        "MCPServerProfile",
+        "init(configuration:sessionScope:)"
+      ],
+      "declaration": "init(configuration: MCPServerConfiguration, sessionScope: MCPSessionScope = .perWorkspace)"
+    },
+    {
+      "precise": "s:5PKMCP16MCPServerProfileV13configurationAA0B13ConfigurationVvp",
+      "module": "PKMCP",
+      "kind": "swift.property",
+      "path": [
+        "MCPServerProfile",
+        "configuration"
+      ],
+      "declaration": "var configuration: MCPServerConfiguration"
+    },
+    {
+      "precise": "s:5PKMCP16MCPServerProfileV2id13configuration12sessionScopeACSS_AA0B13ConfigurationVAA010MCPSessionG0Otcfc",
+      "module": "PKMCP",
+      "kind": "swift.init",
+      "path": [
+        "MCPServerProfile",
+        "init(id:configuration:sessionScope:)"
+      ],
+      "declaration": "init(id: String, configuration: MCPServerConfiguration, sessionScope: MCPSessionScope = .perWorkspace)"
+    },
+    {
+      "precise": "s:5PKMCP16MCPServerProfileV2idSSvp",
+      "module": "PKMCP",
+      "kind": "swift.property",
+      "path": [
+        "MCPServerProfile",
+        "id"
+      ],
+      "declaration": "let id: String"
+    },
+    {
+      "precise": "s:5PKMCP16MCPServerProfileV4fromACs7Decoder_p_tKcfc",
+      "module": "PKMCP",
+      "kind": "swift.init",
+      "path": [
+        "MCPServerProfile",
+        "init(from:)"
+      ],
+      "declaration": "init(from decoder: any Decoder) throws"
+    },
+    {
+      "precise": "s:5PKMCP16MCPServerProfileV4nameSSvp",
+      "module": "PKMCP",
+      "kind": "swift.property",
+      "path": [
+        "MCPServerProfile",
+        "name"
+      ],
+      "declaration": "var name: String { get }"
+    },
+    {
       "precise": "s:5PKMCP17MCPSecretResolverP",
       "module": "PKMCP",
       "kind": "swift.protocol",
@@ -25864,6 +26002,16 @@
         "callTimedOut(tool:seconds:)"
       ],
       "declaration": "case callTimedOut(tool: String, seconds: Double)"
+    },
+    {
+      "precise": "s:5PKMCP17MCPWorkspaceErrorO14unknownProfileyACSScACmF",
+      "module": "PKMCP",
+      "kind": "swift.enum.case",
+      "path": [
+        "MCPWorkspaceError",
+        "unknownProfile(_:)"
+      ],
+      "declaration": "case unknownProfile(String)"
     },
     {
       "precise": "s:5PKMCP17MCPWorkspaceErrorO16connectionFailedyACSScACmF",
@@ -26053,14 +26201,14 @@
       "declaration": "struct MCPWorkspaceFactory"
     },
     {
-      "precise": "s:5PKMCP19MCPWorkspaceFactoryV14secretResolver8fallbackAcA09MCPSecretE0_p_13PositronicKit09WorkspaceC0_ptcfc",
+      "precise": "s:5PKMCP19MCPWorkspaceFactoryV14secretResolver8profiles8fallbackAcA09MCPSecretE0_p_SayAA16MCPServerProfileVG13PositronicKit09WorkspaceC0_ptcfc",
       "module": "PKMCP",
       "kind": "swift.init",
       "path": [
         "MCPWorkspaceFactory",
-        "init(secretResolver:fallback:)"
+        "init(secretResolver:profiles:fallback:)"
       ],
-      "declaration": "init(secretResolver: any MCPSecretResolver, fallback: any WorkspaceFactory = NullWorkspaceCreator())"
+      "declaration": "init(secretResolver: any MCPSecretResolver, profiles: [MCPServerProfile] = [], fallback: any WorkspaceFactory = NullWorkspaceCreator())"
     },
     {
       "precise": "s:5PKMCP19MCPWorkspaceFactoryV6create4from13PositronicKit17WorkspaceProvider_p11PKContracts0H9ReferenceV_tKF",
@@ -32674,6 +32822,104 @@
       "module": "PKMCP",
       "kind": "conformsTo",
       "source": "s:5PKMCP14MCPSecretValueO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP15MCPSessionScopeO",
+      "target": "s:SE",
+      "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP15MCPSessionScopeO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP15MCPSessionScopeO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP15MCPSessionScopeO",
+      "target": "s:SY",
+      "targetFallback": "Swift.RawRepresentable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP15MCPSessionScopeO",
+      "target": "s:Se",
+      "targetFallback": "Swift.Decodable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP15MCPSessionScopeO",
+      "target": "s:s12CaseIterableP",
+      "targetFallback": "Swift.CaseIterable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP15MCPSessionScopeO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP15MCPSessionScopeO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP16MCPServerProfileV",
+      "target": "s:SE",
+      "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP16MCPServerProfileV",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP16MCPServerProfileV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP16MCPServerProfileV",
+      "target": "s:Se",
+      "targetFallback": "Swift.Decodable"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP16MCPServerProfileV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "conformsTo",
+      "source": "s:5PKMCP16MCPServerProfileV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -45462,6 +45708,13 @@
     {
       "module": "PKMCP",
       "kind": "memberOf",
+      "source": "s:13PositronicKit19WorkspaceCapabilityV5PKMCPE18createMCPWorkspace_3for11PKContracts0C9ReferenceVAD16MCPServerProfileV_10Foundation4UUIDVtYaKF",
+      "target": "s:e:s:13PositronicKit19WorkspaceCapabilityV5PKMCPE18createMCPWorkspace_3for11PKContracts0C9ReferenceVAD22MCPServerConfigurationV_10Foundation4UUIDVtYaKF",
+      "targetFallback": "PositronicKit.WorkspaceCapability"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
       "source": "s:13PositronicKit19WorkspaceCapabilityV5PKMCPE18createMCPWorkspace_3for11PKContracts0C9ReferenceVAD22MCPServerConfigurationV_10Foundation4UUIDVtYaKF",
       "target": "s:e:s:13PositronicKit19WorkspaceCapabilityV5PKMCPE18createMCPWorkspace_3for11PKContracts0C9ReferenceVAD22MCPServerConfigurationV_10Foundation4UUIDVtYaKF",
       "targetFallback": "PositronicKit.WorkspaceCapability"
@@ -45507,6 +45760,80 @@
     {
       "module": "PKMCP",
       "kind": "memberOf",
+      "source": "s:5PKMCP15MCPSessionScopeO12perWorkspaceyA2CmF",
+      "target": "s:5PKMCP15MCPSessionScopeO"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
+      "source": "s:5PKMCP15MCPSessionScopeO6pooledyA2CmF",
+      "target": "s:5PKMCP15MCPSessionScopeO"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
+      "source": "s:5PKMCP15MCPSessionScopeO8rawValueACSgSS_tcfc",
+      "target": "s:5PKMCP15MCPSessionScopeO",
+      "sourceOrigin": {
+        "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc",
+        "displayName": "RawRepresentable.init(rawValue:)"
+      }
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
+      "source": "s:5PKMCP16MCPServerProfileV11metadataKeySSvpZ",
+      "target": "s:5PKMCP16MCPServerProfileV"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
+      "source": "s:5PKMCP16MCPServerProfileV12sessionScopeAA010MCPSessionE0Ovp",
+      "target": "s:5PKMCP16MCPServerProfileV"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
+      "source": "s:5PKMCP16MCPServerProfileV13configuration12sessionScopeAcA0B13ConfigurationV_AA010MCPSessionF0Otcfc",
+      "target": "s:5PKMCP16MCPServerProfileV"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
+      "source": "s:5PKMCP16MCPServerProfileV13configurationAA0B13ConfigurationVvp",
+      "target": "s:5PKMCP16MCPServerProfileV"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
+      "source": "s:5PKMCP16MCPServerProfileV2id13configuration12sessionScopeACSS_AA0B13ConfigurationVAA010MCPSessionG0Otcfc",
+      "target": "s:5PKMCP16MCPServerProfileV"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
+      "source": "s:5PKMCP16MCPServerProfileV2idSSvp",
+      "target": "s:5PKMCP16MCPServerProfileV"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
+      "source": "s:5PKMCP16MCPServerProfileV4fromACs7Decoder_p_tKcfc",
+      "target": "s:5PKMCP16MCPServerProfileV",
+      "sourceOrigin": {
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
+      "source": "s:5PKMCP16MCPServerProfileV4nameSSvp",
+      "target": "s:5PKMCP16MCPServerProfileV"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
       "source": "s:5PKMCP17MCPWorkspaceErrorO06serverC0yACSScACmF",
       "target": "s:5PKMCP17MCPWorkspaceErrorO"
     },
@@ -45524,6 +45851,12 @@
       "module": "PKMCP",
       "kind": "memberOf",
       "source": "s:5PKMCP17MCPWorkspaceErrorO12callTimedOutyACSS_SdtcACmF",
+      "target": "s:5PKMCP17MCPWorkspaceErrorO"
+    },
+    {
+      "module": "PKMCP",
+      "kind": "memberOf",
+      "source": "s:5PKMCP17MCPWorkspaceErrorO14unknownProfileyACSScACmF",
       "target": "s:5PKMCP17MCPWorkspaceErrorO"
     },
     {
@@ -45645,7 +45978,7 @@
     {
       "module": "PKMCP",
       "kind": "memberOf",
-      "source": "s:5PKMCP19MCPWorkspaceFactoryV14secretResolver8fallbackAcA09MCPSecretE0_p_13PositronicKit09WorkspaceC0_ptcfc",
+      "source": "s:5PKMCP19MCPWorkspaceFactoryV14secretResolver8profiles8fallbackAcA09MCPSecretE0_p_SayAA16MCPServerProfileVG13PositronicKit09WorkspaceC0_ptcfc",
       "target": "s:5PKMCP19MCPWorkspaceFactoryV"
     },
     {

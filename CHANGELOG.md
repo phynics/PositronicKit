@@ -55,6 +55,15 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   secrets at connect time. `WorkspaceReference` gains optional host-owned `metadata`, and
   `PKErrorDomain` gains the `mcp` domain. The official `modelcontextprotocol/swift-sdk` is pinned
   `exact: 0.12.1` inside the adapter only (ADR 0015).
+- **Shared MCP server profiles (#267):** `MCPServerProfile` separates a reusable MCP server
+  configuration from the per-Timeline session Workspace. Register profiles with
+  `MCPWorkspaceFactory(secretResolver:profiles:fallback:)`, then attach one to any number of
+  Timelines with `WorkspaceCapability.createMCPWorkspace(_:for:)`; the persisted reference stores
+  only the profile identity. `MCPSessionScope` selects `.perWorkspace` (each session Workspace
+  opens its own connection, the default) or `.pooled` (one shared connection for every session
+  Workspace of the profile). An unregistered identity throws `MCPWorkspaceError.unknownProfile`.
+  Exclusive Workspace binding, per-Workspace FIFO serialization, and admission-time authority are
+  unchanged.
 - **Prompt caching contract (#276):** `PKContracts` gains `PromptCacheDirective`,
   `PromptCacheBreakpoint`, and `PromptCachingCapability`. `LLMTokenUsagePromptDetails` gains
   `cacheWriteTokens` and `cacheWriteBreakdown`, and `LLMClientProtocol` gains cache-aware
