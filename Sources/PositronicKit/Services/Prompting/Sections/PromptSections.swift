@@ -400,7 +400,11 @@ struct WorkspacesContext: RuntimePromptProducer {
             output += "User Query Origin: **\(requestOriginName)**\n\n"
         }
 
-        let allWorkspaces = (primaryWorkspace.map { [$0] } ?? []) + workspaces.filter { $0.id != primaryWorkspace?.id }
+        // Deterministic order (#277): the workspace catalog is part of the semi-stable prefix,
+        // so workspaces sort by id and each workspace's tools sort by name. A reorder would
+        // otherwise reset the cached prefix for every Turn.
+        let allWorkspaces = ((primaryWorkspace.map { [$0] } ?? []) + workspaces.filter { $0.id != primaryWorkspace?.id })
+            .sorted { $0.id.uuidString < $1.id.uuidString }
         guard !allWorkspaces.isEmpty else { return output.isEmpty ? nil : output }
 
         output += "## Available Workspaces\n\n"
@@ -412,9 +416,10 @@ struct WorkspacesContext: RuntimePromptProducer {
             output.append(workspace.uri.description)
             output.append("`\n")
 
-            if !workspace.tools.isEmpty {
+            let sortedTools = workspace.tools.sorted { $0.toolID < $1.toolID }
+            if !sortedTools.isEmpty {
                 output.append("  Available Tools:\n")
-                for tool in workspace.tools {
+                for tool in sortedTools {
                     output.append("    - `")
                     output.append(tool.toolID)
                     output.append("`\n")
@@ -448,31 +453,29 @@ struct WorkspacesContext: RuntimePromptProducer {
 /// Runtime-owned Agent identity section.
 struct AgentContext: RuntimePromptProducer {
     let snapshot: AgentContextSnapshot
-    let timelineTitle: String?
 
-    init(_ agent: Agent, timelineTitle: String? = nil) {
+    init(_ agent: Agent) {
         snapshot = AgentContextSnapshot(agent: agent)
-        self.timelineTitle = timelineTitle
     }
 
-    init(_ snapshot: AgentContextSnapshot, timelineTitle: String? = nil) {
+    init(_ snapshot: AgentContextSnapshot) {
         self.snapshot = snapshot
-        self.timelineTitle = timelineTitle
     }
 
     func makeSections() -> [PromptSection] {
-        AgentIdentityContext(snapshot: snapshot, timelineTitle: timelineTitle).makeSections()
+        AgentIdentityContext(snapshot: snapshot).makeSections()
     }
 }
 
 /// Stable Agent identity section owned by the runtime.
+///
+/// The Timeline title deliberately does not appear here. A rename would otherwise reset the
+/// stable identity prefix for every Turn; the title lives in `TimelineContext` instead.
 struct AgentIdentityContext: RuntimePromptProducer {
     let snapshot: AgentContextSnapshot
-    let timelineTitle: String?
 
-    init(snapshot: AgentContextSnapshot, timelineTitle: String? = nil) {
+    init(snapshot: AgentContextSnapshot) {
         self.snapshot = snapshot
-        self.timelineTitle = timelineTitle
     }
 
     func makeSections() -> [PromptSection] {
@@ -491,9 +494,6 @@ struct AgentIdentityContext: RuntimePromptProducer {
         var lines = ["## Your Identity", "You are **\(snapshot.identity.name)**."]
         if !snapshot.identity.description.isEmpty {
             lines.append("Description: \(snapshot.identity.description)")
-        }
-        if let timelineTitle {
-            lines.append("Currently operating on timeline: \"\(timelineTitle)\"")
         }
         lines.append("Your private workspace supplies persistent continuity. Markdown resources are cataloged from `Notes/` and read on demand with workspace file tools.")
         return lines.joined(separator: "\n")

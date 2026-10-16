@@ -312,16 +312,11 @@ struct AgentContextTests {
         #expect(!output.contains("Description:"))
     }
 
-    @Test("timeline title included when provided")
-    func withTimelineTitle() async throws {
-        let output = try await AgentContext(makeAgent(), timelineTitle: "Sprint Planning").renderToString() ?? ""
-        #expect(output.contains("Sprint Planning"))
-    }
-
-    @Test("no timeline line when title is nil")
-    func noTimelineTitle() async throws {
-        let output = try await AgentContext(makeAgent(), timelineTitle: nil).renderToString() ?? ""
+    @Test("agent identity excludes the timeline title so a rename does not reset the stable tier")
+    func identityExcludesTimelineTitle() async throws {
+        let output = try await AgentContext(makeAgent()).renderToString() ?? ""
         #expect(!output.contains("operating on timeline"))
+        #expect(!output.contains("Sprint Planning"))
     }
 
     @Test("always mentions private workspace and Notes directory")
