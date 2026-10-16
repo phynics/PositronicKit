@@ -2,7 +2,8 @@
 # doctor.sh — preflight prerequisite check for PositronicKit.
 #
 # Reports the presence and version of tools the Makefile gates depend on.
-# Linux verification runs in a container, so host Swift is ignored there. macOS
+# Linux verification runs in a container, so host Swift is ignored there unless
+# the process is inside the supported Nix dev shell (IN_NIX_SHELL). macOS
 # verification requires a complete native Swift toolchain.
 #
 # Invoked by `make doctor`, which passes its resolved container runtime path so
@@ -23,6 +24,9 @@ hint() { printf "        ${dim}%s${reset}\n" "$1"; }
 
 missing_required=0
 host_os="${DOCTOR_HOST_OS:-$(uname -s)}"
+# `nix develop` exports IN_NIX_SHELL; the flake's shell hook also marks the
+# shell so a wrapper that strips the Nix variable still reports the Nix backend.
+nix_shell="${IN_NIX_SHELL:-${POSITRONICKIT_NIX_SHELL:+nix}}"
 
 printf "PositronicKit prerequisite report\n"
 printf "  host: %s %s\n\n" "$host_os" "$(uname -m)"
@@ -39,9 +43,9 @@ required_swift_minor="${required_swift_version#*.}"
 # `CustomTestReflectable`.
 current_swift_version="6.4.0"
 qualified_swift_version="6.4.0"
-swift_requirement_hint="Native macOS gates require Swift ${required_swift_version:-6.2}+ with SwiftPM and Foundation."
+swift_requirement_hint="Native gates require Swift ${required_swift_version:-6.2}+ with SwiftPM and Foundation."
 
-if [ "$host_os" = "Linux" ]; then
+if [ "$host_os" = "Linux" ] && [ -z "$nix_shell" ]; then
   ok "Linux verification backend: container runtime (host Swift is ignored)"
 elif [ -z "$required_swift_version" ]; then
   miss "Swift tools version could not be read from Package.swift"
@@ -73,6 +77,17 @@ elif command -v swift >/dev/null 2>&1; then
         missing_required=1
       else
         ok "Swift: $swift_display (SwiftPM and Foundation available)"
+        if [ "$host_os" = "Linux" ] && [ -n "$nix_shell" ]; then
+          swift_bin="$(command -v swift)"
+          swift_lib_dir="$(dirname "$swift_bin")/../lib/swift/linux"
+          if [ -d "$swift_lib_dir" ]; then
+            ok "Swift runtime libraries: $(cd "$swift_lib_dir" && pwd -P)"
+          else
+            miss "Swift runtime libraries not found at $swift_lib_dir"
+            hint "The Nix dev shell's autoPatchelf patch step did not run; recreate it with 'nix develop'."
+            missing_required=1
+          fi
+        fi
       fi
     else
       miss "Swift $swift_version is older than the required Swift $required_swift_version"
@@ -86,8 +101,10 @@ else
   missing_required=1
 fi
 
-if [ "$host_os" = "Linux" ]; then
+if [ "$host_os" = "Linux" ] && [ -z "$nix_shell" ]; then
   ok "Pinned Linux image supplies Swift and Python 3; Linux CI qualifies Swift ${current_swift_version} (current) and ${qualified_swift_version} (next)"
+elif [ -n "$nix_shell" ]; then
+  ok "Nix dev shell (IN_NIX_SHELL=$nix_shell): container runtime is not required"
 fi
 
 # --- Container runtime (required for every Linux build/test entrypoint) -----
@@ -95,7 +112,9 @@ fi
 # and passes its path here. Linux verification still has no native fallback.
 runtime_install_hint="Linux verification has no native fallback. Install Podman (preferred) or Docker, or set CONTAINER_RUNTIME=/absolute/path/to/runtime."
 
-if [ -n "$container_runtime" ] && command -v "$container_runtime" >/dev/null 2>&1; then
+if [ -n "$nix_shell" ]; then
+  : # The Nix dev shell provides the toolchain directly; no container is required.
+elif [ -n "$container_runtime" ] && command -v "$container_runtime" >/dev/null 2>&1; then
   if [ "$host_os" = "Linux" ] && ! "$container_runtime" info >/dev/null 2>&1; then
     miss "Container runtime is installed but unavailable to this process"
     hint "If an agent sandbox blocked the container runtime, rerun the same make command with escalated container-runtime permissions."

@@ -40,6 +40,12 @@ write. `InMemoryTimelineRuntimeRepository` becomes a thin atomic-commit adapter 
 so a durable adapter can decide one transition without embedding the in-memory store. The ledger
 is package-scoped; the repository protocol is unchanged in this release (ADR 0017).
 - **OpenAI provider rebuild (no third-party SDK):** `PKOpenAIProvider` now runs on the shared `PKUtilities` Chat Completions wire plumbing with `.sortedKeys`-deterministic bytes and adds stateless Responses API support (`OpenAIAPI.automatic/.chatCompletions/.responses`; Responses for `api.openai.com`, Chat Completions elsewhere, audio forced to Chat Completions). `PKOpenRouterProvider` becomes a thin preset over the same core (attribution headers retained). Removes the `MacPaw/OpenAI` dependency.
+- **Nix dev shell (#272):** `flake.nix` and a pinned `flake.lock` fetch the official swift.org 6.4.0
+  Linux toolchain, patch it with `autoPatchelfHook`, and fall back to Xcode's 6.4 toolchain on
+  macOS, so `nix develop` is a supported second development path next to the container. `make
+  doctor` reports a Nix backend and validates the toolchain and its patched libraries,
+  `Scripts/update-flake-swift.sh` refreshes the pinned URLs and hashes, and a nightly CI job runs
+  `nix develop -c make verify-products`.
 
 ### Added
 

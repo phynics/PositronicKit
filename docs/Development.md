@@ -39,6 +39,28 @@ lanes together cover `make verify`, which remains the full local macOS gate. A p
 `make verify-static`, the gates that need no Swift toolchain, before either lane starts.
 `make doctor` reports the required toolchain.
 
+## Nix dev shell
+
+[`flake.nix`](../flake.nix) plus the pinned [`flake.lock`](../flake.lock) are a supported second
+development path next to the container. On Linux the flake fetches the official swift.org 6.4.0
+toolchain, patches it with `autoPatchelfHook`, and exposes `swift`, `swiftc`, `sourcekit-lsp`,
+Python 3, Make, and Git. On macOS it uses Xcode's toolchain, matching the `xcode-27` CI lane, and
+fails the shell when `xcrun swift --version` is not 6.4.x.
+
+```bash
+nix develop                        # enter the dev shell
+nix develop -c make doctor         # validate the toolchain and its patched libraries
+nix develop -c make verify-products
+nix develop -c swift test --filter MessageContentTests
+```
+
+Inside the shell, `make doctor` reports the Nix backend and validates the toolchain instead of
+requiring a container runtime. The container stays canonical for CI and `make agent-verify`;
+the flake is the supported path for a contributor without Podman or Docker. Nightly CI runs
+`nix develop -c make verify-products` so the flake cannot rot. Refresh the pinned toolchain with
+`Scripts/update-flake-swift.sh <version>`, which rewrites the swift.org URLs and their SHA-256
+hashes in `flake.nix`.
+
 ## Linux image and prerequisites
 
 The development image supplies Swift 6.4.0 and Python 3 for the documentation catalog gates on

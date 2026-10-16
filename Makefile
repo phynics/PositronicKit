@@ -332,6 +332,7 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/check_story_coverage_test.py
 	@python3 -B Tests/Scripts/detect_flaky_tests_test.py
 	@python3 -B Tests/Scripts/generate_test_fast_filter_test.py
+	@bash Tests/Scripts/update_flake_swift_test.sh
 	@bash Tests/Scripts/check_gate_script_coverage_test.sh
 
 # Linux testing intentionally has no native fallback. The shared runner

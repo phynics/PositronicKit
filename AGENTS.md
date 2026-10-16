@@ -43,13 +43,14 @@ independent consumer land as SPI (`@_spi(Experimental)`).
 Run `make doctor` before a full gate.
 
 - On macOS, run `make verify`.
-- On Linux, run `make agent-verify` through the repository-owned container runner. Use
-  `make agent-test FILTER='…'` for a focused test.
+- On Linux, run `make agent-verify` through the repository-owned container runner, or enter the
+  supported Nix dev shell with `nix develop`. Use `make agent-test FILTER='…'` for a focused test.
 - Run `make verify-products`, `make verify-examples`, or `make verify-pktestsupport` when a focused
   product check helps during development.
 
-On Linux, use the pinned container environment, which accepts Podman (preferred) or Docker. Do
-not run host Swift or compose another container command. See [docs/Development.md](docs/Development.md) for setup.
+On Linux, use the pinned container environment, which accepts Podman (preferred) or Docker, or the
+supported Nix dev shell. Do not run host Swift outside the Nix shell or compose another container
+command. See [docs/Development.md](docs/Development.md) for setup.
 
 For an intentional public API change, inspect `make verify-public-api` on every affected platform
 before running `make update-public-api-baseline`, which records the change in the unreleased
