@@ -158,4 +158,80 @@ struct MCPWorkspaceStoryTests {
         let calls = await recorder.calls
         #expect(calls.isEmpty, "a denied MCP tool must not reach the server")
     }
+
+    @Test("one pooled profile serves many Timelines over one connection")
+    func pooledProfileServesManyTimelines() async throws {
+        let recorder = MCPCallRecorder()
+        let server = try await makeInMemoryMCPServer(
+            tools: [readOnlyTool(name: "echo")],
+            callTool: { name, arguments in
+                await recorder.record(name: name, arguments: arguments)
+                return CallTool.Result(
+                    content: [.text(text: "shared:hello", annotations: nil, _meta: nil)]
+                )
+            }
+        )
+        defer { Task { await server.stop() } }
+
+        let counter = MCPTransportBuildCounter()
+        let workspaceRoot = TestRuntime.uniqueWorkspaceRoot()
+        let factory = MCPWorkspaceFactory(
+            secretResolver: MCPDictionarySecretResolver([:]),
+            profiles: [
+                MCPServerProfile(
+                    id: "shared",
+                    configuration: MCPServerConfiguration(
+                        name: "shared",
+                        transport: .streamableHTTP(url: URL(string: "http://127.0.0.1:1/mcp")!, headers: [:])
+                    ),
+                    sessionScope: .pooled
+                )
+            ],
+            fallback: MockWorkspaceCreator(),
+            transportFactory: { _ in
+                _ = await counter.increment()
+                return server.clientTransport
+            }
+        )
+        let test = TestRuntime(
+            workspaceRoot: workspaceRoot,
+            runtime: .init(
+                workspaceProfile: .hostManaged(root: workspaceRoot),
+                workspaceCreator: factory
+            )
+        )
+
+        let profile = MCPServerProfile(
+            id: "shared",
+            configuration: MCPServerConfiguration(
+                name: "shared",
+                transport: .streamableHTTP(url: URL(string: "http://127.0.0.1:1/mcp")!, headers: [:])
+            ),
+            sessionScope: .pooled
+        )
+        let agent = try await test.agents.create(name: "Shared MCP Agent", description: "story")
+
+        for index in 1...2 {
+            let timeline = try await test.timelines.create(title: "MCP shared \(index)")
+            try await test.agents.attach(agent.id, to: timeline.id)
+            _ = try await test.workspaces.createMCPWorkspace(profile, for: timeline.id)
+
+            test.llm.mockClient.nextToolCalls = [[
+                MockToolCall(
+                    id: "call-\(index)",
+                    name: "call_tool",
+                    arguments: #"{"tool":"echo","arguments":{"text":"hello"}}"#
+                )
+            ]]
+            test.llm.mockClient.nextResponses = ["", "Done \(index)"]
+
+            let turn = try await test.timelines.open(timeline.id).startTurn("call echo")
+            _ = await turn.events().collect()
+            #expect(try await turn.outcome() == .completed)
+        }
+
+        let calls = await recorder.calls
+        #expect(calls.count == 2)
+        #expect(await counter.count == 1, "both Timelines share one pooled connection")
+    }
 }

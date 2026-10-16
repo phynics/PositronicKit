@@ -49,8 +49,9 @@ _ = PKRuntime(configuration: .init(
 
 ## Connect a server
 
-One MCP server connection maps to one Workspace. `createMCPWorkspace(_:for:)` persists the
-secret-free configuration on the Workspace reference and binds the Workspace to the Timeline.
+`createMCPWorkspace(_:for:)` persists the secret-free configuration on the Workspace reference and
+binds the Workspace to the Timeline. Prefer a shared profile (below) when the same server serves
+more than one Timeline.
 
 ```swift
 let configuration = MCPServerConfiguration(
@@ -81,6 +82,53 @@ let local = MCPServerConfiguration(
 )
 _ = try await kit.workspaces.createMCPWorkspace(local, for: timelineID)
 ```
+
+## Share one server profile across many Timelines
+
+One MCP server connection maps to one Workspace, and an ordinary Workspace binds exclusively to
+one Timeline. A host that wants the same server on many Timelines should not hand-build a
+Workspace per Timeline. `MCPServerProfile` separates the **reusable server configuration** from
+the **session Workspace**: register the profile once with the factory, then attach it to any
+number of Timelines. Each attach creates an ordinary session Workspace, so exclusive binding,
+per-Workspace FIFO serialization, and admission-time authority are unchanged.
+
+```swift
+let profile = MCPServerProfile(
+    id: "github",
+    configuration: MCPServerConfiguration(
+        name: "github",
+        transport: .streamableHTTP(
+            url: URL(string: "https://mcp.example.com/mcp")!,
+            headers: ["Authorization": .secret(MCPSecretReference("github-token"))]
+        )
+    ),
+    sessionScope: .pooled
+)
+let mcp = MCPWorkspaceFactory(
+    secretResolver: MCPDictionarySecretResolver([
+        "github-token": ProcessInfo.processInfo.environment["GITHUB_TOKEN"] ?? "",
+    ]),
+    profiles: [profile],
+    fallback: myWorkspaceCreator
+)
+
+// Attach the same profile to every Timeline that needs it. The reference
+// persists only the profile identity; the factory resolves it back.
+let first = try await kit.workspaces.createMCPWorkspace(profile, for: timelineID)
+_ = first.id
+```
+
+`sessionScope` decides how the transport is scoped:
+
+| `MCPSessionScope` | Behavior | Use for |
+| --- | --- | --- |
+| `.perWorkspace` (default) | Every session Workspace opens its own connection and process. | Stateful servers (a browser session, a REPL) where isolation between Timelines is the point. |
+| `.pooled` | Every session Workspace for the profile shares one connection. | Stateless tool catalogs where per-Timeline isolation is wasted. |
+
+A `.pooled` connection serves its session Workspaces concurrently, so a server with per-session
+state must use `.perWorkspace`. Attaching a profile the factory has not registered throws
+`MCPWorkspaceError.unknownProfile`. `kit.workspaces.list()` returns the session Workspaces
+individually; grouping them under their profile is deferred until a consumer needs it.
 
 ## Mapping
 
@@ -121,6 +169,7 @@ only the reference key; `MCPSecretResolver.resolveSecret(_:)` supplies the value
 | `notifications/tools/list_changed` | Supported (next-Turn invalidation) |
 | Streamable HTTP transport | Supported |
 | stdio transport | macOS and Linux |
+| Shared `MCPServerProfile` with `.perWorkspace` / `.pooled` sessions | Supported |
 | Resources, prompts, sampling, elicitation, roots | Not in v1 |
 | OAuth authorization flow | Not in v1; the host supplies tokens |
 | Serving MCP from PositronicKit | Not in v1 |
