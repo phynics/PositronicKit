@@ -139,4 +139,49 @@ public struct TimelineHandle: Identifiable, Sendable {
     public func cancel() async {
         await engine.dependencies.timelineManager.cancelGeneration(for: timelineID)
     }
+
+    /// Returns the Turn currently blocking admission on this handle's Timeline, if any.
+    ///
+    /// A quarantined Turn is not the active Turn, so it is not visible through the engine's
+    /// active-Turn pointer. The record carries the ``TurnQuarantine`` a host shows in a recovery
+    /// prompt; `nil` means the Timeline accepts new work.
+    public func quarantinedTurn() async throws -> TurnRecord? {
+        try await engine.dependencies.runtimeRepository.fetchQuarantinedTurn(for: timelineID)
+    }
+
+    /// Releases a quarantined Turn on this handle's Timeline after an operator confirms the side
+    /// effect is reconciled. The release runs under the same per-Timeline authority lane as
+    /// admission, so it cannot race a concurrent admission.
+    ///
+    /// - Parameters:
+    ///   - turnID: The quarantined Turn to release.
+    ///   - confirmation: The operator confirmation carrying the required phrase.
+    /// - Returns: The released, still-interrupted Turn record.
+    /// - Throws: ``TimelineRuntimeRepositoryError/turnNotFound(_:)`` when the Turn does not
+    ///   exist, ``TimelineRuntimeRepositoryError/confirmationRequired`` when the phrase is wrong,
+    ///   or ``TimelineRuntimeRepositoryError/quarantineNotFound(timelineID:turnID:)`` when the
+    ///   Turn is on another Timeline or is not quarantined.
+    public func releaseQuarantine(
+        turnID: UUID,
+        confirmation: QuarantineReleaseConfirmation
+    ) async throws -> TurnRecord {
+        let dependencies = engine.dependencies
+        guard let turn = try await dependencies.runtimeRepository.fetchTurn(id: turnID) else {
+            throw TimelineRuntimeRepositoryError.turnNotFound(turnID)
+        }
+        guard turn.timelineID == timelineID else {
+            throw TimelineRuntimeRepositoryError.quarantineNotFound(
+                timelineID: timelineID,
+                turnID: turnID
+            )
+        }
+        return try await dependencies.timelineManager.withTimelineAuthority(timelineID) {
+            try await dependencies.runtimeRepository.releaseQuarantine(
+                timelineID: timelineID,
+                turnID: turnID,
+                confirmation: confirmation,
+                now: Date()
+            )
+        }
+    }
 }

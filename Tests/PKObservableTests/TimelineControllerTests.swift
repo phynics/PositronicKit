@@ -229,6 +229,47 @@ struct TimelineControllerTests {
         }
     }
 
+    @Test("a quarantined timeline surfaces the marker and releases it")
+    func quarantinedTimelineSurfacesAndReleases() async throws {
+        let runtime = TestRuntime(workspaceRoot: TestRuntime.uniqueWorkspaceRoot())
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let turnID = try await makeQuarantinedTimeline(driver: driver, persistence: runtime.persistence)
+        let controller = TimelineController(driver)
+
+        await controller.refreshQuarantine()
+
+        #expect(controller.quarantine?.reason == "Unresolved tool intent")
+        #expect(controller.quarantinedTurnID == turnID)
+
+        try await controller.release(confirmation: QuarantineReleaseConfirmation(
+            phrase: QuarantineReleaseConfirmation.requiredPhrase
+        ))
+
+        #expect(controller.quarantine == nil)
+        #expect(controller.quarantinedTurnID == nil)
+        #expect(try await runtime.persistence.fetchQuarantinedTurn(for: driver.id) == nil)
+    }
+
+    @Test("a send rejected by quarantine refreshes the marker instead of streaming")
+    func quarantinedSendRefreshesMarker() async throws {
+        let runtime = TestRuntime(workspaceRoot: TestRuntime.uniqueWorkspaceRoot())
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let turnID = try await makeQuarantinedTimeline(driver: driver, persistence: runtime.persistence)
+        // A detached Timeline takes the direct path; the managed path would reject the absent
+        // Agent before reaching admission.
+        let controller = TimelineController(driver, context: DirectTurnContext(systemInstructions: ""))
+
+        let error = await #expect(throws: TimelineRuntimeRepositoryError.self) {
+            try await controller.send("Hi")
+        }
+
+        #expect(error == .timelineQuarantined(timelineID: driver.id, turnID: turnID))
+        #expect(controller.isStreaming == false)
+        #expect(controller.quarantine?.reason == "Unresolved tool intent")
+    }
+
     @Test("a superseded send cannot clear replacement streaming state")
     func supersededSendCannotClearReplacementStreamingState() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
@@ -288,6 +329,23 @@ struct TimelineControllerDirectPathTests {
         #expect(controller.isStreaming == false)
         #expect(controller.streamingText.isEmpty)
         #expect(controller.messages.map(\.content) == ["Hi", "Hello, world!"])
+    }
+
+    @Test("a direct-path controller observes and releases a quarantine")
+    func directPathObservesAndReleasesQuarantine() async throws {
+        let runtime = TestRuntime(workspaceRoot: TestRuntime.uniqueWorkspaceRoot())
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let turnID = try await makeQuarantinedTimeline(driver: driver, persistence: runtime.persistence)
+        let controller = makeController(driver)
+
+        await controller.refreshQuarantine()
+
+        #expect(controller.quarantinedTurnID == turnID)
+        try await controller.release(confirmation: QuarantineReleaseConfirmation(
+            phrase: QuarantineReleaseConfirmation.requiredPhrase
+        ))
+        #expect(controller.quarantine == nil)
     }
 
     @Test("a completed send clears its active task")
@@ -442,4 +500,25 @@ struct TimelineControllerDirectPathTests {
         _ = await second.result
         _ = await first.result
     }
+}
+
+/// Admits an orphan Turn on `driver`'s Timeline and interrupts it into quarantine, returning the
+/// quarantined Turn's ID.
+private func makeQuarantinedTimeline(
+    driver: TimelineHandle,
+    persistence: MockPersistenceService
+) async throws -> UUID {
+    let admission = try await persistence.admitTurn(
+        timelineID: driver.id,
+        requestID: UUID(),
+        callerIntentFingerprint: "quarantine"
+    )
+    let turnID = admission.turn.identity.turnID
+    _ = try await persistence.interruptTurn(
+        turnID: turnID,
+        reason: "A mutating tool intent was never resolved.",
+        disposition: .quarantined("Unresolved tool intent"),
+        now: Date()
+    )
+    return turnID
 }

@@ -599,6 +599,14 @@ public protocol TimelineRuntimeRepository: TimelinePersistenceProtocol, Timeline
     /// that only calls `saveMessage` would silently lose exact Turn membership.
     func recordTurnMessage(_ message: TimelineMessage, turnID: UUID) async throws
     func fetchActiveTurn(for timelineID: UUID) async throws -> TurnRecord?
+    /// Returns the Turn currently blocking admission on `timelineID`, if any.
+    ///
+    /// A quarantined Turn is not the active Turn: an interruption clears the active pointer and
+    /// records the quarantine separately, so a host cannot discover it through
+    /// ``fetchActiveTurn(for:)``. The default returns `nil`; a conformer that tracks the
+    /// quarantine pointer must override it so a host can recover a blocked Timeline without
+    /// listing every Turn.
+    func fetchQuarantinedTurn(for timelineID: UUID) async throws -> TurnRecord?
     /// Appends host-facing metadata without changing the Turn outcome. Notices may be recorded
     /// after terminal completion so best-effort customization failures remain observable.
     func appendNotice(turnID: UUID, notice: TurnNotice) async throws
@@ -671,6 +679,12 @@ public protocol TimelineRuntimeRepository: TimelinePersistenceProtocol, Timeline
 }
 
 public extension TimelineRuntimeRepository {
+    /// The default for ``fetchQuarantinedTurn(for:)``: a conformer that does not persist the
+    /// quarantine pointer reports no quarantined Turn.
+    func fetchQuarantinedTurn(for _: UUID) async throws -> TurnRecord? {
+        nil
+    }
+
     func fetchTurnMessages(turnID: UUID) async throws -> [TimelineMessage]? {
         guard let turn = try await fetchTurn(id: turnID), let ids = turn.memberMessageIDs else {
             return nil

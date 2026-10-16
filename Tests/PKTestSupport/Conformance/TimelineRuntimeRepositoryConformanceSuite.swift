@@ -639,6 +639,10 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
         try #require(record.isQuarantined, "timeline.quarantine.release.marker")
         try #require(record.quarantine?.reason == "Unresolved mutating tool intent call-1.", "timeline.quarantine.release.reason")
         try #require(try await repository.fetchToolIntents(turnID: turnID) == [intent], "timeline.quarantine.release.intent")
+        try #require(
+            try await repository.fetchQuarantinedTurn(for: timelineID)?.identity.turnID == turnID,
+            "timeline.quarantine.release.query"
+        )
 
         do {
             _ = try await repository.admitTurn(
@@ -675,6 +679,10 @@ public enum TimelineRuntimeRepositoryConformanceSuite {
         )
         try #require(released.isQuarantined == false, "timeline.quarantine.release.cleared")
         try #require(try await repository.fetchTurn(id: turnID)?.isQuarantined == false, "timeline.quarantine.release.durable-cleared")
+        try #require(
+            try await repository.fetchQuarantinedTurn(for: timelineID) == nil,
+            "timeline.quarantine.release.query-cleared"
+        )
 
         // Releasing a Turn that is no longer quarantined must report the opposite of
         // "quarantined", not re-use `timelineQuarantined`.

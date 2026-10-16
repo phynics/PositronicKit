@@ -44,6 +44,12 @@ public final class TimelineController {
     public private(set) var lastOutcome: TurnOutcome?
     /// The controller error thrown by the most recent failed send; nil on success or before sends.
     public private(set) var lastError: TimelineControllerError?
+    /// The quarantine currently blocking the bound Timeline, if any; nil means the Timeline
+    /// accepts new work. Mirrors the same durable marker `TimelineHandle.quarantinedTurn()`
+    /// returns, so a view can show a recovery prompt instead of a silent "stuck" conversation.
+    public private(set) var quarantine: TurnQuarantine?
+    /// The ID of the quarantined Turn behind ``quarantine``; nil when none.
+    public private(set) var quarantinedTurnID: UUID?
     private let directContext: DirectTurnContext?
     private var activeSendTask: Task<Void, Error>? // swiftlint:disable:this concurrency_stored_task -- owned by actor/@MainActor (see docs/Concurrency/exception-manifest.md)
     private var activeSendGeneration = 0
@@ -74,6 +80,38 @@ public final class TimelineController {
     public func cancel() async {
         activeSendTask?.cancel()
         await driver.cancel()
+        await refreshQuarantine()
+    }
+
+    /// Refreshes ``quarantine`` and ``quarantinedTurnID`` from the bound Timeline's durable state.
+    ///
+    /// Call this after an admission rejects with a quarantine, or before showing a recovery
+    /// prompt. A read failure leaves the last known quarantine in place rather than clearing it.
+    public func refreshQuarantine() async {
+        do {
+            let record = try await driver.quarantinedTurn()
+            quarantine = record?.quarantine
+            quarantinedTurnID = record?.identity.turnID
+        } catch {
+            // A read failure leaves the last known quarantine in place rather than clearing it.
+        }
+    }
+
+    /// Releases the observed quarantined Turn after an operator confirms the side effect is
+    /// reconciled. Run this under the same authority lane as admission via
+    /// `TimelineHandle.releaseQuarantine(turnID:confirmation:)`; it clears ``quarantine`` on
+    /// success.
+    ///
+    /// - Parameter confirmation: The operator confirmation carrying the required phrase.
+    /// - Throws: `TimelineError.noQuarantinedTurn` when no quarantine is observed, or the
+    ///   repository's structured release errors.
+    public func release(confirmation: QuarantineReleaseConfirmation) async throws {
+        guard let turnID = quarantinedTurnID else {
+            throw TimelineError.noQuarantinedTurn
+        }
+        _ = try await driver.releaseQuarantine(turnID: turnID, confirmation: confirmation)
+        quarantine = nil
+        quarantinedTurnID = nil
     }
 
     /// Sends a message and mirrors its driver events into the observable state. Supersedes any
@@ -93,7 +131,13 @@ public final class TimelineController {
             try await self.consume(message, from: driver, generation: generation)
         }
         activeSendTask = task
-        try await task.value
+        do {
+            try await task.value
+            await refreshQuarantine()
+        } catch {
+            await refreshQuarantine()
+            throw error
+        }
     }
 
     private func consume(

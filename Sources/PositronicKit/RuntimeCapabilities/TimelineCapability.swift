@@ -160,6 +160,49 @@ public struct TimelineCapability: Sendable {
         try await messageStore.fetchMessages(for: timelineID)
     }
 
+    /// Returns the Turn currently blocking admission on a Timeline, if any.
+    ///
+    /// A Turn is quarantined when interrupting it could replay an unrepeatable side effect: it
+    /// has an unresolved tool intent for a `.mutating` or `.externalProcess` tool. The returned
+    /// record carries the ``TurnQuarantine`` the host shows in a recovery prompt; `nil` means the
+    /// Timeline accepts new work.
+    public func quarantinedTurn(for timelineID: UUID) async throws -> TurnRecord? {
+        try await timelineManager.runtimeRepository.fetchQuarantinedTurn(for: timelineID)
+    }
+
+    /// Releases a quarantined Turn after an operator confirms the side effect is reconciled.
+    ///
+    /// The release runs under the same per-Timeline authority lane as Turn admission, so it
+    /// cannot race a concurrent admission. The interrupted Turn, its messages, tool intents, and
+    /// results remain intact as the audit trail.
+    ///
+    /// - Parameters:
+    ///   - turnID: The quarantined Turn to release.
+    ///   - confirmation: The operator confirmation carrying the required phrase.
+    /// - Returns: The released, still-interrupted Turn record.
+    /// - Throws: ``TimelineRuntimeRepositoryError/turnNotFound(_:)`` when the Turn does not
+    ///   exist, ``TimelineRuntimeRepositoryError/confirmationRequired`` when the phrase is wrong,
+    ///   or ``TimelineRuntimeRepositoryError/quarantineNotFound(timelineID:turnID:)`` when the
+    ///   Turn is not quarantined.
+    public func releaseQuarantine(
+        turnID: UUID,
+        confirmation: QuarantineReleaseConfirmation
+    ) async throws -> TurnRecord {
+        let repository = timelineManager.runtimeRepository
+        guard let turn = try await repository.fetchTurn(id: turnID) else {
+            throw TimelineRuntimeRepositoryError.turnNotFound(turnID)
+        }
+        let timelineID = turn.timelineID
+        return try await timelineManager.withTimelineAuthority(timelineID) {
+            try await repository.releaseQuarantine(
+                timelineID: timelineID,
+                turnID: turnID,
+                confirmation: confirmation,
+                now: Date()
+            )
+        }
+    }
+
     /// Renames a Timeline while preserving its existing handle.
     public func rename(_ timelineID: UUID, to title: String) async throws {
         try await timelineManager.updateTimelineTitle(timelineID, title: title)

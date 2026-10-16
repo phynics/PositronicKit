@@ -150,6 +150,14 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   hatch for the internal clock seam. Turn tests assert durable facts through its `repository` and
   `TurnHandle` instead of copying construction wiring; `Scripts/check-test-layout.sh` keeps new
   Turn tests on this fixture.
+- **Timeline facade and PKObservable quarantine recovery (#285):**
+  `TimelineCapability.quarantinedTurn(for:)` and
+  `TimelineCapability.releaseQuarantine(turnID:confirmation:)` (also on `TimelineHandle`) let a
+  host find and clear a Turn that blocks admission after an unrepeatable side effect, without
+  reaching into the repository. `TimelineController` mirrors the marker in
+  `quarantine`/`quarantinedTurnID` and exposes `refreshQuarantine()` and `release(confirmation:)`
+  for an in-app recovery prompt. `TimelineRuntimeRepository` gains `fetchQuarantinedTurn(for:)`
+  (default `nil`) so the query is available through the existential.
 
 ### Breaking
 

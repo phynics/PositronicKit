@@ -345,6 +345,29 @@ try await direct.send("Hi") // streams into direct.streamingText / direct.messag
 Both paths share `send(_:)`, superseding behavior, and error semantics: cancellation surfaces
 `CancellationError`, while runtime and durability failures surface `TimelineControllerError`.
 
+### Recovering a quarantined Timeline
+
+A Turn is quarantined when interrupting it could repeat an unrepeatable side effect: it has an
+unresolved tool intent for a `.mutating` or `.externalProcess` tool. The Timeline rejects new
+admission until an operator confirms the side effect was reconciled. Read the marker through the
+facade (or the bound handle) and release it with the required confirmation phrase:
+
+```swift
+if let quarantined = try await kit.timelines.quarantinedTurn(for: timeline.id) {
+    _ = try await kit.timelines.releaseQuarantine(
+        turnID: quarantined.identity.turnID,
+        confirmation: QuarantineReleaseConfirmation(
+            phrase: QuarantineReleaseConfirmation.requiredPhrase
+        )
+    )
+}
+```
+
+The release runs under the same per-Timeline authority lane as admission. The interrupted Turn,
+its messages, and its tool intents and results remain intact as the audit trail. A wrong phrase
+throws `TimelineRuntimeRepositoryError.confirmationRequired`, and releasing a Turn that is not
+quarantined throws `.quarantineNotFound`.
+
 ### Reading Timeline history
 
 Read durable messages through `kit.timelines.messages(for:)`. The result is ordered from oldest to

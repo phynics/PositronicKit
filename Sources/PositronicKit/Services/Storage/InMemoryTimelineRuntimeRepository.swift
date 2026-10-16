@@ -187,6 +187,11 @@ public actor InMemoryTimelineRuntimeRepository: TimelineRuntimeRepository, Works
         return turns[id]
     }
 
+    public func fetchQuarantinedTurn(for timelineID: UUID) async throws -> TurnRecord? {
+        guard let id = quarantinedTurns[timelineID] else { return nil }
+        return turns[id]
+    }
+
     public func appendNotice(turnID: UUID, notice: TurnNotice) async throws {
         let decision = try TurnLedger.decideAppendNotice(
             snapshot: try ledgerSnapshot(forTurn: turnID),
