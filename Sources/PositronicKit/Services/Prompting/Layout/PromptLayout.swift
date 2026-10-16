@@ -6,7 +6,7 @@ import PKUtilities
 ///
 /// Tier order is the wire order for the tiered prompt layout (#277):
 /// stable system, semi-stable system, history, volatile context, then the query.
-enum PromptCacheTier: Int, Sendable, CaseIterable {
+public enum PromptCacheTier: Int, Sendable, Codable, CaseIterable, Hashable {
     /// Content that rarely or never changes between turns.
     case stable
     /// Content that changes occasionally, less often than every turn.

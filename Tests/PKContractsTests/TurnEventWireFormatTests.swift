@@ -61,4 +61,25 @@ struct TurnEventWireFormatTests {
         try Self.assertWireFormat(TurnEvent.CompletionEvent.maxModelRoundsReached, #"{"maxModelRoundsReached":{}}"#)
         try Self.assertWireFormat(TurnEvent.CompletionEvent.deferredForExternalTool, #"{"deferredForExternalTool":{}}"#)
     }
+
+    @Test("prompt cache report payload round-trips through synthesized Codable")
+    func promptCacheReportWireFormat() throws {
+        let report = PromptCacheReport(
+            turnID: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            modelRoundIndex: 1,
+            policy: .automatic(retention: .short),
+            breakpoints: [
+                PromptCacheBreakpoint(messageIndex: 0, tier: .stableSystem, estimatedPrefixTokens: 10),
+            ],
+            expectedReusableTokens: 42,
+            reportedCachedTokens: 30,
+            reportedCacheWriteTokens: 12,
+            resets: [.firstRound]
+        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let encoded = try encoder.encode(TurnEvent.promptCacheReport(report))
+        let decoded = try JSONDecoder().decode(TurnEvent.self, from: encoded)
+        #expect(try encoder.encode(decoded) == encoded)
+    }
 }

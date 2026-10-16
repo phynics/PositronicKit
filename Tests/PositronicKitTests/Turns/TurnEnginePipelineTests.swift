@@ -123,7 +123,8 @@ final class MessagePersistenceStageBehavior {
 
         let events = try await drain(await stage.process(context))
 
-        #expect(events.isEmpty)
+        #expect(events.count == 1)
+        #expect(events.first?.promptCacheReport?.modelRoundIndex == context.modelRoundIndex)
         #expect(store.messages.isEmpty)
         #expect(await context.outputs.terminalAssistantMessage?.content == "Hello!")
         #expect(await context.outputs.terminalCompletionMetadata != nil)
@@ -159,8 +160,7 @@ final class MessagePersistenceStageBehavior {
 
         _ = try await drain(await stage.process(context))
 
-        let data = try #require(await context.outputs.terminalCompletionMetadata?.turnSnapshotData)
-        let snapshot = try SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
+        let snapshot = try #require(await context.outputs.terminalAssistantMessage?.turnSnapshot)
         #expect(snapshot.fullResponse == "done")
     }
 
@@ -170,7 +170,7 @@ final class MessagePersistenceStageBehavior {
         let context = await makeContext(fullResponse: "private prompt context")
         _ = try await drain(await stage.process(context))
 
-        #expect(await context.outputs.terminalCompletionMetadata?.turnSnapshotData == nil)
+        #expect(await context.outputs.terminalAssistantMessage?.turnSnapshot == nil)
     }
 
     @Test("Redacted snapshots mask secrets and obey their byte limit")
@@ -186,7 +186,8 @@ final class MessagePersistenceStageBehavior {
             currentMessages: [LLMMessage(role: .user, content: prompt)]
         )
         _ = try await drain(await stage.process(context))
-        let data = try #require(await context.outputs.terminalCompletionMetadata?.turnSnapshotData)
+        let snapshot = try #require(await context.outputs.terminalAssistantMessage?.turnSnapshot)
+        let data = try SerializationUtils.jsonEncoder.encode(snapshot)
         let encoded = try #require(String(data: data, encoding: .utf8))
 
         #expect(data.count <= 2_000)
@@ -207,7 +208,8 @@ final class MessagePersistenceStageBehavior {
             fullResponse: String(repeating: "response ", count: 1_000)
         )
         _ = try await drain(await stage.process(context))
-        let data = try #require(await context.outputs.terminalCompletionMetadata?.turnSnapshotData)
+        let snapshot = try #require(await context.outputs.terminalAssistantMessage?.turnSnapshot)
+        let data = try SerializationUtils.jsonEncoder.encode(snapshot)
 
         #expect(data.count <= 1_500)
     }

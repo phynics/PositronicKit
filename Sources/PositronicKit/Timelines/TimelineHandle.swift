@@ -149,6 +149,17 @@ public struct TimelineHandle: Identifiable, Sendable {
         try await engine.dependencies.runtimeRepository.fetchQuarantinedTurn(for: timelineID)
     }
 
+    /// Returns a value snapshot of this Timeline's provider-facing prompt layout state.
+    ///
+    /// The snapshot exposes layout segment IDs and tiers, per-tier content fingerprints, the
+    /// last request's cache breakpoints, and the last reset reasons. It is a pure value: the
+    /// runtime's prompt actors stay internal. A Timeline that has not prepared a prompt yet
+    /// returns ``PromptStateSnapshot/empty``.
+    public func promptState() async -> PromptStateSnapshot {
+        let history = await engine.dependencies.promptHistoryRegistry.history(for: timelineID)
+        return await history.promptStateSnapshot()
+    }
+
     /// Releases a quarantined Turn on this handle's Timeline after an operator confirms the side
     /// effect is reconciled. The release runs under the same per-Timeline authority lane as
     /// admission, so it cannot race a concurrent admission.

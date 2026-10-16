@@ -28,8 +28,11 @@ public struct TimelineMessage: Codable, Identifiable, Sendable {
     /// Depth counter for cross-agent `thread_send` recursion guard. Default 0.
     public var remoteDepth: Int
 
-    /// Serialized `TurnSnapshot` JSON for audit trail. Only set on assistant messages.
-    public var snapshotData: Data?
+    /// The typed diagnostic snapshot for this assistant message. Only set on assistant messages.
+    ///
+    /// The property is persisted under the legacy `snapshotData` wire key so rows written before
+    /// the typed read path still decode; legacy rows stored the snapshot as a base64 `Data` value.
+    public var turnSnapshot: TurnSnapshot?
 
     /// Completion status of an assistant message. `nil` (the default) is treated as `.complete`
     /// so existing rows round-trip unchanged. Tagged `.partial` / `.failed` / `.cancelled` only
@@ -49,7 +52,7 @@ public struct TimelineMessage: Codable, Identifiable, Sendable {
         agentID: UUID? = nil,
         executionKind: TurnExecutionKind? = nil,
         remoteDepth: Int = 0,
-        snapshotData: Data? = nil,
+        turnSnapshot: TurnSnapshot? = nil,
         status: Message.MessageStatus? = nil
     ) {
         self.id = id
@@ -64,7 +67,7 @@ public struct TimelineMessage: Codable, Identifiable, Sendable {
         self.agentID = agentID
         self.executionKind = executionKind
         self.remoteDepth = remoteDepth
-        self.snapshotData = snapshotData
+        self.turnSnapshot = turnSnapshot
         self.status = status
     }
 
@@ -82,7 +85,7 @@ public struct TimelineMessage: Codable, Identifiable, Sendable {
         agentID: UUID? = nil,
         executionKind: TurnExecutionKind? = nil,
         remoteDepth: Int = 0,
-        snapshotData: Data? = nil,
+        turnSnapshot: TurnSnapshot? = nil,
         status: Message.MessageStatus? = nil
     ) {
         self.id = id
@@ -97,7 +100,7 @@ public struct TimelineMessage: Codable, Identifiable, Sendable {
         self.agentID = agentID
         self.executionKind = executionKind
         self.remoteDepth = remoteDepth
-        self.snapshotData = snapshotData
+        self.turnSnapshot = turnSnapshot
         self.status = status
     }
 
@@ -163,7 +166,17 @@ public struct TimelineMessage: Codable, Identifiable, Sendable {
         agentID = try container.decodeIfPresent(UUID.self, forKey: .agentID)
         executionKind = try container.decodeIfPresent(TurnExecutionKind.self, forKey: .executionKind)
         remoteDepth = try container.decodeIfPresent(Int.self, forKey: .remoteDepth) ?? 0
-        snapshotData = try container.decodeIfPresent(Data.self, forKey: .snapshotData)
+        if container.contains(.snapshotData) {
+            if let snapshot = try? container.decode(TurnSnapshot.self, forKey: .snapshotData) {
+                turnSnapshot = snapshot
+            } else if let data = try? container.decode(Data.self, forKey: .snapshotData) {
+                turnSnapshot = try? SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
+            } else {
+                turnSnapshot = nil
+            }
+        } else {
+            turnSnapshot = nil
+        }
         status = try container.decodeIfPresent(Message.MessageStatus.self, forKey: .status)
     }
 
@@ -184,7 +197,7 @@ public struct TimelineMessage: Codable, Identifiable, Sendable {
         try container.encodeIfPresent(agentID, forKey: .agentID)
         try container.encodeIfPresent(executionKind, forKey: .executionKind)
         try container.encode(remoteDepth, forKey: .remoteDepth)
-        try container.encodeIfPresent(snapshotData, forKey: .snapshotData)
+        try container.encodeIfPresent(turnSnapshot, forKey: .snapshotData)
         try container.encodeIfPresent(status, forKey: .status)
     }
 }

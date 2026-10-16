@@ -226,6 +226,9 @@ public enum TurnEvent: Sendable, Codable {
     case delta(DeltaEvent)
     case error(ErrorEvent)
     case completion(CompletionEvent)
+    /// A per-model-round prompt-cache diagnostic. Not terminal: it is emitted after each model
+    /// round's usage arrives, before the loop decides whether to continue.
+    case promptCacheReport(PromptCacheReport)
 }
 
 // MARK: - Factory Methods (Producer Ergonomics)
@@ -236,6 +239,8 @@ public extension TurnEvent {
         switch self {
         case .error:
             return true
+        case .promptCacheReport:
+            return false
         case let .completion(event):
             switch event {
             case .generationCompleted, .completedEmpty, .maxModelRoundsReached,
@@ -380,6 +385,12 @@ public extension TurnEvent {
     /// The finish reason for an empty but successfully completed assistant response, if present.
     var emptyCompletionFinishReason: String? {
         if case let .completion(event) = self, case let .completedEmpty(finishReason) = event { return finishReason }
+        return nil
+    }
+
+    /// The prompt-cache diagnostic if this is a `.promptCacheReport(...)` event.
+    var promptCacheReport: PromptCacheReport? {
+        if case let .promptCacheReport(report) = self { return report }
         return nil
     }
 

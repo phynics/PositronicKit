@@ -574,6 +574,7 @@ struct TurnPreparation: Sendable {
                 currentMessages: initialMessages,
                 modelRoundIndex: 0,
                 promptCacheBreakpoints: promptCacheBreakpoints,
+                promptCacheHistoryTrimmed: historyTrim.didTrim,
                 responseModalities: responseModalities,
                 audioOutput: audioOutput,
                 transport: transport,

@@ -179,6 +179,9 @@ struct TurnContext {
     /// streaming stage extends the list with a `toolLoop` breakpoint on rounds that appended
     /// tool messages; the stable and history boundaries never move once prepared.
     let promptCacheBreakpoints: [PromptCacheBreakpoint]
+    /// Whether preparation's stepwise history trim dropped messages for this Turn. Drives the
+    /// `historyTrim` reset reason reported for the first model round (#280).
+    let promptCacheHistoryTrimmed: Bool
 
     /// Mutable stage outputs shared via actor reference across struct copies.
     let outputs: TurnOutputs
@@ -210,6 +213,7 @@ struct TurnContext {
         currentMessages: [LLMMessage],
         modelRoundIndex: Int,
         promptCacheBreakpoints: [PromptCacheBreakpoint] = [],
+        promptCacheHistoryTrimmed: Bool = false,
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil,
         transport: GenerationTransport = .streaming,
@@ -246,6 +250,7 @@ struct TurnContext {
         self.currentMessages = currentMessages
         self.modelRoundIndex = modelRoundIndex
         self.promptCacheBreakpoints = promptCacheBreakpoints
+        self.promptCacheHistoryTrimmed = promptCacheHistoryTrimmed
         self.outputs = outputs
     }
 
@@ -288,6 +293,7 @@ struct TurnContext {
             currentMessages: messages,
             modelRoundIndex: modelRoundIndex,
             promptCacheBreakpoints: promptCacheBreakpoints,
+            promptCacheHistoryTrimmed: promptCacheHistoryTrimmed,
             responseModalities: responseModalities,
             audioOutput: audioOutput,
             transport: transport,

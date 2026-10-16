@@ -541,7 +541,7 @@ package enum TurnLedger {
             && lhs.agentID == rhs.agentID
             && lhs.executionKind == rhs.executionKind
             && lhs.remoteDepth == rhs.remoteDepth
-            && lhs.snapshotData == rhs.snapshotData
+            && lhs.turnSnapshot == rhs.turnSnapshot
             && lhs.status == rhs.status
     }
 }

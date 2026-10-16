@@ -56,7 +56,7 @@ struct TimelineSerializationCompatibilityTests {
         #expect(message.agentID == nil)
         #expect(message.executionKind == nil)
         #expect(message.remoteDepth == 0)
-        #expect(message.snapshotData == nil)
+        #expect(message.turnSnapshot == nil)
         #expect(message.status == nil)
         try assertWireKeys(
             of: message,
@@ -114,6 +114,16 @@ struct TimelineSerializationCompatibilityTests {
             of: binding,
             contains: ["threadID"],
             excludes: ["timelineId", "timelineID", "privateTimelineId"])
+    }
+
+    @Test("a legacy message with base64 snapshotData decodes into a typed turnSnapshot")
+    func legacySnapshotDataDecodesIntoTypedSnapshot() throws {
+        let snapshotPayload = #"{"timestamp":"2026-01-01T00:00:00Z","threadId":"00000000-0000-0000-0000-000000000011","agentId":"00000000-0000-0000-0000-000000000012","modelName":"fixture","modelRoundIndex":0,"maxModelRounds":1,"availableToolIds":[],"fullResponse":"","fullThinking":"","toolCalls":[],"toolResults":[],"turnDuration":0}"#
+        let base64 = Data(snapshotPayload.utf8).base64EncodedString()
+        let messagePayload = #"{"id":"00000000-0000-0000-0000-000000000013","threadId":"00000000-0000-0000-0000-000000000011","role":"assistant","content":"hello","timestamp":"2026-01-01T00:00:00Z","remoteDepth":0,"toolCalls":"[]","snapshotData":"\#(base64)"}"#
+        let message = try decoder.decode(TimelineMessage.self, from: Data(messagePayload.utf8))
+        #expect(message.turnSnapshot?.modelName == "fixture")
+        #expect(message.turnSnapshot?.timelineID.uuidString == "00000000-0000-0000-0000-000000000011")
     }
 
     @Test("a legacy tool result row with errorMessage still decodes")

@@ -81,6 +81,9 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
     public let tokensPerSecond: Double?
     public let usage: LLMTokenUsage?
 
+    /// The prompt-cache diagnostic for the model round this snapshot captured, when one was built.
+    public let promptCacheReport: PromptCacheReport?
+
     public init(
         timestamp: Date = Date(),
         timelineID: UUID,
@@ -98,7 +101,8 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         toolResults: [ToolResultRecord] = [],
         turnDuration: TimeInterval = 0,
         tokensPerSecond: Double? = nil,
-        usage: LLMTokenUsage? = nil
+        usage: LLMTokenUsage? = nil,
+        promptCacheReport: PromptCacheReport? = nil
     ) {
         self.timestamp = timestamp
         self.timelineID = timelineID
@@ -117,6 +121,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         self.turnDuration = turnDuration
         self.tokensPerSecond = tokensPerSecond
         self.usage = usage
+        self.promptCacheReport = promptCacheReport
     }
 
 
@@ -128,5 +133,6 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         case availableToolIDs = "availableToolIds"
         case fullResponse, fullThinking, audioOutput, toolCalls, toolResults, turnDuration, tokensPerSecond
         case usage
+        case promptCacheReport
     }
 }

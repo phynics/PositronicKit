@@ -120,7 +120,7 @@ public struct TimelineCapability: Sendable {
                 agentID: message.agentID,
                 executionKind: message.executionKind,
                 remoteDepth: message.remoteDepth,
-                snapshotData: message.snapshotData,
+                turnSnapshot: message.turnSnapshot,
                 status: message.status
             )
             messageIDMap[message.id] = clone.id

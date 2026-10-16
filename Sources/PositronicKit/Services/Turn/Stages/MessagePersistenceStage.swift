@@ -9,9 +9,15 @@ import PKUtilities
 /// - With `toolCalls` JSON when the LLM requested tool calls (pending execution).
 /// - Without `toolCalls` when the response is a plain text reply.
 ///
+/// It also produces the per-model-round ``PromptCacheReport``, emits it as a non-terminal
+/// ``TurnEvent``, and persists it as a Turn correlation so outcome joiners and replay see it.
+///
 /// After this stage, `TurnEngine.runTurnLoop` inspects `context.outputs.toolCallAccumulators` to decide
 /// whether to invoke `ToolRouter.handlePendingToolCalls` and continue the loop.
 struct MessagePersistenceStage: PipelineStage {
+    /// The correlation kind used to persist a round's ``PromptCacheReport`` on its Turn.
+    static let promptCacheReportCorrelationKind = "prompt-cache-report"
+
     let runtimeRepository: any TimelineRuntimeRepository
     let logger: Logger
     let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
@@ -33,7 +39,25 @@ struct MessagePersistenceStage: PipelineStage {
         let hasPendingToolCalls = await !context.outputs.toolCallAccumulators.isEmpty
         let streamFinishReason = await context.outputs.streamFinishReason
 
-        let assistantMsg = await Self.buildAssistantMessage(
+        // Build and record the prompt-cache report before the message so the typed snapshot can
+        // link it. The report is independent of the diagnostic-snapshot policy: it is the
+        // measurement surface for prompt caching and is redaction-safe by construction.
+        let report = await buildPromptCacheReport(from: context)
+        logger.debug(
+            "Prompt cache report",
+            metadata: [
+                LogKeys.turnID: .string(context.turnID.uuidString),
+                LogKeys.modelRoundIndex: .string("\(context.modelRoundIndex)"),
+                "promptCaching": .string(context.promptCaching.isEnabled ? "enabled" : "disabled"),
+                "expectedReusableTokens": .string("\(report.expectedReusableTokens)"),
+                "reportedCachedTokens": .string("\(report.reportedCachedTokens ?? 0)"),
+                "breakpointTiers": .string(report.breakpoints.map(\.tier.rawValue).joined(separator: ",")),
+                "resets": .string(report.resets.map(\.rawValue).joined(separator: ",")),
+            ]
+        )
+        await persist(report: report, context: context)
+
+        var assistantMsg = await Self.buildAssistantMessage(
             from: context,
             hasPendingToolCalls: hasPendingToolCalls,
             status: nil,
@@ -42,20 +66,21 @@ struct MessagePersistenceStage: PipelineStage {
         if !hasPendingToolCalls {
             // The terminal assistant row is committed by completeTurn. The terminal coordinator
             // owns the event so it cannot precede that commit.
+            if let snapshot = await buildSnapshot(from: context, report: report) {
+                assistantMsg.turnSnapshot = snapshot
+            }
             await context.outputs.setTerminalAssistantMessage(assistantMsg)
             let streamUsage = await context.outputs.streamUsage
             let turnDuration = await context.outputs.turnDuration
             let tokensPerSecond = await context.outputs.tokensPerSecond
             let fullResponse = await context.outputs.fullResponse
-            let snapshotData = await buildSnapshotData(from: context)
             let metadata = LLMResponse(
                 content: fullResponse.isEmpty ? nil : fullResponse,
                 model: context.modelName,
                 usage: streamUsage,
                 finishReason: streamFinishReason,
                 duration: turnDuration,
-                tokensPerSecond: tokensPerSecond,
-                turnSnapshotData: snapshotData
+                tokensPerSecond: tokensPerSecond
             )
             await context.outputs.setTerminalCompletionMetadata(metadata)
         } else {
@@ -63,16 +88,82 @@ struct MessagePersistenceStage: PipelineStage {
             await context.outputs.markAssistantResponseDurable()
         }
 
-        return AsyncThrowingStream { continuation in continuation.finish() }
+        return AsyncThrowingStream { continuation in
+            continuation.yield(.promptCacheReport(report))
+            continuation.finish()
+        }
     }
 
-    private func buildSnapshotData(from context: TurnContext) async -> Data? {
+    // MARK: - Prompt cache report
+
+    /// Builds this model round's ``PromptCacheReport`` and advances the Timeline's fingerprint
+    /// state so the next round can compare against it.
+    private func buildPromptCacheReport(from context: TurnContext) async -> PromptCacheReport {
+        let policy = context.promptCaching
+        let breakpoints = LLMStreamingStage.promptCacheDirective(for: context)?.breakpoints ?? []
+        let usage = await context.outputs.streamUsage
+
+        let accounting: PromptCacheAccounting
+        if let history = context.promptHistory, let renderedPrompt = context.renderedPrompt {
+            accounting = await history.accountPromptCache(
+                prompt: renderedPrompt,
+                historyTrimmed: context.promptCacheHistoryTrimmed,
+                cachingEnabled: policy.isEnabled,
+                turnID: context.turnID,
+                modelRoundIndex: context.modelRoundIndex,
+                breakpoints: breakpoints
+            )
+        } else {
+            accounting = PromptCacheResetDetector.account(
+                previous: nil,
+                current: .empty,
+                historyTrimmed: context.promptCacheHistoryTrimmed,
+                cachingEnabled: policy.isEnabled
+            )
+        }
+
+        return PromptCacheReport(
+            turnID: context.turnID,
+            modelRoundIndex: context.modelRoundIndex,
+            policy: policy,
+            breakpoints: breakpoints,
+            expectedReusableTokens: accounting.expectedReusableTokens,
+            reportedCachedTokens: usage?.promptTokensDetails?.cachedTokens,
+            reportedCacheWriteTokens: usage?.promptTokensDetails?.cacheWriteTokens,
+            resets: accounting.resets
+        )
+    }
+
+    /// Appends the report to the Turn's durable correlation trail. A store failure is logged but
+    /// never fails the generation: the live event already carried the report.
+    private func persist(report: PromptCacheReport, context: TurnContext) async {
+        guard let data = try? SerializationUtils.jsonEncoder.encode(report),
+              let value = String(bytes: data, encoding: .utf8)
+        else {
+            logger.warning("Unable to encode prompt-cache report for Turn \(context.turnID)")
+            return
+        }
+        do {
+            try await runtimeRepository.appendCorrelation(
+                turnID: context.turnID,
+                correlation: TurnCorrelation(kind: Self.promptCacheReportCorrelationKind, value: value),
+                now: Date()
+            )
+        } catch {
+            logger.warning(
+                "Unable to persist prompt-cache report for Turn \(context.turnID)",
+                metadata: LoggingMetadata.makeMetadata(for: error, correlationID: redactedHash(context.turnID.uuidString))
+            )
+        }
+    }
+
+    private func buildSnapshot(from context: TurnContext, report: PromptCacheReport) async -> TurnSnapshot? {
         switch diagnosticSnapshotConfiguration.policy {
         case .off, .metadataOnly:
             return nil
         case .redacted, .full:
-            let snapshot = await buildTurnSnapshot(from: context)
-            return DiagnosticSnapshotEncoder.encode(
+            let snapshot = await buildTurnSnapshot(from: context, report: report)
+            return DiagnosticSnapshotEncoder.prepared(
                 snapshot,
                 policy: diagnosticSnapshotConfiguration.policy,
                 maxBytes: diagnosticSnapshotConfiguration.maxBytes
@@ -148,7 +239,7 @@ struct MessagePersistenceStage: PipelineStage {
             .flatMap { String(bytes: $0, encoding: .utf8) } ?? "[]"
     }
 
-    private func buildTurnSnapshot(from context: TurnContext) async -> TurnSnapshot {
+    private func buildTurnSnapshot(from context: TurnContext, report: PromptCacheReport) async -> TurnSnapshot {
         let durableTools = await durableToolRecords(for: context)
         let fullResponse = await context.outputs.fullResponse
         let fullThinking = await context.outputs.fullThinking
@@ -188,7 +279,8 @@ struct MessagePersistenceStage: PipelineStage {
             toolResults: durableTools.results,
             turnDuration: turnDuration,
             tokensPerSecond: tokensPerSecond,
-            usage: streamUsage
+            usage: streamUsage,
+            promptCacheReport: report
         )
     }
 
@@ -221,12 +313,14 @@ struct MessagePersistenceStage: PipelineStage {
     }
 }
 
-private enum DiagnosticSnapshotEncoder {
-    static func encode(
+enum DiagnosticSnapshotEncoder {
+    /// Returns a redacted/truncated snapshot that fits `maxBytes` when encoded, or `nil` when no
+    /// bounded form fits.
+    static func prepared(
         _ snapshot: TurnSnapshot,
         policy: DiagnosticSnapshotPolicy,
         maxBytes: Int
-    ) -> Data? {
+    ) -> TurnSnapshot? {
         guard maxBytes > 0 else { return nil }
         let initialLimit = policy == .redacted ? 512 : Int.max
         var limit = initialLimit
@@ -234,7 +328,7 @@ private enum DiagnosticSnapshotEncoder {
         while limit >= 0 {
             let candidate = sanitized(snapshot, maxStringLength: limit)
             if let data = try? SerializationUtils.jsonEncoder.encode(candidate), data.count <= maxBytes {
-                return data
+                return candidate
             }
             if limit == 0 { break }
             limit = limit == Int.max ? 16_384 : limit / 2
@@ -280,7 +374,8 @@ private enum DiagnosticSnapshotEncoder {
             },
             turnDuration: snapshot.turnDuration,
             tokensPerSecond: snapshot.tokensPerSecond,
-            usage: snapshot.usage
+            usage: snapshot.usage,
+            promptCacheReport: snapshot.promptCacheReport
         )
     }
 
