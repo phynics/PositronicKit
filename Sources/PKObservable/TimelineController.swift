@@ -50,6 +50,8 @@ public final class TimelineController {
     public private(set) var quarantine: TurnQuarantine?
     /// The ID of the quarantined Turn behind ``quarantine``; nil when none.
     public private(set) var quarantinedTurnID: UUID?
+    /// Per-model-round prompt-cache diagnostics observed for the most recent send, oldest first.
+    public private(set) var promptCacheReports: [PromptCacheReport] = []
     private let directContext: DirectTurnContext?
     private var activeSendTask: Task<Void, Error>? // swiftlint:disable:this concurrency_stored_task -- owned by actor/@MainActor (see docs/Concurrency/exception-manifest.md)
     private var activeSendGeneration = 0
@@ -148,6 +150,7 @@ public final class TimelineController {
         guard activeSendGeneration == generation else { return }
         messages.append(Message(content: content, role: .user))
         streamingText = ""
+        promptCacheReports = []
         isStreaming = true
         defer {
             if activeSendGeneration == generation {
@@ -174,6 +177,9 @@ public final class TimelineController {
                 }
                 if let text = event.textContent {
                     streamingText += text
+                }
+                if let report = event.promptCacheReport {
+                    promptCacheReports.append(report)
                 }
                 if let completed = event.completedMessage?.message {
                     messages.append(completed)

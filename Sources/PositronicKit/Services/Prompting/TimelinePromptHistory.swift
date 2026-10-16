@@ -24,6 +24,10 @@ actor TimelinePromptHistory {
     private var historyProjectionCoverageWatermark: UUID?
     /// Per-Timeline stepwise history cut (#277). Empty until the first over-budget Turn.
     private var trimState = HistoryTrimState()
+    /// The previous model round's ordered segment fingerprint, used to detect prefix resets (#280).
+    private var lastTierFingerprint: TierFingerprint?
+    /// The most recent prompt-layout snapshot surfaced through `TimelineHandle.promptState()`.
+    private var lastPromptState: PromptStateSnapshot?
 
     var appendedMessageCount: Int { pressure.appendedMessageCount }
     var appendedTokens: Int { pressure.appendedTokens }
@@ -180,6 +184,40 @@ actor TimelinePromptHistory {
     /// The stepwise history cut currently in effect for this Timeline, or an empty state.
     func historyTrimState() -> HistoryTrimState {
         trimState
+    }
+
+    /// Compares this round's rendered prompt against the previous round's and records the
+    /// reusable-prefix accounting and the latest public prompt-state snapshot (#280).
+    @discardableResult
+    func accountPromptCache(
+        prompt: RenderedPrompt,
+        historyTrimmed: Bool,
+        cachingEnabled: Bool,
+        turnID: UUID,
+        modelRoundIndex: Int,
+        breakpoints: [PromptCacheBreakpoint]
+    ) -> PromptCacheAccounting {
+        let current = TierFingerprint(prompt: prompt)
+        let accounting = PromptCacheResetDetector.account(
+            previous: lastTierFingerprint,
+            current: current,
+            historyTrimmed: historyTrimmed,
+            cachingEnabled: cachingEnabled
+        )
+        lastTierFingerprint = current
+        lastPromptState = PromptStateSnapshot(
+            turnID: turnID,
+            modelRoundIndex: modelRoundIndex,
+            fingerprint: current,
+            breakpoints: breakpoints,
+            resets: accounting.resets
+        )
+        return accounting
+    }
+
+    /// The latest prompt-layout state for this Timeline, or an empty snapshot before any round.
+    func promptStateSnapshot() -> PromptStateSnapshot {
+        lastPromptState ?? .empty
     }
 
     /// Persists the stepwise history cut after a trim pass so later Turns reuse the same prefix.

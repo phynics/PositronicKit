@@ -2,27 +2,12 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// How the runtime requests provider-side prompt caching.
+/// Runtime resolution helpers for the provider-neutral `PromptCachingPolicy`.
 ///
-/// The runtime resolves one effective policy per generation: a per-Turn override wins over the
-/// runtime default, and ``disabled`` sends no hints. Adapters decide how to translate the
-/// resulting `PKContracts.PromptCacheDirective`; the runtime never emits provider wire values.
-public enum PromptCachingPolicy: Sendable, Hashable {
-    /// Request caching with the given retention window and the runtime's default tier layout.
-    case automatic(retention: PromptCacheDirective.Retention = .short)
-    /// Send no prompt-cache hints; adapters behave as they did before caching existed.
-    case disabled
-
-    /// The retention window to request, or `nil` when caching is disabled.
-    public var retention: PromptCacheDirective.Retention? {
-        switch self {
-        case let .automatic(retention):
-            retention
-        case .disabled:
-            nil
-        }
-    }
-
+/// The policy value itself lives in `PKContracts` so it can ride on the provider-neutral
+/// `PromptCacheReport`. These helpers depend on runtime-only routing-key derivation and stay
+/// in the runtime module.
+extension PromptCachingPolicy {
     /// The effective policy for a generation: the per-Turn override when present, otherwise the
     /// runtime default.
     static func resolved(

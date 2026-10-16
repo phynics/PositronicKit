@@ -103,6 +103,15 @@ public struct TurnHandle: Identifiable, Sendable {
         try await engine.waitForTurnResult(id: id)
     }
 
+    /// Returns the durable per-round prompt-cache reports recorded on this Turn, oldest first.
+    ///
+    /// The reports are persisted when each model round's usage arrives, so a joiner that never
+    /// consumed the live stream still observes them. Reading does not consume the event stream and
+    /// is safe before or after the Turn terminates.
+    public func promptCacheReports() async throws -> [PromptCacheReport] {
+        try await engine.promptCacheReports(forTurnID: id)
+    }
+
     /// Requests cancellation of exactly this Turn.
     public func cancel() async {
         _ = await engine.dependencies.timelineManager.cancelGeneration(turnID: id, for: timelineID)

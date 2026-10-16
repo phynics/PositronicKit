@@ -397,6 +397,10 @@ struct SidecarTurnIntegrationTests {
             return "generation(\(text))"
         case let .completion(.generationCompleted(message, _)):
             return "generationCompleted(\(message.content))"
+        case let .promptCacheReport(report):
+            // The Turn identity legitimately differs between two independent turns; compare the
+            // accounting shape the sidecar parameter must not change.
+            return "promptCacheReport(round:\(report.modelRoundIndex),expected:\(report.expectedReusableTokens),resets:\(report.resets))"
         default:
             return String(describing: event)
         }

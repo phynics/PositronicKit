@@ -264,6 +264,9 @@ for await event in stream {
         case .generationCancelled:
             print("\nGeneration cancelled.")
         }
+
+    case .promptCacheReport(let report):
+        print("\nPrompt cache round \(report.modelRoundIndex): \(report.reportedCachedTokens ?? 0) cached tokens, resets \(report.resets)")
     }
 }
 ```
@@ -461,6 +464,55 @@ let turn = try await kit.timelines.open(timelineID).startTurn(
 )
 let stream = turn.events()
 ```
+
+## Measuring prompt caching
+
+Every model round emits a `PromptCacheReport` after its usage arrives. The report names the
+expected reusable prefix (`expectedReusableTokens`), the provider's cache reads and writes
+(`reportedCachedTokens`, `reportedCacheWriteTokens`), the breakpoints that were sent, and the
+reasons any prefix reset (`resets`). Reports are redaction-safe: they carry section identifiers
+and token counts, never prompt content.
+
+```swift
+let driver = kit.timelines.open(timelineID)
+let turn = try await driver.startTurn("Summarize the attached report.")
+
+var cachedTokens = 0
+var reusableTokens = 0
+for await event in turn.events() {
+    guard let report = event.promptCacheReport else { continue }
+    cachedTokens += report.reportedCachedTokens ?? 0
+    reusableTokens += report.expectedReusableTokens
+    if !report.resets.isEmpty {
+        print("round \(report.modelRoundIndex) reset: \(report.resets)")
+    }
+}
+
+let hitRate = reusableTokens > 0 ? Double(cachedTokens) / Double(reusableTokens) : 0
+print("cache hit rate: \(hitRate)")
+
+// Reports are persisted, so a joiner that never consumed the live stream can read them after
+// the Turn reaches a terminal state.
+let reports = try await turn.promptCacheReports()
+for report in reports where !report.resets.isEmpty {
+    print("round \(report.modelRoundIndex): \(report.resets)")
+}
+
+// A value snapshot of the layout the runtime sent: segments, tiers, fingerprints, breakpoints,
+// and the last reset reasons.
+let state = await driver.promptState()
+for segment in state.segments {
+    print("segment \(segment.id) is in tier \(segment.tier)")
+}
+for tier in state.tiers {
+    print("tier \(tier.tier) fingerprint: \(tier.fingerprint)")
+}
+```
+
+`resetReasons` include `firstRound`, `toolsChanged`, `stableTierChanged`,
+`semiStableSegmentChanged`, `historyTrim`, `historyProjectionChanged`, `cachingDisabled`, and
+`providerUnsupported`. An empty `resets` array means the previous round's prefix carried over
+byte-for-byte.
 
 ## 3. Core Concepts
 

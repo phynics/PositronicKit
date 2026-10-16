@@ -23,8 +23,6 @@ public struct LLMResponse: Equatable, Sendable, Codable {
     public var duration: TimeInterval?
     /// Throughput derived from `usage` and `duration`, where both are available.
     public var tokensPerSecond: Double?
-    /// An encoded diagnostic snapshot, when diagnostic snapshots are enabled.
-    public var turnSnapshotData: Data?
 
     public init(
         content: String? = nil,
@@ -34,8 +32,7 @@ public struct LLMResponse: Equatable, Sendable, Codable {
         finishReason: String? = nil,
         systemFingerprint: String? = nil,
         duration: TimeInterval? = nil,
-        tokensPerSecond: Double? = nil,
-        turnSnapshotData: Data? = nil
+        tokensPerSecond: Double? = nil
     ) {
         self.content = content
         self.id = id
@@ -45,6 +42,5 @@ public struct LLMResponse: Equatable, Sendable, Codable {
         self.systemFingerprint = systemFingerprint
         self.duration = duration
         self.tokensPerSecond = tokensPerSecond
-        self.turnSnapshotData = turnSnapshotData
     }
 }

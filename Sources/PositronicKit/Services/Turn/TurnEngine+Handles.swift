@@ -84,6 +84,20 @@ extension TurnEngine {
         }
     }
 
+    /// Returns the durable per-round prompt-cache reports recorded on a Turn, oldest first.
+    ///
+    /// The reports are persisted as Turn correlations when each model round's usage arrives, so a
+    /// joiner that never consumed the live stream still observes them after the Turn terminates.
+    func promptCacheReports(forTurnID turnID: UUID) async throws -> [PromptCacheReport] {
+        let correlations = try await dependencies.runtimeRepository.fetchCorrelations(turnID: turnID)
+        return correlations
+            .filter { $0.kind == MessagePersistenceStage.promptCacheReportCorrelationKind }
+            .compactMap { correlation in
+                guard let data = correlation.value.data(using: .utf8) else { return nil }
+                return try? SerializationUtils.jsonDecoder.decode(PromptCacheReport.self, from: data)
+            }
+    }
+
     func waitForTurnOutcome(id turnID: UUID) async throws -> TurnOutcome {
         let waiter = TurnTerminationWaiter(
             hub: dependencies.eventHub,

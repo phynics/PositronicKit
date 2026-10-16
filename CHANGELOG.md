@@ -59,6 +59,16 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
 
 ### Added
 
+- **Per-round prompt-cache reports and read-only prompt state (#280).** Every model round emits a
+  `PromptCacheReport` after its usage arrives, carrying the expected reusable prefix, the
+  provider's cache reads and writes, the breakpoints sent, and the reasons any prefix reset. The
+  report is a `TurnEvent` payload and is persisted on the Turn, so `TurnHandle.promptCacheReports()`
+  returns it to any joiner and after replay. `TimelineHandle.promptState()` returns a value
+  `PromptStateSnapshot` with layout segment IDs and tiers, per-tier fingerprints, the last
+  breakpoints, and the last reset reasons. `PromptCachingPolicy` moves to `PKContracts` so the
+  report can cross the runtime/contracts boundary. Diagnostic snapshots are now a typed
+  `TimelineMessage.turnSnapshot: TurnSnapshot?` linked to the report, and the raw
+  `LLMResponse.turnSnapshotData` is removed.
 - **`PKMCP` runtime adapter (#266):** a new optional product connects a Model Context Protocol
   server as an ordinary Workspace. `MCPServerConfiguration` describes a stdio or Streamable HTTP
   transport, `WorkspaceCapability.createMCPWorkspace(_:for:)` persists the secret-free

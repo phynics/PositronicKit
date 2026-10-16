@@ -212,6 +212,8 @@ public enum PositronicKitUsageExamples {
                 case .generationCancelled:
                     print("\nGeneration cancelled.")
                 }
+            case .promptCacheReport(let report):
+                print("\nPrompt cache round \(report.modelRoundIndex): cached \(report.reportedCachedTokens ?? 0) tokens, resets \(report.resets)")
             }
         }
     }

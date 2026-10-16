@@ -36,6 +36,8 @@ extension TurnEvent: CustomTestReflectable {
             Mirror(self, children: [(label: "error", value: String(describing: event))])
         case let .completion(event):
             Mirror(self, children: [(label: "completion", value: String(describing: event))])
+        case let .promptCacheReport(report):
+            Mirror(self, children: [(label: "promptCacheReport", value: String(describing: report))])
         }
     }
 }
