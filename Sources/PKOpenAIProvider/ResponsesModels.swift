@@ -21,6 +21,10 @@ package struct ResponsesRequest: Encodable {
     package var seed: Int?
     package var presencePenalty: Double?
     package var frequencyPenalty: Double?
+    /// OpenAI's routing key for automatic prefix caching, when the runtime derived one.
+    package var promptCacheKey: String?
+    /// OpenAI's retention window (`in_memory` or `24h`); omitted when the model does not support it.
+    package var promptCacheRetention: String?
 
     package enum CodingKeys: String, CodingKey {
         case model, input, tools, text, reasoning, include, store, stream, seed
@@ -30,6 +34,8 @@ package struct ResponsesRequest: Encodable {
         case topP = "top_p"
         case presencePenalty = "presence_penalty"
         case frequencyPenalty = "frequency_penalty"
+        case promptCacheKey = "prompt_cache_key"
+        case promptCacheRetention = "prompt_cache_retention"
     }
 }
 
@@ -171,7 +177,13 @@ package enum ResponsesEvents {
             accumulator.sawContent = true
             var usageOut = usage
             if let u = json["usage"] as? [String: Any] {
-                usageOut = LLMTokenUsage(promptTokens: u["input_tokens"] as? Int, completionTokens: u["output_tokens"] as? Int, totalTokens: u["total_tokens"] as? Int, promptTokensDetails: .init(cachedTokens: (u["input_tokens_details"] as? [String: Any])?["cached_tokens"] as? Int))
+                let inputDetails = u["input_tokens_details"] as? [String: Any]
+                let writeTokens = (u["cache_write_tokens"] as? Int) ?? (inputDetails?["cache_write_tokens"] as? Int)
+                let cachedTokens = inputDetails?["cached_tokens"] as? Int
+                let details: LLMTokenUsagePromptDetails? = (cachedTokens != nil || writeTokens != nil)
+                    ? .init(cachedTokens: cachedTokens, cacheWriteTokens: writeTokens)
+                    : nil
+                usageOut = LLMTokenUsage(promptTokens: u["input_tokens"] as? Int, completionTokens: u["output_tokens"] as? Int, totalTokens: u["total_tokens"] as? Int, promptTokensDetails: details)
             }
             return LLMStreamChunk(id: responseID, model: model, choices: [.init(index: 0, delta: .init(role: .assistant), finishReason: FinishReason.stop.wireValue)], usage: usageOut)
         default: return nil

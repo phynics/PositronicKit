@@ -268,7 +268,9 @@ struct AnthropicStreamDecodingTests {
 
         let body = try #require(request.httpBody)
         let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
-        #expect(json["system"] as? String == "be terse")
+        let system = try #require(json["system"] as? [[String: Any]])
+        #expect(system.count == 1)
+        #expect(system.first?["text"] as? String == "be terse")
         #expect(json["max_tokens"] as? Int == AnthropicClient.defaultMaxTokens)
         #expect(json["stream"] as? Bool == true)
         // System messages are hoisted out of the messages array (the API rejects them inline).
@@ -372,7 +374,7 @@ struct AnthropicMessageConversionTests {
             logger: logger
         )
 
-        #expect(system == "be helpful")
+        #expect(system == [AnthropicSystemBlock(text: "be helpful")])
         #expect(messages.count == 3)
         #expect(messages[0] == AnthropicMessage(role: "user", content: [.text("weather in berlin?")]))
         #expect(messages[1] == AnthropicMessage(
@@ -433,7 +435,7 @@ struct AnthropicMessageConversionTests {
             logger: logger
         )
 
-        #expect(system == "rule one\n\nrule two")
+        #expect(system == [AnthropicSystemBlock(text: "rule one"), AnthropicSystemBlock(text: "rule two")])
         #expect(messages.count == 1)
     }
 

@@ -91,6 +91,22 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   `promptCaching:` policy. The runtime derives a per-Timeline routing key as
   `hex(SHA-256("pk.timeline." + timelineID.uuidString)).prefix(32)`; adapters translate the
   directive in a follow-up.
+- **Provider prompt-cache adapters (#279).** The adapters now translate the provider-neutral
+  `PromptCacheDirective` into native wire fields. A shared `PromptCachePlanner` in `PKUtilities`
+  orders breakpoints, drops a repeated tier, skips prefixes below the model minimum, and caps the
+  result. `PKAnthropicProvider` sends `system` as a block array and attaches
+  `cache_control: {type: ephemeral, ttl: 1h}` to the last stable/semi-stable system block, the
+  last tool (when tools are the prefix), the previous Turn's final message, and the last
+  `tool_result` block; it also parses `cache_creation_input_tokens` and the per-TTL breakdown.
+  `PKOpenAIProvider` sends `prompt_cache_key` and, for models that support it,
+  `prompt_cache_retention` (`in_memory` / `24h`) on both Chat Completions and Responses, and
+  parses `prompt_tokens_details.cached_tokens`/`cache_write_tokens`. OpenAI explicit breakpoints
+  stay deferred pending confirmation of the reported `prompt_cache_breakpoint` field, so the
+  adapter relies on automatic prefix caching. `PKOpenRouterProvider` sends
+  `session_id` for sticky routing and, for `anthropic/*` routes, the same `cache_control` markers;
+  it parses `cache_discount` alongside cached and cache-write tokens. `PKOllamaProvider` and
+  `PKFoundationModelsProvider` declare `.none`. The provider capability matrix and
+  `docs/ProviderCapabilityMatrix.md` gain a "Prompt caching" column.
 - **Runtime-neutral embeddings (@_spi(Experimental)):** `PKContracts` gains `EmbeddingClientProtocol`,
   `EmbeddingRequest`, `EmbeddingResponse`, `Embedding`, `EmbeddingSpace`, `EmbeddingPurpose`,
   `EmbeddingInputBudget`, and `EmbeddingError` (ADR 0014). Experimental surfaces ship behind

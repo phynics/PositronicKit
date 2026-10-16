@@ -30,13 +30,21 @@ public actor OpenRouterClient: LLMClientProtocol {
     }
 
     private let apiKey: String
-    private let modelName: String
+    private nonisolated let modelName: String
     private let endpoint: URL
     private let maxRetries: Int
     private let logger = Logger.module(named: "openrouter-client")
     private let timeoutInterval: TimeInterval
     private let transport: any ProviderHTTPTransport
     private let attribution: Attribution
+
+    /// OpenRouter selects explicit Anthropic-style breakpoints for `anthropic/*` routes and
+    /// relies on upstream automatic caching for every other model (#279).
+    public nonisolated var promptCachingCapability: PromptCachingCapability {
+        OpenRouterPromptCache.isAnthropicRouted(model: modelName)
+            ? .explicit(maxBreakpoints: OpenRouterPromptCache.maxBreakpoints)
+            : .automatic
+    }
 
     private static let defaultBaseURL = URL(string: "https://openrouter.ai/api")!
 
@@ -212,10 +220,39 @@ public actor OpenRouterClient: LLMClientProtocol {
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await chatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput,
+            promptCache: nil
+        )
+    }
+
+    public func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let modelName = self.modelName
         let logger = self.logger
         let maxRetries = self.maxRetries
-        let chatMessages = messages.map { OpenRouterMessage($0, provider: .openRouter, logger: logger) }
+        let plan = promptCache.flatMap { directive in
+            OpenRouterPromptCache.isAnthropicRouted(model: modelName)
+                ? OpenRouterPromptCache.plan(directive, model: modelName)
+                : nil
+        }
+        let chatMessages = plan.map {
+            OpenRouterPromptCache.apply($0, to: messages.map { OpenRouterMessage($0, provider: .openRouter, logger: logger) })
+        } ?? messages.map { OpenRouterMessage($0, provider: .openRouter, logger: logger) }
         let chatTools = tools?.map(OpenRouterTool.init)
         let chatResponseFormat = ChatCompletionsWire.mapResponseFormat(responseFormat)
         let chatToolChoice = ChatCompletionsWire.mapToolChoice(toolChoice, tools: tools)
@@ -236,7 +273,8 @@ public actor OpenRouterClient: LLMClientProtocol {
                 stream: streaming,
                 streamOptions: streaming ? .init(includeUsage: true) : nil,
                 modalities: streaming && responseModalities.contains(.audio) ? [.text, .audio] : nil,
-                audio: streaming ? audioOutput : nil
+                audio: streaming ? audioOutput : nil,
+                sessionID: promptCache?.routingKey
             )
         }
 
@@ -409,9 +447,40 @@ public actor OpenRouterClient: LLMClientProtocol {
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil
     ) async throws -> LLMStreamChunk {
+        try await chatCompletion(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput,
+            promptCache: nil
+        )
+    }
+
+    /// Sends a non-streaming chat completion with an optional prompt-cache directive.
+    public func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async throws -> LLMStreamChunk {
         try validateLLMMessageHistory(messages)
+        let plan = promptCache.flatMap { directive in
+            OpenRouterPromptCache.isAnthropicRouted(model: modelName)
+                ? OpenRouterPromptCache.plan(directive, model: modelName)
+                : nil
+        }
+        let chatMessages = plan.map {
+            OpenRouterPromptCache.apply($0, to: messages.map { OpenRouterMessage($0, provider: .openRouter, logger: logger) })
+        } ?? messages.map { OpenRouterMessage($0, provider: .openRouter, logger: logger) }
         let requestBody = OpenRouterChatRequest(
-            messages: messages.map { OpenRouterMessage($0, provider: .openRouter, logger: logger) },
+            messages: chatMessages,
             model: modelName,
             frequencyPenalty: generationParameters?.frequencyPenalty,
             maxCompletionTokens: generationParameters?.maxTokens,
@@ -425,7 +494,8 @@ public actor OpenRouterClient: LLMClientProtocol {
             stream: false,
             streamOptions: nil,
             modalities: responseModalities.contains(.audio) ? [.text, .audio] : nil,
-            audio: audioOutput
+            audio: audioOutput,
+            sessionID: promptCache?.routingKey
         )
         let request = try buildChatRequest(query: requestBody)
         let response = try await RetryPolicy.retry(maxRetries: maxRetries) {

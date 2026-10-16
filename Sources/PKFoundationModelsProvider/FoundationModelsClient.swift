@@ -28,6 +28,10 @@ import PKUtilities
 /// `makeSession` (e.g. a fake) or the client throws `unsupportedPlatform` on use.
 @available(anyAppleOS 26.0, *)
 public actor FoundationModelsClient: LLMClientProtocol {
+    /// The on-device framework documents no prompt cache. `prewarm(promptPrefix:)` semantics are
+    /// unconfirmed, so the adapter ignores directives rather than guessing (#279).
+    public nonisolated var promptCachingCapability: PromptCachingCapability { .none }
+
     /// Factory for the per-turn session: given the tool definitions PKRuntime resolved for
     /// this turn and the hoisted system-instructions string, produce a session to drive.
     /// PKRuntime's `[LLMToolDefinition]` (JSON-Schema-shaped, transport-neutral) is bridged

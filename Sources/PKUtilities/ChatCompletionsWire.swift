@@ -40,7 +40,10 @@ package struct ChatCompletionsUsage: Codable, Sendable {
             promptTokens: promptTokens,
             completionTokens: completionTokens,
             totalTokens: totalTokens,
-            promptTokensDetails: .init(cachedTokens: promptTokensDetails?.cachedTokens)
+            promptTokensDetails: .init(
+                cachedTokens: promptTokensDetails?.cachedTokens,
+                cacheWriteTokens: promptTokensDetails?.cacheWriteTokens
+            )
         )
     }
 }
@@ -62,6 +65,10 @@ package struct ChatCompletionsChatRequest: Codable, Sendable {
     package var modalities: [ResponseModality]?
     package var audio: AudioOutputOptions?
     package var sessionID: String?
+    /// OpenAI's routing key for automatic prefix caching. OpenRouter uses `session_id` instead.
+    package var promptCacheKey: String?
+    /// OpenAI's retention window (`in_memory` or `24h`); omitted when the model does not support it.
+    package var promptCacheRetention: String?
 
     package init(
         messages: [ChatCompletionsMessage], model: String,
@@ -71,7 +78,7 @@ package struct ChatCompletionsChatRequest: Codable, Sendable {
         toolChoice: ChatCompletionsToolChoice? = nil, tools: [ChatCompletionsTool]? = nil,
         topP: Double? = nil, stream: Bool, streamOptions: ChatCompletionsStreamOptions? = nil,
         modalities: [ResponseModality]? = nil, audio: AudioOutputOptions? = nil,
-        sessionID: String? = nil
+        sessionID: String? = nil, promptCacheKey: String? = nil, promptCacheRetention: String? = nil
     ) {
         self.messages = messages; self.model = model
         self.frequencyPenalty = frequencyPenalty; self.maxCompletionTokens = maxCompletionTokens
@@ -80,6 +87,7 @@ package struct ChatCompletionsChatRequest: Codable, Sendable {
         self.toolChoice = toolChoice; self.tools = tools; self.topP = topP
         self.stream = stream; self.streamOptions = streamOptions
         self.modalities = modalities; self.audio = audio; self.sessionID = sessionID
+        self.promptCacheKey = promptCacheKey; self.promptCacheRetention = promptCacheRetention
     }
 
     package enum CodingKeys: String, CodingKey {
@@ -92,12 +100,14 @@ package struct ChatCompletionsChatRequest: Codable, Sendable {
         case topP = "top_p"
         case streamOptions = "stream_options"
         case sessionID = "session_id"
+        case promptCacheKey = "prompt_cache_key"
+        case promptCacheRetention = "prompt_cache_retention"
     }
 }
 
 package struct ChatCompletionsMessage: Codable, Sendable {
     package let role: String
-    package let content: ChatCompletionsMessageContent?
+    package var content: ChatCompletionsMessageContent?
     package let name: String?
     package let toolCallID: String?
     package let toolCalls: [ChatCompletionsToolCall]?
@@ -142,6 +152,24 @@ package struct ChatCompletionsMessage: Codable, Sendable {
         self.toolCallID = toolCallID; self.toolCalls = toolCalls
         self.audio = audio; self.reasoning = reasoning
     }
+
+    /// Attaches an Anthropic-compatible `cache_control` marker to the message's last content block.
+    ///
+    /// A plain-string content is promoted to a one-element block array so it can carry the
+    /// marker. Empty content is left untouched.
+    package mutating func applyCacheControl(_ control: PromptCacheControl) {
+        switch content {
+        case .none:
+            return
+        case let .text(text):
+            content = .parts([ChatCompletionsContentPart(payload: .text(text), cacheControl: control)])
+        case let .parts(parts):
+            guard !parts.isEmpty else { return }
+            var marked = parts
+            marked[marked.count - 1].cacheControl = control
+            content = .parts(marked)
+        }
+    }
 }
 
 package struct ChatCompletionsAssistantAudio: Codable, Sendable {
@@ -179,50 +207,87 @@ package enum ChatCompletionsMessageContent: Codable, Sendable {
         switch self {
         case let .text(text): text
         case let .parts(parts): parts.compactMap { part in
-            guard case let .text(text) = part else { return nil }
+            guard case let .text(text) = part.payload else { return nil }
             return text
         }.joined()
         }
     }
 }
 
-package enum ChatCompletionsContentPart: Codable, Sendable {
-    case text(String)
-    case image(ImageContent)
-    case audio(AudioContent)
+/// One OpenAI-compatible content block plus an optional Anthropic-compatible cache marker.
+///
+/// OpenRouter routes `anthropic/*` models through Anthropic, where an explicit breakpoint is a
+/// `cache_control` field on a content block. The struct keeps the block payload separate from the
+/// marker so a marker can be attached after message conversion.
+package struct ChatCompletionsContentPart: Codable, Sendable {
+    package enum Payload: Sendable {
+        case text(String)
+        case image(ImageContent)
+        case audio(AudioContent)
+    }
 
-    private enum CodingKeys: String, CodingKey { case type, text, imageURL = "image_url", inputAudio = "input_audio" }
+    package var payload: Payload
+    package var cacheControl: PromptCacheControl?
+
+    package init(payload: Payload, cacheControl: PromptCacheControl? = nil) {
+        self.payload = payload
+        self.cacheControl = cacheControl
+    }
+
+    package static func text(_ text: String) -> ChatCompletionsContentPart {
+        ChatCompletionsContentPart(payload: .text(text))
+    }
+
+    package static func image(_ image: ImageContent) -> ChatCompletionsContentPart {
+        ChatCompletionsContentPart(payload: .image(image))
+    }
+
+    package static func audio(_ audio: AudioContent) -> ChatCompletionsContentPart {
+        ChatCompletionsContentPart(payload: .audio(audio))
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case type, text
+        case imageURL = "image_url"
+        case inputAudio = "input_audio"
+        case cacheControl = "cache_control"
+    }
+
     private struct ImageURL: Codable { let url: String; let detail: String? }
     private struct InputAudio: Codable { let data: String; let format: String }
 
     package init(_ part: MessageContentPart) {
         switch part {
-        case let .text(text): self = .text(text)
-        case let .image(image): self = .image(image)
-        case let .audio(audio): self = .audio(audio)
+        case let .text(text): payload = .text(text)
+        case let .image(image): payload = .image(image)
+        case let .audio(audio): payload = .audio(audio)
         }
+        cacheControl = nil
     }
 
     package init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(String.self, forKey: .type) {
-        case "text": self = .text(try container.decode(String.self, forKey: .text))
+        case "text":
+            payload = .text(try container.decode(String.self, forKey: .text))
         case "image_url":
             let value = try container.decode(ImageURL.self, forKey: .imageURL)
             guard let separator = value.url.range(of: ";base64,") else { throw DecodingError.dataCorruptedError(forKey: .imageURL, in: container, debugDescription: "Expected image data URL") }
             let mediaType = String(value.url[value.url.index(value.url.startIndex, offsetBy: 5)..<separator.lowerBound])
             let data = Data(base64Encoded: String(value.url[separator.upperBound...])) ?? Data()
-            self = .image(.init(data: data, mediaType: mediaType, detail: value.detail.flatMap { ImageDetail(rawValue: $0 == "auto" ? "automatic" : $0) }))
+            payload = .image(.init(data: data, mediaType: mediaType, detail: value.detail.flatMap { ImageDetail(rawValue: $0 == "auto" ? "automatic" : $0) }))
         case "input_audio":
             let value = try container.decode(InputAudio.self, forKey: .inputAudio)
-            self = .audio(.init(data: Data(base64Encoded: value.data) ?? Data(), format: AudioFormat(rawValue: value.format) ?? .wav))
-        default: throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unknown content part")
+            payload = .audio(.init(data: Data(base64Encoded: value.data) ?? Data(), format: AudioFormat(rawValue: value.format) ?? .wav))
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unknown content part")
         }
+        cacheControl = try container.decodeIfPresent(PromptCacheControl.self, forKey: .cacheControl)
     }
 
     package func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self {
+        switch payload {
         case let .text(text):
             try container.encode("text", forKey: .type); try container.encode(text, forKey: .text)
         case let .image(image):
@@ -232,6 +297,9 @@ package enum ChatCompletionsContentPart: Codable, Sendable {
         case let .audio(audio):
             try container.encode("input_audio", forKey: .type)
             try container.encode(InputAudio(data: audio.data.base64EncodedString(), format: audio.format.rawValue), forKey: .inputAudio)
+        }
+        if let cacheControl {
+            try container.encode(cacheControl, forKey: .cacheControl)
         }
     }
 }
@@ -484,7 +552,15 @@ package struct ChatCompletionsStreamChunk: Codable, Sendable {
                 )
             },
             usage: usage.map {
-                LLMTokenUsage(promptTokens: $0.promptTokens, completionTokens: $0.completionTokens, totalTokens: $0.totalTokens, promptTokensDetails: .init(cachedTokens: $0.promptTokensDetails?.cachedTokens))
+                LLMTokenUsage(
+                    promptTokens: $0.promptTokens,
+                    completionTokens: $0.completionTokens,
+                    totalTokens: $0.totalTokens,
+                    promptTokensDetails: .init(
+                        cachedTokens: $0.promptTokensDetails?.cachedTokens,
+                        cacheWriteTokens: $0.promptTokensDetails?.cacheWriteTokens
+                    )
+                )
             }
         )
     }

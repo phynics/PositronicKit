@@ -23,6 +23,11 @@ public enum OpenAIAPI: Sendable, Equatable {
 /// replayed from the provider continuation reference on the assistant message.
 public actor OpenAIClient: LLMClientProtocol {
     public let structuredOutputAdapter: any StructuredOutputAdapter
+    /// OpenAI caches prefixes automatically; the adapter only supplies a routing key and, for
+    /// supported models, a retention window (#279).
+    public nonisolated var promptCachingCapability: PromptCachingCapability {
+        .automatic
+    }
     private let apiKey: String
     private let modelName: String
     private let host: String
@@ -79,18 +84,22 @@ public actor OpenAIClient: LLMClientProtocol {
     }
 
     public func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        await chatStream(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: [.text], audioOutput: nil)
+        await chatStream(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: [.text], audioOutput: nil, promptCache: nil)
     }
 
     public func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await chatStream(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: responseModalities, audioOutput: audioOutput, promptCache: nil)
+    }
+
+    public func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?, promptCache: PromptCacheDirective?) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let maxRetries = self.maxRetries
         return CancellableAsyncThrowingStream.make(of: LLMStreamChunk.self) { continuation in
             do {
                 try validateLLMMessageHistory(messages)
                 if self.resolvedAPI(hasAudioOutput: audioOutput != nil) == .responses {
-                    try await self.streamResponses(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, maxRetries: maxRetries, continuation: continuation)
+                    try await self.streamResponses(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, promptCache: promptCache, maxRetries: maxRetries, continuation: continuation)
                 } else {
-                    try await self.streamChatCompletions(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: responseModalities, audioOutput: audioOutput, maxRetries: maxRetries, continuation: continuation)
+                    try await self.streamChatCompletions(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: responseModalities, audioOutput: audioOutput, promptCache: promptCache, maxRetries: maxRetries, continuation: continuation)
                 }
                 continuation.finish()
             } catch {
@@ -102,7 +111,7 @@ public actor OpenAIClient: LLMClientProtocol {
 
     // MARK: - Chat Completions path (shared wire)
 
-    package nonisolated func makeChatRequest(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?, stream: Bool) throws -> URLRequest {
+    package nonisolated func makeChatRequest(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?, promptCache: PromptCacheDirective? = nil, stream: Bool) throws -> URLRequest {
         let query = ChatCompletionsChatRequest(
             messages: messages.map { ChatCompletionsMessage($0, provider: .openAI) },
             model: modelName,
@@ -118,7 +127,9 @@ public actor OpenAIClient: LLMClientProtocol {
             stream: stream,
             streamOptions: stream ? .init(includeUsage: true) : nil,
             modalities: responseModalities.contains(.audio) ? [.text, .audio] : nil,
-            audio: audioOutput
+            audio: audioOutput,
+            promptCacheKey: promptCache?.routingKey,
+            promptCacheRetention: OpenAIPromptCache.retention(for: promptCache, model: modelName)
         )
         var request = URLRequest(url: baseURL.appendingPathComponent("v1/chat/completions"))
         request.httpMethod = "POST"; request.timeoutInterval = timeoutInterval
@@ -128,8 +139,8 @@ public actor OpenAIClient: LLMClientProtocol {
         return request
     }
 
-    private func streamChatCompletions(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?, maxRetries: Int, continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation) async throws {
-        let request = try makeChatRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: responseModalities, audioOutput: audioOutput, stream: true)
+    private func streamChatCompletions(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?, promptCache: PromptCacheDirective?, maxRetries: Int, continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation) async throws {
+        let request = try makeChatRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: responseModalities, audioOutput: audioOutput, promptCache: promptCache, stream: true)
         let recoveryState = Mutex(LLMToolCallRecoveryState())
         let decoder = ChatCompletionsWire.streamChunkDecoder
         try await RetryPolicy.retry(maxRetries: maxRetries, shouldRetry: { recoveryState.withLock { $0.shouldRetryAfterError } && RetryPolicy.isTransient(error: $0) }) {
@@ -148,7 +159,7 @@ public actor OpenAIClient: LLMClientProtocol {
                 }
             }
             if !Task.isCancelled, recoveryState.withLock(\.shouldRecoverToolCalls) {
-                let recoveryRequest = try self.makeChatRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: responseModalities, audioOutput: nil, stream: false)
+                let recoveryRequest = try self.makeChatRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: responseModalities, audioOutput: nil, promptCache: promptCache, stream: false)
                 let response: ChatCompletionsChatResponse = try await HTTPHelpers.fetchDecodable(ChatCompletionsChatResponse.self, for: recoveryRequest, transport: self.transport, provider: "OpenAI")
                 if let chunk = self.makeToolCallRecoveryChunk(from: response) { continuation.yield(chunk) }
             }
@@ -163,11 +174,15 @@ public actor OpenAIClient: LLMClientProtocol {
     }
 
     public func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality> = [.text], audioOutput: AudioOutputOptions? = nil) async throws -> LLMStreamChunk {
+        try await chatCompletion(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: responseModalities, audioOutput: audioOutput, promptCache: nil)
+    }
+
+    public func chatCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?, promptCache: PromptCacheDirective?) async throws -> LLMStreamChunk {
         try validateLLMMessageHistory(messages)
         if resolvedAPI(hasAudioOutput: audioOutput != nil) == .responses {
-            return try await fetchResponses(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters)
+            return try await fetchResponses(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, promptCache: promptCache)
         }
-        let request = try makeChatRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: responseModalities, audioOutput: audioOutput, stream: false)
+        let request = try makeChatRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: responseModalities, audioOutput: audioOutput, promptCache: promptCache, stream: false)
         let response: ChatCompletionsChatResponse = try await RetryPolicy.retry(maxRetries: maxRetries) {
             try await HTTPHelpers.fetchDecodable(ChatCompletionsChatResponse.self, for: request, transport: self.transport, provider: "OpenAI")
         }
@@ -176,7 +191,7 @@ public actor OpenAIClient: LLMClientProtocol {
 
     // MARK: - Responses path
 
-    package nonisolated func makeResponsesRequest(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, stream: Bool) throws -> URLRequest {
+    package nonisolated func makeResponsesRequest(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, promptCache: PromptCacheDirective? = nil, stream: Bool) throws -> URLRequest {
         var input: [ResponsesInputItem] = []
         for m in messages {
             switch m.role {
@@ -215,7 +230,9 @@ public actor OpenAIClient: LLMClientProtocol {
             include: ["reasoning.encrypted_content"], store: false, stream: stream,
             maxOutputTokens: generationParameters?.maxTokens, temperature: generationParameters?.temperature,
             topP: generationParameters?.topP, seed: generationParameters?.seed,
-            presencePenalty: generationParameters?.presencePenalty, frequencyPenalty: generationParameters?.frequencyPenalty
+            presencePenalty: generationParameters?.presencePenalty, frequencyPenalty: generationParameters?.frequencyPenalty,
+            promptCacheKey: promptCache?.routingKey,
+            promptCacheRetention: OpenAIPromptCache.retention(for: promptCache, model: modelName)
         )
         var request = URLRequest(url: baseURL.appendingPathComponent("v1/responses"))
         request.httpMethod = "POST"; request.timeoutInterval = timeoutInterval
@@ -235,8 +252,8 @@ public actor OpenAIClient: LLMClientProtocol {
         }
     }
 
-    private func streamResponses(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, maxRetries: Int, continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation) async throws {
-        let request = try makeResponsesRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, stream: true)
+    private func streamResponses(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, promptCache: PromptCacheDirective?, maxRetries: Int, continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation) async throws {
+        let request = try makeResponsesRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, promptCache: promptCache, stream: true)
         let accumulator = Mutex(ResponsesStreamAccumulator())
         try await RetryPolicy.retry(maxRetries: maxRetries, shouldRetry: { _ in false }) {
             let stream = try await HTTPHelpers.openLineStream(request, transport: self.transport, provider: "OpenAI")
@@ -262,7 +279,7 @@ public actor OpenAIClient: LLMClientProtocol {
         }
     }
 
-    private func fetchResponses(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?) async throws -> LLMStreamChunk {
+    private func fetchResponses(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, promptCache: PromptCacheDirective?) async throws -> LLMStreamChunk {
         struct CompletedResponse: Decodable {
             struct OutputItem: Decodable {
                 let type: String
@@ -274,17 +291,33 @@ public actor OpenAIClient: LLMClientProtocol {
                 enum CodingKeys: String, CodingKey { case type, text, name, arguments; case callId = "call_id"; case id }
             }
             struct Usage: Decodable {
+                struct InputTokensDetails: Decodable {
+                    let cachedTokens: Int?
+                    let cacheWriteTokens: Int?
+                    enum CodingKeys: String, CodingKey {
+                        case cachedTokens = "cached_tokens"
+                        case cacheWriteTokens = "cache_write_tokens"
+                    }
+                }
                 let inputTokens: Int?
                 let outputTokens: Int?
                 let totalTokens: Int?
-                enum CodingKeys: String, CodingKey { case inputTokens = "input_tokens"; case outputTokens = "output_tokens"; case totalTokens = "total_tokens" }
+                let cacheWriteTokens: Int?
+                let inputTokensDetails: InputTokensDetails?
+                enum CodingKeys: String, CodingKey {
+                    case inputTokens = "input_tokens"
+                    case outputTokens = "output_tokens"
+                    case totalTokens = "total_tokens"
+                    case cacheWriteTokens = "cache_write_tokens"
+                    case inputTokensDetails = "input_tokens_details"
+                }
             }
             let id: String
             let model: String?
             let output: [OutputItem]?
             let usage: Usage?
         }
-        let request = try makeResponsesRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, stream: false)
+        let request = try makeResponsesRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, promptCache: promptCache, stream: false)
         let decoded: CompletedResponse = try await RetryPolicy.retry(maxRetries: maxRetries) {
             try await HTTPHelpers.fetchDecodable(CompletedResponse.self, for: request, transport: self.transport, provider: "OpenAI")
         }
@@ -297,7 +330,13 @@ public actor OpenAIClient: LLMClientProtocol {
             default: break
             }
         }
-        return LLMStreamChunk(id: decoded.id, model: decoded.model ?? modelName, choices: [.init(index: 0, delta: .init(role: .assistant, content: text.isEmpty ? nil : text, toolCalls: toolDeltas.isEmpty ? nil : toolDeltas), finishReason: FinishReason.stop.wireValue)], usage: decoded.usage.map { LLMTokenUsage(promptTokens: $0.inputTokens, completionTokens: $0.outputTokens, totalTokens: $0.totalTokens) })
+        return LLMStreamChunk(id: decoded.id, model: decoded.model ?? modelName, choices: [.init(index: 0, delta: .init(role: .assistant, content: text.isEmpty ? nil : text, toolCalls: toolDeltas.isEmpty ? nil : toolDeltas), finishReason: FinishReason.stop.wireValue)], usage: decoded.usage.map {
+            let writeTokens = $0.cacheWriteTokens ?? $0.inputTokensDetails?.cacheWriteTokens
+            let details: LLMTokenUsagePromptDetails? = ($0.inputTokensDetails?.cachedTokens != nil || writeTokens != nil)
+                ? .init(cachedTokens: $0.inputTokensDetails?.cachedTokens, cacheWriteTokens: writeTokens)
+                : nil
+            return LLMTokenUsage(promptTokens: $0.inputTokens, completionTokens: $0.outputTokens, totalTokens: $0.totalTokens, promptTokensDetails: details)
+        })
     }
 
     public func sendMessage(_ content: String, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil) async throws -> String {

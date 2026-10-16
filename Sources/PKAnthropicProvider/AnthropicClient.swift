@@ -20,6 +20,11 @@ public actor AnthropicClient: LLMClientProtocol {
     /// Prepares structured-output requests using the default synthetic-tool strategy, since
     /// the Messages API has no native `response_format` equivalent.
     public let structuredOutputAdapter: any StructuredOutputAdapter = DefaultStructuredOutputAdapter()
+    /// The Messages API caches only explicitly marked prefix boundaries and honors at most four
+    /// per request (#279).
+    public nonisolated var promptCachingCapability: PromptCachingCapability {
+        .explicit(maxBreakpoints: AnthropicPromptCache.maxBreakpoints)
+    }
     /// The Messages API requires `max_tokens`; used when `GenerationParameters.maxTokens` is nil.
     public static let defaultMaxTokens = 4096
     static let apiVersion = "2023-06-01"
@@ -111,6 +116,50 @@ public actor AnthropicClient: LLMClientProtocol {
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await makeChatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            promptCache: nil
+        )
+    }
+
+    /// Streams a chat completion with an optional prompt-cache directive.
+    public func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        guard !responseModalities.contains(.audio), audioOutput == nil else {
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: MultimodalContentError.missingCapability(.audioOutput))
+            }
+        }
+        return await makeChatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            promptCache: promptCache
+        )
+    }
+
+    private func makeChatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        promptCache: PromptCacheDirective?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let maxRetries = self.maxRetries
         let logger = self.logger
 
@@ -131,7 +180,8 @@ public actor AnthropicClient: LLMClientProtocol {
                             tools: tools,
                             toolChoice: toolChoice,
                             responseFormat: responseFormat,
-                            generationParameters: generationParameters
+                            generationParameters: generationParameters,
+                            promptCache: promptCache
                         )
                         try await self.streamResponse(
                             request: request,
@@ -211,6 +261,7 @@ public actor AnthropicClient: LLMClientProtocol {
         toolChoice: LLMToolChoice?,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
+        promptCache: PromptCacheDirective? = nil,
         stream: Bool = true
     ) throws -> URLRequest {
         switch responseFormat {
@@ -232,14 +283,19 @@ public actor AnthropicClient: LLMClientProtocol {
             )
         }
 
-        let (system, converted) = try AnthropicMessageConversion.convert(messages: messages, logger: logger)
+        let plan = promptCache.map { AnthropicPromptCache.plan($0, model: modelName) }
+        let (system, converted) = try AnthropicMessageConversion.convert(
+            messages: messages,
+            logger: logger,
+            promptCache: plan
+        )
         let effectiveTools = toolChoice == .some(LLMToolChoice.none) ? nil : tools
         let payload = AnthropicChatRequest(
             model: modelName,
             maxTokens: generationParameters?.maxTokens ?? Self.defaultMaxTokens,
-            system: system,
+            system: system.isEmpty ? nil : system,
             messages: converted,
-            tools: effectiveTools?.map(AnthropicTool.init),
+            tools: AnthropicPromptCache.markedTools(effectiveTools, plan: plan),
             toolChoice: mapToolChoice(toolChoice ?? (tools != nil ? .auto : nil)),
             temperature: generationParameters?.temperature,
             topP: generationParameters?.topP,
@@ -278,6 +334,51 @@ public actor AnthropicClient: LLMClientProtocol {
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil
     ) async throws -> LLMStreamChunk {
+        try await makeChatCompletion(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput,
+            promptCache: nil
+        )
+    }
+
+    /// Sends a non-streaming chat completion with an optional prompt-cache directive.
+    public func chatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async throws -> LLMStreamChunk {
+        try await makeChatCompletion(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput,
+            promptCache: promptCache
+        )
+    }
+
+    private func makeChatCompletion(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        promptCache: PromptCacheDirective?
+    ) async throws -> LLMStreamChunk {
         guard !responseModalities.contains(.audio), audioOutput == nil else {
             throw MultimodalContentError.missingCapability(.audioOutput)
         }
@@ -288,6 +389,7 @@ public actor AnthropicClient: LLMClientProtocol {
             toolChoice: toolChoice,
             responseFormat: responseFormat,
             generationParameters: generationParameters,
+            promptCache: promptCache,
             stream: false
         )
         let response = try await RetryPolicy.retry(maxRetries: maxRetries) {
@@ -313,7 +415,7 @@ public actor AnthropicClient: LLMClientProtocol {
                 promptTokens: $0.inputTokens,
                 completionTokens: $0.outputTokens,
                 totalTokens: ($0.inputTokens ?? 0) + ($0.outputTokens ?? 0),
-                promptTokensDetails: $0.cacheReadInputTokens.map { .init(cachedTokens: $0) }
+                promptTokensDetails: $0.promptDetails
             )
         }
         let finishReason = response.stopReason.map { mapAnthropicStopReason($0).wireValue }

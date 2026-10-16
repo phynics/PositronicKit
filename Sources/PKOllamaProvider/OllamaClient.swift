@@ -19,6 +19,8 @@ public actor OllamaClient: LLMClientProtocol {
     /// Prepares structured-output requests by augmenting the prompt with the target schema,
     /// since Ollama's chat API has no native JSON Schema constraint parameter.
     public let structuredOutputAdapter: any StructuredOutputAdapter = PromptAugmentedJSONSchemaAdapter()
+    /// Ollama documents no prompt cache; `keep_alive` governs model residency, not prefix reuse.
+    public nonisolated var promptCachingCapability: PromptCachingCapability { .none }
     private let endpoint: OllamaEndpoint
     private let modelName: String
     private let maxRetries: Int

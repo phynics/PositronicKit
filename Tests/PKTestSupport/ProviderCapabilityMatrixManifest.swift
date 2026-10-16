@@ -7,6 +7,7 @@ package enum ProviderCapabilityMatrixManifest {
         package let imageInput: String
         package let audioInput: String
         package let audioOutput: String
+        package let promptCaching: String
         package let layoutNotes: String
 
         private enum CodingKeys: String, CodingKey {
@@ -14,6 +15,7 @@ package enum ProviderCapabilityMatrixManifest {
             case imageInput = "Image input"
             case audioInput = "Audio input"
             case audioOutput = "Audio output"
+            case promptCaching = "Prompt caching"
             case layoutNotes = "Layout notes"
         }
     }

@@ -6,6 +6,7 @@
       "Image input",
       "Audio input",
       "Audio output",
+      "Prompt caching",
       "Layout notes"
     ],
     "rows": [
@@ -14,6 +15,7 @@
         "Image input": "Ordered content parts",
         "Audio input": "Ordered WAV/MP3 parts",
         "Audio output": "Typed streamed deltas with transcript",
+        "Prompt caching": "Automatic; routing key, and model-dependent retention",
         "Layout notes": "Capabilities must be explicitly configured, including for OpenAI-compatible endpoints"
       },
       {
@@ -21,6 +23,7 @@
         "Image input": "Ordered content parts",
         "Audio input": "Ordered WAV/MP3 parts",
         "Audio output": "Typed streamed deltas with transcript",
+        "Prompt caching": "Automatic; explicit cache_control for anthropic/*, session routing key",
         "Layout notes": "Actual model support remains route-dependent"
       },
       {
@@ -28,6 +31,7 @@
         "Image input": "Ordered base64 image blocks",
         "Audio input": "Rejected",
         "Audio output": "Rejected",
+        "Prompt caching": "Explicit; cache_control on at most four tier breakpoints",
         "Layout notes": "Text and image block order is preserved"
       },
       {
@@ -35,6 +39,7 @@
         "Image input": "Base64 image arrays",
         "Audio input": "Rejected",
         "Audio output": "Rejected",
+        "Prompt caching": "None; keep_alive governs model residency only",
         "Layout notes": "Mixed text/image layouts are rejected because the wire format cannot preserve relative order"
       },
       {
@@ -42,6 +47,7 @@
         "Image input": "Disabled",
         "Audio input": "Disabled",
         "Audio output": "Disabled",
+        "Prompt caching": "None; prewarm(promptPrefix:) semantics unconfirmed",
         "Layout notes": "Remains disabled until a native mapping exists"
       }
     ]
