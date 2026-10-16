@@ -2,8 +2,9 @@
 
 This guide documents the unreleased Next `PKObservable` story. `TimelineController` is a
 `@Observable` `@MainActor` controller that mirrors one `TimelineHandle` into SwiftUI state:
-completed `messages`, in-flight `streamingText`/`isStreaming`, and the durable terminal truth of
-the last send (`lastTurnID`, `lastOutcome`, `lastError`).
+completed `messages`, in-flight `streamingText`/`isStreaming`, the durable terminal truth of
+the last send (`lastTurnID`, `lastOutcome`, `lastError`), and any `quarantine` blocking the
+Timeline.
 
 Keep the `PKRuntime` in an app-owned service. The runtime is a long-lived value; the controller
 is per-Timeline view state bound to one handle.
@@ -49,6 +50,26 @@ let watched = TimelineController(observed)
 try await watched.send("Hi")
 let outcome = watched.lastOutcome
 await watched.cancel()
+```
+
+## Recover a quarantined conversation
+
+A Turn that an interruption cannot safely retry is quarantined: its Timeline rejects new sends
+until an operator confirms the side effect was reconciled. The controller mirrors that marker in
+`quarantine`, refreshed after every send and by `refreshQuarantine()`.
+
+```swift main-actor
+let watchedTimeline = try await kit.timelines.create(title: "Watched", attaching: agent.id)
+let watched = TimelineController(watchedTimeline)
+try? await watched.send("Hi")
+if watched.quarantine != nil {
+    // Explain `watched.quarantine?.reason`, then let the operator confirm recovery:
+    try await watched.release(
+        confirmation: QuarantineReleaseConfirmation(
+            phrase: QuarantineReleaseConfirmation.requiredPhrase
+        )
+    )
+}
 ```
 
 ## Run auxiliary work on a fork

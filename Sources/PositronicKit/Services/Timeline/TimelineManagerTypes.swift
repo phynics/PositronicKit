@@ -10,6 +10,7 @@ public enum TimelineError: PKError, Equatable {
     case corrupt(String)
     case permissionDenied
     case invalidState(String)
+    case noQuarantinedTurn
 
     public var errorDomain: String {
         PKErrorDomain.timeline
@@ -22,6 +23,7 @@ public enum TimelineError: PKError, Equatable {
         case .corrupt: return 6003
         case .permissionDenied: return 6004
         case .invalidState: return 6005
+        case .noQuarantinedTurn: return 6006
         }
     }
 
@@ -37,6 +39,8 @@ public enum TimelineError: PKError, Equatable {
             return "Permission denied when accessing the timeline store."
         case .invalidState:
             return "The timeline is in an invalid state for this operation."
+        case .noQuarantinedTurn:
+            return "This conversation has no quarantined Turn to release."
         }
     }
 
@@ -52,6 +56,8 @@ public enum TimelineError: PKError, Equatable {
             return nil
         case .timelineNotFound:
             return nil
+        case .noQuarantinedTurn:
+            return "Send a new message to refresh the conversation state."
         }
     }
 }
