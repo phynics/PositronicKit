@@ -265,7 +265,7 @@ public extension PKRuntime {
 
         /// Whether the runtime retains each Timeline's final model round so a host can issue a
         /// cache-exact sibling request through
-        /// ``TimelineHandle/siblingRequest(appending:responseFormat:generationParameters:)``.
+        /// `TimelineHandle.siblingRequest(appending:responseFormat:generationParameters:)`.
         ///
         /// Defaults to `false`: retention is opt-in. When enabled, only the newest completed
         /// model round is kept per Timeline, in memory, and it is released when the Timeline is

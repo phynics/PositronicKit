@@ -13,7 +13,7 @@ public enum TimelineError: PKError, Equatable {
     case noQuarantinedTurn
     /// No cache-exact sibling prefix can be served for the requested Timeline. The associated
     /// reason distinguishes an in-flight Turn from a Timeline that has not retained a final
-    /// model round yet. See ``TimelineHandle/siblingRequest(appending:responseFormat:generationParameters:)``.
+    /// model round yet. See `TimelineHandle.siblingRequest(appending:responseFormat:generationParameters:)`.
     case siblingPrefixUnavailable(SiblingPrefixUnavailability)
 
     /// Why a cache-exact sibling prefix was unavailable.
