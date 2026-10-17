@@ -116,7 +116,7 @@ fi
 # to implement its host-facing protocols. Adapters sit downstream of the
 # runtime; the runtime and providers never import them, and adapters never
 # import providers or each other.
-ADAPTERS="PKObservable PKSQLiteStorage PKMCP"
+ADAPTERS="PKObservable PKSQLiteStorage PKMCP PKAgentFiles"
 PROVIDERS="PKOpenAIProvider PKOpenRouterProvider PKOllamaProvider PKAnthropicProvider PKFoundationModelsProvider"
 
 # The runtime must never import an adapter.

@@ -16,6 +16,7 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
     private let runtimeRepository: any TimelineRuntimeRepository?
     private let timelineAuthorityCoordinator: TimelineAuthorityCoordinator?
     private let workspaceRoot: URL
+    private let agentWorkspaceSeed: AgentWorkspaceSeed
     private let logger = Logger.module(named: "workspace-catalog")
 
     public init(
@@ -23,7 +24,8 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
         workspacePersistence: any WorkspaceStore,
         bindingRepository: any WorkspaceBindingRepository? = nil,
         runtimeRepository: any TimelineRuntimeRepository? = nil,
-        timelineAuthorityCoordinator: TimelineAuthorityCoordinator? = nil
+        timelineAuthorityCoordinator: TimelineAuthorityCoordinator? = nil,
+        agentWorkspaceSeed: AgentWorkspaceSeed = .none
     ) {
         persistenceService = workspacePersistence
         // The binding repository is resolved exactly once, by `PersistenceConfiguration`
@@ -35,6 +37,7 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
         self.runtimeRepository = runtimeRepository
         self.timelineAuthorityCoordinator = timelineAuthorityCoordinator
         self.workspaceRoot = workspaceRoot
+        self.agentWorkspaceSeed = agentWorkspaceSeed
     }
 
     public init(workspaceRoot: URL) {
@@ -110,18 +113,22 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
         try FileManager.default.createDirectory(at: notesDir, withIntermediateDirectories: true)
 
         do {
-            // 2. Establish the Agent identity file. Existing workspaces are never overwritten;
-            // approved runtime edits remain authoritative across lifecycle calls.
-            let soulURL = agentWorkspaceURL.appendingPathComponent("SOUL.md")
-            if !FileManager.default.fileExists(atPath: soulURL.path) {
-                try Self.defaultSoulContent(template: template).write(
-                    to: soulURL,
-                    atomically: true,
-                    encoding: .utf8
-                )
+            // 2. Establish the Agent identity file when the configured seed provides one.
+            // Existing workspaces are never overwritten; approved runtime edits remain
+            // authoritative across lifecycle calls.
+            if let identityFilename = agentWorkspaceSeed.identityFilename {
+                let identityURL = agentWorkspaceURL.appendingPathComponent(identityFilename)
+                let identityContent = agentWorkspaceSeed.identityContent(template)
+                if !identityContent.isEmpty, !FileManager.default.fileExists(atPath: identityURL.path) {
+                    try identityContent.write(
+                        to: identityURL,
+                        atomically: true,
+                        encoding: .utf8
+                    )
+                }
             }
 
-            // 3. Seed Notes files.
+            // 3. Seed Notes files from the template, then from the configured Agent seed.
             var seededPaths = Set<String>()
             if let seed = template?.workspaceFilesSeed, !seed.isEmpty {
                 for (filename, content) in seed {
@@ -143,15 +150,25 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
                     seededPaths.insert(filename)
                 }
             }
-            let defaultMemoryURL = notesDir.appendingPathComponent("MEMORY.md")
-            if !seededPaths.contains("MEMORY.md"),
-               !FileManager.default.fileExists(atPath: defaultMemoryURL.path)
+            for (filename, content) in agentWorkspaceSeed.notes
+                where !seededPaths.contains(filename)
             {
-                try Self.defaultMemoryContent.write(
-                    to: defaultMemoryURL,
+                let destination = try PathSanitizer.safelyResolve(
+                    path: filename,
+                    within: notesDir.path,
+                    jailRoot: notesDir.path
+                )
+                guard !FileManager.default.fileExists(atPath: destination.path) else { continue }
+                try FileManager.default.createDirectory(
+                    at: destination.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                try content.write(
+                    to: destination,
                     atomically: true,
                     encoding: .utf8
                 )
+                seededPaths.insert(filename)
             }
 
             // 4. Persist and return reference
@@ -176,33 +193,6 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
             }
             throw originalError
         }
-    }
-
-    private static let defaultMemoryContent = """
-    # Memory
-
-    Keep durable facts, preferences, and decisions here. Prefer short, dated entries and link to
-    more specific notes when a topic grows. Read the Notes catalog first, then load this file only
-    when the current task needs it.
-    """
-
-    private static func defaultSoulContent(template: AgentTemplate?) -> String {
-        let identity = template?.composedInstructions ?? "You are a helpful PKRuntime Agent."
-        return """
-        \(identity)
-
-        ## Memory system
-        Persistent memory lives in Markdown files under `Notes/`. The runtime provides a compact
-        catalog of those files; read a file with `read_file` when its contents are relevant, and
-        use `write_file`, `append_file`, or `edit_file` to maintain durable state. Keep notes
-        concise, factual, and scoped to information that should survive future Timelines.
-
-        ## Self-modification
-        This file defines the Agent's identity and operating guidance. Changes to `SOUL.md` require
-        explicit user approval and take effect on the next Turn. Do not weaken safety boundaries,
-        conceal changes, or treat an unapproved edit as complete. Ordinary files in the private
-        workspace may be maintained without approval.
-        """
     }
 
     /// Fetches a workspace by its unique identifier.

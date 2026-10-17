@@ -19,6 +19,17 @@ for tagged releases beginning with `1.0.0`.
   constant, and the fixed 120k-token history budget is derived from
   `ProviderConfiguration.contextWindowTokens` minus the response reserve and an estimate of the
   non-history tiers.
+- **The filesystem Agent conventions move to the optional `PKAgentFiles` adapter (#289).**
+  `DefaultAgentContextSource` is replaced by `IdentityAgentContextSource` as the runtime default,
+  which returns the Agent's stored name, description, and instructions only.
+  `DefaultWorkspaceCatalog` writes no identity file and no `Notes/MEMORY.md` template unless a host
+  supplies an `AgentWorkspaceSeed`. `AgentWorkspaceFileTool` no longer special-cases `SOUL.md`; it
+  consults `RuntimeToolPolicy.protectedPrimaryWorkspacePaths` (default empty, so no write is
+  gated). `WorkspaceProfile` no longer seeds timeline notes by default; pass
+  `seedNotes: .default` to restore `Welcome.md` and `Project.md`. Install `PKAgentFiles` for
+  `FileSystemAgentContextSource`, `PKAgentFiles.seedNotes`, and `PKAgentFiles.protectedPaths`, or
+  use `PKRuntime.RuntimeConfiguration.agentFiles(persistence:workspaceProfile:)` to install all
+  three at once.
 
 ### Fixed
 

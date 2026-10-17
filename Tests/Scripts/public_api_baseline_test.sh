@@ -19,6 +19,7 @@ cat > "$fixture/api/$baseline_release-public-api-linux.json" <<EOF
   "release": "$baseline_release",
   "platform": "linux",
   "modules": [
+    "PKAgentFiles",
     "PKAnthropicProvider",
     "PKContracts",
     "PKFoundationModelsProvider",
@@ -83,7 +84,7 @@ if [ "${1:-}" = "package" ] && [ "${2:-}" = "dump-symbol-graph" ]; then
   bin_dir="$fixture/.build/x86_64-unknown-linux-gnu/debug"
   mkdir -p "$output_dir" "$bin_dir"
   for module in \
-    PKAnthropicProvider PKContracts PKFoundationModelsProvider PKMCP PKObservable \
+    PKAgentFiles PKAnthropicProvider PKContracts PKFoundationModelsProvider PKMCP PKObservable \
     PKOllamaProvider PKOpenAIProvider PKOpenRouterProvider PKPrompt \
     PKTestSupport PositronicKit; do
     if [ "${OMIT_MODULE:-}" = "$module" ]; then

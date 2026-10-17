@@ -12,15 +12,23 @@ public struct RuntimeToolPolicy: Sendable, Equatable {
     public let installFilesystemTools: Bool
     public let installTimelineObservationTools: Bool
     public let installsTimelineSendTool: Bool
+    /// Workspace-relative path patterns that make a mutating Agent primary-Workspace file tool
+    /// request approval before it executes. Patterns are glob-like: `*` matches within one path
+    /// segment and `**` matches across segments. Matching is case-insensitive and also applies to
+    /// the symlink-resolved target of a local provider. The default is empty: no write is gated
+    /// unless a host opts in.
+    public let protectedPrimaryWorkspacePaths: [String]
 
     public init(
         installFilesystemTools: Bool = true,
         installTimelineObservationTools: Bool = true,
-        installsTimelineSendTool: Bool = true
+        installsTimelineSendTool: Bool = true,
+        protectedPrimaryWorkspacePaths: [String] = []
     ) {
         self.installFilesystemTools = installFilesystemTools
         self.installTimelineObservationTools = installTimelineObservationTools
         self.installsTimelineSendTool = installsTimelineSendTool
+        self.protectedPrimaryWorkspacePaths = protectedPrimaryWorkspacePaths
     }
 
     public static let `default` = RuntimeToolPolicy()

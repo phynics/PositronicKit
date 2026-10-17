@@ -3,6 +3,7 @@
   "release": "next",
   "platform": "macos",
   "modules": [
+    "PKAgentFiles",
     "PKAnthropicProvider",
     "PKContracts",
     "PKFoundationModelsProvider",

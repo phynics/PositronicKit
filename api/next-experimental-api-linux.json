@@ -3,6 +3,7 @@
   "release": "next",
   "platform": "linux",
   "modules": [
+    "PKAgentFiles",
     "PKAnthropicProvider",
     "PKContracts",
     "PKFoundationModelsProvider",

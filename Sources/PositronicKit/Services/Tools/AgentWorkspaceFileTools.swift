@@ -46,6 +46,7 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
 
     let operation: Operation
     let provider: any WorkspaceFileProvider
+    let protectedPaths: [String]
 
     var callName: String { operation.rawValue }
     var name: String { operation.displayName }
@@ -64,19 +65,22 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
     var sideEffects: ToolSideEffects { operation.mutates ? .mutating : .none }
     let usageExample: String? = nil
 
-    init(operation: Operation, provider: any WorkspaceFileProvider) {
+    init(operation: Operation, provider: any WorkspaceFileProvider, protectedPaths: [String] = []) {
         self.operation = operation
         self.provider = provider
+        self.protectedPaths = protectedPaths
     }
 
     func requiresPermission(for parameters: [String: AnyCodable]) -> Bool {
-        guard operation.mutates, let path = parameters["path"]?.asString else { return false }
+        guard operation.mutates, !protectedPaths.isEmpty, let path = parameters["path"]?.asString else {
+            return false
+        }
         guard let normalized = Self.normalizedRelativePath(path) else { return false }
-        guard normalized.caseInsensitiveCompare("SOUL.md") != .orderedSame else { return true }
+        if Self.matchesProtectedPath(normalized, patterns: protectedPaths) { return true }
 
         // Approval is based on the file ultimately addressed, not merely the spelling supplied
-        // by the model. Local providers resolve symlinks and case-insensitive filesystems can
-        // spell the same root file differently; both must still be treated as SOUL.md.
+        // by the model. Local providers resolve symlinks, and case-insensitive filesystems can
+        // spell the same root file differently, so the symlink-resolved target is matched too.
         // A provider without a local root cannot prove that an alias resolves elsewhere, so keep
         // the conservative approval gate for every mutation on remote/custom backends.
         guard let rootPath = provider.reference.rootPath else { return true }
@@ -84,12 +88,52 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
         let candidate = rootURL.appendingPathComponent(normalized)
             .resolvingSymlinksInPath()
             .standardizedFileURL
-            .path
-        let soul = rootURL.appendingPathComponent("SOUL.md")
-            .resolvingSymlinksInPath()
-            .standardizedFileURL
-            .path
-        return candidate.caseInsensitiveCompare(soul) == .orderedSame
+        let root = rootURL.resolvingSymlinksInPath().standardizedFileURL
+        return Self.matchesProtectedPath(Self.relativePath(of: candidate, under: root), patterns: protectedPaths)
+    }
+
+    /// Whether a workspace-relative path matches any protected pattern. `*` matches within one
+    /// path segment; `**` matches across segments. Matching is case-insensitive.
+    static func matchesProtectedPath(_ path: String, patterns: [String]) -> Bool {
+        let lowered = path.lowercased()
+        return patterns.contains { pattern in
+            guard let regex = try? NSRegularExpression(pattern: globRegex(pattern.lowercased())) else {
+                return false
+            }
+            let range = NSRange(lowered.startIndex..., in: lowered)
+            return regex.firstMatch(in: lowered, range: range) != nil
+        }
+    }
+
+    private static func globRegex(_ pattern: String) -> String {
+        var output = "^"
+        let characters = Array(pattern)
+        var index = 0
+        while index < characters.count {
+            let character = characters[index]
+            switch character {
+            case "*":
+                if index + 1 < characters.count, characters[index + 1] == "*" {
+                    output += ".*"
+                    index += 2
+                    continue
+                }
+                output += "[^/]*"
+            case "?":
+                output += "[^/]"
+            default:
+                output += NSRegularExpression.escapedPattern(for: String(character))
+            }
+            index += 1
+        }
+        return output + "$"
+    }
+
+    private static func relativePath(of candidate: URL, under root: URL) -> String {
+        if candidate.path == root.path { return "" }
+        let rootPrefix = root.path.hasSuffix("/") ? root.path : root.path + "/"
+        guard candidate.path.hasPrefix(rootPrefix) else { return candidate.path }
+        return String(candidate.path.dropFirst(rootPrefix.count))
     }
 
     var parametersSchema: Schema {
