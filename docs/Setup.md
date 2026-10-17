@@ -125,6 +125,27 @@ managers use to replace a covered historical prefix with one bounded checkpoint;
 `AgentActivitySink` receives best-effort lifecycle facts; and `TurnOutcomeSink` receives a terminal
 outcome only after the runtime repository accepts it.
 
+### Managing long Timelines
+
+The runtime does not compress or summarize prompt content in a Turn. It handles an over-budget
+prompt with mechanism only, in this order:
+
+1. **Projection.** If you configure a `TurnHistoryProjectionSource`, it runs before history
+trimming and may replace a covered historical prefix with one bounded, plain-text checkpoint.
+2. **Trim.** The runtime stepwise-trims history to the prompt budget at a tool-transaction
+boundary. The cut is stable until the budget is crossed again.
+3. **Structured failure.** If the non-history tiers alone exceed the prompt budget, preparation
+fails with `TurnError.promptExceedsContextWindow(estimated:limit:)`. No section is silently
+dropped.
+
+The prompt budget is `contextWindowTokens - (maxTokens ?? default output reserve) - provider
+overhead`. Set `ProviderConfiguration.contextWindowTokens` for the active model so both projection
+metadata and history trimming use the real window. See the
+[history-projection contract](Architecture.md#runtime-customization) for the checkpoint shape.
+
+Compression and summarization remain available in the optional `PKPrompt` product for standalone
+prompt authoring; the runtime never imports `PKPrompt`.
+
 Tests and host code can inject doubles directly through the facade initializers; lower-level wiring should remain inside the components you own.
 
 ### Reusable persistence conformance suites

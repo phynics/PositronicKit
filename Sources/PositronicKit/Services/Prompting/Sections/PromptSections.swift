@@ -32,7 +32,6 @@ enum RuntimePromptSectionFactory {
         role: PromptSectionRole,
         priority: Int,
         estimatedTokens: Int,
-        compression: CompressionStrategy = .keep,
         cachePolicy: CachePolicy,
         path: [String],
         parentID: String? = nil,
@@ -43,17 +42,13 @@ enum RuntimePromptSectionFactory {
             role: role,
             priority: priority,
             estimatedTokens: estimatedTokens,
-            compression: compression,
             type: .text,
             cachePolicy: cachePolicy,
             path: path,
             parentID: parentID,
-            render: { limit in
+            render: { _ in
                 guard let content = await render(), !content.isEmpty else { return nil }
-                guard let constrained = constrain(content, tokens: limit, strategy: compression) else {
-                    return nil
-                }
-                return .text(constrained)
+                return .text(content)
             }
         )
     }
@@ -63,7 +58,6 @@ enum RuntimePromptSectionFactory {
         role: PromptSectionRole,
         priority: Int,
         estimatedTokens: Int,
-        compression: CompressionStrategy = .keep,
         cachePolicy: CachePolicy,
         path: [String],
         parentID: String? = nil,
@@ -74,7 +68,6 @@ enum RuntimePromptSectionFactory {
             role: role,
             priority: priority,
             estimatedTokens: estimatedTokens,
-            compression: compression,
             type: .list,
             cachePolicy: cachePolicy,
             path: path,
@@ -88,7 +81,6 @@ enum RuntimePromptSectionFactory {
         role: PromptSectionRole,
         priority: Int,
         estimatedTokens: Int,
-        compression: CompressionStrategy = .keep,
         cachePolicy: CachePolicy,
         path: [String],
         parentID: String? = nil,
@@ -99,7 +91,6 @@ enum RuntimePromptSectionFactory {
             role: role,
             priority: priority,
             estimatedTokens: estimatedTokens,
-            compression: compression,
             type: .text,
             cachePolicy: cachePolicy,
             path: path,
@@ -138,33 +129,6 @@ enum RuntimePromptSectionFactory {
             path: path,
             render: { content.text }
         )
-    }
-
-    private static func constrain(
-        _ content: String,
-        tokens: Int?,
-        strategy: CompressionStrategy
-    ) -> String? {
-        guard let tokens else { return content }
-        assert(tokens > 0)
-        let estimate = TokenEstimator.estimate(text: content)
-        guard estimate > tokens else { return content }
-        switch strategy {
-        case .keep:
-            return content
-        case let .truncate(retention):
-            let charLimit = tokens * 2
-            switch retention {
-            case .head:
-                return String(content.prefix(charLimit)) + "\n... [Truncated]"
-            case .tail:
-                return "... [Truncated]\n" + String(content.suffix(charLimit))
-            }
-        case .summarize:
-            return content
-        case .drop:
-            return nil
-        }
     }
 }
 
@@ -235,7 +199,6 @@ struct ChatHistory: RuntimePromptProducer {
             role: .chatHistory,
             priority: 70,
             estimatedTokens: estimatedTokens,
-            compression: .truncate(keeping: .tail),
             cachePolicy: .volatile,
             path: ["prompt", "ChatHistory", "HistoryPrompt", "volatile", "chat_history"],
             messages: messages
@@ -307,7 +270,6 @@ struct TurnContextContributions: RuntimePromptProducer {
             role: .context,
             priority: 89,
             estimatedTokens: TokenEstimator.estimate(parts: contributions.map { $0.value.textValue }),
-            compression: .truncate(keeping: .head),
             cachePolicy: .volatile,
             path: ["prompt", "TurnContextContributions", "TextPrompt", "volatile", "turn.context-contributions"],
             render: { [contributions] in
@@ -518,7 +480,6 @@ struct AgentMemoryContext: RuntimePromptProducer {
             role: .context,
             priority: 88,
             estimatedTokens: TokenEstimator.estimate(parts: memories.map(\.content)),
-            compression: .summarize,
             cachePolicy: .semiStable,
             path: ["prompt", "AgentMemoryContext", "TextPrompt", "semiStable", "agent.memory"],
             render: { [memories] in
@@ -550,7 +511,6 @@ struct AgentResourceCatalogContext: RuntimePromptProducer {
             role: .context,
             priority: 89,
             estimatedTokens: TokenEstimator.estimate(parts: resources.map { "\($0.path) \($0.description)" }),
-            compression: .summarize,
             cachePolicy: .semiStable,
             path: ["prompt", "AgentResourceCatalogContext", "TextPrompt", "semiStable", "agent.resource-catalog"],
             render: { [resources] in

@@ -38,6 +38,13 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **Runtime Turns no longer compress or summarize (#294).** `PromptAssemblyOptions` drops
+  `tokenBudget`, `compressor`, `structuredExecutor`, and `structuredDiff`, and no compression type
+  is referenced in `Sources/PositronicKit`. An over-budget Turn now runs in this order: apply a
+  configured `TurnHistoryProjectionSource`, stepwise-trim history at a tool-transaction boundary,
+  then fail preparation with `TurnError.promptExceedsContextWindow(estimated:limit:)` when the
+  non-history tiers alone exceed the prompt budget. No section is silently dropped. Compression
+  and summarization remain in the optional `PKPrompt` product.
 - **Tiered prompt wire layout (#277).** The runtime renders provider requests in cache tiers:
   tools, stable system, semi-stable system, prior history, volatile per-Turn context, then the
   query. `TurnContextContributions` no longer sit at byte zero, so per-Turn context changes no

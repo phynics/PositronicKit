@@ -42,7 +42,7 @@ public struct PromptSection: Sendable {
         role: PromptSectionRole,
         priority: Int,
         estimatedTokens: Int,
-        compression: CompressionStrategy,
+        compression: CompressionStrategy = .keep,
         type: PromptSectionType,
         cachePolicy: CachePolicy,
         path: [String],
@@ -103,6 +103,26 @@ public struct PromptSection: Sendable {
             return nil
         }
         return RenderedPrompt.Section(
+            id: id,
+            role: role,
+            priority: priority,
+            estimatedTokens: estimatedTokens,
+            compression: compression,
+            type: type,
+            cachePolicy: cachePolicy,
+            path: path,
+            parentID: parentID,
+            compressionOutcome: compressionOutcome,
+            content: content
+        )
+    }
+
+    /// Renders the section into an immutable snapshot with caller-supplied content.
+    ///
+    /// Callers that already rendered the content avoid a second render pass while still
+    /// carrying the section's identity and metadata.
+    package func renderedSection(content: PromptSection.Content) -> RenderedPrompt.Section {
+        RenderedPrompt.Section(
             id: id,
             role: role,
             priority: priority,

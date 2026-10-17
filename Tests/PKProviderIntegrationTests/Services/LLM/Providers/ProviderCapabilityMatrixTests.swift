@@ -335,6 +335,11 @@ struct ProviderCapabilityMatrixTests {
         let timelineID = UUID()
         let request = TurnRequest(timelineID: timelineID, content: content)
 
+        // The runtime starts its orphan-ephemeral recovery sweep in the background. Join it so
+        // the counter below measures only Turn preparation, not the startup sweep.
+        await joinEphemeralSweep(kit)
+        let baselineAccessCount = persistence.persistenceAccessCount
+
         do {
             _ = try await kit.turnEngine.startTurnHandle(request, agentID: nil, executionKind: .direct)
             Issue.record("\(id): expected runtime ordering rejection")
@@ -344,7 +349,7 @@ struct ProviderCapabilityMatrixTests {
             Issue.record("\(id): unexpected error \(error)")
         }
 
-        #expect(persistence.persistenceAccessCount == 0, "\(id): persistence was accessed")
+        #expect(persistence.persistenceAccessCount == baselineAccessCount, "\(id): persistence was accessed")
         #expect(llm.generationRequestHistory.isEmpty, "\(id): provider generation request occurred")
         #expect(llm.mockClient.generationCaptureHistory.isEmpty, "\(id): low-level provider request occurred")
         #expect(persistence.messages.isEmpty, "\(id): user message was persisted")
@@ -383,6 +388,11 @@ struct ProviderCapabilityMatrixTests {
             audioOutput: .init(format: .wav, voice: "alloy")
         )
 
+        // The runtime starts its orphan-ephemeral recovery sweep in the background. Join it so
+        // the counter below measures only Turn preparation, not the startup sweep.
+        await joinEphemeralSweep(kit)
+        let baselineAccessCount = persistence.persistenceAccessCount
+
         do {
             _ = try await kit.turnEngine.startTurnHandle(request, agentID: nil, executionKind: .direct)
             Issue.record("\(id): expected runtime ordering rejection")
@@ -392,12 +402,21 @@ struct ProviderCapabilityMatrixTests {
             Issue.record("\(id): unexpected error \(error)")
         }
 
-        #expect(persistence.persistenceAccessCount == 0, "\(id): persistence was accessed")
+        #expect(persistence.persistenceAccessCount == baselineAccessCount, "\(id): persistence was accessed")
         #expect(llm.generationRequestHistory.isEmpty, "\(id): provider generation request occurred")
         #expect(llm.mockClient.generationCaptureHistory.isEmpty, "\(id): low-level provider request occurred")
         #expect(persistence.messages.isEmpty, "\(id): user message was persisted")
         #expect(persistence.timelines.isEmpty, "\(id): timeline admission was persisted")
         #expect(await kit.turnEngine.dependencies.promptHistoryRegistry.containsHistory(for: timelineID) == false, "\(id): prompt history was created")
+    }
+
+    /// Joins the runtime's orphan-ephemeral recovery sweep so a persistence-access assertion
+    /// measures only the code under test. The sweep is a legitimate startup access, but it runs
+    /// in an unstructured task and would otherwise race the assertion.
+    private func joinEphemeralSweep(_ kit: PKRuntime) async {
+        let manager = kit.turnEngine.dependencies.timelineManager
+        await manager.ensureEphemeralSweepStarted()
+        await manager.awaitEphemeralSweep()
     }
 }
 

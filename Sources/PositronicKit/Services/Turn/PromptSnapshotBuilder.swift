@@ -57,12 +57,10 @@ struct PromptSnapshotBuilder {
             role: .chatHistory,
             priority: PromptPriority.medium.rawValue,
             estimatedTokens: TokenEstimator.estimate(parts: appendedMessages.map(\.content)),
-            compression: .keep,
             type: .list,
             cachePolicy: .volatile,
             path: ["runtime", "follow_up", "\(nextTurnIndex)"],
             parentID: nil,
-            compressionOutcome: nil,
             content: .messages(appendedMessages.map(makeHistoryMessage))
         )
 
@@ -161,25 +159,8 @@ struct PromptSnapshotBuilder {
                     status: message.status
                 )
             }
-            return RenderedPrompt.Section(
-                id: section.id,
-                role: section.role,
-                priority: section.priority,
-                estimatedTokens: section.estimatedTokens,
-                compression: section.compression,
-                type: section.type,
-                cachePolicy: section.cachePolicy,
-                path: section.path,
-                parentID: section.parentID,
-                compressionOutcome: section.compressionOutcome,
-                content: .messages(projectedMessages)
-            )
+            return section.replacingContent(.messages(projectedMessages))
         }
-        return RenderedPrompt(
-            sections: sections,
-            string: prompt.string,
-            sectionsByID: prompt.sectionsByID,
-            compressionReport: prompt.compressionReport
-        )
+        return prompt.replacingSections(sections)
     }
 }

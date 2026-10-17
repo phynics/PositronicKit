@@ -20,12 +20,10 @@ struct PromptSnapshotBuilderTests {
             role: .system,
             priority: 0,
             estimatedTokens: 1,
-            compression: .keep,
             type: .text,
             cachePolicy: .volatile,
             path: [id],
             parentID: nil,
-            compressionOutcome: nil,
             content: .text(text)
         )
     }

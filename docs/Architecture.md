@@ -151,7 +151,7 @@ Runtime tools and request-scoped tools are separate from Workspace dispatch. The
 | `AgentActivitySink` | Best-effort Agent lifecycle integration; does not mutate Timeline history |
 | `TurnOutcomeSink` | Post-terminal integration after the durable outcome is accepted |
 
-The history-projection source runs during Turn preparation, before budget compression. It receives
+The history-projection source runs during Turn preparation, before stepwise history trimming. It receives
 ordered multimodal descriptors and heuristic budget metadata, must end coverage on a tool-transaction
 boundary, and never rewrites durable history. The checkpoint replacement is plain text, capped at
 32,768 characters. `TurnHistoryProjectionRequest.since` is a process-scoped watermark, so a
@@ -178,8 +178,9 @@ the downstream audit and migration boundary.
   assembly, and journaling. It depends only on `PKContracts` and the package-internal
   `PKUtilities` prompt core, and it renders `[LLMMessage]` directly. The runtime never imports it.
 - `PKUtilities` is the package-internal support target. It hosts the shared prompt section model,
-  token budgeting, compression, and journal-support values that both `PKPrompt` and the runtime
-  use, and it is not a public product.
+  token budgeting, compression, and journal-support values that `PKPrompt` uses, and it is not a
+  public product. The runtime shares only the neutral section model; it does not call the
+  compression machinery.
 - `PositronicKit` owns domain state, orchestration, durability, Workspace dispatch, and an
   internal tiered `PromptLayout` that it renders into provider requests. The layout emits tools,
   then stable and semi-stable system tiers, prior history, volatile per-Turn context, and the
