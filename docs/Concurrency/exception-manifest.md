@@ -85,16 +85,21 @@ pattern already used by this file's subscriber `onTermination` cleanup.
 `TurnFinalizer` (`Sources/PositronicKit/Services/Turn/TurnFinalizer.swift`) is the runtime-owned
 long-lived executor for terminal Turn commits (ADR 0010). Each commit runs in an unstructured
 `Task` created inside the actor: it keeps task-locals, does not inherit the Turn's cancellation,
-and holds the actor until the commit completes, so a submitted commit always finishes even if the
-runtime is released before the store returns. Commits are deliberately not serialized per Timeline:
-a Turn is only admitted after its predecessor is terminal in the store and `completeTurn` is
-first-writer-wins, so a hung commit can never poison later commits. `TurnFinalizer` stores each
-Turn's commit-handoff instant for in-process liveness classification.
+so a submitted commit always finishes even if the runtime is released before the store returns.
+Actor isolation serializes each commit's entry, not its whole duration, because `perform` suspends
+on the store. Commits are therefore deliberately not serialized per Timeline: a Turn is only
+admitted after its predecessor is terminal in the store and `completeTurn` is first-writer-wins,
+so a stalled commit can never poison later commits, and a late commit for an interrupted
+predecessor returns the interrupted record unchanged. `TurnFinalizer` stores each Turn's
+commit-handoff instant for in-process liveness classification.
 
-`TerminalCommit` carries the stream `Continuation` the finalizer finishes after the durable commit,
-the sinks, and the consumer-facing terminal events. The continuation's lifecycle is owned end to
-end by the finalizer: yielded, finished, and released inside its detached commit task. Before the
-hand-off, the Turn loop stores no continuation.
+`TerminalCommit` is the single terminal intent: the outcome, the final-message policy, and the
+delivery. It carries the stream `Continuation` the finalizer finishes after the durable commit,
+the sinks, and the consumer-facing terminal events. It also captures the `Sendable` material the
+finalizer needs to resolve a partial assistant row, never live `TurnContext`, Workspace, or
+Timeline-cache state. The continuation's lifecycle is owned end to end by the finalizer: yielded,
+finished, and released inside its detached commit task. Before the hand-off, the Turn loop stores
+no continuation.
 
 `TerminalStreamFailure` is a write-once envelope for a terminal stream error whose concrete type is
 not statically `Sendable`. The Turn loop builds it once, the finalizer task reads it once while

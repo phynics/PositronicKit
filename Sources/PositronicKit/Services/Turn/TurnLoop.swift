@@ -29,39 +29,6 @@ private enum LoopContinuation {
     case deferredExternally
 }
 
-/// The loop chooses the terminal outcome and any path-specific policy. This value carries only the
-/// mechanics that are safe to apply after the repository has accepted that outcome.
-private struct TerminalDecision {
-    enum Delivery {
-        case none
-        case completion
-        case event(TurnEvent)
-    }
-
-    let outcome: TurnOutcome
-    let delivery: Delivery
-    let streamError: TerminalStreamFailure?
-
-    init(
-        outcome: TurnOutcome,
-        delivery: Delivery,
-        streamError: Error? = nil
-    ) {
-        self.outcome = outcome
-        self.delivery = delivery
-        self.streamError = streamError.map(TerminalStreamFailure.init(error:))
-    }
-
-    /// Creates a failed decision with user-facing durable text and the original stream error.
-    static func failed(because error: Error, streamError: Error) -> Self {
-        TerminalDecision(
-            outcome: .failed(message: ErrorKit.userFriendlyMessage(for: error)),
-            delivery: .none,
-            streamError: streamError
-        )
-    }
-}
-
 // MARK: - Turn Loop
 
 /// Runs a prepared Turn: the ReAct loop, its Model Rounds, tool continuation, and the handoff
@@ -118,10 +85,8 @@ struct TurnLoop: Sendable {
             switch signal {
             case .completed:
                 await commitTerminal(
-                    decision: TerminalDecision(
-                        outcome: .completed,
-                        delivery: .completion
-                    ),
+                    outcome: .completed,
+                    delivery: .completion,
                     context: turnContext,
                     continuation: continuation
                 )
@@ -159,10 +124,8 @@ struct TurnLoop: Sendable {
                 // Keep the durable active Turn visible when terminal persistence fails so a host
                 // can recover it instead of retrying against an unknown state.
                 await commitTerminal(
-                    decision: TerminalDecision(
-                        outcome: .interrupted(reason: "External tool execution deferred."),
-                        delivery: .event(.deferredForExternalTool())
-                    ),
+                    outcome: .interrupted(reason: "External tool execution deferred."),
+                    delivery: .event(.deferredForExternalTool()),
                     context: turnContext,
                     continuation: continuation
                 )
@@ -173,10 +136,8 @@ struct TurnLoop: Sendable {
                 // assistant's pending tool call in durable history. Release the turn reservation
                 // so the caller can retry with the existing pending-call submission semantics.
                 await commitTerminal(
-                    decision: TerminalDecision(
-                        outcome: .failed(message: "Tool result persistence failed."),
-                        delivery: .none
-                    ),
+                    outcome: .failed(message: "Tool result persistence failed."),
+                    delivery: .none,
                     context: turnContext,
                     continuation: continuation
                 )
@@ -195,10 +156,8 @@ struct TurnLoop: Sendable {
         // normal completion instead of the stream silently finishing as if it succeeded
         // (PKRR-011).
         await commitTerminal(
-            decision: TerminalDecision(
-                outcome: .failed(message: "model-round-limit"),
-                delivery: .event(.maxModelRoundsReached())
-            ),
+            outcome: .failed(message: "model-round-limit"),
+            delivery: .event(.maxModelRoundsReached()),
             context: terminalContext,
             continuation: continuation
         )
@@ -246,15 +205,14 @@ private extension TurnLoop {
             return try await handleToolCallsAfterTurn(context: context, continuation: continuation)
         } catch is CancellationError {
             // STAB-1: the stream was cancelled mid-flight. `MessagePersistenceStage` only runs on
-            // success, so `commitTerminal` attaches whatever partial assistant text/thinking (and
+            // success, so `commitTerminal` captures whatever partial assistant text/thinking (and
             // any accumulated tool calls) the user already watched stream in, tagged `.cancelled`,
-            // to the same terminal transaction below (see `completeTerminalOutcome`). The cancel
-            // event is still surfaced below — the UI needs it (STAB-5 handles retry separately).
+            // for the finalizer to attach to the same terminal transaction (see
+            // `TurnFinalizer.resolveFinalMessage`). The cancel event is still surfaced below — the
+            // UI needs it (STAB-5 handles retry separately).
             await commitTerminal(
-                decision: TerminalDecision(
-                    outcome: .cancelled(reason: "Turn task cancelled."),
-                    delivery: .event(.generationCancelled())
-                ),
+                outcome: .cancelled(reason: "Turn task cancelled."),
+                delivery: .event(.generationCancelled()),
                 context: context,
                 continuation: continuation
             )
@@ -269,18 +227,16 @@ private extension TurnLoop {
             // STAB-1: same data-loss fix for the failure path (network drop, provider 4xx/5xx,
             // idle timeout). A stage-thrown `CancellationError` is wrapped by `Pipeline` as
             // `PipelineError.stageFailed` and lands here — unwrap it so a mid-stream
-            // cancellation is still tagged `.cancelled` rather than `.partial` (`commitTerminal`
-            // derives the same tag from this outcome below). The error event is still surfaced to
-            // the UI (re-thrown below); STAB-5 handles retry separately.
+            // cancellation is still tagged `.cancelled` rather than `.partial` (the finalizer
+            // derives the same tag from this outcome). The error event is still surfaced to the UI
+            // (re-thrown below); STAB-5 handles retry separately.
             let isCancellation = Self.isCancellationOrigin(error)
             await commitTerminal(
-                decision: isCancellation
-                    ? TerminalDecision(
-                        outcome: .cancelled(reason: "Turn task cancelled."),
-                        delivery: .none,
-                        streamError: error
-                    )
-                    : .failed(because: error, streamError: error),
+                outcome: isCancellation
+                    ? .cancelled(reason: "Turn task cancelled.")
+                    : .failed(message: ErrorKit.userFriendlyMessage(for: error)),
+                delivery: .none,
+                streamError: error,
                 context: context,
                 continuation: continuation
             )
@@ -391,19 +347,22 @@ private extension TurnLoop {
 // MARK: - Terminal Delivery
 
 private extension TurnLoop {
-    /// Builds the terminal snapshot and hands it to the runtime-owned finalizer.
+    /// Builds the single terminal intent and hands it to the runtime-owned finalizer.
     ///
     /// The finalizer is not this Turn task, so cancelling the Turn cannot cancel its commit, and
     /// this task does not wait on the store. The durable commit, sinks, and consumer-facing
-    /// terminal signal all happen in the finalizer, in the order `commitTerminal` used to apply
-    /// them (ADR 0010).
+    /// terminal signal all happen in the finalizer (ADR 0010).
     private func commitTerminal(
-        decision: TerminalDecision,
+        outcome: TurnOutcome,
+        delivery: TerminalCommit.Delivery,
+        streamError: Error? = nil,
         context: TurnContext,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async {
         let commit = await makeTerminalCommit(
-            decision: decision,
+            outcome: outcome,
+            delivery: delivery,
+            streamError: streamError,
             context: context,
             continuation: continuation
         )
@@ -411,28 +370,29 @@ private extension TurnLoop {
     }
 
     private func makeTerminalCommit(
-        decision: TerminalDecision,
+        outcome: TurnOutcome,
+        delivery: TerminalCommit.Delivery,
+        streamError: Error?,
         context: TurnContext,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async -> TerminalCommit {
-        let partialMessage: TimelineMessage?
-        switch decision.outcome {
+        let finalMessage: TerminalCommit.FinalMessage
+        switch outcome {
+        case .completed:
+            if let terminalAssistantMessage = await context.outputs.terminalAssistantMessage {
+                finalMessage = .terminalAssistantMessage(terminalAssistantMessage)
+            } else {
+                finalMessage = .lastDurableAssistantMessage
+            }
         case .cancelled, .failed:
-            // STAB-1: attach whatever partial assistant text/thinking/tool calls the user
-            // already watched stream in to the same terminal transaction (ADR 0003, ADR 0007),
-            // instead of persisting it with a separate `saveMessage` call before terminal
-            // completion — a crash between the two used to leave that row on a Timeline whose
-            // Turn was still active.
-            let status: Message.MessageStatus = {
-                if case .cancelled = decision.outcome { return .cancelled }
-                return .partial
-            }()
-            partialMessage = await PartialAssistantPersistence().partialAssistantMessage(
-                context: context,
-                status: status
-            )
-        case .completed, .interrupted:
-            partialMessage = nil
+            // STAB-1: capture whatever partial assistant text/thinking/tool calls the user already
+            // watched stream in so the finalizer attaches it to the same terminal transaction
+            // (ADR 0003, ADR 0007), instead of persisting it with a separate `saveMessage` call
+            // before terminal completion — a crash between the two used to leave that row on a
+            // Timeline whose Turn was still active.
+            finalMessage = .partialAssistant(await PartialAssistantSource.capture(from: context))
+        case .interrupted:
+            finalMessage = .none
         }
 
         let sidecarCompletion: SidecarCompletion?
@@ -454,29 +414,17 @@ private extension TurnLoop {
             turnID: context.turnID,
             timelineID: context.timelineID,
             requestID: context.requestId,
-            outcome: decision.outcome,
+            outcome: outcome,
+            finalMessage: finalMessage,
+            delivery: delivery,
             terminalHandle: TurnTerminalHandle(turnID: context.turnID),
-            terminalAssistantMessage: await context.outputs.terminalAssistantMessage,
-            partialMessage: partialMessage,
             metadata: await context.outputs.terminalCompletionMetadata,
             sidecarCompletion: sidecarCompletion,
             agentID: context.agentId,
             executionKind: context.executionKind,
             modelRoundIndex: context.modelRoundIndex,
-            requestedDelivery: mapDelivery(decision.delivery),
-            streamFailure: decision.streamError,
+            streamFailure: streamError.map(TerminalStreamFailure.init(error:)),
             continuation: continuation
         )
-    }
-
-    private func mapDelivery(_ delivery: TerminalDecision.Delivery) -> TerminalCommit.Delivery {
-        switch delivery {
-        case .none:
-            return .none
-        case .completion:
-            return .completion
-        case let .event(event):
-            return .event(event)
-        }
     }
 }

@@ -29,13 +29,23 @@ first-writer-wins: `completeTurn` on a terminal Turn returns the durable record 
 
 ## Decision
 
-**A runtime-owned `TurnFinalizer` performs terminal commits.** The Turn loop decides the outcome,
-hands the decision and a snapshot of partial output to the finalizer, and exits. The finalizer
-commits the outcome, runs the sinks, releases the reservation, and emits the terminal event, in
-the order `commitTerminal` uses today, serialized per Timeline. It holds only the repository,
-sinks, event hub, and snapshot, never workspace, tool, or Timeline-cache state. Cancelling a Turn
+**A runtime-owned `TurnFinalizer` performs terminal commits.** The Turn loop emits one terminal
+intent — the outcome, the final-message policy, and the delivery — and exits. The finalizer is the
+single module that resolves the final assistant message, maps the delivery, and commits the
+outcome, runs the sinks, releases the reservation, and emits the terminal event, in the order
+`commitTerminal` uses today. It holds only the repository, sinks, event hub, and a `Sendable`
+snapshot of partial output, never workspace, tool, or Timeline-cache state. Cancelling a Turn
 cannot cancel its commit, because the finalizer is not the cancelled task. The finalizer is a
 documented long-lived runtime task in the concurrency exception manifest.
+
+Commits are **not** serialized per Timeline. A commit's own durable write, sinks, and terminal
+signal run in that order, but two commits for one Timeline can be in flight: when a commit stalls
+past `terminalCommitStallLimit`, admission interrupts that Turn and admits its successor, whose
+commit runs while the stalled one is still writing. This is safe without cross-Turn serialization.
+Admission only follows a predecessor that is terminal in the store, and `completeTurn` is
+first-writer-wins, so a late commit for an interrupted predecessor returns the interrupted record
+unchanged. Interleaving is therefore observable but cannot reorder durable truth or poison a later
+Turn.
 
 **Eviction has two phases.** Phase one returns immediately: it bumps the Timeline liveness
 version, cancels the Turn, rejects new work, and drops the Timeline from the cache. Phase two

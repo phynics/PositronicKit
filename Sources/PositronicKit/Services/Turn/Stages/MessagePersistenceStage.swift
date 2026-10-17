@@ -3,6 +3,20 @@ import Logging
 import PKContracts
 import PKUtilities
 
+/// Immutable, `Sendable` inputs for building one assistant `TimelineMessage` row.
+///
+/// The success path builds this from live `TurnContext` outputs and persists the row in the
+/// pipeline. The terminal finalizer captures it at hand-off for a cancelled or failed Turn so it
+/// can build the partial row after the Timeline is gone (ADR 0010).
+struct AssistantRowMaterial: Sendable {
+    let timelineID: UUID
+    let agentID: UUID?
+    let executionKind: TurnExecutionKind
+    let content: MessageContent
+    let thinking: String
+    let toolCallsJSON: String
+}
+
 /// Pipeline stage responsible for persisting the assistant message and preparing completion data.
 ///
 /// Prepares the assistant message produced by the LLM turn. The stage:
@@ -173,35 +187,62 @@ struct MessagePersistenceStage: PipelineStage {
 
     /// Builds the assistant `TimelineMessage` from accumulated turn outputs.
     ///
-    /// Shared between the success path (this stage, `status == nil` → `.complete`) and
-    /// `TurnEngine`'s failure/cancellation error path (`status == .partial` / `.failed` /
-    /// `.cancelled`), so a partial turn is persisted with the *same* shape as a complete
-    /// one and differs only in the `status` tag. The success-path output is unchanged:
-    /// `status` defaults to `nil`, which encodes away and round-trips as `.complete`
-    /// (STAB-1).
+    /// Shared between the success path (this stage, `status == nil` → `.complete`) and the
+    /// finalizer's failure/cancellation error path (`status == .partial` / `.cancelled`), so a
+    /// partial turn is persisted with the *same* shape as a complete one and differs only in the
+    /// `status` tag. The success-path output is unchanged: `status` defaults to `nil`, which
+    /// encodes away and round-trips as `.complete` (STAB-1).
     static func buildAssistantMessage(
         from context: TurnContext,
         hasPendingToolCalls: Bool,
         status: Message.MessageStatus?,
         logger: Logger
     ) async -> TimelineMessage {
+        let material = await assistantRowMaterial(
+            from: context,
+            hasPendingToolCalls: hasPendingToolCalls,
+            logger: logger
+        )
+        return buildAssistantMessage(from: material, status: status)
+    }
+
+    /// Captures the immutable inputs for one assistant row from live Turn outputs.
+    ///
+    /// The terminal finalizer holds the returned value instead of the live `TurnContext`, so it can
+    /// resolve a partial row after the Turn's Timeline has been evicted (ADR 0010).
+    static func assistantRowMaterial(
+        from context: TurnContext,
+        hasPendingToolCalls: Bool,
+        logger: Logger
+    ) async -> AssistantRowMaterial {
         let toolCallsJSON = await buildToolCallsJSON(
             from: context,
             hasPendingToolCalls: hasPendingToolCalls,
             logger: logger
         )
-
-        let content = await context.outputs.assistantContent
-        let fullThinking = await context.outputs.fullThinking
-
-        return TimelineMessage(
+        return AssistantRowMaterial(
             timelineID: context.timelineID,
-            role: .assistant,
-            content: content,
-            reasoning: fullThinking.isEmpty ? nil : fullThinking,
-            toolCalls: toolCallsJSON,
             agentID: context.agentId,
             executionKind: context.executionKind,
+            content: await context.outputs.assistantContent,
+            thinking: await context.outputs.fullThinking,
+            toolCallsJSON: toolCallsJSON
+        )
+    }
+
+    /// Builds an assistant `TimelineMessage` from captured, `Sendable` material.
+    static func buildAssistantMessage(
+        from material: AssistantRowMaterial,
+        status: Message.MessageStatus?
+    ) -> TimelineMessage {
+        TimelineMessage(
+            timelineID: material.timelineID,
+            role: .assistant,
+            content: material.content,
+            reasoning: material.thinking.isEmpty ? nil : material.thinking,
+            toolCalls: material.toolCallsJSON,
+            agentID: material.agentID,
+            executionKind: material.executionKind,
             status: status
         )
     }
