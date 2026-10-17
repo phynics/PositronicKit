@@ -5,7 +5,11 @@ This guide covers contributor and agent setup. Application configuration belongs
 
 ## Platform gates
 
-Use native Swift/Xcode on macOS. The canonical macOS gate is `make verify`.
+Use native Swift/Xcode on macOS. The canonical macOS gate is `make verify`, which includes the
+iOS Simulator lane. Run only the iOS lane with `make verify-ios`; it builds and tests `PKObservable`
+on an available iOS Simulator and builds `PKFoundationModelsProvider` for the iOS destination, so
+an Apple-platform-only availability regression cannot hide behind the native macOS build. CI runs
+the same script in its `ios-verify` job.
 
 Linux verification runs only through the repository-owned container runner, which accepts Podman
 (preferred) or Docker:

@@ -180,6 +180,29 @@ struct TimelineControllerTests {
         }
     }
 
+    @Test("a completed send records per-round prompt-cache reports")
+    func completedSendRecordsPromptCacheReports() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.nextResponses = ["first reply", "second reply"]
+        let kit = runtime.runtime
+        let driver = try await kit.timelines.create(title: "Controller")
+        let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: driver.id)
+        let controller = TimelineController(driver)
+
+        try await controller.send("Hi")
+
+        #expect(controller.promptCacheReports.count == 1)
+        #expect(controller.promptCacheReports.first?.turnID == controller.lastTurnID)
+        #expect(controller.promptCacheReports.first?.modelRoundIndex == 1)
+
+        try await controller.send("Again")
+
+        #expect(controller.promptCacheReports.count == 1)
+        #expect(controller.promptCacheReports.first?.turnID == controller.lastTurnID)
+    }
+
     @Test("cancel() clears streaming state")
     func cancelClearsStreamingState() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
