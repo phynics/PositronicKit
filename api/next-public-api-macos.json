@@ -10507,7 +10507,7 @@
         "PromptSection",
         "init(id:role:priority:estimatedTokens:compression:type:cachePolicy:path:parentID:compressionOutcome:render:)"
       ],
-      "declaration": "init(id: String, role: PromptSectionRole, priority: Int, estimatedTokens: Int, compression: CompressionStrategy, type: PromptSectionType, cachePolicy: CachePolicy, path: [String], parentID: String? = nil, compressionOutcome: CompressionNodeReport? = nil, render: @escaping PromptSection.RenderClosure)"
+      "declaration": "init(id: String, role: PromptSectionRole, priority: Int, estimatedTokens: Int, compression: CompressionStrategy = .keep, type: PromptSectionType, cachePolicy: CachePolicy, path: [String], parentID: String? = nil, compressionOutcome: CompressionNodeReport? = nil, render: @escaping PromptSection.RenderClosure)"
     },
     {
       "precise": "s:11PKUtilities13PromptSectionV2idSSvp",
@@ -10868,7 +10868,7 @@
         "Section",
         "init(id:role:priority:estimatedTokens:compression:type:cachePolicy:path:parentID:compressionOutcome:content:)"
       ],
-      "declaration": "init(id: String, role: PromptSectionRole, priority: Int, estimatedTokens: Int, compression: CompressionStrategy, type: PromptSectionType, cachePolicy: CachePolicy, path: [String], parentID: String?, compressionOutcome: CompressionNodeReport? = nil, content: PromptSection.Content)"
+      "declaration": "init(id: String, role: PromptSectionRole, priority: Int, estimatedTokens: Int, compression: CompressionStrategy = .keep, type: PromptSectionType, cachePolicy: CachePolicy, path: [String], parentID: String?, compressionOutcome: CompressionNodeReport? = nil, content: PromptSection.Content)"
     },
     {
       "precise": "s:11PKUtilities14RenderedPromptV7SectionV2idSSvp",
