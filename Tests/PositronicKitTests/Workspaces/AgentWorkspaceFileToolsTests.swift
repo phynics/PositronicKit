@@ -121,7 +121,7 @@ struct AgentWorkspaceFileToolsTests {
         #expect(await provider.writeCount == 1)
     }
 
-    @Test("jails paths and requests approval only for SOUL mutations")
+    @Test("jails paths and requests approval for configured protected paths")
     func pathAndApprovalPolicy() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -130,7 +130,11 @@ struct AgentWorkspaceFileToolsTests {
 
         let reference = WorkspaceReference(uri: .agentWorkspace(UUID()), location: .runtime, rootPath: root.path)
         let provider = try LocalAgentWorkspaceProvider(reference: reference)
-        let write = AgentWorkspaceFileTool(operation: .writeFile, provider: provider)
+        let write = AgentWorkspaceFileTool(
+            operation: .writeFile,
+            provider: provider,
+            protectedPaths: ["SOUL.md"]
+        )
 
         try "identity".write(to: root.appendingPathComponent("SOUL.md"), atomically: true, encoding: .utf8)
         try FileManager.default.createSymbolicLink(
@@ -140,7 +144,13 @@ struct AgentWorkspaceFileToolsTests {
         #expect(write.requiresPermission(for: ["path": "SOUL.md", "content": "new identity"]))
         #expect(write.requiresPermission(for: ["path": "soul.md", "content": "new identity"]))
         #expect(write.requiresPermission(for: ["path": "Notes/soul-alias.md", "content": "new identity"]))
-        #expect(!write.requiresPermission(for: ["path": "Notes/MEMORY.md", "content": "new memory"]))
+        #expect(write.requiresPermission(for: ["path": "Notes/MEMORY.md", "content": "new memory"]) == false)
+        let protectAll = AgentWorkspaceFileTool(
+            operation: .writeFile,
+            provider: provider,
+            protectedPaths: ["**"]
+        )
+        #expect(protectAll.requiresPermission(for: ["path": "Notes/MEMORY.md", "content": "new memory"]))
         let blocked = try await write.execute(parameters: [
             "path": "../outside.md",
             "content": "must not escape",

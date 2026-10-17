@@ -260,14 +260,52 @@ struct AgentWorkspaceServiceTests {
 
         #expect(FileManager.default.fileExists(atPath: notesFile.path))
         #expect(FileManager.default.fileExists(atPath: nestedFile.path))
-        #expect(FileManager.default.fileExists(atPath: workspacePath.appendingPathComponent("SOUL.md").path))
-        #expect(FileManager.default.fileExists(atPath: notesPath.appendingPathComponent("MEMORY.md").path))
+        // The runtime writes no identity file or Agent note templates unless a host supplies an
+        // `AgentWorkspaceSeed`; only the template's own seed files are written here.
+        #expect(!FileManager.default.fileExists(atPath: workspacePath.appendingPathComponent("SOUL.md").path))
+        #expect(!FileManager.default.fileExists(atPath: notesPath.appendingPathComponent("MEMORY.md").path))
 
         let notesContent = try String(contentsOf: notesFile, encoding: .utf8)
         #expect(notesContent == "# Notes")
 
         let nestedContent = try String(contentsOf: nestedFile, encoding: .utf8)
         #expect(nestedContent == "Nested content")
+    }
+
+    @Test("Create Agent Workspace writes the configured identity and Notes seed")
+    func createAgentWorkspaceWritesConfiguredSeed() async throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let seed = AgentWorkspaceSeed(
+            identityFilename: "IDENTITY.md",
+            identityContent: { _ in "identity content" },
+            notes: ["MEMORY.md": "memory content"]
+        )
+        let repository = DefaultWorkspaceCatalog(
+            workspaceRoot: tempDir,
+            workspacePersistence: MockPersistenceService(),
+            agentWorkspaceSeed: seed
+        )
+
+        let agentId = UUID()
+        _ = try await repository.createAgentWorkspace(agentID: agentId, template: nil)
+
+        let workspacePath = tempDir
+            .appendingPathComponent("agents", isDirectory: true)
+            .appendingPathComponent(agentId.uuidString, isDirectory: true)
+        let identity = try String(
+            contentsOf: workspacePath.appendingPathComponent("IDENTITY.md"),
+            encoding: .utf8
+        )
+        let memory = try String(
+            contentsOf: workspacePath.appendingPathComponent("Notes/MEMORY.md"),
+            encoding: .utf8
+        )
+        #expect(identity == "identity content")
+        #expect(memory == "memory content")
     }
 
     @Test("Create Agent Workspace Cleans Up Directory After Provisioning Failure")

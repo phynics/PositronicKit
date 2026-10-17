@@ -19,7 +19,7 @@ struct WorkspaceProfileLifecycleTests {
     func hostManagedWritesDefaultNotes() async throws {
         let root = makeUniqueRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let timelineManager = TimelineManager(workspaceProfile: .hostManaged(root: root))
+        let timelineManager = TimelineManager(workspaceProfile: .hostManaged(root: root, seedNotes: .default))
 
         let timeline = try await timelineManager.createTimeline()
 
@@ -115,7 +115,7 @@ struct WorkspaceProfileLifecycleTests {
         let root = makeUniqueRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let timelineManager = TimelineManager(
-            workspaceProfile: .ephemeralWorkspace(root: root)
+            workspaceProfile: .ephemeralWorkspace(root: root, seedNotes: .default)
         )
 
         let timeline = try await timelineManager.createTimeline()

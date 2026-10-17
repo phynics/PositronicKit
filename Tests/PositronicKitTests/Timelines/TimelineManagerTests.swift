@@ -339,10 +339,12 @@ struct TimelineManagerTests {
         #expect(persisted.id == timeline.id)
     }
 
-    @Test("createTimeline creates Notes/Welcome.md and Notes/Project.md in the working directory")
+    @Test("createTimeline seeds Notes/Welcome.md and Notes/Project.md when seedNotes is .default")
     func createTimelineWritesDefaultNotes() async throws {
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(workspaceProfile: .hostManaged(root: workspace.root))
+        let timelineManager = TimelineManager(
+            workspaceProfile: .hostManaged(root: workspace.root, seedNotes: .default)
+        )
 
         let timeline = try await timelineManager.createTimeline()
 

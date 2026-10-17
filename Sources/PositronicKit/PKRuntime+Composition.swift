@@ -35,7 +35,8 @@ internal extension PKRuntime {
             workspacePersistence: dependencies.workspacePersistence,
             bindingRepository: dependencies.workspaceBindingRepository,
             runtimeRepository: dependencies.runtimeRepository,
-            timelineAuthorityCoordinator: state.timelineManager.timelineAuthorityCoordinator
+            timelineAuthorityCoordinator: state.timelineManager.timelineAuthorityCoordinator,
+            agentWorkspaceSeed: dependencies.customization.agentWorkspaceSeed ?? .none
         )
     }
 
@@ -87,7 +88,7 @@ internal extension PKRuntime {
                 timelineManager: state.timelineManager,
                 agentStore: dependencies.agentStore,
                 agentContextSource: dependencies.customization.agentContextSource
-                    ?? DefaultAgentContextSource(workspaceStore: dependencies.workspacePersistence),
+                    ?? IdentityAgentContextSource(),
                 requestOriginStore: dependencies.requestOriginStore,
                 runtimeRepository: dependencies.runtimeRepository,
                 timelineAuthorityCoordinator: state.timelineManager.timelineAuthorityCoordinator,

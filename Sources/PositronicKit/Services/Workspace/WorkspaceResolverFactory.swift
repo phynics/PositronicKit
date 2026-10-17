@@ -15,13 +15,15 @@ public enum WorkspaceResolverFactory {
         workspaceRoot: URL,
         workspaceStore: any WorkspaceStore,
         bindingRepository: any WorkspaceBindingRepository? = nil,
-        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator()
+        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
+        agentWorkspaceSeed: AgentWorkspaceSeed = .none
     ) -> any WorkspaceResolver {
         DefaultWorkspaceResolver(
             repository: DefaultWorkspaceCatalog(
                 workspaceRoot: workspaceRoot,
                 workspacePersistence: workspaceStore,
-                bindingRepository: bindingRepository
+                bindingRepository: bindingRepository,
+                agentWorkspaceSeed: agentWorkspaceSeed
             ),
             workspaceCreator: workspaceCreator
         )

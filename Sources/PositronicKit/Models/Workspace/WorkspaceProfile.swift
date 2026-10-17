@@ -92,9 +92,10 @@ public struct WorkspaceSeedNotes: Sendable, Equatable {
 /// - `.ephemeralWorkspace`: PKRuntime owns a scratch directory under `root`. The directory
 ///   is created on `createTimeline` and removed on `evictTimelineFromMemory(id:)` and
 ///   `deleteTimelinePermanently(id:)`. Use this when the runtime needs transient filesystem
-///   state that must not outlive the timeline.
+///   state that must not outlive the timeline. No notes are written unless `seedNotes` is set.
 /// - `.hostManaged`: PKRuntime creates per-timeline directories under `root` (and seeds
-///   notes) but does **not** remove them — the host owns retention and cleanup.
+///   notes only when `seedNotes` is set) but does **not** remove them — the host owns retention
+///   and cleanup.
 public enum WorkspaceProfile: Sendable {
     /// No filesystem workspace is created for timelines. `createTimeline` skips directory
     /// creation, note seeding, and workspace-record persistence; `TimelineRecord.workingDirectory`
@@ -105,15 +106,17 @@ public enum WorkspaceProfile: Sendable {
     ///
     /// The directory is created on `createTimeline` and removed on
     /// `evictTimelineFromMemory(id:)` and `deleteTimelinePermanently(id:)`. `seedNotes`
-    /// controls which note files are written into the new directory's `Notes/` folder.
-    case ephemeralWorkspace(root: URL, seedNotes: WorkspaceSeedNotes = .default)
+    /// controls which note files are written into the new directory's `Notes/` folder; the
+    /// default ``WorkspaceSeedNotes/none`` writes no notes.
+    case ephemeralWorkspace(root: URL, seedNotes: WorkspaceSeedNotes = .none)
 
     /// The host owns the workspace root and its retention policy.
     ///
     /// PKRuntime creates per-timeline directories under `root` (and seeds notes per
-    /// `seedNotes`) but does not remove them on eviction or deletion — the host is responsible
-    /// for cleanup. Directory retention is explicit and remains under host control.
-    case hostManaged(root: URL, seedNotes: WorkspaceSeedNotes = .default)
+    /// `seedNotes`, default ``WorkspaceSeedNotes/none``) but does not remove them on eviction or
+    /// deletion — the host is responsible for cleanup. Directory retention is explicit and remains
+    /// under host control.
+    case hostManaged(root: URL, seedNotes: WorkspaceSeedNotes = .none)
 }
 
 public extension WorkspaceProfile {

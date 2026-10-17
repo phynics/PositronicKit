@@ -372,13 +372,18 @@ extension TimelineManager {
 
             // Agent primary workspaces always receive the guarded generic filesystem surface.
             // These names are reserved so a workspace-provided definition cannot silently replace
-            // a path-jailed built-in or bypass SOUL.md approval.
+            // a path-jailed built-in or bypass the configured protected-path approval gate.
             var genericTools: [AnyTool] = []
             if isPrimary, let fileProvider {
                 let origin = ToolOrigin.workspace(id: reference.id, name: reference.uri.description)
+                let protectedPaths = runtimeToolPolicy.protectedPrimaryWorkspacePaths
                 genericTools = AgentWorkspaceFileTool.Operation.all.map { operation in
                     AnyTool(
-                        AgentWorkspaceFileTool(operation: operation, provider: fileProvider),
+                        AgentWorkspaceFileTool(
+                            operation: operation,
+                            provider: fileProvider,
+                            protectedPaths: protectedPaths
+                        ),
                         origin: origin
                     )
                 }

@@ -1,6 +1,7 @@
 import Foundation
 import JSONSchemaBuilder
 import PKAnthropicProvider
+import PKAgentFiles
 import PKContracts
 import PKFoundationModelsProvider
 import PKMCP
@@ -68,6 +69,7 @@ _ = String(describing: Message.self)
 _ = String(describing: TimelineRecord.self)
 _ = String(describing: (any PKTool).self)
 _ = String(describing: TimelineController.self)
+_ = String(describing: PKAgentFiles.self)
 _ = String(describing: MCPWorkspaceFactory.self)
 _ = String(describing: MCPServerConfiguration.self)
 _ = String(describing: PKOpenAI.self)
