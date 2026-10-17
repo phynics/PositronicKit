@@ -10507,7 +10507,7 @@
         "PromptSection",
         "init(id:role:priority:estimatedTokens:compression:type:cachePolicy:path:parentID:compressionOutcome:render:)"
       ],
-      "declaration": "init(id: String, role: PromptSectionRole, priority: Int, estimatedTokens: Int, compression: CompressionStrategy, type: PromptSectionType, cachePolicy: CachePolicy, path: [String], parentID: String? = nil, compressionOutcome: CompressionNodeReport? = nil, render: @escaping PromptSection.RenderClosure)"
+      "declaration": "init(id: String, role: PromptSectionRole, priority: Int, estimatedTokens: Int, compression: CompressionStrategy = .keep, type: PromptSectionType, cachePolicy: CachePolicy, path: [String], parentID: String? = nil, compressionOutcome: CompressionNodeReport? = nil, render: @escaping PromptSection.RenderClosure)"
     },
     {
       "precise": "s:11PKUtilities13PromptSectionV2idSSvp",
@@ -10868,7 +10868,7 @@
         "Section",
         "init(id:role:priority:estimatedTokens:compression:type:cachePolicy:path:parentID:compressionOutcome:content:)"
       ],
-      "declaration": "init(id: String, role: PromptSectionRole, priority: Int, estimatedTokens: Int, compression: CompressionStrategy, type: PromptSectionType, cachePolicy: CachePolicy, path: [String], parentID: String?, compressionOutcome: CompressionNodeReport? = nil, content: PromptSection.Content)"
+      "declaration": "init(id: String, role: PromptSectionRole, priority: Int, estimatedTokens: Int, compression: CompressionStrategy = .keep, type: PromptSectionType, cachePolicy: CachePolicy, path: [String], parentID: String?, compressionOutcome: CompressionNodeReport? = nil, content: PromptSection.Content)"
     },
     {
       "precise": "s:11PKUtilities14RenderedPromptV7SectionV2idSSvp",
@@ -25631,6 +25631,16 @@
         "invalidMaxModelRounds(_:)"
       ],
       "declaration": "case invalidMaxModelRounds(Int)"
+    },
+    {
+      "precise": "s:13PositronicKit9TurnErrorO26promptExceedsContextWindowyACSi_SitcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TurnError",
+        "promptExceedsContextWindow(estimated:limit:)"
+      ],
+      "declaration": "case promptExceedsContextWindow(estimated: Int, limit: Int)"
     },
     {
       "precise": "s:13PositronicKit9TurnErrorO29managedExecutionAgentMismatchyAC10Foundation4UUIDV_A2GSgtcACmF",
@@ -57794,6 +57804,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit9TurnErrorO21invalidMaxModelRoundsyACSicACmF",
+      "target": "s:13PositronicKit9TurnErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9TurnErrorO26promptExceedsContextWindowyACSi_SitcACmF",
       "target": "s:13PositronicKit9TurnErrorO"
     },
     {

@@ -37,11 +37,9 @@ enum PromptAssembler {
 
     /// Assembles a prompt using explicit advanced assembly options.
     ///
-    /// Use this overload when runtime-owned assembly options or token-budgeted compression are needed.
-    ///
-    /// When `options.tokenBudget` is present and the resolved prompt is over budget, prompt
-    /// assembly first runs the structured compression pass with section metadata and then falls
-    /// back to the simpler priority-based token allocator if the prompt is still over budget.
+    /// Runtime Turns use this overload to pass an optional history projection replacement.
+    /// Prompt assembly never compresses or summarizes content; the caller owns overflow handling
+    /// through projection, stepwise history trimming, or a structured preparation failure.
     static func assemble(
         _ request: LLMPromptRequest,
         agent: Agent? = nil,
@@ -61,14 +59,8 @@ enum PromptAssembler {
         options.logger?.debug(
             "Resolved \(build.sections.count) prompt section(s) from \(build.fragmentCount) prompt fragment(s)."
         )
-        let prompt = try await assemblePrompt(
-            from: build.sections,
-            tokenBudget: options.tokenBudget,
-            compressor: options.compressor,
-            structuredExecutor: options.structuredExecutor,
-            logger: options.logger
-        )
-        return await prompt.render()
+        let assembled = try AssembledPrompt(sections: build.sections)
+        return await assembled.render()
     }
 
     /// Builds a prompt and prepares it for LLM submission.
@@ -165,7 +157,7 @@ enum PromptAssembler {
             })
         }
         try fragments.append(withLogging("ChatHistory", logger: logger) {
-            ChatHistory(PromptHistoryOptimizer.optimizeForDefaultBudget(request.chatHistory))
+            ChatHistory(request.chatHistory)
         })
         try fragments.append(withLogging("UserQuery", logger: logger) {
             UserQuery(request.userContent, turnInstructions: request.turnInstructions)
@@ -192,53 +184,5 @@ enum PromptAssembler {
             logger?.error("Prompt section '\(id)' failed after \(String(format: "%.3f", duration))s: \(error.localizedDescription)")
             throw error
         }
-    }
-
-    private static func assemblePrompt(
-        from resolvedSections: [PromptSection],
-        tokenBudget: TokenBudget?,
-        compressor: SectionCompressor?,
-        structuredExecutor: StructuredCompressionExecutor,
-        logger: Logger?
-    ) async throws -> AssembledPrompt {
-        guard let tokenBudget else {
-            logger?.debug("Assembling prompt without token budget.")
-            return try AssembledPrompt(sections: resolvedSections)
-        }
-
-        logger?.debug(
-            "Applying token budget with maxTokens=\(tokenBudget.maxTokens) reserveForResponse=\(tokenBudget.reserveForResponse)."
-        )
-
-        // Prompt assembly always provides node metadata for budgeted prompts, so the structured
-        // compression pass runs first and the simple allocator acts as a fallback.
-        let metadata = await buildStructuredMetadata(for: resolvedSections)
-
-        let compressionResult = try await tokenBudget.result(
-            forResolvedSections: resolvedSections,
-            compressor: compressor,
-            nodeMetadata: metadata,
-            executor: structuredExecutor
-        )
-
-        logger?.debug(
-            "Token budgeting produced \(compressionResult.sections.count) prompt section(s)."
-        )
-
-        return try AssembledPrompt(
-            sections: compressionResult.sections,
-            compressionReport: compressionResult.report
-        )
-    }
-
-    private static func buildStructuredMetadata(
-        for resolvedSections: [PromptSection]
-    ) async -> [String: StructuredNodeMetadata] {
-        var metadata: [String: StructuredNodeMetadata] = [:]
-        for section in resolvedSections {
-            let rendered = await section.renderedContent()?.text ?? ""
-            metadata[section.id] = section.nodeMetadata(renderedContent: rendered)
-        }
-        return metadata
     }
 }

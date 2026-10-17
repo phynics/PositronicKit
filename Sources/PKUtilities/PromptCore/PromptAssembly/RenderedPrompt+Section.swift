@@ -42,7 +42,7 @@ extension RenderedPrompt {
             role: PromptSectionRole,
             priority: Int,
             estimatedTokens: Int,
-            compression: CompressionStrategy,
+            compression: CompressionStrategy = .keep,
             type: PromptSectionType,
             cachePolicy: CachePolicy,
             path: [String],
@@ -61,6 +61,27 @@ extension RenderedPrompt {
             self.parentID = parentID
             self.compressionOutcome = compressionOutcome
             self.content = content
+        }
+
+        /// Returns a copy with new rendered content and every other metadata value preserved.
+        ///
+        /// Runtime projections that rewrite content (for example, replacing generated audio
+        /// with its transcript) use this so they never restate compression metadata they do
+        /// not own.
+        package func replacingContent(_ content: PromptSection.Content) -> RenderedPrompt.Section {
+            RenderedPrompt.Section(
+                id: id,
+                role: role,
+                priority: priority,
+                estimatedTokens: estimatedTokens,
+                compression: compression,
+                type: type,
+                cachePolicy: cachePolicy,
+                path: path,
+                parentID: parentID,
+                compressionOutcome: compressionOutcome,
+                content: content
+            )
         }
     }
 }

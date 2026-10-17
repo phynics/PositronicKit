@@ -8,38 +8,23 @@ import PKUtilities
 /// Runtime-owned assembly options used by the turn pipeline and focused tests. Consumer prompt
 /// ownership belongs on the direct Turn request surface.
 ///
-/// When `tokenBudget` is set, `PromptAssembler` first attempts structured compression using
-/// resolved section metadata and `structuredExecutor`. If the structured result is still over
-/// budget, it falls back to the simpler priority-based `TokenBudget` path.
+/// The runtime does not compress or summarize prompt content. Prompt assembly only resolves the
+/// runtime-owned sections and renders them; overflow is handled by projection, stepwise history
+/// trimming, or a structured preparation failure before assembly.
 struct PromptAssemblyOptions: Sendable {
     var customSections: (@Sendable () async -> [PromptSection])? = nil
-    var tokenBudget: TokenBudget?
     var logger: Logger?
-    /// Optional summarization service used by `.summarize` compression actions once a prompt is
-    /// over budget and token reduction is required.
-    ///
-    /// If omitted, summarize actions degrade to drop behavior in the compression pipeline.
-    var compressor: SectionCompressor?
     /// Optional bounded replacement for a covered historical prefix. When present, prompt
     /// assembly renders it as a semi-stable section ahead of the retained `chat_history` tail.
     var historyProjectionReplacement: String?
-    /// Executor used for the structured compression pass that runs before fallback budgeting
-    /// whenever prompt assembly applies a token budget.
-    var structuredExecutor: StructuredCompressionExecutor
 
     init(
         customSections: (@Sendable () async -> [PromptSection])? = nil,
-        tokenBudget: TokenBudget? = nil,
         logger: Logger? = nil,
-        compressor: SectionCompressor? = nil,
-        historyProjectionReplacement: String? = nil,
-        structuredExecutor: StructuredCompressionExecutor = StructuredCompressionExecutor()
+        historyProjectionReplacement: String? = nil
     ) {
         self.customSections = customSections
-        self.tokenBudget = tokenBudget
         self.logger = logger
-        self.compressor = compressor
         self.historyProjectionReplacement = historyProjectionReplacement
-        self.structuredExecutor = structuredExecutor
     }
 }

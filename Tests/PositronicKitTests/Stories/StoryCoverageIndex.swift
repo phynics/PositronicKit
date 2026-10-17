@@ -67,9 +67,8 @@
 ///   `FacadeOneShotTests`
 /// - runtime cancellation / event-stream reliability → `FacadeRunValidationTests`,
 ///   `TurnEngineTests`
-/// - prompt assembly / runtime prompt history / structured compression →
-///   `PromptAssemblyTests`, `TimelinePromptHistoryTests`,
-///   `StructuredCompressionIntegrationTests`
+/// - prompt assembly / runtime prompt history →
+///   `PromptAssemblyTests`, `TimelinePromptHistoryTests`
 /// - timeline/workspace persistence behavior → `WorkspaceAttachmentTests`,
 ///   `TimelineManagerTests`
 enum StoryCoverageIndex {

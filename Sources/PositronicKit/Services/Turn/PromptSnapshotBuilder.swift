@@ -47,12 +47,10 @@ struct PromptSnapshotBuilder {
             role: .chatHistory,
             priority: PromptPriority.medium.rawValue,
             estimatedTokens: TokenEstimator.estimate(parts: appendedMessages.map(\.content)),
-            compression: .keep,
             type: .list,
             cachePolicy: .volatile,
             path: ["runtime", "follow_up", "\(nextTurnIndex)"],
             parentID: nil,
-            compressionOutcome: nil,
             content: .messages(appendedMessages.map(makeHistoryMessage))
         )
 

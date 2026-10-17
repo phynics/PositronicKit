@@ -36,6 +36,13 @@ for tagged releases beginning with `1.0.0`.
   Timeline eviction reports `firstRound`. Per-Timeline prompt state now lives on the Timeline
   manager, so it still survives `replacingLanguageModel(_:generationParameters:)` without a journal
   registry. `PromptJournal` and its overlay format remain in the optional `PKPrompt` product.
+- **Runtime Turns no longer compress or summarize (#294).** `PromptAssemblyOptions` drops
+  `tokenBudget`, `compressor`, `structuredExecutor`, and `structuredDiff`, and no compression type
+  is referenced in `Sources/PositronicKit`. An over-budget Turn now runs in this order: apply a
+  configured `TurnHistoryProjectionSource`, stepwise-trim history at a tool-transaction boundary,
+  then fail preparation with `TurnError.promptExceedsContextWindow(estimated:limit:)` when the
+  non-history tiers alone exceed the prompt budget. No section is silently dropped. Compression
+  and summarization remain in the optional `PKPrompt` product.
 - **Tiered prompt wire layout (#277).** The runtime renders provider requests in cache tiers:
   tools, stable system, semi-stable system, prior history, volatile per-Turn context, then the
   query. `TurnContextContributions` no longer sit at byte zero, so per-Turn context changes no
@@ -182,9 +189,11 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   `lastOutcome` (via `TurnHandle.outcome()`), and `lastError`, plus a `cancel()` entry point for
   UI cancellation. A fork is an ordinary `TimelineHandle`, so `PKObservable` binds one through the
   existing direct-path initializer `TimelineController(_:context:)`.
-- `docs/SwiftUI.md` documents the app-owned runtime service, managed/direct binding, outcome
-  joins, cancellation, and fork sessions with type-checked snippets. CI builds and tests
-  `PKObservable` on the iOS Simulator.
+- `docs/SwiftUI.md` documents the app-owned runtime service, managed/direct binding, streaming
+  deltas and observation granularity, outcome joins, per-round prompt-cache diagnostics,
+  cancellation, and fork sessions with type-checked snippets. `make verify` runs an iOS Simulator
+  lane that builds and tests `PKObservable` and builds `PKFoundationModelsProvider` for iOS, and
+  CI runs the same `Scripts/run-ios-verify.sh` gate in its `ios-verify` job.
 - `TurnHistoryProjectionSource` lets a host supply a bounded, provider-facing replacement for a
   covered historical prefix on one Turn. It is **stable public API in 7.0**: the main contract for
   external context managers, and no longer experimental. `RuntimeCustomization(turnHistoryProjectionSource:)`

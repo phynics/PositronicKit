@@ -230,13 +230,13 @@ struct TurnEngine: Sendable {
 
     // MARK: - Prompt Budget
 
-    /// Derives a ``TokenBudget`` for prompt compression from the model's context window and the
-    /// requested response output limit.
+    /// Derives the runtime's ``PromptBudget`` from the model's context window and the requested
+    /// response output limit.
     ///
     /// The prompt budget is `contextWindowTokens - (maxOutputTokens ?? defaultOutputReserve)
     /// - providerOverhead` — the remaining context window after reserving space for the
-    /// response. This deliberately does **not** infer context capacity from the output limit:
-    /// a small `maxOutputTokens` (e.g. 512) no longer shrinks the whole prompt budget.
+    /// response. The runtime uses it for stepwise history trimming and the non-history overflow
+    /// check; it never compresses or summarizes prompt content.
     ///
     /// - Parameters:
     ///   - contextWindowTokens: The model's full context-window size (from
@@ -244,15 +244,15 @@ struct TurnEngine: Sendable {
     ///   - maxOutputTokens: The per-turn response output limit
     ///     (`GenerationParameters.maxTokens`). `nil` falls back to
     ///     ``Constants/defaultOutputReserve``.
-    /// - Returns: A validated `TokenBudget` whose `availableTokens` is the prompt budget.
-    /// - Throws: ``TokenBudgetError`` if the capacities are non-positive or the reserve
+    /// - Returns: A validated `PromptBudget` whose `availableTokens` is the prompt budget.
+    /// - Throws: ``PromptBudgetError`` if the capacities are non-positive or the reserve
     ///   consumes the entire context window.
-    static func makeTokenBudget(
+    static func makePromptBudget(
         contextWindowTokens: Int,
         maxOutputTokens: Int?
-    ) throws -> TokenBudget {
+    ) throws -> PromptBudget {
         let outputReserve = (maxOutputTokens ?? Constants.defaultOutputReserve) + Constants.providerOverhead
-        return try TokenBudget(contextWindow: contextWindowTokens, outputReserve: outputReserve)
+        return try PromptBudget(contextWindowTokens: contextWindowTokens, outputReserve: outputReserve)
     }
 
     // MARK: - API

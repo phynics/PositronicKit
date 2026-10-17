@@ -5,6 +5,12 @@ The runtime does not import it; it builds provider requests from its own interna
 Use `PKPrompt` when you want the authoring DSL, standalone assembly, token budgeting,
 compression, or prompt journaling.
 
+Compression is a `PKPrompt`-only feature. The runtime does not compress, summarize, or drop
+prompt sections; an over-budget Turn is projection, stepwise history trimming, or a structured
+`TurnError.promptExceedsContextWindow`. Within `PKPrompt`, a `.summarize` section needs a
+`SectionCompressor`; without one, an over-budget summarize section is dropped. Supply a
+compressor when your assembly relies on `.summarize`.
+
 `PKPrompt` uses a body-based composition model inspired by SwiftUI.
 
 ## Authoring model
