@@ -56,6 +56,7 @@ enum PromptAssembler {
             timeline: timeline,
             customSections: options.customSections,
             historyProjectionReplacement: options.historyProjectionReplacement,
+            tokenBudget: options.tokenBudget,
             logger: options.logger
         )
         options.logger?.debug(
@@ -104,6 +105,7 @@ enum PromptAssembler {
         timeline: TimelineRecord?,
         customSections: (@Sendable () async -> [PromptSection])?,
         historyProjectionReplacement: String?,
+        tokenBudget: TokenBudget?,
         logger: Logger?
     ) async throws -> SectionBuild {
         if let customSections {
@@ -117,7 +119,7 @@ enum PromptAssembler {
 
         var fragments: [RuntimePromptProducer] = []
         try fragments.append(withLogging("SystemInstructions", logger: logger) {
-            SystemInstructions(request.systemInstructions ?? DefaultInstructions.system())
+            SystemInstructions(request.systemInstructions ?? "")
         })
         if let agentContext {
             try fragments.append(withLogging("AgentIdentity", logger: logger) {
@@ -166,7 +168,13 @@ enum PromptAssembler {
             })
         }
         try fragments.append(withLogging("ChatHistory", logger: logger) {
-            ChatHistory(PromptHistoryOptimizer.optimizeForDefaultBudget(request.chatHistory))
+            let historyBudget = tokenBudget.map {
+                PromptHistoryOptimizer.historyBudget(
+                    contextWindowTokens: $0.maxTokens,
+                    responseReserve: $0.reserveForResponse
+                )
+            } ?? PromptHistoryOptimizer.defaultHistoryBudget
+            return ChatHistory(PromptHistoryOptimizer.optimize(request.chatHistory, availableTokens: historyBudget))
         })
         try fragments.append(withLogging("UserQuery", logger: logger) {
             UserQuery(request.userContent, turnInstructions: request.turnInstructions)

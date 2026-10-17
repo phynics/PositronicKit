@@ -247,15 +247,16 @@ private struct PromptLayoutProjection {
         self.toolsTokens = toolsTokens
     }
 
-    /// Renders one tier's system text. `.context` parts carry the explicit
-    /// "=== Retrieved Context ===" header so the model can see where injected context came from.
+    /// Renders one tier's system text. `.context` parts carry the documented
+    /// ``PromptContextHeader/retrievedContext`` header so the model can see where injected
+    /// context came from.
     private static func renderSystemText(systemParts: [String], contextParts: [String]) -> String? {
         var parts: [String] = []
         if !systemParts.isEmpty {
             parts.append(systemParts.joined(separator: "\n\n---\n\n"))
         }
         if !contextParts.isEmpty {
-            parts.append("=== Retrieved Context ===\n\n\(contextParts.joined(separator: "\n\n---\n\n"))")
+            parts.append("\(PromptContextHeader.retrievedContext)\n\n\(contextParts.joined(separator: "\n\n---\n\n"))")
         }
         guard !parts.isEmpty else { return nil }
         return parts.joined(separator: "\n\n---\n\n")

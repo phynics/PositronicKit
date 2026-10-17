@@ -108,4 +108,63 @@ struct PromptBudgetDerivationTests {
         let decoded = try JSONDecoder().decode(ProviderConfiguration.self, from: Data(json.utf8))
         #expect(decoded.contextWindowTokens == 8_192)
     }
+
+    // MARK: - History budget derivation (#288)
+
+    @Test("The history budget scales with the model context window")
+    func historyBudgetScalesWithContextWindow() {
+        let small = PromptHistoryOptimizer.historyBudget(contextWindowTokens: 8_192)
+        let medium = PromptHistoryOptimizer.historyBudget(contextWindowTokens: 128_000)
+        let large = PromptHistoryOptimizer.historyBudget(contextWindowTokens: 1_000_000)
+
+        let reserve = PromptHistoryOptimizer.nonHistoryTokenReserve
+        #expect(small == 8_192 - reserve)
+        #expect(medium == 128_000 - reserve)
+        #expect(large == 1_000_000 - reserve)
+        #expect(small < medium)
+        #expect(medium < large)
+    }
+
+    @Test("The history budget subtracts the response reserve and measured non-history tiers")
+    func historyBudgetSubtractsReserveAndNonHistory() {
+        let budget = PromptHistoryOptimizer.historyBudget(
+            contextWindowTokens: 128_000,
+            responseReserve: 4_608,
+            nonHistoryTokens: 2_000
+        )
+        #expect(budget == 128_000 - 4_608 - 2_000)
+    }
+
+    @Test("The history budget never goes negative")
+    func historyBudgetNeverNegative() {
+        #expect(PromptHistoryOptimizer.historyBudget(contextWindowTokens: 1_000, responseReserve: 4_608) == 0)
+    }
+
+    @Test("Assembly trims history to the context-window-derived budget")
+    func assemblyTrimsHistoryToDerivedBudget() async throws {
+        let history = (0 ..< 200).map { index in
+            Message(content: "message-\(index) " + String(repeating: "x", count: 400), role: .user)
+        }
+
+        func renderedLength(contextWindow: Int) async throws -> Int {
+            let request = LLMPromptRequest(
+                userQuery: "hello",
+                chatHistory: history,
+                tools: [],
+                workspaces: [],
+                primaryWorkspace: nil,
+                requestOriginName: nil,
+                systemInstructions: nil
+            )
+            let prompt = try await PromptAssembler.assemble(
+                request,
+                options: PromptAssemblyOptions(tokenBudget: TokenBudget(maxTokens: contextWindow))
+            )
+            return prompt.sectionsByID["chat_history"]?.count ?? 0
+        }
+
+        let small = try await renderedLength(contextWindow: 8_192)
+        let large = try await renderedLength(contextWindow: 1_000_000)
+        #expect(small < large)
+    }
 }

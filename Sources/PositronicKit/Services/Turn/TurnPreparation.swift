@@ -166,13 +166,17 @@ struct TurnPreparation: Sendable {
         // Sidecar directives steer generation only through prompt text (SDC-7). The per-turn
         // directive list is volatile (consumer-scheduled, changes turn-to-turn), so it rides
         // with the user query — the LAST prompt section — keeping the system prefix byte-stable
-        // for provider prompt caching and PromptJournal stable-prefix diffing. An optional
-        // semi-stable mechanism preamble can be layered into system instructions
-        // (`SidecarSchemaComposer.mechanismPreamble`); the mechanism does not depend on it.
-        let effectiveSystemInstructions: String? = includeSidecarMechanismPreamble
-            ? ((systemInstructions ?? DefaultInstructions.system())
-                + "\n\n" + SidecarSchemaComposer.mechanismPreamble)
-            : systemInstructions
+        // for provider prompt caching and PromptJournal stable-prefix diffing. The optional
+        // semi-stable mechanism preamble can be layered into host system instructions
+        // (`SidecarSchemaComposer.mechanismPreamble`); the mechanism does not depend on it. The
+        // runtime adds no instructions of its own, so a nil host instruction set stays nil
+        // unless the preamble is needed.
+        let effectiveSystemInstructions: String? = {
+            guard includeSidecarMechanismPreamble else { return systemInstructions }
+            let preamble = SidecarSchemaComposer.mechanismPreamble
+            guard let systemInstructions, !systemInstructions.isEmpty else { return preamble }
+            return systemInstructions + "\n\n" + preamble
+        }()
         let sidecarTurnInstructions: String? = sidecars.isEmpty
             ? nil
             : SidecarSchemaComposer.instructionBlock(directives: sidecars)
@@ -407,13 +411,17 @@ struct TurnPreparation: Sendable {
 
             // 9. Build the initial prompt messages. Stepwise history trimming (#277) reads and
             //    writes the per-Timeline cut so a trim happens once and the new prefix survives
-            //    later Turns. The assembly pass applies a default-budget trim again as a safety
-            //    net; the pre-trim below is already at or under that budget, so it is a no-op.
+            //    later Turns. The budget is derived from the model context window (#288), not a
+            //    fixed constant. The assembly pass applies the same derived budget as a safety
+            //    net; the pre-trim below is already at or under it, so it is a no-op.
             let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineID)
             let structuredDiff = await promptHistory.structuredDiffHint()
             let historyTrim = PromptHistoryOptimizer.stepwise(
                 history,
-                availableTokens: min(budget.availableTokens, PromptHistoryOptimizer.defaultHistoryBudget),
+                availableTokens: PromptHistoryOptimizer.historyBudget(
+                    contextWindowTokens: providerConfig.contextWindowTokens,
+                    responseReserve: budget.reserveForResponse
+                ),
                 state: await promptHistory.historyTrimState()
             )
 
