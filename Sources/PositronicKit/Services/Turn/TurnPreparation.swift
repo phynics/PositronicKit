@@ -327,10 +327,10 @@ struct TurnPreparation: Sendable {
 
             // 5. Resolve an optional host-provided historical projection before prompt work.
             //    The projection sees only the durable history preceding this Turn's input and
-            //    runs before PKPrompt structured budget compression. Durable history is never
-            //    rewritten; a covered prefix is replaced only in the provider-facing prompt.
+            //    runs before stepwise history trimming. Durable history is never rewritten; a
+            //    covered prefix is replaced only in the provider-facing prompt.
             let providerConfig = await dependencies.llmService.configuration.activeProviderConfiguration
-            let budget = try TurnEngine.makeTokenBudget(
+            let budget = try TurnEngine.makePromptBudget(
                 contextWindowTokens: providerConfig.contextWindowTokens,
                 maxOutputTokens: generationParameters?.maxTokens
             )
@@ -407,10 +407,8 @@ struct TurnPreparation: Sendable {
 
             // 9. Build the initial prompt messages. Stepwise history trimming (#277) reads and
             //    writes the per-Timeline cut so a trim happens once and the new prefix survives
-            //    later Turns. The assembly pass applies a default-budget trim again as a safety
-            //    net; the pre-trim below is already at or under that budget, so it is a no-op.
+            //    later Turns. The runtime never compresses or summarizes sections.
             let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineID)
-            let structuredDiff = await promptHistory.structuredDiffHint()
             let historyTrim = PromptHistoryOptimizer.stepwise(
                 history,
                 availableTokens: min(budget.availableTokens, PromptHistoryOptimizer.defaultHistoryBudget),
@@ -436,9 +434,7 @@ struct TurnPreparation: Sendable {
                 agentContext: resolvedAgentContext,
                 timeline: timeline,
                 options: PromptAssemblyOptions(
-                    tokenBudget: budget,
                     logger: assemblyLogger,
-                    structuredDiff: structuredDiff,
                     historyProjectionReplacement: projectionResult.replacement
                 )
             )
@@ -447,6 +443,16 @@ struct TurnPreparation: Sendable {
             // 10. Reuse the final rendered artifact for messages + prompt history. The tiered
             //     layout also yields the cache breakpoints sent with the first model round.
             let promptLayout = PromptLayoutBuilder.build(from: renderedPrompt)
+            // Overflow is mechanism only: projection already ran, history was trimmed to fit, and
+            // a non-history tier that alone exceeds the budget is a structured preparation
+            // failure. The runtime never silently drops a section.
+            let nonHistoryTokens = promptLayout.nonHistoryEstimatedTokens
+            guard nonHistoryTokens <= budget.availableTokens else {
+                throw TurnError.promptExceedsContextWindow(
+                    estimated: nonHistoryTokens,
+                    limit: budget.availableTokens
+                )
+            }
             var initialMessages = promptLayout.renderMessages()
             let promptCacheBreakpoints = promptLayout.cacheBreakpoints()
             let resolvedSections = renderedPrompt.sections
@@ -518,32 +524,6 @@ struct TurnPreparation: Sendable {
                 turnID: turnID,
                 runtimeRepository: dependencies.runtimeRepository
             )
-
-            if let report = renderedPrompt.compressionReport {
-                let metrics = StructuredCompressionMetrics(
-                    totalNodes: report.nodeReports.count,
-                    summarizedNodes: report.nodeReports.filter {
-                        if case .summarize = $0.action { return true }
-                        return false
-                    }.count,
-                    droppedNodes: report.nodeReports.filter {
-                        if case .drop = $0.action { return true }
-                        return false
-                    }.count,
-                    cacheHits: report.nodeReports.filter { $0.didHitCache }.count,
-                    nodeMetrics: report.nodeReports.map {
-                        StructuredCompressionNodeMetric(
-                            nodeID: $0.nodeID,
-                            path: $0.path,
-                            action: String(describing: $0.action),
-                            beforeTokens: $0.beforeTokens,
-                            afterTokens: $0.afterTokens,
-                            didHitCache: $0.didHitCache
-                        )
-                    }
-                )
-                logger.debug("Structured compression metrics: \(metrics)")
-            }
 
             let modelName = providerConfig.modelName
 
@@ -954,7 +934,7 @@ private extension TurnPreparation {
         executionKind: TurnExecutionKind,
         inputMessageID: UUID?,
         history: [Message],
-        budget: TokenBudget
+        budget: PromptBudget
     ) async throws -> (replacement: String?, retainedHistory: [Message]) {
         guard let source = dependencies.turnHistoryProjectionSource else {
             return (nil, history)
@@ -984,7 +964,7 @@ private extension TurnPreparation {
             since: since,
             messages: descriptors,
             budget: TurnHistoryProjectionBudget(
-                contextWindowTokens: budget.maxTokens,
+                contextWindowTokens: budget.contextWindowTokens,
                 reserveForResponse: budget.reserveForResponse,
                 availableTokens: budget.availableTokens,
                 historyTokens: descriptors.reduce(0) { $0 + $1.estimatedTokens }

@@ -11,6 +11,11 @@ public enum TurnError: PKError, Sendable, Equatable {
     case directExecutionRequiresDetachedTimeline(UUID)
     /// The captured Agent identity no longer matches the Timeline's attachment at admission.
     case managedExecutionAgentMismatch(timelineID: UUID, requestedAgentID: UUID, attachedAgentID: UUID?)
+    /// The non-history prompt tiers alone exceed the prompt's context-window budget.
+    ///
+    /// The runtime never silently drops a section. Preparation fails so the host can reduce the
+    /// prompt, configure a ``TurnHistoryProjectionSource``, or use a model with a larger window.
+    case promptExceedsContextWindow(estimated: Int, limit: Int)
 
     public var errorDomain: String {
         PKErrorDomain.turn
@@ -22,6 +27,7 @@ public enum TurnError: PKError, Sendable, Equatable {
         case .managedExecutionRequiresAttachedAgent: 9021
         case .directExecutionRequiresDetachedTimeline: 9022
         case .managedExecutionAgentMismatch: 9023
+        case .promptExceedsContextWindow: 9024
         }
     }
 
@@ -35,6 +41,8 @@ public enum TurnError: PKError, Sendable, Equatable {
             "Timeline \(timelineID.uuidString.prefix(8)) has an attached Agent and cannot run direct execution."
         case .managedExecutionAgentMismatch:
             "The requested Agent is not the Agent attached to this Timeline."
+        case let .promptExceedsContextWindow(estimated, limit):
+            "The prompt needs an estimated \(estimated) tokens, but only \(limit) tokens remain after reserving the response. Reduce non-history content or use a larger context window."
         }
     }
 
@@ -49,6 +57,8 @@ public enum TurnError: PKError, Sendable, Equatable {
         case let .managedExecutionAgentMismatch(timelineID, requestedAgentID, attachedAgentID):
             let attachment = attachedAgentID.map { "agent \($0) is attached" } ?? "no Agent is attached"
             return "Agent \(requestedAgentID) is not authorized for timeline \(timelineID); \(attachment)."
+        case let .promptExceedsContextWindow(estimated, limit):
+            return "The non-history prompt tiers need an estimated \(estimated) tokens, exceeding the \(limit)-token prompt budget."
         }
     }
 
@@ -62,6 +72,8 @@ public enum TurnError: PKError, Sendable, Equatable {
             "Detach the Agent before using direct execution, or use managed execution."
         case .managedExecutionAgentMismatch:
             "Retry using the Agent currently attached to the Timeline."
+        case .promptExceedsContextWindow:
+            "Reduce non-history prompt content, configure a TurnHistoryProjectionSource, or use a model with a larger context window."
         }
     }
 }

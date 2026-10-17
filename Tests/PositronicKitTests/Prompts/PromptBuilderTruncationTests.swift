@@ -1,7 +1,6 @@
 import Foundation
-@testable import PKPrompt
-@testable import PKContracts
-import PKUtilities
+import PKContracts
+import PKTestSupport
 @testable import PositronicKit
 import Testing
 
@@ -24,25 +23,5 @@ struct PromptBuilderTruncationTests {
         #expect(constrained.messages.count < 10)
         #expect(constrained.messages.count > 0)
         #expect(constrained.messages.last?.content == "Message 10 content")
-    }
-
-    @Test("Token Budget Application")
-    func tokenBudgetApplication() async {
-        let system = SystemInstructions("System instructions")
-        let messages = (1 ... 20).map { Message.fixture(content: "msg \($0)") }
-        let history = ChatHistory(messages)
-
-        let sections: [PromptSection] = system.makeSections() + history.makeSections()
-        let budget = TokenBudget(maxTokens: 30, reserveForResponse: 0)
-        let processed = try! await budget.result(forResolvedSections: sections).sections
-
-        #expect(processed.count == 2)
-
-        let processedSystem = processed.first(where: { $0.id == "system" })
-        #expect(processedSystem != nil)
-
-        let processedHistory = processed.first(where: { $0.id == "chat_history" })
-        #expect(processedHistory != nil)
-        #expect(processedHistory?.estimatedTokens ?? 0 < history.estimatedTokens)
     }
 }

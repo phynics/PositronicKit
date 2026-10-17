@@ -51,27 +51,6 @@ private struct TimelineSection: Prompt {
 
 @Suite("TimelinePromptHistory", .tags(.integration))
 actor TimelinePromptHistoryTests {
-    @Test("Runtime metadata hashing stays aligned between prompt assembly and timeline history")
-    func runtimeMetadataHashingStaysAligned() async throws {
-        let history = TimelinePromptHistory()
-        let rendered = try await PromptAssembler.assemble(LLMPromptRequest(
-            userQuery: "Current question",
-            chatHistory: [],
-            tools: [],
-            workspaces: [makePromptWorkspace(path: "/repo-a")],
-            primaryWorkspace: nil,
-            requestOriginName: nil
-        ))
-
-        let historyMetadata = await history.nodeMetadata(prompt: rendered)
-
-        for section in rendered.sections {
-            let content = rendered.sectionsByID[section.id] ?? ""
-            let expected = section.nodeMetadata(renderedContent: content)
-            #expect(historyMetadata[section.id] == expected)
-        }
-    }
-
     @Test("Duplicate journal sections fail the transition with a typed error")
     func duplicateJournalSectionsAreRecoverable() async throws {
         let history = TimelinePromptHistory()

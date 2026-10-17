@@ -31,5 +31,18 @@ public struct RenderedPrompt: Sendable {
         self.sectionsByID = sectionsByID
         self.compressionReport = compressionReport
     }
+
+    /// Returns a copy with replacement sections and every other value preserved.
+    ///
+    /// Runtime projections that rebuild section content use this so they never restate
+    /// compression metadata they do not own.
+    package func replacingSections(_ sections: [RenderedPrompt.Section]) -> RenderedPrompt {
+        RenderedPrompt(
+            sections: sections,
+            string: string,
+            sectionsByID: sectionsByID,
+            compressionReport: compressionReport
+        )
+    }
 }
 

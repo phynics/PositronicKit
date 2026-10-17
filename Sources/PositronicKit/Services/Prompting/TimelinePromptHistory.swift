@@ -119,19 +119,7 @@ actor TimelinePromptHistory {
     func record(sections: [PromptSection], renderedContent: [String: String]) throws -> PromptDiff {
         let renderedSections = sections.compactMap { section in
             renderedContent[section.id].map { content in
-                RenderedPrompt.Section(
-                    id: section.id,
-                    role: section.role,
-                    priority: section.priority,
-                    estimatedTokens: section.estimatedTokens,
-                    compression: section.compression,
-                    type: section.type,
-                    cachePolicy: section.cachePolicy,
-                    path: section.path,
-                    parentID: section.parentID,
-                    compressionOutcome: section.compressionOutcome,
-                    content: .text(content)
-                )
+                section.renderedSection(content: .text(content))
             }
         }
 
@@ -240,25 +228,6 @@ actor TimelinePromptHistory {
     /// Persists the stepwise history cut after a trim pass so later Turns reuse the same prefix.
     func recordHistoryTrimState(_ state: HistoryTrimState) {
         trimState = state
-    }
-
-    func structuredDiffHint() -> StructuredDiffHint? {
-        guard let lastDiff else { return nil }
-        return StructuredDiffHint(
-            changedNodePaths: lastDiff.changedNodePaths,
-            stableNodePaths: lastDiff.stableNodePaths
-        )
-    }
-
-    func nodeMetadata(
-        prompt: RenderedPrompt
-    ) -> [String: StructuredNodeMetadata] {
-        var metadata: [String: StructuredNodeMetadata] = [:]
-        for section in prompt.sections {
-            let content = prompt.sectionsByID[section.id] ?? ""
-            metadata[section.id] = section.nodeMetadata(renderedContent: content)
-        }
-        return metadata
     }
 
     private func compactIfNeeded() -> Bool {
