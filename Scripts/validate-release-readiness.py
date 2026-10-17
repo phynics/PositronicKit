@@ -12,7 +12,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-VERSION_PATTERN = re.compile(r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)")
+VERSION_PATTERN = re.compile(
+    r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)(?:-rc\.[0-9]+)?"
+)
 RELEASE_HEADING_PATTERN = re.compile(
     r"^## \[(?P<version>[0-9]+\.[0-9]+\.[0-9]+)\] - \d{4}-\d{2}-\d{2}$",
     re.MULTILINE,
@@ -49,6 +51,13 @@ def version_components(version: str) -> tuple[int, int, int]:
     if match is None:
         fail(f"invalid semantic version: {version!r}")
     return (int(match.group("major")), int(match.group("minor")), int(match.group("patch")))
+
+
+def stable_version(version: str) -> str:
+    """Return the stable version represented by a stable or release-candidate tag."""
+    if VERSION_PATTERN.fullmatch(version) is None:
+        fail(f"invalid semantic version or release-candidate tag: {version!r}")
+    return re.sub(r"-rc\.[0-9]+$", "", version)
 
 
 def release_kind(version: str) -> str:
@@ -174,24 +183,34 @@ def api_semver_violations(
 
 
 def main() -> int:
-    if len(sys.argv) != 2 or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", sys.argv[1]):
-        fail("pass VERSION as a bare semantic version, for example `make verify-release VERSION=5.0.0`")
-    version = sys.argv[1]
+    arguments = sys.argv[1:]
+    dry_run = bool(arguments and arguments[0] == "--dry-run")
+    if dry_run:
+        arguments = arguments[1:]
+    if len(arguments) != 1 or VERSION_PATTERN.fullmatch(arguments[0]) is None:
+        fail(
+            "pass VERSION as a bare semantic version or release-candidate tag, for example "
+            "`make verify-release VERSION=5.0.0` or `make verify-release VERSION=7.0.0-rc.1`"
+        )
+    version = arguments[0]
+    release = stable_version(version)
 
     catalog = json.loads((ROOT / "docs" / "catalog.json").read_text())
     stable = catalog["stable"]
-    if stable.get("version") != version or stable.get("ref") != version:
-        fail(f"docs/catalog.json stable.version and stable.ref must both equal {version}")
+    if stable.get("version") != release or stable.get("ref") != release:
+        fail(f"docs/catalog.json stable.version and stable.ref must both equal {release}")
 
     changelog = (ROOT / "CHANGELOG.md").read_text()
-    release_heading = re.compile(rf"^## \[{re.escape(version)}\] - \d{{4}}-\d{{2}}-\d{{2}}$", re.MULTILINE)
+    release_heading = re.compile(
+        rf"^## \[{re.escape(release)}\] - \d{{4}}-\d{{2}}-\d{{2}}$", re.MULTILINE
+    )
     if not release_heading.search(changelog):
-        fail(f"CHANGELOG.md has no dated [{version}] release section")
+        fail(f"CHANGELOG.md has no dated [{release}] release section")
     unreleased = re.search(r"^## \[Unreleased\]\s*(.*?)(?=^## \[)", changelog, re.MULTILINE | re.DOTALL)
     if unreleased is None or unreleased.group(1).strip():
         fail("CHANGELOG.md Unreleased must be empty after cutting the release section")
 
-    baseline_release = ".".join(version.split(".")[:2])
+    baseline_release = ".".join(release.split(".")[:2])
     for platform_name in API_PLATFORMS:
         baseline_path = ROOT / "api" / f"{baseline_release}-public-api-{platform_name}.json"
         if not baseline_path.exists():
@@ -200,10 +219,10 @@ def main() -> int:
         if baseline.get("release") != baseline_release or baseline.get("platform") != platform_name:
             fail(f"invalid release/platform metadata in {baseline_path.relative_to(ROOT)}")
 
-    violations = api_semver_violations(ROOT, version, changelog)
+    violations = api_semver_violations(ROOT, release, changelog)
     if violations:
         print(
-            f"release readiness: {release_kind(version)} release {version} changes the public "
+            f"release readiness: {release_kind(release)} release {release} changes the public "
             "API relative to the previous release:",
             file=sys.stderr,
         )
@@ -217,6 +236,13 @@ def main() -> int:
             file=sys.stderr,
         )
         raise SystemExit(1)
+
+    if dry_run:
+        print(
+            f"Release metadata and public API compatibility checks passed for {release} "
+            "(dry run; tag, clean checkout, documentation generation, and SBOM checks skipped)."
+        )
+        return 0
 
     tag_ref = f"refs/tags/{version}"
     if git("cat-file", "-t", tag_ref) != "tag":

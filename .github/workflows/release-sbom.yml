@@ -10,6 +10,7 @@ on:
         required: true
 
 permissions:
+  actions: read
   contents: write
 
 # Every `run:` step uses an explicit `bash` shell so GitHub Actions applies `-eo pipefail`.
@@ -17,50 +18,57 @@ defaults:
   run:
     shell: bash
 
-# Single source for the supported toolchain, matching ci.yml.
-env:
-  SWIFT_TOOLCHAIN_VERSION: "6.4.0"
-
 jobs:
   attach-sbom:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     name: "Attach CycloneDX SBOM (Ubuntu 24.04)"
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+          ref: refs/tags/${{ github.event.release.tag_name || inputs.tag }}
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
+      - name: Require a successful release gate for this tag
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
           set -euo pipefail
-          archive="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-ubuntu24.04.tar.gz"
-          curl -fsSL -o "/tmp/${archive}" \
-            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/ubuntu2404/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${archive}"
-          sudo mkdir -p /opt/swift
-          sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
-          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+          if [[ ! "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "invalid release tag: $TAG" >&2
+            exit 1
+          fi
+          tag_sha="$(git rev-parse "${TAG}^{commit}")"
+          export TAG_SHA="$tag_sha"
+          gate_run_id="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/release-gate.yml/runs?head_sha=${tag_sha}&event=push&per_page=100" \
+            --jq 'first(.workflow_runs[] | select(.conclusion == "success" and .display_title == ("Release gate for " + env.TAG) and .head_sha == env.TAG_SHA)) | .id // empty')"
+          if [[ -z "$gate_run_id" ]]; then
+            gate_run_id="$(gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/release-gate.yml/runs?branch=main&event=workflow_dispatch&per_page=100" \
+              --jq 'first(.workflow_runs[] | select(.conclusion == "success" and .display_title == ("Release gate for " + env.TAG))) | .id // empty')"
+          fi
+          if [[ -z "$gate_run_id" ]]; then
+            echo "no successful Release Gate run found for tag $TAG at $tag_sha" >&2
+            exit 1
+          fi
+          echo "run_id=$gate_run_id" >> "$GITHUB_OUTPUT"
 
-      - name: Assert Swift 6.4
-        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
-
-      - name: Cache SwiftPM downloads
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            .build/checkouts
-            ~/.swiftpm
-          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-${{ hashFiles('Package.resolved') }}
-          restore-keys: |
-            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-
-
-      - name: Generate the release SBOM
+      - name: Download the SBOM from the successful gate run
         env:
-          TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
-        run: make sbom VERSION="$TAG"
+          GH_TOKEN: ${{ github.token }}
+          GATE_RUN_ID: ${{ steps.gate.outputs.run_id }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          mkdir -p .build/sboms
+          gh run download "$GATE_RUN_ID" --name release-sbom --dir .build/sboms
+          test -s ".build/sboms/PositronicKit-${TAG}.cyclonedx.json"
 
       - name: Attach the SBOM to the release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
-        run: gh release upload "$TAG" .build/sboms/PositronicKit-*.cyclonedx.json --clobber
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: gh release upload "$TAG" ".build/sboms/PositronicKit-${TAG}.cyclonedx.json" --clobber

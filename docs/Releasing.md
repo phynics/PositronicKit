@@ -32,6 +32,11 @@ The release kind sets the rule:
 | `minor` | Fails on a removed symbol or a changed declaration; additions are compatible. |
 | `major` | Removals pass, but the dated changelog section must carry a non-empty `### Breaking` section. |
 
+The tag workflow accepts stable tags and release candidates such as `7.0.0-rc.1`. For a release
+candidate, `VERSION` is the full tag while the changelog, stable catalog ref, and frozen API
+baseline use the corresponding stable version (`7.0.0`). The release-candidate gate compares the
+same candidate baseline with the previous dated release.
+
 The check depends on the frozen per-tag baselines from #259. Never edit
 `api/<major>.<minor>-public-api-<platform>.json`; promote the Next graphs at release time with
 `Scripts/promote-public-api-baselines.py --to <version>`.
@@ -105,6 +110,11 @@ semver-stable public API baseline and tracked in their own baselines
 7. Re-run any product-specific or platform-specific gates that changed behavior on the host you
    are releasing from.
 
+For a PR that adds or changes a dated release heading or changes `docs/catalog.json` stable
+`version`/`ref`, the Release Gate workflow runs `make verify-release VERSION=<version> DRY_RUN=1`.
+This checks the changelog, catalog, API baselines, and semver compatibility without requiring a
+tag or building the SBOM. PRs that only change `Unreleased` do not run this dry run.
+
 On Linux, use `make agent-verify` as the release gate. It runs the product, example,
 PKTestSupport, and default-test gates inside the pinned container environment. If an
 agent sandbox blocks the container runtime, rerun the same command with escalated permissions;
@@ -118,17 +128,28 @@ do not fall back to host Swift or compose an ad hoc container command.
 2. Land the release-artifact commit on `main` first, then tag the merged commit. Release PRs are
    squash-merged, so a tag cut on the branch points at a commit that never reaches `main`. Do not
    tag until the merge commit exists and the local `main` is fast-forwarded to it.
-3. Cut an annotated tag from that merged commit using the bare semver string, for example
-   `git tag -a <version> -m 'PositronicKit <version>'`.
+3. Cut an annotated tag from that merged commit, using the bare semver string or a release-candidate
+   tag, for example `git tag -a <version> -m 'PositronicKit <version>'`.
 4. Run `make verify-release VERSION=<version>`. This requires a clean tree, checks that the
    annotated tag points to `HEAD`, and verifies that the catalog, changelog, generated stable docs,
-   and the release SBOM agree.
-5. Push the tag, then publish the GitHub release from the matching changelog entry. The
-   `Release SBOM` workflow generates the CycloneDX document at the published tag and attaches it to
-   the release; no manual upload is required.
+   the semver comparison, and the release SBOM agree. For a candidate tag such as `7.0.0-rc.1`,
+   the catalog and changelog still name `7.0.0`.
+5. Push the tag to start the Release Gate workflow. Wait for both its Linux and macOS readiness and
+   semver jobs to pass. Its final SBOM job runs only after both jobs pass and stores the CycloneDX
+   document as a workflow artifact. Then publish the GitHub release from the matching changelog
+   entry. The `Release SBOM` workflow checks for a successful gate run for the exact tag and commit,
+   downloads that run's SBOM, and attaches it; no manual upload is required.
 6. Read back the tag, GitHub release, stable landing, and changelog links, and confirm the tag is
    reachable from `main` (`git branch -r --contains <version>`). After those artifacts agree,
    downstream consumers may bump their pins to the new release.
+
+The tag-push workflow runs after a tag is created. A GitHub tag ruleset with a required-workflow rule
+is needed to prevent tag creation until the Release Gate succeeds. Without that hosting-level rule,
+do not publish the GitHub release until both platform jobs are green.
+
+To run either workflow manually, select `main` as the workflow ref. For `Release Gate`, enter the
+full tag in its `tag` input. A manual `Release SBOM` run requires an existing release and a
+successful gate for that tag.
 
 During the release pull request, `make verify-documentation` accepts a stable ref without a local
 tag only when `CHANGELOG.md` has a dated section for that version. `make verify-release` requires
@@ -155,9 +176,11 @@ cannot generate the document, if a public library product is missing from the co
 the per-product dependency edges change: `PKOpenAIProvider` must list `MacPaw/OpenAI` while
 `PKContracts` must not.
 
-`make verify-release` runs the same generation for the tag being published, so the SBOM is a
-blocking release artifact rather than an afterthought. The `Release SBOM` workflow repeats the
-generation on the published tag and attaches the result to the GitHub release. Set
+`make verify-release` runs the same generation for the tag being verified, so the SBOM is a
+blocking release artifact rather than an afterthought. The Release Gate workflow generates a final
+SBOM artifact only after both platform checks succeed. The `Release SBOM` workflow confirms a
+successful gate run for the same tag and commit, downloads its artifact, and attaches it to the
+published GitHub release. A manual SBOM run has the same gate check. Set
 `SBOM_FORMAT=spdx` to emit SPDX instead, but the release artifact stays CycloneDX.
 
 ## Downstream Cadence

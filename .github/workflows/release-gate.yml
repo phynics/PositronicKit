@@ -1,0 +1,206 @@
+name: Release Gate
+run-name: Release gate for ${{ inputs.tag || github.ref_name }}
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+      - "*.*.*-rc.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing annotated release or release-candidate tag to verify"
+        required: true
+        type: string
+  pull_request:
+    paths:
+      - CHANGELOG.md
+      - docs/catalog.json
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  SWIFT_TOOLCHAIN_VERSION: "6.4.0"
+
+jobs:
+  release-metadata-dry-run:
+    if: github.event_name == 'pull_request'
+    name: "Release metadata dry run"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Detect release heading or stable catalog changes
+        id: release-metadata
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          def at_revision(revision: str, path: str) -> str:
+              return subprocess.check_output(
+                  ["git", "show", f"{revision}:{path}"], text=True
+              )
+
+          headings = re.compile(r"^## \[([0-9]+\.[0-9]+\.[0-9]+)\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$", re.MULTILINE)
+          base_headings = headings.findall(at_revision(os.environ["BASE_SHA"], "CHANGELOG.md"))
+          head_changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          head_headings = headings.findall(head_changelog)
+          base_stable = json.loads(at_revision(os.environ["BASE_SHA"], "docs/catalog.json"))["stable"]
+          head_stable = json.loads(Path("docs/catalog.json").read_text(encoding="utf-8"))["stable"]
+          headings_changed = base_headings != head_headings
+          stable_changed = any(
+              base_stable.get(field) != head_stable.get(field)
+              for field in ("version", "ref")
+          )
+
+          if not headings_changed and not stable_changed:
+              print("No release heading or stable catalog version/ref change; skipping dry run.")
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+                  output.write("changed=false\n")
+              raise SystemExit(0)
+
+          added_headings = [version for version in head_headings if version not in base_headings]
+          if len(added_headings) > 1:
+              raise SystemExit("one release PR must add at most one dated release heading")
+          version = head_stable.get("version")
+          if not stable_changed and added_headings:
+              version = added_headings[0]
+          elif not stable_changed and headings_changed and head_headings:
+              version = head_headings[0]
+          if not isinstance(version, str) or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is None:
+              raise SystemExit(f"cannot determine a stable release version from metadata: {version!r}")
+
+          print(f"Checking release metadata and API compatibility for {version}.")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("changed=true\n")
+              output.write(f"version={version}\n")
+          PY
+
+      - name: Run release readiness checks without tag or SBOM requirements
+        if: steps.release-metadata.outputs.changed == 'true'
+        env:
+          VERSION: ${{ steps.release-metadata.outputs.version }}
+        run: make verify-release VERSION="$VERSION" DRY_RUN=1
+
+  linux-release-gate:
+    if: github.event_name != 'pull_request'
+    name: "Linux — release readiness and semver (Ubuntu 24.04)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require dispatch from the default branch
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "dispatch Release Gate from main and enter the tag to verify" >&2
+            exit 1
+          fi
+
+      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
+        run: |
+          set -euo pipefail
+          archive="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          curl -fsSL -o "/tmp/${archive}" \
+            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/ubuntu2404/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${archive}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
+
+      - name: Confirm frozen API baselines match their tags
+        run: make verify-public-api-immutability
+
+      - name: Run release readiness and semver checks
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: make verify-release VERSION="$TAG"
+
+  macos-release-gate:
+    if: github.event_name != 'pull_request'
+    name: "macOS — release readiness and semver (xcode-27)"
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require dispatch from the default branch
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "dispatch Release Gate from main and enter the tag to verify" >&2
+            exit 1
+          fi
+
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
+
+      - name: Confirm frozen API baselines match their tags
+        run: make verify-public-api-immutability
+
+      - name: Run release readiness and semver checks
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: make verify-release VERSION="$TAG"
+
+  release-sbom:
+    if: github.event_name != 'pull_request'
+    needs:
+      - linux-release-gate
+      - macos-release-gate
+    name: "Generate the gated release SBOM"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
+        run: |
+          set -euo pipefail
+          archive="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          curl -fsSL -o "/tmp/${archive}" \
+            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/ubuntu2404/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${archive}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
+
+      - name: Generate the CycloneDX release SBOM
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: make sbom VERSION="$TAG"
+
+      - name: Retain the SBOM for the published release
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-sbom
+          path: .build/sboms/PositronicKit-${{ inputs.tag || github.ref_name }}.cyclonedx.json
+          if-no-files-found: error

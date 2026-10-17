@@ -120,6 +120,8 @@ def test_release_kind_uses_the_semver_component() -> None:
     assert MODULE.release_kind("6.1.1") == "patch"
     assert MODULE.release_kind("6.2.0") == "minor"
     assert MODULE.release_kind("7.0.0") == "major"
+    assert MODULE.release_kind("7.0.0-rc.1") == "major"
+    assert MODULE.stable_version("7.0.0-rc.1") == "7.0.0"
 
 
 def test_minor_rejects_a_removed_symbol() -> None:
@@ -179,13 +181,13 @@ def test_major_requires_a_non_empty_breaking_section() -> None:
         assert violations == [], violations
 
 
-def test_readiness_check_fails_for_a_hypothetical_minor_removal() -> None:
+def test_dry_run_fails_for_a_hypothetical_minor_removal() -> None:
     """The acceptance case: 6.2.0 removes a symbol present in the 6.1.0 baseline."""
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         script = _make_script_fixture(root)
         result = subprocess.run(
-            ["python3", str(script), "6.2.0"],
+            ["python3", str(script), "--dry-run", "6.2.0"],
             cwd=root,
             capture_output=True,
             text=True,
@@ -193,6 +195,76 @@ def test_readiness_check_fails_for_a_hypothetical_minor_removal() -> None:
         )
         assert result.returncode == 1, result.stdout + result.stderr
         assert "removed public symbol: PKContracts.Gone" in result.stderr, result.stderr
+
+
+def test_dry_run_checks_metadata_without_a_tag_or_sbom() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = _make_script_fixture(root)
+        _write_platform_baselines(
+            root,
+            "6.2",
+            "6.1",
+            [symbol("Kept"), symbol("Added")],
+            [symbol("Kept")],
+        )
+        result = subprocess.run(
+            ["python3", str(script), "--dry-run", "6.2.0"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "(dry run;" in result.stdout, result.stdout
+
+
+def test_release_candidate_dry_run_uses_stable_release_metadata() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = _make_script_fixture(root)
+        _write_platform_baselines(
+            root,
+            "6.2",
+            "6.1",
+            [symbol("Kept"), symbol("Added")],
+            [symbol("Kept")],
+        )
+        result = subprocess.run(
+            ["python3", str(script), "--dry-run", "6.2.0-rc.1"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "passed for 6.2.0" in result.stdout, result.stdout
+
+
+def test_dry_run_fails_when_release_heading_is_not_dated() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = _make_script_fixture(root)
+        _write_platform_baselines(
+            root,
+            "6.2",
+            "6.1",
+            [symbol("Kept"), symbol("Added")],
+            [symbol("Kept")],
+        )
+        (root / "CHANGELOG.md").write_text(
+            CHANGELOG_MINOR.replace("## [6.2.0] - 2026-10-01", "## [6.2.0]"),
+            encoding="utf-8",
+        )
+        result = subprocess.run(
+            ["python3", str(script), "--dry-run", "6.2.0"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "no dated [6.2.0] release section" in result.stderr, result.stderr
 
 
 def _write_platform_baselines(
@@ -250,7 +322,10 @@ if __name__ == "__main__":
         test_patch_rejects_any_symbol_delta,
         test_major_accepts_removals,
         test_major_requires_a_non_empty_breaking_section,
-        test_readiness_check_fails_for_a_hypothetical_minor_removal,
+        test_dry_run_fails_for_a_hypothetical_minor_removal,
+        test_dry_run_checks_metadata_without_a_tag_or_sbom,
+        test_release_candidate_dry_run_uses_stable_release_metadata,
+        test_dry_run_fails_when_release_heading_is_not_dated,
     ]
     for test in tests:
         test()
