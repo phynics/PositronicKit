@@ -186,9 +186,11 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   `lastOutcome` (via `TurnHandle.outcome()`), and `lastError`, plus a `cancel()` entry point for
   UI cancellation. A fork is an ordinary `TimelineHandle`, so `PKObservable` binds one through the
   existing direct-path initializer `TimelineController(_:context:)`.
-- `docs/SwiftUI.md` documents the app-owned runtime service, managed/direct binding, outcome
-  joins, cancellation, and fork sessions with type-checked snippets. CI builds and tests
-  `PKObservable` on the iOS Simulator.
+- `docs/SwiftUI.md` documents the app-owned runtime service, managed/direct binding, streaming
+  deltas and observation granularity, outcome joins, per-round prompt-cache diagnostics,
+  cancellation, and fork sessions with type-checked snippets. `make verify` runs an iOS Simulator
+  lane that builds and tests `PKObservable` and builds `PKFoundationModelsProvider` for iOS, and
+  CI runs the same `Scripts/run-ios-verify.sh` gate in its `ios-verify` job.
 - `TurnHistoryProjectionSource` lets a host supply a bounded, provider-facing replacement for a
   covered historical prefix on one Turn. It is **stable public API in 7.0**: the main contract for
   external context managers, and no longer experimental. `RuntimeCustomization(turnHistoryProjectionSource:)`

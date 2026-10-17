@@ -71,7 +71,7 @@
     {
       "title": "SwiftUI",
       "path": "docs/SwiftUI.md",
-      "summary": "App-owned runtime service, TimelineController binding, outcome joins, and fork sessions."
+      "summary": "App-owned runtime service, TimelineController binding, streaming deltas, outcome joins, prompt-cache diagnostics, quarantine recovery, and fork sessions."
     },
     {
       "title": "MCP workspaces",

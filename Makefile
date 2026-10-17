@@ -3,7 +3,7 @@
 	verify-linux-agent verify-linux-filter verify-linux-repeat verify-linux-coverage \
 	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-domain-vocabulary verify-doc-snippets detect-flakes \
 	verify-public-api update-public-api-baseline verify-public-api-immutability verify-release sbom \
-	verify-static verify-documentation-static verify-docc verify-macos-ci verify-macos-ci-gates \
+	verify-static verify-documentation-static verify-docc verify-macos-ci verify-macos-ci-gates verify-ios \
 	agent-verify agent-test agent-test-repeat linux-image linux-build linux-coverage require-container-runtime
 
 # Swift toolchain baked into the supported Linux development image.
@@ -56,6 +56,7 @@ help:
 	@echo "  make test                  Run tests"
 	@echo "  make test-fast             Run generated fast test filter"
 	@echo "  make verify                Run docs, linkage, products, examples, and test gates (macOS)"
+	@echo "  make verify-ios            Build and test PKObservable on an iOS Simulator (macOS)"
 	@echo "  make verify-static         Run the source-level gates that need no Swift toolchain"
 	@echo "  make verify-macos-ci       Run only the macOS-specific gates (CI; pairs with the Linux lane)"
 	@echo "  make verify-concurrency-scan Run the concurrency inline-annotation scan"
@@ -153,7 +154,7 @@ verify-runtime-architecture:
 doctor:
 	@bash Scripts/doctor.sh "$(CONTAINER_RUNTIME)"
 
-verify: verify-concurrency-scan verify-diagnose-scan verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers test-fast test
+verify: verify-concurrency-scan verify-diagnose-scan verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers verify-ios test-fast test
 
 # Source-level gates that need only Python and Bash. CI runs them in a preflight
 # job before any Swift toolchain is installed, so a policy failure stops the
@@ -170,6 +171,13 @@ verify-macos-ci: verify-macos-ci-gates verify-public-api
 # and `verify-public-api` as its own step, so a baseline mismatch can publish a
 # regenerated macOS baseline without an unrelated gate failure doing the same.
 verify-macos-ci-gates: verify-agent-harness verify-docc verify-products verify-examples test-fast test
+
+# The iOS Simulator lane. It builds and tests PKObservable on an iOS
+# destination so an Apple-platform-only availability regression cannot hide
+# behind the native macOS build. CI runs the same script in its ios-verify job;
+# `make verify` runs it locally next to the other macOS gates.
+verify-ios:
+	@bash Scripts/run-ios-verify.sh
 
 verify-linux-coverage:
 	@python3 -B Tests/Scripts/linux_coverage_report_test.py
@@ -314,6 +322,7 @@ verify-agent-harness:
 	@bash Tests/Scripts/validate_docc_test.sh
 	@bash Tests/Scripts/validate_docs_test.sh
 	@bash Tests/Scripts/run_linux_coverage_test.sh
+	@bash Tests/Scripts/run_ios_verify_test.sh
 	@bash Tests/Scripts/list_library_products_test.sh
 	@bash Tests/Scripts/test_fast_test.sh
 	@python3 -B Tests/Scripts/provider_capability_matrix_test.py
