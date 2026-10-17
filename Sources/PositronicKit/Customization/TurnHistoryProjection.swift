@@ -75,7 +75,7 @@ public struct TurnHistoryMessageDescriptor: Codable, Equatable, Hashable, Sendab
 
 /// Budget metadata for one ``TurnHistoryProjectionRequest``.
 ///
-/// The projection runs before structured budget compression, so the source can decide coverage
+/// The projection runs before stepwise history trimming, so the source can decide coverage
 /// against the same prompt budget the runtime will later honor.
 ///
 /// - Important: Every token value here is a runtime *estimate*, not a provider tokenizer count.
@@ -234,7 +234,8 @@ public enum TurnHistoryProjectionError: Error, Equatable, Sendable, LocalizedErr
 /// Supplies a bounded, provider-facing representation of a covered historical prefix for one Turn.
 ///
 /// This is the stable 7.0 contract external context managers use to replace a covered prefix with
-/// one bounded checkpoint. The source runs during Turn preparation, before budget compression, and
+/// one bounded checkpoint. The source runs during Turn preparation, before stepwise history
+/// trimming, and
 /// receives ordered ``TurnHistoryMessageDescriptor`` values plus budget metadata. A source may
 /// return `nil` to leave the history unchanged for that Turn, and a source that throws follows its
 /// ``failureRequirement``. Durable history is never rewritten.

@@ -288,9 +288,10 @@ let rendered = await assembled.render()
 print(rendered.sections.map(\.id))
 ```
 
-Compression applies only when assembly runs against a token budget. `.summarize` needs a
-`SectionCompressor`; without one, an over-budget summarize section is dropped. Runtime Turns do
-not supply a compressor today.
+Compression is a `PKPrompt`-only feature. It applies when assembly runs against a token budget,
+and `.summarize` needs a `SectionCompressor`; without one, an over-budget summarize section is
+dropped. The runtime never compresses or summarizes a Turn: an over-budget prompt is handled by
+history projection, stepwise history trimming, or a structured `TurnError.promptExceedsContextWindow`.
 
 ### Sidecar directives
 

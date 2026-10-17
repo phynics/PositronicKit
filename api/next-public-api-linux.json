@@ -25633,6 +25633,16 @@
       "declaration": "case invalidMaxModelRounds(Int)"
     },
     {
+      "precise": "s:13PositronicKit9TurnErrorO26promptExceedsContextWindowyACSi_SitcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TurnError",
+        "promptExceedsContextWindow(estimated:limit:)"
+      ],
+      "declaration": "case promptExceedsContextWindow(estimated: Int, limit: Int)"
+    },
+    {
       "precise": "s:13PositronicKit9TurnErrorO29managedExecutionAgentMismatchyAC20FoundationEssentials4UUIDV_A2GSgtcACmF",
       "module": "PositronicKit",
       "kind": "swift.enum.case",
@@ -57477,6 +57487,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit9TurnErrorO21invalidMaxModelRoundsyACSicACmF",
+      "target": "s:13PositronicKit9TurnErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9TurnErrorO26promptExceedsContextWindowyACSi_SitcACmF",
       "target": "s:13PositronicKit9TurnErrorO"
     },
     {
