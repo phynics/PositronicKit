@@ -10,6 +10,15 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **The runtime adds no default prompt instructions (#288).** `DefaultInstructions` is removed.
+  A Turn with no host `systemInstructions` and no Agent context now sends an empty stable system
+  tier instead of the old "You are PKRuntime…" persona. Hosts that relied on the default must
+  supply identity and guidance through `AgentContextSource`, `TurnContextSource`, or the direct
+  Turn request. Built-in sections are now minimal structured text (workspace, tools, Timeline,
+  and Agent identity) with no guidance prose, the retrieved-context header is one documented
+  constant, and the fixed 120k-token history budget is derived from
+  `ProviderConfiguration.contextWindowTokens` minus the response reserve and an estimate of the
+  non-history tiers.
 - **The filesystem Agent conventions move to the optional `PKAgentFiles` adapter (#289).**
   `DefaultAgentContextSource` is replaced by `IdentityAgentContextSource` as the runtime default,
   which returns the Agent's stored name, description, and instructions only.

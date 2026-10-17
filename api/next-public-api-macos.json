@@ -21023,25 +21023,6 @@
       "declaration": "init(_ notes: WorkspaceSeedNote...)"
     },
     {
-      "precise": "s:13PositronicKit19DefaultInstructionsO",
-      "module": "PositronicKit",
-      "kind": "swift.enum",
-      "path": [
-        "DefaultInstructions"
-      ],
-      "declaration": "enum DefaultInstructions"
-    },
-    {
-      "precise": "s:13PositronicKit19DefaultInstructionsO6systemSSyFZ",
-      "module": "PositronicKit",
-      "kind": "swift.type.method",
-      "path": [
-        "DefaultInstructions",
-        "system()"
-      ],
-      "declaration": "static func system() -> String"
-    },
-    {
       "precise": "s:13PositronicKit19GenerationTransportO",
       "module": "PositronicKit",
       "kind": "swift.enum",
@@ -55427,12 +55408,6 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit18WorkspaceSeedNotesVyAcA0cD4NoteVd_tcfc",
       "target": "s:13PositronicKit18WorkspaceSeedNotesV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit19DefaultInstructionsO6systemSSyFZ",
-      "target": "s:13PositronicKit19DefaultInstructionsO"
     },
     {
       "module": "PositronicKit",

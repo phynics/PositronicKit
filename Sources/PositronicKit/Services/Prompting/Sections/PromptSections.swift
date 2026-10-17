@@ -274,10 +274,9 @@ struct TurnContextContributions: RuntimePromptProducer {
             path: ["prompt", "TurnContextContributions", "TextPrompt", "volatile", "turn.context-contributions"],
             render: { [contributions] in
                 guard !contributions.isEmpty else { return nil }
-                let values = contributions.map { contribution in
-                    "[\(contribution.namespace).\(contribution.key)]\n\(contribution.value.textValue)"
-                }.joined(separator: "\n\n")
-                return "## Turn Context\n\n\(values)"
+                return contributions.map { contribution in
+                    "\(contribution.namespace).\(contribution.key): \(contribution.value.textValue)"
+                }.joined(separator: "\n")
             }
         )]
     }
@@ -356,10 +355,10 @@ struct WorkspacesContext: RuntimePromptProducer {
         primaryWorkspace: WorkspaceReference?,
         requestOriginName: String?
     ) -> String? {
-        var output = ""
+        var lines: [String] = []
 
         if let requestOriginName {
-            output += "User Query Origin: **\(requestOriginName)**\n\n"
+            lines.append("User request origin: \(requestOriginName)")
         }
 
         // Deterministic order (#277): the workspace catalog is part of the semi-stable prefix,
@@ -367,44 +366,29 @@ struct WorkspacesContext: RuntimePromptProducer {
         // otherwise reset the cached prefix for every Turn.
         let allWorkspaces = ((primaryWorkspace.map { [$0] } ?? []) + workspaces.filter { $0.id != primaryWorkspace?.id })
             .sorted { $0.id.uuidString < $1.id.uuidString }
-        guard !allWorkspaces.isEmpty else { return output.isEmpty ? nil : output }
-
-        output += "## Available Workspaces\n\n"
+        guard !allWorkspaces.isEmpty else { return lines.isEmpty ? nil : lines.joined(separator: "\n") }
 
         for workspace in allWorkspaces {
-            output.append("- Workspace ID: `")
-            output.append(workspace.id.uuidString)
-            output.append("`\n  Location: `")
-            output.append(workspace.uri.description)
-            output.append("`\n")
+            lines.append("Workspace: \(workspace.uri.description) (\(workspace.id.uuidString))")
 
             let sortedTools = workspace.tools.sorted { $0.toolID < $1.toolID }
-            if !sortedTools.isEmpty {
-                output.append("  Available Tools:\n")
+            if sortedTools.isEmpty {
+                lines.append("  Tools: none")
+            } else {
+                lines.append("  Tools: " + sortedTools.map { "`\($0.toolID)`" }.joined(separator: ", "))
                 for tool in sortedTools {
-                    output.append("    - `")
-                    output.append(tool.toolID)
-                    output.append("`\n")
                     if let toolInjection = tool.contextInjection, !toolInjection.isEmpty {
-                        output.append("      Instructions: \(toolInjection)\n")
+                        lines.append("  Tool `\(tool.toolID)` instructions: \(toolInjection)")
                     }
                 }
-            } else {
-                output.append("  Available Tools: None specific to this workspace\n")
             }
 
             if let wsInjection = workspace.contextInjection, !wsInjection.isEmpty {
-                output.append("  Workspace Instructions: \(wsInjection)\n")
+                lines.append("  Workspace instructions: \(wsInjection)")
             }
-
-            output += "\n"
         }
 
-        output += "## Workspace Routing Rules\n"
-        output += "1. Paths passed to tools MUST be relative to the targeted workspace root.\n"
-        output += "2. Treat workspace-tagged tools as already bound to their labeled workspace; do not add workspace ids to tool arguments.\n"
-
-        return output
+        return lines.joined(separator: "\n")
     }
 
     private var estimatedTokens: Int {
@@ -453,11 +437,10 @@ struct AgentIdentityContext: RuntimePromptProducer {
     }
 
     private var text: String {
-        var lines = ["## Your Identity", "You are **\(snapshot.identity.name)**."]
+        var lines = ["Agent: \(snapshot.identity.name)"]
         if !snapshot.identity.description.isEmpty {
             lines.append("Description: \(snapshot.identity.description)")
         }
-        lines.append("Your private workspace supplies persistent continuity. Markdown resources are cataloged from `Notes/` and read on demand with workspace file tools.")
         return lines.joined(separator: "\n")
     }
 }
@@ -507,7 +490,7 @@ struct AgentMemoryContext: RuntimePromptProducer {
                     }
                     return memory.content
                 }.joined(separator: "\n\n")
-                return "## Agent Continuity\n\n\(content)"
+                return "Agent memory:\n\n\(content)"
             }
         )]
     }
@@ -533,7 +516,7 @@ struct AgentResourceCatalogContext: RuntimePromptProducer {
             render: { [resources] in
                 guard !resources.isEmpty else { return nil }
                 let lines = resources.map { "- `\($0.path)`: \($0.description)" }.joined(separator: "\n")
-                return "## Agent Notes Catalog\n\nThe following Markdown files are available in the private workspace. Read a file when its contents are relevant; do not assume the catalog is the file contents.\n\n\(lines)"
+                return "Agent notes:\n\n\(lines)"
             }
         )]
     }
@@ -578,11 +561,7 @@ struct TimelineContext: RuntimePromptProducer {
             cachePolicy: .semiStable,
             path: ["prompt", "TimelineContext", "TextPrompt", "semiStable", "timeline_context"],
             render: { [timeline] in
-                """
-                ## Current Timeline
-                - ID: `\(timeline.id.uuidString)`
-                - Title: \(timeline.title)
-                """
+                "Timeline: \(timeline.title) (\(timeline.id.uuidString))"
             }
         )]
     }

@@ -107,7 +107,8 @@ struct PromptAssemblyTests {
         let prompt = try await PromptAssembler.assemble(makeRequest(userQuery: "pipeline test"))
         let resolved = prompt.sections
 
-        #expect(resolved.contains { $0.id == "system" })
+        // No host instructions means no runtime-authored system section (#288).
+        #expect(!resolved.contains { $0.id == "system" })
         #expect(resolved.contains { $0.id == "user_query" })
         #expect(resolved.first(where: { $0.id == "user_query" })?.content.text == "pipeline test")
     }

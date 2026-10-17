@@ -166,13 +166,17 @@ struct TurnPreparation: Sendable {
         // Sidecar directives steer generation only through prompt text (SDC-7). The per-turn
         // directive list is volatile (consumer-scheduled, changes turn-to-turn), so it rides
         // with the user query — the LAST prompt section — keeping the system prefix byte-stable
-        // for provider prompt caching. An optional
-        // semi-stable mechanism preamble can be layered into system instructions
-        // (`SidecarSchemaComposer.mechanismPreamble`); the mechanism does not depend on it.
-        let effectiveSystemInstructions: String? = includeSidecarMechanismPreamble
-            ? ((systemInstructions ?? DefaultInstructions.system())
-                + "\n\n" + SidecarSchemaComposer.mechanismPreamble)
-            : systemInstructions
+        // with the user query — the LAST prompt section — keeping the system prefix byte-stable
+        // for provider prompt caching. The optional semi-stable mechanism preamble can be
+        // layered into host system instructions (`SidecarSchemaComposer.mechanismPreamble`); the
+        // mechanism does not depend on it. The runtime adds no instructions of its own, so a nil
+        // host instruction set stays nil unless the preamble is needed.
+        let effectiveSystemInstructions: String? = {
+            guard includeSidecarMechanismPreamble else { return systemInstructions }
+            let preamble = SidecarSchemaComposer.mechanismPreamble
+            guard let systemInstructions, !systemInstructions.isEmpty else { return preamble }
+            return systemInstructions + "\n\n" + preamble
+        }()
         let sidecarTurnInstructions: String? = sidecars.isEmpty
             ? nil
             : SidecarSchemaComposer.instructionBlock(directives: sidecars)
@@ -407,11 +411,15 @@ struct TurnPreparation: Sendable {
 
             // 9. Build the initial prompt messages. Stepwise history trimming (#277) reads and
             //    writes the per-Timeline cut so a trim happens once and the new prefix survives
-            //    later Turns. The runtime never compresses or summarizes sections.
+            //    later Turns. The runtime never compresses or summarizes sections; the trim budget
+            //    is derived from the model context window (#288), not a fixed constant.
             let promptHistory = await dependencies.timelineManager.promptHistory(for: timelineID)
             let historyTrim = PromptHistoryOptimizer.stepwise(
                 history,
-                availableTokens: min(budget.availableTokens, PromptHistoryOptimizer.defaultHistoryBudget),
+                availableTokens: PromptHistoryOptimizer.historyBudget(
+                    contextWindowTokens: providerConfig.contextWindowTokens,
+                    responseReserve: budget.reserveForResponse
+                ),
                 state: await promptHistory.historyTrimState()
             )
 

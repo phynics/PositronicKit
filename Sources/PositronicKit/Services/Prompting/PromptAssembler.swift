@@ -108,7 +108,7 @@ enum PromptAssembler {
 
         var fragments: [RuntimePromptProducer] = []
         try fragments.append(withLogging("SystemInstructions", logger: logger) {
-            SystemInstructions(request.systemInstructions ?? DefaultInstructions.system())
+            SystemInstructions(request.systemInstructions ?? "")
         })
         if let agentContext {
             try fragments.append(withLogging("AgentIdentity", logger: logger) {

@@ -266,16 +266,6 @@ public extension [AnyTool] {
         return """
         Available tools:
         \(toolSpecs.joined(separator: "\n"))
-
-        Rules:
-        - Use tools only for missing context.
-        - Path Resolution: If a tool is tagged with a workspace origin \
-        (e.g. `[Workspace: <name>]` or `[Terminal: <name>]`), all file paths passed to it MUST be relative \
-        to that workspace root.
-        - Summarize the result if it is excessively long.
-        - If a tool call fails, the error response tells you what went wrong and how to \
-        fix it (often with a worked example) — correct the arguments and try again.
-        - Be specific.
         """
     }
 }

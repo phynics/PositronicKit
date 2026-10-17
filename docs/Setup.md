@@ -234,6 +234,27 @@ let provider = PKAnthropic.makeConfiguredProvider(
 let core = PKRuntime(provider: provider)
 ```
 
+### Prompt Defaults And Context Windows
+
+The runtime adds no instructions of its own. With no host `systemInstructions` and no Agent
+context, the stable system tier is empty; the host supplies identity and guidance through
+`RuntimeCustomization` (`AgentContextSource`, `TurnContextSource`) or the direct Turn request.
+The runtime's built-in prompt sections carry only structured facts (workspace, tools, Timeline,
+and Agent identity), never persona or advice.
+
+Configure the context window per model. Prompt history is budgeted from the active model's
+`ProviderConfiguration.contextWindowTokens`, minus the response reserve and an estimate for the
+non-history tiers. Per-provider defaults are approximate, so set `contextWindowTokens` to the
+real model capacity: a window that is too large overflows the provider, and one that is too
+small trims history the model could have used.
+
+```swift
+import PKContracts
+
+var config = ProviderConfiguration.makeDefault(for: .openAI)
+config.contextWindowTokens = 128_000
+```
+
 ### Run a local example
 
 The repository's `PositronicKitExamples` executable uses a deterministic local model, so you can
