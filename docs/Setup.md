@@ -118,12 +118,15 @@ means known-empty membership. Custom repositories must record IDs in the same tr
 admission, `recordTurnMessage(_:turnID:)`, tool results, and terminal completion. A retried Turn
 can refer to the same input ID without claiming the prior attempt's intermediate messages.
 
-Use `RuntimeCustomization` for the five bounded integration roles. Managed identity continuity is
+Use `RuntimeCustomization` for the six bounded integration roles. Managed identity continuity is
 provided by `AgentContextSource`; additive, namespaced prompt context comes from
 `TurnContextSource`; `TurnHistoryProjectionSource` is the stable 7.0 contract external context
 managers use to replace a covered historical prefix with one bounded checkpoint;
-`AgentActivitySink` receives best-effort lifecycle facts; and `TurnOutcomeSink` receives a terminal
-outcome only after the runtime repository accepts it.
+`AgentActivitySink` receives best-effort lifecycle facts; `TurnOutcomeSink` receives a terminal
+outcome only after the runtime repository accepts it; and `AgentWorkspaceSeed` supplies optional
+identity-file and `Notes/` templates for newly created Agent private workspaces. The runtime
+defaults are neutral: `IdentityAgentContextSource`, no seed, and no protected paths. Install the
+optional `PKAgentFiles` adapter to restore the filesystem `SOUL.md` and `Notes/` conventions.
 
 Tests and host code can inject doubles directly through the facade initializers; lower-level wiring should remain inside the components you own.
 

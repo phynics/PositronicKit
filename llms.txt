@@ -16,7 +16,8 @@
 
 - [Overview and quick start](README.md): Release selection, runtime contracts, Timeline history, provider setup, typed structured generation, conformance suites, runnable examples, products, and verification.
 - [Setup](docs/Setup.md): Provider-neutral configuration, readiness and health, stream timing, offline examples, persistence, customization, logging, and stable error identity.
-- [Usage](docs/Usage.md): Managed and direct Turns, durable Timeline history, typed and raw one-shot structured generation, cancellation, SOUL/Notes Agent memory, lifecycle, and Workspace routing.
+- [Usage](docs/Usage.md): Managed and direct Turns, durable Timeline history, typed and raw one-shot structured generation, cancellation, Agent memory, lifecycle, and Workspace routing.
+- [Agent files](docs/PKAgentFiles.md): Optional PKAgentFiles conventions for filesystem Agent context, workspace seeding, and protected-path write approval.
 - [SwiftUI](docs/SwiftUI.md): App-owned runtime service, TimelineController binding, outcome joins, and fork sessions.
 - [MCP workspaces](docs/MCP.md): Connect Model Context Protocol servers as Workspaces through the official swift-sdk, with secrets, approval, and mapping rules.
 - [Architecture](docs/Architecture.md): Domain boundaries, capability values, durability, execution authority, and the runtime adapter tier.
@@ -34,6 +35,7 @@
 - `PKPrompt` (library): [docs/PKPromptComposition.md](docs/PKPromptComposition.md)
 - `PositronicKit` (library): [docs/Usage.md](docs/Usage.md)
 - `PKObservable` (library): [docs/SwiftUI.md](docs/SwiftUI.md)
+- `PKAgentFiles` (library): [docs/PKAgentFiles.md](docs/PKAgentFiles.md)
 - `PKMCP` (library): [docs/MCP.md](docs/MCP.md)
 - `PKOpenAIProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)
 - `PKOpenRouterProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)

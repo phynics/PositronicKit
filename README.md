@@ -37,7 +37,7 @@ The package also includes:
 - Structured output and sidecar directives on provider-neutral Turn contracts.
 - Separate adapters for OpenAI, OpenRouter, Ollama, Anthropic, and Apple's Foundation Models.
 - A runtime-neutral `EmbeddingClientProtocol` in `PKContracts`, with OpenAI, Ollama, and Apple Natural Language clients in the provider products.
-- `PKObservable` for UI-facing Timeline state, `PKMCP` for Model Context Protocol servers as Workspaces, and `PKTestSupport` for downstream tests.
+- `PKObservable` for UI-facing Timeline state, `PKMCP` for Model Context Protocol servers as Workspaces, `PKAgentFiles` for the optional filesystem `SOUL.md`/`Notes/` Agent conventions, and `PKTestSupport` for downstream tests.
 
 Embedding generation is available to hosts; the runtime performs no retrieval. Automatic vector
 stores, embedding persistence, provider discovery, and a public plugin bus stay outside the
@@ -125,11 +125,13 @@ their Timeline attachments; and `kit.workspaces` owns the workspace catalog. Con
 registries, and the Turn pipeline are implementation details.
 
 Managed Turns capture typed Agent continuity at admission through `AgentContextSource`. The
-bundled filesystem source reads root `SOUL.md` and catalogs the Agent primary Workspace's `Notes/`
-files. Inject a source in `RuntimeConfiguration.customization` for database-backed, remote, or
-memory-free Agents. The same customization value can supply bounded `TurnContextSource` notes,
-a best-effort `AgentActivitySink`, and a post-terminal `TurnOutcomeSink`. Use
-`kit.agents.retire` to drain an identity and `kit.agents.purge` only after retirement.
+runtime default, `IdentityAgentContextSource`, returns the Agent's stored name, description, and
+instructions only. Install the optional `PKAgentFiles` adapter to read root `SOUL.md` and catalog
+the Agent primary Workspace's `Notes/` files. Inject a source in
+`RuntimeConfiguration.customization` for database-backed, remote, or memory-free Agents. The same
+customization value can supply an `AgentWorkspaceSeed`, bounded `TurnContextSource` notes, a
+best-effort `AgentActivitySink`, and a post-terminal `TurnOutcomeSink`. Use `kit.agents.retire` to
+drain an identity and `kit.agents.purge` only after retirement.
 
 ### Facade readiness, validation, and error delivery
 
@@ -247,6 +249,7 @@ Use these guides for details:
 
 - [Setup](docs/Setup.md) covers providers, persistence, customization, logging, and errors.
 - [Usage](docs/Usage.md) covers managed and direct Turns, Agents, and Workspaces.
+- [Agent files](docs/PKAgentFiles.md) covers the optional `PKAgentFiles` filesystem conventions.
 - [Architecture](docs/Architecture.md) covers runtime boundaries, durability, and execution authority.
 - [Development](docs/Development.md) covers contributor setup and the containerized Linux gates.
 - [Context map](CONTEXT-MAP.md) defines the canonical runtime vocabulary and ownership boundaries.
@@ -538,6 +541,9 @@ Supporting targets:
 - `PKMCP` is the optional Model Context Protocol adapter. `MCPWorkspaceFactory` resolves an MCP
   server as a Workspace and `kit.workspaces.createMCPWorkspace(_:for:)` persists the secret-free
   configuration and binds it to a Timeline. See [docs/MCP.md](docs/MCP.md).
+- `PKAgentFiles` is the optional filesystem Agent adapter. It installs the `SOUL.md`/`Notes/`
+  `AgentContextSource`, the matching `AgentWorkspaceSeed`, and the `SOUL.md` protected write path.
+  See [docs/PKAgentFiles.md](docs/PKAgentFiles.md).
 - `PositronicKitExamples` contains runnable, compile-checked examples.
 - `PKTestSupport` is a test-only library product containing public mocks, fixtures, stream
   factories, `TestRuntime`, and reusable persistence/workspace conformance suites. Its ordinary

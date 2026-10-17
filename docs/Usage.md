@@ -124,10 +124,11 @@ let timelineID = timeline.id
 try await kit.agents.attach(agent.id, to: timelineID)
 ```
 
-Managed Turns capture one immutable `AgentContextSnapshot` at admission. The default source
-reads the Agent primary Workspace's root `SOUL.md` as instructions and catalogs other Markdown notes
-for on-demand reading; applications with database, remote, or no-memory continuity can inject an
-`AgentContextSource` through `RuntimeConfiguration`.
+Managed Turns capture one immutable `AgentContextSnapshot` at admission. The runtime default,
+`IdentityAgentContextSource`, returns the Agent's stored name, description, and instructions only.
+Install the optional `PKAgentFiles` adapter to read the primary Workspace's root `SOUL.md` as
+instructions and catalog Markdown under `Notes/`; applications with database, remote, or no-memory
+continuity can inject their own `AgentContextSource` through `RuntimeConfiguration`.
 
 Agent lifecycle is explicit. `kit.agents.retire(agent.id)` stops new managed Turns, waits for
 admitted Turns to finish, detaches ordinary Timelines, and archives the Agent's primary Timeline.

@@ -141,7 +141,7 @@ Runtime tools and request-scoped tools are separate from Workspace dispatch. The
 
 ## Runtime customization
 
-`RuntimeCustomization` contains five typed roles:
+`RuntimeCustomization` contains six typed roles:
 
 | Role | Contract |
 | --- | --- |
@@ -150,6 +150,7 @@ Runtime tools and request-scoped tools are separate from Workspace dispatch. The
 | `TurnHistoryProjectionSource` | Stable 7.0 contract for external context managers; replaces a covered historical prefix with one bounded, plain-text checkpoint |
 | `AgentActivitySink` | Best-effort Agent lifecycle integration; does not mutate Timeline history |
 | `TurnOutcomeSink` | Post-terminal integration after the durable outcome is accepted |
+| `AgentWorkspaceSeed` | Optional identity-file and `Notes/` templates for a newly created Agent private workspace |
 
 The history-projection source runs during Turn preparation, before budget compression. It receives
 ordered multimodal descriptors and heuristic budget metadata, must end coverage on a tool-transaction
@@ -158,10 +159,11 @@ boundary, and never rewrites durable history. The checkpoint replacement is plai
 stateful source can skip descriptors it already covered. See
 [Setup](Setup.md) for the integration shape.
 
-The bundled Agent context source reads stable instructions and a bounded Notes catalog from the
-Agent primary Workspace. Filesystem memory is an implementation choice, not a mandatory domain
-dependency. Sink failures are recorded for the host and do not rewrite the originating Turn
-outcome.
+The runtime default `IdentityAgentContextSource` returns the Agent's stored name, description, and
+instructions only. The optional `PKAgentFiles` adapter adds a filesystem source that reads stable
+instructions and a bounded Notes catalog from the Agent primary Workspace. Filesystem memory is an
+implementation choice, not a mandatory domain dependency. Sink failures are recorded for the host
+and do not rewrite the originating Turn outcome.
 
 The v4 boundary intentionally has no automatic semantic-memory retrieval stage. Hosts that already
 have a retrieval system provide its bounded result through `AgentContextSource`; per-Turn additions
@@ -188,10 +190,13 @@ the downstream audit and migration boundary.
   reusable prefix (#277). Because the tool block leads the cached prefix, hosts should keep a
   Timeline's tool set stable: changing it resets reuse for the whole prefix.
 - Provider products adapt concrete services to `PKContracts`; they do not import the runtime.
-- Runtime adapters (`PKObservable`, planned `PKSQLiteStorage`, planned `PKMCP`) import
-  `PositronicKit` to implement its host-facing protocols, use only public API, and are never
+- Runtime adapters (`PKObservable`, `PKAgentFiles`, planned `PKSQLiteStorage`, planned `PKMCP`)
+  import `PositronicKit` to implement its host-facing protocols, use only public API, and are never
   imported by the runtime or by providers (see [ADR 0015](adr/0015-runtime-adapter-tier.md)).
 - `PKObservable` projects runtime state outward for UI consumers.
+- `PKAgentFiles` installs the optional filesystem Agent conventions: a `SOUL.md`/`Notes/`
+  `AgentContextSource`, the matching `AgentWorkspaceSeed`, and the `SOUL.md` protected write path.
+  Without it, the runtime is identity-only, seeds nothing, and gates no write.
 - `PKTestSupport` provides ordinary-import fixtures for downstream test targets.
 - `PKUtilities` supports package implementation but is not a public product.
 

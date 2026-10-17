@@ -22,6 +22,7 @@ let package = Package(
     products: [
         .library(name: "PositronicKit", targets: ["PositronicKit"]),
         .library(name: "PKObservable", targets: ["PKObservable"]),
+        .library(name: "PKAgentFiles", targets: ["PKAgentFiles"]),
         .library(name: "PKPrompt", targets: ["PKPrompt"]),
         .library(name: "PKContracts", targets: ["PKContracts"]),
         .library(name: "PKOpenAIProvider", targets: ["PKOpenAIProvider"]),
@@ -105,6 +106,12 @@ let package = Package(
             swiftSettings: approachableConcurrency
         ),
         .target(
+            name: "PKAgentFiles",
+            dependencies: ["PositronicKit", "PKContracts"],
+            path: "Sources/PKAgentFiles",
+            swiftSettings: approachableConcurrency
+        ),
+        .target(
             name: "PKOpenAIProvider",
             dependencies: [
                 "PKContracts",
@@ -182,6 +189,7 @@ let package = Package(
             dependencies: [
                 "PositronicKit",
                 "PKObservable",
+                "PKAgentFiles",
                 "PKPrompt",
                 "PKContracts",
                 "PKOpenAIProvider",
@@ -201,6 +209,7 @@ let package = Package(
             dependencies: [
                 "PositronicKit",
                 "PKObservable",
+                "PKAgentFiles",
                 "PKMCP",
                 "PKContracts",
                 "PKPrompt",
@@ -287,6 +296,17 @@ let package = Package(
                 .product(name: "MCP", package: "swift-sdk"),
             ],
             path: "Tests/PKMCPTests",
+            swiftSettings: approachableConcurrency
+        ),
+        .testTarget(
+            name: "PKAgentFilesTests",
+            dependencies: [
+                "PKAgentFiles",
+                "PositronicKit",
+                "PKContracts",
+                "PKTestSupport",
+            ],
+            path: "Tests/PKAgentFilesTests",
             swiftSettings: approachableConcurrency
         ),
         .testTarget(

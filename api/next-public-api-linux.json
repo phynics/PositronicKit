@@ -3,6 +3,7 @@
   "release": "next",
   "platform": "linux",
   "modules": [
+    "PKAgentFiles",
     "PKAnthropicProvider",
     "PKContracts",
     "PKFoundationModelsProvider",
@@ -12404,6 +12405,74 @@
       "declaration": "static let `default`: PromptJournalCompactionThresholds"
     },
     {
+      "precise": "s:12PKAgentFiles28FileSystemAgentContextSourceC",
+      "module": "PKAgentFiles",
+      "kind": "swift.class",
+      "path": [
+        "FileSystemAgentContextSource"
+      ],
+      "declaration": "actor FileSystemAgentContextSource"
+    },
+    {
+      "precise": "s:12PKAgentFiles28FileSystemAgentContextSourceC14workspaceStore03maxC5Count0J5BytesAC13PositronicKit09WorkspaceI0_p_S2itcfc",
+      "module": "PKAgentFiles",
+      "kind": "swift.init",
+      "path": [
+        "FileSystemAgentContextSource",
+        "init(workspaceStore:maxFileCount:maxBytes:)"
+      ],
+      "declaration": "init(workspaceStore: any WorkspaceStore, maxFileCount: Int = 100, maxBytes: Int = 1_048_576)"
+    },
+    {
+      "precise": "s:12PKAgentFiles28FileSystemAgentContextSourceC8snapshot3for8timeline13PositronicKit0eF8SnapshotV11PKContracts0E0V_AG14TimelineRecordVtYaKF",
+      "module": "PKAgentFiles",
+      "kind": "swift.method",
+      "path": [
+        "FileSystemAgentContextSource",
+        "snapshot(for:timeline:)"
+      ],
+      "declaration": "func snapshot(for agent: Agent, timeline: TimelineRecord) async throws -> AgentContextSnapshot"
+    },
+    {
+      "precise": "s:12PKAgentFilesAAO",
+      "module": "PKAgentFiles",
+      "kind": "swift.enum",
+      "path": [
+        "PKAgentFiles"
+      ],
+      "declaration": "enum PKAgentFiles"
+    },
+    {
+      "precise": "s:12PKAgentFilesAAO13contextSource14workspaceStore13PositronicKit012AgentContextD0_pAE09WorkspaceF0_p_tFZ",
+      "module": "PKAgentFiles",
+      "kind": "swift.type.method",
+      "path": [
+        "PKAgentFiles",
+        "contextSource(workspaceStore:)"
+      ],
+      "declaration": "static func contextSource(workspaceStore: any WorkspaceStore) -> any AgentContextSource"
+    },
+    {
+      "precise": "s:12PKAgentFilesAAO14protectedPathsSaySSGvpZ",
+      "module": "PKAgentFiles",
+      "kind": "swift.type.property",
+      "path": [
+        "PKAgentFiles",
+        "protectedPaths"
+      ],
+      "declaration": "static let protectedPaths: [String]"
+    },
+    {
+      "precise": "s:12PKAgentFilesAAO9seedNotes13PositronicKit18AgentWorkspaceSeedVvpZ",
+      "module": "PKAgentFiles",
+      "kind": "swift.type.property",
+      "path": [
+        "PKAgentFiles",
+        "seedNotes"
+      ],
+      "declaration": "static let seedNotes: AgentWorkspaceSeed"
+    },
+    {
       "precise": "s:12PKObservable18TimelineControllerC",
       "module": "PKObservable",
       "kind": "swift.class",
@@ -19405,7 +19474,7 @@
         "WorkspaceProfile",
         "ephemeralWorkspace(root:seedNotes:)"
       ],
-      "declaration": "case ephemeralWorkspace(root: URL, seedNotes: WorkspaceSeedNotes = .default)"
+      "declaration": "case ephemeralWorkspace(root: URL, seedNotes: WorkspaceSeedNotes = .none)"
     },
     {
       "precise": "s:13PositronicKit16WorkspaceProfileO11catalogRoot20FoundationEssentials3URLVSgvp",
@@ -19425,7 +19494,7 @@
         "WorkspaceProfile",
         "hostManaged(root:seedNotes:)"
       ],
-      "declaration": "case hostManaged(root: URL, seedNotes: WorkspaceSeedNotes = .default)"
+      "declaration": "case hostManaged(root: URL, seedNotes: WorkspaceSeedNotes = .none)"
     },
     {
       "precise": "s:13PositronicKit16WorkspaceProfileO22ownsDirectoryLifecycleSbvp",
@@ -19763,14 +19832,14 @@
       "declaration": "let installsTimelineSendTool: Bool"
     },
     {
-      "precise": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemTools0f19TimelineObservationH008installsi4SendD0ACSb_S2btcfc",
+      "precise": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemTools0f19TimelineObservationH008installsi4SendD030protectedPrimaryWorkspacePathsACSb_S2bSaySSGtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "RuntimeToolPolicy",
-        "init(installFilesystemTools:installTimelineObservationTools:installsTimelineSendTool:)"
+        "init(installFilesystemTools:installTimelineObservationTools:installsTimelineSendTool:protectedPrimaryWorkspacePaths:)"
       ],
-      "declaration": "init(installFilesystemTools: Bool = true, installTimelineObservationTools: Bool = true, installsTimelineSendTool: Bool = true)"
+      "declaration": "init(installFilesystemTools: Bool = true, installTimelineObservationTools: Bool = true, installsTimelineSendTool: Bool = true, protectedPrimaryWorkspacePaths: [String] = [])"
     },
     {
       "precise": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemToolsSbvp",
@@ -19781,6 +19850,16 @@
         "installFilesystemTools"
       ],
       "declaration": "let installFilesystemTools: Bool"
+    },
+    {
+      "precise": "s:13PositronicKit17RuntimeToolPolicyV30protectedPrimaryWorkspacePathsSaySSGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "RuntimeToolPolicy",
+        "protectedPrimaryWorkspacePaths"
+      ],
+      "declaration": "let protectedPrimaryWorkspacePaths: [String]"
     },
     {
       "precise": "s:13PositronicKit17RuntimeToolPolicyV31installTimelineObservationToolsSbvp",
@@ -20420,6 +20499,65 @@
         "fetchAllAgents()"
       ],
       "declaration": "func fetchAllAgents() async throws -> [Agent]"
+    },
+    {
+      "precise": "s:13PositronicKit18AgentWorkspaceSeedV",
+      "module": "PositronicKit",
+      "kind": "swift.struct",
+      "path": [
+        "AgentWorkspaceSeed"
+      ],
+      "declaration": "struct AgentWorkspaceSeed"
+    },
+    {
+      "precise": "s:13PositronicKit18AgentWorkspaceSeedV15identityContentySS11PKContracts0C8TemplateVSgYbcvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentWorkspaceSeed",
+        "identityContent"
+      ],
+      "declaration": "let identityContent: @Sendable (AgentTemplate?) -> String"
+    },
+    {
+      "precise": "s:13PositronicKit18AgentWorkspaceSeedV16identityFilename0F7Content5notesACSSSg_SS11PKContracts0C8TemplateVSgYbcSDyS2SGtcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "AgentWorkspaceSeed",
+        "init(identityFilename:identityContent:notes:)"
+      ],
+      "declaration": "init(identityFilename: String?, identityContent: @escaping @Sendable (AgentTemplate?) -> String, notes: [String : String] = [:])"
+    },
+    {
+      "precise": "s:13PositronicKit18AgentWorkspaceSeedV16identityFilenameSSSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentWorkspaceSeed",
+        "identityFilename"
+      ],
+      "declaration": "let identityFilename: String?"
+    },
+    {
+      "precise": "s:13PositronicKit18AgentWorkspaceSeedV4noneACvpZ",
+      "module": "PositronicKit",
+      "kind": "swift.type.property",
+      "path": [
+        "AgentWorkspaceSeed",
+        "none"
+      ],
+      "declaration": "static let none: AgentWorkspaceSeed"
+    },
+    {
+      "precise": "s:13PositronicKit18AgentWorkspaceSeedV5notesSDyS2SGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentWorkspaceSeed",
+        "notes"
+      ],
+      "declaration": "let notes: [String : String]"
     },
     {
       "precise": "s:13PositronicKit18InMemoryAgentStoreC",
@@ -21791,6 +21929,16 @@
       "declaration": "struct RuntimeCustomization"
     },
     {
+      "precise": "s:13PositronicKit20RuntimeCustomizationV12PKAgentFilesE05agentF014workspaceStore4baseAcA09WorkspaceI0_p_ACtFZ",
+      "module": "PKAgentFiles",
+      "kind": "swift.type.method",
+      "path": [
+        "RuntimeCustomization",
+        "agentFiles(workspaceStore:base:)"
+      ],
+      "declaration": "static func agentFiles(workspaceStore: any WorkspaceStore, base: RuntimeCustomization = .default) -> RuntimeCustomization"
+    },
+    {
       "precise": "s:13PositronicKit20RuntimeCustomizationV15turnOutcomeSinkAA04TurnfG0_pSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -21821,14 +21969,14 @@
       "declaration": "let turnContextSource: any TurnContextSource?"
     },
     {
-      "precise": "s:13PositronicKit20RuntimeCustomizationV18agentContextSource04turnfG00h17HistoryProjectionG00E12ActivitySink0h7OutcomeL0AcA05AgentfG0_pSg_AA04TurnfG0_pSgAA0oijG0_pSgAA0nkL0_pSgAA0omL0_pSgtcfc",
+      "precise": "s:13PositronicKit20RuntimeCustomizationV18agentContextSource04turnfG00h17HistoryProjectionG00E12ActivitySink0h7OutcomeL00E13WorkspaceSeedAcA05AgentfG0_pSg_AA04TurnfG0_pSgAA0qijG0_pSgAA0pkL0_pSgAA0qmL0_pSgAA0pnO0VSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "RuntimeCustomization",
-        "init(agentContextSource:turnContextSource:turnHistoryProjectionSource:agentActivitySink:turnOutcomeSink:)"
+        "init(agentContextSource:turnContextSource:turnHistoryProjectionSource:agentActivitySink:turnOutcomeSink:agentWorkspaceSeed:)"
       ],
-      "declaration": "init(agentContextSource: any AgentContextSource? = nil, turnContextSource: any TurnContextSource? = nil, turnHistoryProjectionSource: any TurnHistoryProjectionSource? = nil, agentActivitySink: any AgentActivitySink? = nil, turnOutcomeSink: any TurnOutcomeSink? = nil)"
+      "declaration": "init(agentContextSource: any AgentContextSource? = nil, turnContextSource: any TurnContextSource? = nil, turnHistoryProjectionSource: any TurnHistoryProjectionSource? = nil, agentActivitySink: any AgentActivitySink? = nil, turnOutcomeSink: any TurnOutcomeSink? = nil, agentWorkspaceSeed: AgentWorkspaceSeed? = nil)"
     },
     {
       "precise": "s:13PositronicKit20RuntimeCustomizationV18agentContextSourceAA05AgentfG0_pSgvp",
@@ -21839,6 +21987,16 @@
         "agentContextSource"
       ],
       "declaration": "let agentContextSource: any AgentContextSource?"
+    },
+    {
+      "precise": "s:13PositronicKit20RuntimeCustomizationV18agentWorkspaceSeedAA05AgentfG0VSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "RuntimeCustomization",
+        "agentWorkspaceSeed"
+      ],
+      "declaration": "let agentWorkspaceSeed: AgentWorkspaceSeed?"
     },
     {
       "precise": "s:13PositronicKit20RuntimeCustomizationV27turnHistoryProjectionSourceAA04TurnfgH0_pSgvp",
@@ -22697,43 +22855,14 @@
       "declaration": "enum WorkspaceResolverFactory"
     },
     {
-      "precise": "s:13PositronicKit24WorkspaceResolverFactoryO11makeDefault13workspaceRoot0H5Store17bindingRepository0H7CreatorAA0cD0_p20FoundationEssentials3URLV_AA0cJ0_pAA0c7BindingL0_pSgAA0cE0_ptFZ",
+      "precise": "s:13PositronicKit24WorkspaceResolverFactoryO11makeDefault13workspaceRoot0H5Store17bindingRepository0H7Creator05agentC4SeedAA0cD0_p20FoundationEssentials3URLV_AA0cJ0_pAA0c7BindingL0_pSgAA0cE0_pAA05AgentcO0VtFZ",
       "module": "PositronicKit",
       "kind": "swift.type.method",
       "path": [
         "WorkspaceResolverFactory",
-        "makeDefault(workspaceRoot:workspaceStore:bindingRepository:workspaceCreator:)"
+        "makeDefault(workspaceRoot:workspaceStore:bindingRepository:workspaceCreator:agentWorkspaceSeed:)"
       ],
-      "declaration": "static func makeDefault(workspaceRoot: URL, workspaceStore: any WorkspaceStore, bindingRepository: any WorkspaceBindingRepository? = nil, workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator()) -> any WorkspaceResolver"
-    },
-    {
-      "precise": "s:13PositronicKit25DefaultAgentContextSourceC",
-      "module": "PositronicKit",
-      "kind": "swift.class",
-      "path": [
-        "DefaultAgentContextSource"
-      ],
-      "declaration": "actor DefaultAgentContextSource"
-    },
-    {
-      "precise": "s:13PositronicKit25DefaultAgentContextSourceC14workspaceStore12maxFileCount0I5BytesAcA09WorkspaceH0_p_S2itcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "DefaultAgentContextSource",
-        "init(workspaceStore:maxFileCount:maxBytes:)"
-      ],
-      "declaration": "init(workspaceStore: any WorkspaceStore, maxFileCount: Int = 100, maxBytes: Int = 1_048_576)"
-    },
-    {
-      "precise": "s:13PositronicKit25DefaultAgentContextSourceC8snapshot3for8timelineAA0dE8SnapshotV11PKContracts0D0V_AA14TimelineRecordVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "DefaultAgentContextSource",
-        "snapshot(for:timeline:)"
-      ],
-      "declaration": "func snapshot(for agent: Agent, timeline: TimelineRecord) async throws -> AgentContextSnapshot"
+      "declaration": "static func makeDefault(workspaceRoot: URL, workspaceStore: any WorkspaceStore, bindingRepository: any WorkspaceBindingRepository? = nil, workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(), agentWorkspaceSeed: AgentWorkspaceSeed = .none) -> any WorkspaceResolver"
     },
     {
       "precise": "s:13PositronicKit25TimelineRuntimeRepositoryP",
@@ -25281,6 +25410,17 @@
         "diagnosticSnapshotConfiguration"
       ],
       "declaration": "let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration"
+    },
+    {
+      "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV12PKAgentFilesE05agentG011persistence16workspaceProfile4baseAeC011PersistenceE0V_AA09WorkspaceK0OAEtFZ",
+      "module": "PKAgentFiles",
+      "kind": "swift.type.method",
+      "path": [
+        "PKRuntime",
+        "RuntimeConfiguration",
+        "agentFiles(persistence:workspaceProfile:base:)"
+      ],
+      "declaration": "static func agentFiles(persistence: PKRuntime.PersistenceConfiguration, workspaceProfile: WorkspaceProfile = .noWorkspace, base: PKRuntime.RuntimeConfiguration = .default) -> PKRuntime.RuntimeConfiguration"
     },
     {
       "precise": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV13customizationAA0D13CustomizationVvp",
@@ -28737,6 +28877,25 @@
       "declaration": "extension WorkspaceCapability"
     },
     {
+      "precise": "s:e:s:13PositronicKit20RuntimeCustomizationV12PKAgentFilesE05agentF014workspaceStore4baseAcA09WorkspaceI0_p_ACtFZ",
+      "module": "PKAgentFiles",
+      "kind": "swift.extension",
+      "path": [
+        "RuntimeCustomization"
+      ],
+      "declaration": "extension RuntimeCustomization"
+    },
+    {
+      "precise": "s:e:s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV12PKAgentFilesE05agentG011persistence16workspaceProfile4baseAeC011PersistenceE0V_AA09WorkspaceK0OAEtFZ",
+      "module": "PKAgentFiles",
+      "kind": "swift.extension",
+      "path": [
+        "PKRuntime",
+        "RuntimeConfiguration"
+      ],
+      "declaration": "extension PKRuntime.RuntimeConfiguration"
+    },
+    {
       "precise": "s:e:s:7Logging6LoggerV11PKUtilitiesE6module5namedACSS_tFZ",
       "module": "PKPrompt",
       "kind": "swift.extension",
@@ -28792,6 +28951,34 @@
     }
   ],
   "relationships": [
+    {
+      "module": "PKAgentFiles",
+      "kind": "conformsTo",
+      "source": "s:12PKAgentFiles28FileSystemAgentContextSourceC",
+      "target": "s:13PositronicKit18AgentContextSourceP",
+      "targetFallback": "PositronicKit.AgentContextSource"
+    },
+    {
+      "module": "PKAgentFiles",
+      "kind": "conformsTo",
+      "source": "s:12PKAgentFiles28FileSystemAgentContextSourceC",
+      "target": "s:ScA",
+      "targetFallback": "_Concurrency.Actor"
+    },
+    {
+      "module": "PKAgentFiles",
+      "kind": "conformsTo",
+      "source": "s:12PKAgentFiles28FileSystemAgentContextSourceC",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKAgentFiles",
+      "kind": "conformsTo",
+      "source": "s:12PKAgentFiles28FileSystemAgentContextSourceC",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
     {
       "module": "PKAnthropicProvider",
       "kind": "conformsTo",
@@ -38325,6 +38512,20 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
+      "source": "s:13PositronicKit18AgentWorkspaceSeedV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit18AgentWorkspaceSeedV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit18InMemoryAgentStoreC",
       "target": "s:13PositronicKit15DurabilityAwareP"
     },
@@ -39351,33 +39552,6 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit24TurnInterruptDispositionO",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit25DefaultAgentContextSourceC",
-      "target": "s:13PositronicKit18AgentContextSourceP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit25DefaultAgentContextSourceC",
-      "target": "s:ScA",
-      "targetFallback": "_Concurrency.Actor"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit25DefaultAgentContextSourceC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit25DefaultAgentContextSourceC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -40684,6 +40858,20 @@
       }
     },
     {
+      "module": "PKAgentFiles",
+      "kind": "extensionTo",
+      "source": "s:e:s:13PositronicKit20RuntimeCustomizationV12PKAgentFilesE05agentF014workspaceStore4baseAcA09WorkspaceI0_p_ACtFZ",
+      "target": "s:13PositronicKit20RuntimeCustomizationV",
+      "targetFallback": "PositronicKit.RuntimeCustomization"
+    },
+    {
+      "module": "PKAgentFiles",
+      "kind": "extensionTo",
+      "source": "s:e:s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV12PKAgentFilesE05agentG011persistence16workspaceProfile4baseAeC011PersistenceE0V_AA09WorkspaceK0OAEtFZ",
+      "target": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV",
+      "targetFallback": "PositronicKit.PKRuntime.RuntimeConfiguration"
+    },
+    {
       "module": "PKContracts",
       "kind": "extensionTo",
       "source": "s:e:s:10JSONSchema6SchemaV11PKContractsE12asDictionarySDySSAD10AnyCodableOGvp",
@@ -40801,6 +40989,54 @@
       "source": "s:e:s:11PKContracts6PKToolP13PositronicKitE19toLLMToolDefinitionAA0fG0VyF",
       "target": "s:11PKContracts6PKToolP",
       "targetFallback": "PKContracts.PKTool"
+    },
+    {
+      "module": "PKAgentFiles",
+      "kind": "memberOf",
+      "source": "s:12PKAgentFiles28FileSystemAgentContextSourceC14workspaceStore03maxC5Count0J5BytesAC13PositronicKit09WorkspaceI0_p_S2itcfc",
+      "target": "s:12PKAgentFiles28FileSystemAgentContextSourceC"
+    },
+    {
+      "module": "PKAgentFiles",
+      "kind": "memberOf",
+      "source": "s:12PKAgentFiles28FileSystemAgentContextSourceC8snapshot3for8timeline13PositronicKit0eF8SnapshotV11PKContracts0E0V_AG14TimelineRecordVtYaKF",
+      "target": "s:12PKAgentFiles28FileSystemAgentContextSourceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit18AgentContextSourceP8snapshot3for8timelineAA0cD8SnapshotV11PKContracts0C0V_AA14TimelineRecordVtYaKF",
+        "displayName": "AgentContextSource.snapshot(for:timeline:)"
+      }
+    },
+    {
+      "module": "PKAgentFiles",
+      "kind": "memberOf",
+      "source": "s:12PKAgentFilesAAO13contextSource14workspaceStore13PositronicKit012AgentContextD0_pAE09WorkspaceF0_p_tFZ",
+      "target": "s:12PKAgentFilesAAO"
+    },
+    {
+      "module": "PKAgentFiles",
+      "kind": "memberOf",
+      "source": "s:12PKAgentFilesAAO14protectedPathsSaySSGvpZ",
+      "target": "s:12PKAgentFilesAAO"
+    },
+    {
+      "module": "PKAgentFiles",
+      "kind": "memberOf",
+      "source": "s:12PKAgentFilesAAO9seedNotes13PositronicKit18AgentWorkspaceSeedVvpZ",
+      "target": "s:12PKAgentFilesAAO"
+    },
+    {
+      "module": "PKAgentFiles",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit20RuntimeCustomizationV12PKAgentFilesE05agentF014workspaceStore4baseAcA09WorkspaceI0_p_ACtFZ",
+      "target": "s:e:s:13PositronicKit20RuntimeCustomizationV12PKAgentFilesE05agentF014workspaceStore4baseAcA09WorkspaceI0_p_ACtFZ",
+      "targetFallback": "PositronicKit.RuntimeCustomization"
+    },
+    {
+      "module": "PKAgentFiles",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV12PKAgentFilesE05agentG011persistence16workspaceProfile4baseAeC011PersistenceE0V_AA09WorkspaceK0OAEtFZ",
+      "target": "s:e:s:13PositronicKit9PKRuntimeC20RuntimeConfigurationV12PKAgentFilesE05agentG011persistence16workspaceProfile4baseAeC011PersistenceE0V_AA09WorkspaceK0OAEtFZ",
+      "targetFallback": "PositronicKit.PKRuntime.RuntimeConfiguration"
     },
     {
       "module": "PKAnthropicProvider",
@@ -54276,13 +54512,19 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemTools0f19TimelineObservationH008installsi4SendD0ACSb_S2btcfc",
+      "source": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemTools0f19TimelineObservationH008installsi4SendD030protectedPrimaryWorkspacePathsACSb_S2bSaySSGtcfc",
       "target": "s:13PositronicKit17RuntimeToolPolicyV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit17RuntimeToolPolicyV22installFilesystemToolsSbvp",
+      "target": "s:13PositronicKit17RuntimeToolPolicyV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit17RuntimeToolPolicyV30protectedPrimaryWorkspacePathsSaySSGvp",
       "target": "s:13PositronicKit17RuntimeToolPolicyV"
     },
     {
@@ -54566,6 +54808,36 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit18AgentContextSourcePAAE7context3for8timelineAA0cD8SnapshotV11PKContracts0C0V_AA14TimelineRecordVtYaKF",
       "target": "s:13PositronicKit18AgentContextSourceP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit18AgentWorkspaceSeedV15identityContentySS11PKContracts0C8TemplateVSgYbcvp",
+      "target": "s:13PositronicKit18AgentWorkspaceSeedV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit18AgentWorkspaceSeedV16identityFilename0F7Content5notesACSSSg_SS11PKContracts0C8TemplateVSgYbcSDyS2SGtcfc",
+      "target": "s:13PositronicKit18AgentWorkspaceSeedV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit18AgentWorkspaceSeedV16identityFilenameSSSgvp",
+      "target": "s:13PositronicKit18AgentWorkspaceSeedV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit18AgentWorkspaceSeedV4noneACvpZ",
+      "target": "s:13PositronicKit18AgentWorkspaceSeedV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit18AgentWorkspaceSeedV5notesSDyS2SGvp",
+      "target": "s:13PositronicKit18AgentWorkspaceSeedV"
     },
     {
       "module": "PositronicKit",
@@ -55350,13 +55622,19 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20RuntimeCustomizationV18agentContextSource04turnfG00h17HistoryProjectionG00E12ActivitySink0h7OutcomeL0AcA05AgentfG0_pSg_AA04TurnfG0_pSgAA0oijG0_pSgAA0nkL0_pSgAA0omL0_pSgtcfc",
+      "source": "s:13PositronicKit20RuntimeCustomizationV18agentContextSource04turnfG00h17HistoryProjectionG00E12ActivitySink0h7OutcomeL00E13WorkspaceSeedAcA05AgentfG0_pSg_AA04TurnfG0_pSgAA0qijG0_pSgAA0pkL0_pSgAA0qmL0_pSgAA0pnO0VSgtcfc",
       "target": "s:13PositronicKit20RuntimeCustomizationV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit20RuntimeCustomizationV18agentContextSourceAA05AgentfG0_pSgvp",
+      "target": "s:13PositronicKit20RuntimeCustomizationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit20RuntimeCustomizationV18agentWorkspaceSeedAA05AgentfG0VSgvp",
       "target": "s:13PositronicKit20RuntimeCustomizationV"
     },
     {
@@ -55844,24 +56122,8 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24WorkspaceResolverFactoryO11makeDefault13workspaceRoot0H5Store17bindingRepository0H7CreatorAA0cD0_p20FoundationEssentials3URLV_AA0cJ0_pAA0c7BindingL0_pSgAA0cE0_ptFZ",
+      "source": "s:13PositronicKit24WorkspaceResolverFactoryO11makeDefault13workspaceRoot0H5Store17bindingRepository0H7Creator05agentC4SeedAA0cD0_p20FoundationEssentials3URLV_AA0cJ0_pAA0c7BindingL0_pSgAA0cE0_pAA05AgentcO0VtFZ",
       "target": "s:13PositronicKit24WorkspaceResolverFactoryO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit25DefaultAgentContextSourceC14workspaceStore12maxFileCount0I5BytesAcA09WorkspaceH0_p_S2itcfc",
-      "target": "s:13PositronicKit25DefaultAgentContextSourceC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit25DefaultAgentContextSourceC8snapshot3for8timelineAA0dE8SnapshotV11PKContracts0D0V_AA14TimelineRecordVtYaKF",
-      "target": "s:13PositronicKit25DefaultAgentContextSourceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit18AgentContextSourceP8snapshot3for8timelineAA0cD8SnapshotV11PKContracts0C0V_AA14TimelineRecordVtYaKF",
-        "displayName": "AgentContextSource.snapshot(for:timeline:)"
-      }
     },
     {
       "module": "PositronicKit",

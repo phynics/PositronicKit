@@ -300,19 +300,25 @@ public struct RuntimeCustomization: Sendable {
     public let turnHistoryProjectionSource: any TurnHistoryProjectionSource?
     public let agentActivitySink: any AgentActivitySink?
     public let turnOutcomeSink: any TurnOutcomeSink?
+    /// Generic seed content for newly created Agent private workspaces. The runtime default is
+    /// `nil`, which writes no identity file and no Agent note templates. `PKAgentFiles` supplies
+    /// the opinionated identity-file and `Notes/` templates through this seam.
+    public let agentWorkspaceSeed: AgentWorkspaceSeed?
 
     public init(
         agentContextSource: any AgentContextSource? = nil,
         turnContextSource: any TurnContextSource? = nil,
         turnHistoryProjectionSource: any TurnHistoryProjectionSource? = nil,
         agentActivitySink: any AgentActivitySink? = nil,
-        turnOutcomeSink: any TurnOutcomeSink? = nil
+        turnOutcomeSink: any TurnOutcomeSink? = nil,
+        agentWorkspaceSeed: AgentWorkspaceSeed? = nil
     ) {
         self.agentContextSource = agentContextSource
         self.turnContextSource = turnContextSource
         self.turnHistoryProjectionSource = turnHistoryProjectionSource
         self.agentActivitySink = agentActivitySink
         self.turnOutcomeSink = turnOutcomeSink
+        self.agentWorkspaceSeed = agentWorkspaceSeed
     }
 
     public static let `default` = RuntimeCustomization()
