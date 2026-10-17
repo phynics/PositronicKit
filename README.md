@@ -333,7 +333,7 @@ for await event in turn.events() {
 
 ### Prompt journaling across snapshots
 
-Stable sections persist across turns; semi-stable changes become overlays; volatile sections are replaced each turn. This keeps the provider-facing prefix stable, so providers that cache prompt prefixes automatically (such as OpenAI and OpenRouter) can reuse it. No provider adapter sends explicit cache hints yet, so providers that require them (such as Anthropic) do not cache this prefix.
+Stable sections persist across turns; semi-stable changes become overlays; volatile sections are replaced each turn. This keeps the provider-facing prefix stable. Runtime Turns get caching by default: the built-in provider adapters send explicit hints — Anthropic `cache_control` breakpoints, OpenAI `prompt_cache_key` plus retention, and an OpenRouter `session_id` — and each Turn reports its result through `PromptCacheReport`. `PromptJournal` is the optional standalone path here; its overlay messages reach a model only when your code sends `PromptJournalPlan.buildMessages()` output.
 
 ```swift
 import PKPrompt
