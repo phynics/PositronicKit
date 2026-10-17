@@ -412,7 +412,6 @@ struct AgentManagerTests {
         let messageStore = InMemoryMessageStore()
         let workspaceStore = InMemoryWorkspacePersistence()
         let agentStore = InMemoryAgentStore()
-        let registry = TimelinePromptJournals()
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
 
         let timelineManager = TimelineManager(
@@ -423,8 +422,7 @@ struct AgentManagerTests {
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: InMemoryTimelineRuntimeRepository()
             ),
-            workspaceProfile: .hostManaged(root: workspaceRoot),
-            promptHistoryRegistry: registry
+            workspaceProfile: .hostManaged(root: workspaceRoot)
         )
 
         let repo = DefaultWorkspaceCatalog(
@@ -448,20 +446,20 @@ struct AgentManagerTests {
         try await timelineManager.hydrateTimeline(id: instance.privateTimelineID)
         #expect(await timelineManager.timeline(id: instance.privateTimelineID) != nil)
 
-        let history = await registry.history(for: instance.privateTimelineID)
-        await history.recordAppend(messageCount: 4, estimatedTokens: 120)
-        #expect(await history.appendedMessageCount == 4)
+        let history = await timelineManager.promptHistory(for: instance.privateTimelineID)
+        await history.recordHistoryTrimState(HistoryTrimState(droppedMessageCount: 4, budgetTokens: 120))
+        #expect(await history.historyTrimState().droppedMessageCount == 4)
 
-        // Delete the agent — the private timeline's cache entry and registry entry
+        // Delete the agent — the private timeline's cache entry and prompt state
         // should be evicted alongside the persisted row, not orphaned.
         try await manager.deleteAgent(id: instance.id, force: false)
 
         #expect(await timelineManager.timeline(id: instance.privateTimelineID) == nil,
                "Private timeline should be evicted from the TimelineManager cache")
 
-        let fresh = await registry.history(for: instance.privateTimelineID)
-        #expect(await fresh.appendedMessageCount == 0,
-               "Prompt-history registry entry should be evicted, not orphaned")
+        let fresh = await timelineManager.promptHistory(for: instance.privateTimelineID)
+        #expect(await fresh.historyTrimState() == HistoryTrimState(),
+               "Per-Timeline prompt state should be evicted, not orphaned")
     }
 
     // MARK: - PKFLAKE-005: failing persistence must not be swallowed

@@ -385,8 +385,8 @@ for message in history {
 }
 ```
 
-`TimelineCapability.messages(for:)` reads semantic Timeline history. It does not read the assembled
-prompt state observed by `PromptJournal`.
+`TimelineCapability.messages(for:)` reads semantic Timeline history. It does not read the
+process-scoped prompt state the runtime tracks for cache accounting.
 
 ### Typed One-Shot Structured Generation
 

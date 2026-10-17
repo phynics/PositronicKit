@@ -99,7 +99,6 @@ internal extension PKRuntime {
                 turnHistoryProjectionSource: dependencies.customization.turnHistoryProjectionSource,
                 agentActivitySink: activitySink,
                 turnOutcomeSink: dependencies.customization.turnOutcomeSink,
-                promptHistoryRegistry: state.promptHistoryRegistry,
                 eventHub: state.eventHub,
                 submissionGate: state.submissionGate,
                 finalizer: state.finalizer,

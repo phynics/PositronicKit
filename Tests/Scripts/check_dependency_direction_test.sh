@@ -35,6 +35,9 @@ make_fixture() {
     if [ "$variant" = "pkprompt-imports-runtime" ]; then
         printf 'import PositronicKit\n' > "$fixture/Sources/PKPrompt/Bad.swift"
     fi
+    if [ "$variant" = "runtime-references-promptjournal" ]; then
+        printf '// PromptJournal state is not owned here\n' > "$fixture/Sources/PositronicKit/Bad.swift"
+    fi
     for module in PKOpenAIProvider PKOpenRouterProvider PKOllamaProvider \
         PKAnthropicProvider PKFoundationModelsProvider; do
         : > "$fixture/Sources/$module/Empty.swift"
@@ -117,6 +120,7 @@ run_case "provider-dep-in-runtime-tests-fails" "violation" 1 "PositronicKitTests
 run_case "path-before-dependencies-still-fails" "path-first-violation" 1 "PositronicKitTests target depends on PKOpenAIProvider"
 run_case "runtime-imports-pkprompt-fails" "runtime-imports-pkprompt" 1 "PositronicKit imports PKPrompt"
 run_case "pkprompt-imports-runtime-fails" "pkprompt-imports-runtime" 1 "PKPrompt imports PositronicKit"
+run_case "runtime-references-promptjournal-fails" "runtime-references-promptjournal" 1 "PositronicKit references PromptJournal"
 
 printf 'check_dependency_direction_test: %s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

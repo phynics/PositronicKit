@@ -20,26 +20,16 @@ struct PromptSnapshotBuilder {
         from context: TurnContext,
         appendedMessages: [LLMMessage],
         nextTurnIndex: Int
-    ) async throws -> (renderedPrompt: RenderedPrompt?, promptHistoryUpdate: PromptHistoryUpdate?) {
+    ) -> RenderedPrompt? {
         guard let priorRenderedPrompt = context.renderedPrompt else {
-            return (context.renderedPrompt, context.promptHistoryUpdate)
+            return context.renderedPrompt
         }
 
-        let followUpPrompt = synthesizeFollowUpPrompt(
+        return synthesizeFollowUpPrompt(
             from: priorRenderedPrompt,
             appendedMessages: appendedMessages,
             nextTurnIndex: nextTurnIndex
         )
-
-        guard let promptHistory = context.promptHistory else {
-            return (followUpPrompt, context.promptHistoryUpdate)
-        }
-
-        let update = try await promptHistory.update(prompt: followUpPrompt)
-        let modelFacingPrompt = update.didCompact
-            ? try transcriptOnlyAudioHistory(in: followUpPrompt)
-            : followUpPrompt
-        return (modelFacingPrompt, update)
     }
 
     func synthesizeFollowUpPrompt(
@@ -129,38 +119,4 @@ struct PromptSnapshotBuilder {
         )
     }
 
-    /// Removes generated audio references after history compaction while preserving readable
-    /// transcripts. This projection is used only for the next provider request; the durable
-    /// `Message` rows retain their original audio bytes for playback.
-    private func transcriptOnlyAudioHistory(in prompt: RenderedPrompt) throws -> RenderedPrompt {
-        let sections = try prompt.sections.map { section in
-            guard case let .messages(messages) = section.content else { return section }
-            let projectedMessages = try messages.map { message in
-                guard message.role == .assistant else { return message }
-                let projectedText = message.messageContent.text
-                let parts = try message.messageContent.parts.flatMap { part -> [MessageContentPart] in
-                    guard case let .audio(audio) = part else { return [part] }
-                    guard let transcript = audio.transcript, !transcript.isEmpty else {
-                        throw MultimodalContentError.missingAudioTranscript
-                    }
-                    return projectedText.contains(transcript) ? [] : [.text(transcript)]
-                }
-                return Message(
-                    id: message.id,
-                    timestamp: message.timestamp,
-                    content: MessageContent(parts: parts),
-                    role: message.role,
-                    reasoning: message.reasoning,
-                    toolCalls: message.toolCalls,
-                    toolCallID: message.toolCallID,
-                    parentID: message.parentID,
-                    isSummary: message.isSummary,
-                    summaryType: message.summaryType,
-                    status: message.status
-                )
-            }
-            return section.replacingContent(.messages(projectedMessages))
-        }
-        return prompt.replacingSections(sections)
-    }
 }

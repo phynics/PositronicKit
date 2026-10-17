@@ -22,7 +22,7 @@ extension TimelineManager {
             workspaceProfile: workspaceProfile,
             resolver: resolver,
             runtimeToolPolicy: runtimeToolPolicy,
-            promptHistoryRegistry: nil
+            finalizer: nil
         )
     }
 
@@ -35,7 +35,6 @@ extension TimelineManager {
         workspaceProfile: WorkspaceProfile,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        promptHistoryRegistry: TimelinePromptJournals? = nil,
         finalizer: TurnFinalizer? = nil,
         taskRegistry: TimelineTaskRegistry? = nil
     ) {
@@ -52,7 +51,6 @@ extension TimelineManager {
                 workspaceCreator: workspaceCreator
             ),
             runtimeToolPolicy: runtimeToolPolicy,
-            promptHistoryRegistry: promptHistoryRegistry,
             finalizer: finalizer,
             taskRegistry: taskRegistry
         )
@@ -70,7 +68,7 @@ extension TimelineManager {
             workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
             runtimeToolPolicy: runtimeToolPolicy,
-            promptHistoryRegistry: nil
+            finalizer: nil
         )
     }
 
@@ -84,7 +82,7 @@ extension TimelineManager {
             workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
             runtimeToolPolicy: runtimeToolPolicy,
-            promptHistoryRegistry: nil
+            taskRegistry: nil
         )
     }
 
@@ -92,7 +90,6 @@ extension TimelineManager {
         workspaceProfile: WorkspaceProfile,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        promptHistoryRegistry: TimelinePromptJournals? = nil,
         taskRegistry: TimelineTaskRegistry? = nil
     ) {
         let workspaceStore = InMemoryWorkspacePersistence()
@@ -108,7 +105,6 @@ extension TimelineManager {
             workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
             runtimeToolPolicy: runtimeToolPolicy,
-            promptHistoryRegistry: promptHistoryRegistry,
             taskRegistry: taskRegistry
         )
     }

@@ -156,7 +156,7 @@ public struct TimelineHandle: Identifiable, Sendable {
     /// runtime's prompt actors stay internal. A Timeline that has not prepared a prompt yet
     /// returns ``PromptStateSnapshot/empty``.
     public func promptState() async -> PromptStateSnapshot {
-        let history = await engine.dependencies.promptHistoryRegistry.history(for: timelineID)
+        let history = await engine.dependencies.timelineManager.promptHistory(for: timelineID)
         return await history.promptStateSnapshot()
     }
 
@@ -296,7 +296,7 @@ public extension TimelineHandle {
         if try await dependencies.runtimeRepository.fetchActiveTurn(for: timelineID) != nil {
             throw TimelineError.siblingPrefixUnavailable(.turnInFlight)
         }
-        let history = await dependencies.promptHistoryRegistry.history(for: timelineID)
+        let history = await dependencies.timelineManager.promptHistory(for: timelineID)
         guard let retained = await history.siblingRequest() else {
             throw TimelineError.siblingPrefixUnavailable(.noRetainedRound)
         }

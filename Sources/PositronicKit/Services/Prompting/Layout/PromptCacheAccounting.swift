@@ -151,7 +151,7 @@ enum PromptCacheResetDetector {
 ///
 /// `promptState()` returns this snapshot so a host can inspect the layout segment IDs and tiers,
 /// the per-tier fingerprints, the last request's cache breakpoints, and the last reset reasons
-/// without holding a runtime actor or duplicating a `PromptJournal`.
+/// without holding a runtime actor or duplicating prompt bookkeeping.
 public struct PromptStateSnapshot: Sendable, Hashable, Codable {
     /// One layout segment's identity, tier, and content fingerprint.
     public struct Segment: Sendable, Hashable, Codable {

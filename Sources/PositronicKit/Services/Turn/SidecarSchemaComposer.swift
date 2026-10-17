@@ -14,7 +14,7 @@ import PKUtilities
 ///
 /// The per-turn directive list (`instructionBlock`) rides with the user query — the last
 /// prompt section — rather than system instructions, so the system prefix stays byte-stable
-/// across turns for provider prompt-prefix caching and `PromptJournal` stable-prefix diffing.
+/// across turns for provider prompt-prefix caching.
 /// An optional, name-free `mechanismPreamble` can be layered into system instructions for
 /// consumers that want the model informed of the mechanism up front; the mechanism itself
 /// does not depend on it.

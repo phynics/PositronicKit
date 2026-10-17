@@ -184,7 +184,6 @@ struct TypedStructuredGenerationTests {
         let clock = ManualClock()
         let kit = PKRuntime(
             configuration: .init(languageModel: llm, persistence: .inMemory()),
-            sharedRegistry: TimelinePromptJournals(),
             additionalStages: [],
             clock: clock
         )

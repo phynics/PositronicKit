@@ -101,29 +101,23 @@ When the thresholds are exceeded, the next `observe(_:)` auto-promotes the lates
 into a new committed base before diffing again. This gives standalone prompt consumers the same
 kind of safety valve that the runtime uses, without coupling them to runtime-only types.
 
-### What `TimelinePromptHistory` is for
+### What the runtime keeps
 
-`TimelinePromptHistory` belongs to the runtime layer. It records rendered prompt snapshots and append pressure so the runtime can:
+The runtime keeps no journal or append-pressure state. It builds each provider request directly
+from the rendered prompt and sends no journal overlays. The only cross-round prompt state it keeps
+is an internal per-Timeline `TierFingerprint`: an ordered content hash per tier and per segment ID.
+After each model round the runtime compares that fingerprint to the previous round to report the
+`PromptCacheReport` reset reasons. A changed segment is re-rendered in place and counted as one
+prefix reset.
 
-- estimate the stable prefix that can benefit downstream LLM caching
-- track changed / added / removed prompt entries between turns
-- compact append state when message-count or token thresholds are exceeded
-
-`TimelinePromptHistory` does not shape provider requests. The runtime builds each request directly from the rendered prompt, and no journal overlays are sent.
-
-If you are adopting `PKRuntime`, you usually do not need to instantiate or manage `TimelinePromptHistory` directly. It is runtime machinery, not the primary prompt-facing journaling surface.
-
-The two systems intentionally overlap only partially:
-
-- `PromptJournal` is authoritative for prompt-facing base / overlay / volatile layering and hard-reset semantics when stable prompt content changes.
-- `TimelinePromptHistory` is authoritative for runtime cache-prefix accounting (`stablePrefixCount`) and append-pressure tracking inside the turn loop.
-- For semistable prompt changes, their diff IDs are kept aligned and tested together, but they are not the same abstraction.
+If you are adopting `PKRuntime`, you do not instantiate or manage prompt state directly. The
+runtime machinery is internal.
 
 ### Canonical recommendation
 
-- For **prompt journaling use cases**, prefer `PromptJournal`.
-- For **runtime diff/cache behavior**, let `PKRuntime` manage `TimelinePromptHistory` internally.
-- If you need both, treat `PromptJournal` as the user-facing API and `TimelinePromptHistory` as runtime implementation support.
+- For **prompt journaling use cases**, prefer `PromptJournal` in `PKPrompt`.
+- For **runtime cache-reset accounting**, let `PKRuntime` manage its internal `TierFingerprint`.
+- The two are independent: `PKPrompt` journaling is optional and the runtime never emits overlays.
 
 ## Usage examples (the three layers)
 

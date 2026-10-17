@@ -25,7 +25,6 @@ internal struct RuntimeDependencies: Sendable {
     var agentAuthorityCoordinator: AgentAuthorityCoordinator?
     var runtimeToolPolicy: RuntimeToolPolicy
     var toolApprovalPolicy: any ToolApprovalPolicy
-    var sharedRegistry: TimelinePromptJournals
     var additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
     /// The policy values forwarded to ``TurnEngine/Dependencies``.
     var policy: RuntimePolicy
@@ -36,12 +35,10 @@ extension RuntimeDependencies {
     /// configuration deliberately does not expose into the bundle the designated initializer
     /// consumes.
     ///
-    /// `sharedRegistry` is the prompt-journal state shared across replacement views,
     /// `additionalStages` is reserved for runtime-owned verification stages, and `clock` exists so
     /// tests can drive the stream watchdog deterministically.
     init(
         configuration: PKRuntime.Configuration,
-        sharedRegistry: TimelinePromptJournals,
         additionalStages: [any PipelineStage<TurnContext, TurnEvent>],
         clock: any RuntimeClock
     ) {
@@ -58,7 +55,6 @@ extension RuntimeDependencies {
             agentAuthorityCoordinator: nil,
             runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
             toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
-            sharedRegistry: sharedRegistry,
             additionalStages: additionalStages,
             policy: RuntimePolicy(
                 streamTimeout: configuration.runtime.streamTimeout,

@@ -166,7 +166,7 @@ struct TurnPreparation: Sendable {
         // Sidecar directives steer generation only through prompt text (SDC-7). The per-turn
         // directive list is volatile (consumer-scheduled, changes turn-to-turn), so it rides
         // with the user query — the LAST prompt section — keeping the system prefix byte-stable
-        // for provider prompt caching and PromptJournal stable-prefix diffing. An optional
+        // for provider prompt caching. An optional
         // semi-stable mechanism preamble can be layered into system instructions
         // (`SidecarSchemaComposer.mechanismPreamble`); the mechanism does not depend on it.
         let effectiveSystemInstructions: String? = includeSidecarMechanismPreamble
@@ -408,7 +408,7 @@ struct TurnPreparation: Sendable {
             // 9. Build the initial prompt messages. Stepwise history trimming (#277) reads and
             //    writes the per-Timeline cut so a trim happens once and the new prefix survives
             //    later Turns. The runtime never compresses or summarizes sections.
-            let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineID)
+            let promptHistory = await dependencies.timelineManager.promptHistory(for: timelineID)
             let historyTrim = PromptHistoryOptimizer.stepwise(
                 history,
                 availableTokens: min(budget.availableTokens, PromptHistoryOptimizer.defaultHistoryBudget),
@@ -440,8 +440,8 @@ struct TurnPreparation: Sendable {
             )
             await promptHistory.recordHistoryTrimState(historyTrim.state)
 
-            // 10. Reuse the final rendered artifact for messages + prompt history. The tiered
-            //     layout also yields the cache breakpoints sent with the first model round.
+            // 10. Reuse the final rendered artifact for messages. The tiered layout also yields
+            //     the cache breakpoints sent with the first model round.
             let promptLayout = PromptLayoutBuilder.build(from: renderedPrompt)
             // Overflow is mechanism only: projection already ran, history was trimmed to fit, and
             // a non-history tier that alone exceeds the budget is a structured preparation
@@ -453,70 +453,10 @@ struct TurnPreparation: Sendable {
                     limit: budget.availableTokens
                 )
             }
-            var initialMessages = promptLayout.renderMessages()
+            let initialMessages = promptLayout.renderMessages()
             let promptCacheBreakpoints = promptLayout.cacheBreakpoints()
-            let resolvedSections = renderedPrompt.sections
 
-            // 11. Record prompt snapshot for cache tracking BEFORE committing inputs. This is the
-            //     remaining fallible preparation step; keeping it ahead of persistence avoids
-            //     orphaning a user/tool input when the journal rejects the transition.
-            let update: PromptHistoryUpdate
-            do {
-                update = try await promptHistory.update(prompt: renderedPrompt)
-            } catch {
-                logger.error("Prompt history update failed; aborting turn before returning context", metadata: [
-                    LogKeys.timelineID: .string(timelineID.uuidString),
-                    LogKeys.requestID: .string(requestId.uuidString),
-                    "error": .string(String(describing: error)),
-                ])
-                throw TurnEngineError.promptHistoryInconsistent(String(describing: error))
-            }
-            guard let diff = update.diff else {
-                logger.error("Prompt history update produced no diff; aborting turn", metadata: [
-                    LogKeys.timelineID: .string(timelineID.uuidString),
-                    LogKeys.requestID: .string(requestId.uuidString),
-                    "journalState": .string("update_without_diff"),
-                ])
-                throw TurnEngineError.promptHistoryInconsistent("update produced no prompt diff")
-            }
-            logger.debug(
-                "Prompt journal updated: added=\(diff.added.count) removed=\(diff.removed.count) changed=\(diff.changed.count)",
-                metadata: [
-                    LogKeys.timelineID: .string(timelineID.uuidString),
-                    LogKeys.requestID: .string(requestId.uuidString),
-                    LogKeys.modelRoundIndex: .string("0"),
-                    "addedSections": .string("\(diff.added.count)"),
-                    "removedSections": .string("\(diff.removed.count)"),
-                    "changedSections": .string("\(diff.changed.count)"),
-                ]
-            )
-            logger.debug(
-                "Prompt snapshot: \(resolvedSections.count) sections, ~\(renderedPrompt.estimatedTokens) tokens, \(diff.stablePrefixCount) stable prefix entries"
-            )
-            if update.didCompact {
-                logger.debug("Prompt history append state compacted after prompt update")
-                initialMessages = try initialMessages.map { message in
-                    guard message.role == .assistant else { return message }
-                    let projectedText = message.messageContent.text
-                    let parts = try message.messageContent.parts.flatMap { part -> [MessageContentPart] in
-                        guard case let .audio(audio) = part else { return [part] }
-                        guard let transcript = audio.transcript, !transcript.isEmpty else {
-                            throw MultimodalContentError.missingAudioTranscript
-                        }
-                        return projectedText.contains(transcript) ? [] : [.text(transcript)]
-                    }
-                    return LLMMessage(
-                        role: message.role,
-                        content: MessageContent(parts: parts),
-                        name: message.name,
-                        toolCallID: message.toolCallID,
-                        toolCalls: message.toolCalls,
-                        reasoning: message.reasoning
-                    )
-                }
-            }
-
-            // 12. Commit external tool outputs after all fallible preparation succeeds. The
+            // 11. Commit external tool outputs after all fallible preparation succeeds. The
             //     repository already committed the user message atomically with Turn admission.
             try await dependencies.submissionGate.commit(
                 validatedToolOutputs,
@@ -550,7 +490,6 @@ struct TurnPreparation: Sendable {
                 diagnostics: turnDiagnostics,
                 promptHistory: promptHistory,
                 renderedPrompt: renderedPrompt,
-                promptHistoryUpdate: update,
                 currentMessages: initialMessages,
                 modelRoundIndex: 0,
                 promptCacheBreakpoints: promptCacheBreakpoints,
@@ -942,7 +881,7 @@ private extension TurnPreparation {
 
         // The watermark is process-scoped prompt bookkeeping. Reading it here lets a stateful
         // source skip descriptors it already covered instead of re-curating the whole history.
-        let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineID)
+        let promptHistory = await dependencies.timelineManager.promptHistory(for: timelineID)
         let since = await promptHistory.historyProjectionWatermark()
 
         let descriptors = history.map { message in

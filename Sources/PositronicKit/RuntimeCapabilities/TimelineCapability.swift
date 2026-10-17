@@ -155,7 +155,7 @@ public struct TimelineCapability: Sendable {
     /// Reads durable Timeline messages in oldest-first order.
     ///
     /// An unknown Timeline ID returns an empty array. The result is durable Timeline history, not
-    /// the assembled prompt state observed by `PKPrompt.PromptJournal`.
+    /// the process-scoped prompt state the runtime tracks for cache accounting.
     public func messages(for timelineID: UUID) async throws -> [TimelineMessage] {
         try await messageStore.fetchMessages(for: timelineID)
     }
