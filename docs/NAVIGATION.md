@@ -8,7 +8,7 @@ Stable [6.1.0](stable/6.1.0/) is the default immutable channel. [Next](next/) fo
 | [Overview and quick start](../README.md) | Release selection, runtime contracts, Timeline history, provider setup, typed structured generation, conformance suites, runnable examples, products, and verification. |
 | [Setup](Setup.md) | Provider-neutral configuration, readiness and health, stream timing, offline examples, persistence, customization, logging, and stable error identity. |
 | [Usage](Usage.md) | Managed and direct Turns, durable Timeline history, typed and raw one-shot structured generation, cancellation, SOUL/Notes Agent memory, lifecycle, and Workspace routing. |
-| [SwiftUI](SwiftUI.md) | App-owned runtime service, TimelineController binding, outcome joins, and fork sessions. |
+| [SwiftUI](SwiftUI.md) | App-owned runtime service, TimelineController binding, streaming deltas, outcome joins, prompt-cache diagnostics, quarantine recovery, and fork sessions. |
 | [MCP workspaces](MCP.md) | Connect Model Context Protocol servers as Workspaces through the official swift-sdk, with secrets, approval, and mapping rules. |
 | [Architecture](Architecture.md) | Domain boundaries, capability values, durability, execution authority, and the runtime adapter tier. |
 | [Prompt composition](PKPromptComposition.md) | Prompt IR, assembly, rendering, compression, and PromptJournal. |

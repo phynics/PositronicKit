@@ -27,6 +27,7 @@ WORKFLOW = ROOT / ".github/workflows/ci.yml"
 MAKEFILE = ROOT / "Makefile"
 MACOS_JOB = "macos-verify"
 LINUX_JOB = "linux-verify"
+IOS_JOB = "ios-verify"
 PREFLIGHT_JOB = "preflight"
 NEXT_BASELINE_SCRIPT = ROOT / "Scripts/public-api-baseline.py"
 IMMUTABILITY_CHECKER = "Scripts/check-public-api-baseline-immutability.py"
@@ -157,6 +158,21 @@ def test_linux_artifact_publishes_both_baselines() -> None:
     assert "overwrite: true" in job, job
 
 
+def test_ios_job_runs_the_shared_ios_gate() -> None:
+    job = job_block(workflow_text(), IOS_JOB)
+    assert "make verify-ios" in job, job
+
+
+def test_full_verify_includes_the_ios_gate() -> None:
+    block = target_block(makefile_text(), "verify")
+    assert "verify-ios" in block, block
+
+
+def test_ios_gate_runs_the_runner_script() -> None:
+    block = target_block(makefile_text(), "verify-ios")
+    assert "Scripts/run-ios-verify.sh" in block, block
+
+
 if __name__ == "__main__":
     tests = [
         test_main_api_check_reads_the_next_baseline,
@@ -168,6 +184,9 @@ if __name__ == "__main__":
         test_regeneration_runs_only_on_public_api_failure,
         test_artifact_is_published_only_on_public_api_failure,
         test_linux_artifact_publishes_both_baselines,
+        test_ios_job_runs_the_shared_ios_gate,
+        test_full_verify_includes_the_ios_gate,
+        test_ios_gate_runs_the_runner_script,
     ]
     for test in tests:
         test()
