@@ -95,10 +95,10 @@ enum TurnDegradationError: PKError {
 ///
 /// `TurnEngine` is a thin coordinator: it validates preconditions, prepares the Turn
 /// (context gathering, prompt assembly, prompt-history recording), and drives the ReAct
-/// loop. Prompt follow-up synthesis (`PromptSnapshotBuilder`) and partial-assistant
-/// persistence (`PartialAssistantPersistence`) remain delegated to focused standalone
-/// helpers. Turn preparation lives in `TurnEngine+TurnPreparation.swift`; the ReAct
-/// loop lives in `TurnEngine+TurnLoop.swift`.
+/// loop. Prompt follow-up synthesis (`PromptSnapshotBuilder`) remains delegated to a
+/// focused standalone helper. Turn preparation lives in `TurnPreparation`; the ReAct
+/// loop lives in `TurnLoop`; the terminal commit and final-message resolution live in
+/// `TurnFinalizer` (ADR 0010).
 ///
 /// It is deliberately *not* the public customization surface for downstream applications;
 /// external callers are expected to integrate through `PKRuntime` and the higher-level

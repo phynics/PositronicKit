@@ -47,8 +47,8 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
     ///
     /// `nil` is semantically equivalent to `.complete`: a message persisted through the normal
     /// success path is not tagged, so existing rows (and any decode of legacy data that omits
-    /// the key) round-trip as complete. Only failure/cancellation partial turns are tagged —
-    /// see `TurnEngine.persistPartialAssistantIfNeeded` (STAB-1).
+    /// the key) round-trip as complete. Only failure/cancellation partial turns are tagged; the
+    /// runtime's Turn finalizer resolves and persists those rows (STAB-1).
     public var status: MessageStatus?
 
     /// Represents the role of a message in a timeline.

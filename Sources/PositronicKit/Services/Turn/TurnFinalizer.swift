@@ -14,25 +14,40 @@ struct TerminalStreamFailure: @unchecked Sendable { // swiftlint:disable:this co
     let error: any Error
 }
 
-/// A terminal decision and the snapshot a finalizer needs to record and deliver it.
+/// The single terminal intent a Turn loop hands to the finalizer.
 ///
-/// The Turn loop builds this from its own context and hands it off. It deliberately excludes
-/// Workspace, tool, and Timeline-cache state: the finalizer must be able to finish a Turn after
-/// its Timeline has been evicted and its ephemeral workspace removed.
+/// It carries the outcome, how the final durable message is resolved, and the consumer-facing
+/// delivery. It deliberately excludes Workspace, tool, and Timeline-cache state: the finalizer must
+/// be able to finish a Turn after its Timeline has been evicted and its ephemeral workspace
+/// removed.
 struct TerminalCommit: Sendable {
+    /// The consumer-facing terminal signal for this outcome.
     enum Delivery: Sendable {
         case none
         case completion
         case event(TurnEvent)
     }
 
+    /// How the finalizer resolves the durable final assistant message for this outcome.
+    enum FinalMessage: Sendable {
+        /// A completed Turn whose terminal assistant row was captured at hand-off.
+        case terminalAssistantMessage(TimelineMessage)
+        /// A completed Turn with no captured row: fall back to the last durable assistant message
+        /// after the caller's input.
+        case lastDurableAssistantMessage
+        /// A cancelled or failed Turn: resolve a partial row from the captured outputs.
+        case partialAssistant(PartialAssistantSource)
+        /// Record no final message.
+        case none
+    }
+
     let turnID: UUID
     let timelineID: UUID
     let requestID: UUID
     let outcome: TurnOutcome
+    let finalMessage: FinalMessage
+    let delivery: Delivery
     let terminalHandle: TurnTerminalHandle
-    let terminalAssistantMessage: TimelineMessage?
-    let partialMessage: TimelineMessage?
     let metadata: LLMResponse?
     /// The terminal sidecar completion event to emit for a completed Turn, when the Turn produced
     /// sidecars under `.terminalModelRound`.
@@ -40,9 +55,51 @@ struct TerminalCommit: Sendable {
     let agentID: UUID?
     let executionKind: TurnExecutionKind
     let modelRoundIndex: Int
-    let requestedDelivery: Delivery
     let streamFailure: TerminalStreamFailure?
     let continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation // swiftlint:disable:this concurrency_stored_continuation -- terminal hand-off owned by the runtime finalizer (see docs/Concurrency/exception-manifest.md)
+}
+
+/// The captured outputs a non-completed Turn needs so the finalizer can resolve its partial
+/// assistant row without the live `TurnContext`.
+///
+/// The loop captures this at hand-off. It holds only the assistant row builder's material, never
+/// Workspace, tool, or Timeline-cache state, so the finalizer survives Timeline eviction.
+struct PartialAssistantSource: Sendable {
+    /// Whether the complete assistant row was already accepted by the message store.
+    let responseIsDurable: Bool
+    /// A complete assistant row a prior stage built and deferred to the terminal transaction.
+    let terminalMessage: TimelineMessage?
+    /// The material for a partial row, or `nil` when the Turn emitted nothing worth recording.
+    let material: AssistantRowMaterial?
+}
+
+extension PartialAssistantSource {
+    /// Captures the partial-row inputs from a Turn's live outputs at terminal hand-off.
+    ///
+    /// The threshold is unchanged from the pre-finalizer path: a row is built only when the Turn
+    /// emitted assistant text, thinking, audio, or accumulated tool calls, so a spurious empty
+    /// assistant row never misrepresents the Turn.
+    static func capture(from context: TurnContext) async -> PartialAssistantSource {
+        let responseIsDurable = await context.outputs.assistantResponseDurable
+        let terminalMessage = await context.outputs.terminalAssistantMessage
+        let fullResponse = await context.outputs.fullResponse
+        let fullThinking = await context.outputs.fullThinking
+        let hasAudio = await !context.outputs.audioData.isEmpty
+        let hasToolCalls = await !context.outputs.toolCallAccumulators.isEmpty
+        let hasContent = !fullResponse.isEmpty || !fullThinking.isEmpty || hasAudio || hasToolCalls
+        let material = hasContent
+            ? await MessagePersistenceStage.assistantRowMaterial(
+                from: context,
+                hasPendingToolCalls: hasToolCalls,
+                logger: Logger.module(named: "turn-finalizer")
+            )
+            : nil
+        return PartialAssistantSource(
+            responseIsDurable: responseIsDurable,
+            terminalMessage: terminalMessage,
+            material: material
+        )
+    }
 }
 
 /// Runtime-owned executor for terminal Turn commits (ADR 0010).
@@ -52,9 +109,14 @@ struct TerminalCommit: Sendable {
 /// from the Turn task, a store call that hangs bounds how long a Timeline stays busy, not how long
 /// eviction takes.
 ///
-/// Commits run independently per Turn. Durable writes need no further serialization: a Turn is
-/// only admitted after its predecessor is terminal in the store, and `completeTurn` is
-/// first-writer-wins, so a commit that hangs can never poison later commits on the same Timeline.
+/// A commit's own durable write, sinks, and terminal signal run in that order. Commits are
+/// deliberately **not** serialized per Timeline. Two commits for one Timeline can be in flight at
+/// once, but only after a predecessor stalls past `terminalCommitStallLimit`: admission then
+/// interrupts that Turn and admits its successor, whose commit runs while the stalled one is still
+/// writing. This needs no cross-Turn serialization. A Turn is only admitted after its predecessor
+/// is terminal in the store, and `completeTurn` is first-writer-wins, so a late commit for an
+/// interrupted predecessor returns the interrupted record unchanged and can never poison later
+/// commits on the same Timeline. ADR 0010 records this guarantee.
 actor TurnFinalizer {
     private let repository: any TimelineRuntimeRepository
     private let agentActivitySink: any AgentActivitySink?
@@ -91,8 +153,10 @@ actor TurnFinalizer {
     ///
     /// The commit runs in an unstructured task that is never cancelled by the Turn's cancellation.
     /// The task inherits this actor's isolation and task-locals but not the caller's cancellation,
-    /// and it holds the actor until the commit completes, so a submitted commit always finishes
-    /// even if the runtime is released before the store returns.
+    /// so a submitted commit always finishes even if the runtime is released before the store
+    /// returns. Actor isolation serializes each commit's entry, not its whole duration: `perform`
+    /// suspends on the store, so commits for different Turns can overlap (see the ordering note
+    /// above).
     func submit(_ commit: TerminalCommit) {
         pendingSince[commit.turnID] = clock.now()
         let turnID = commit.turnID
@@ -144,7 +208,7 @@ actor TurnFinalizer {
 
         let usesRequestedOutcome = durableOutcome == commit.outcome
         let delivery = usesRequestedOutcome
-            ? commit.requestedDelivery
+            ? commit.delivery
             : Self.delivery(for: durableOutcome)
         switch delivery {
         case .none:
@@ -155,7 +219,7 @@ actor TurnFinalizer {
             if let sidecarCompletion = commit.sidecarCompletion {
                 commit.continuation.yield(.sidecarsCompleted(sidecarCompletion))
             }
-            if let message = commit.terminalAssistantMessage {
+            if case let .terminalAssistantMessage(message) = commit.finalMessage {
                 commit.continuation.yield(.generationCompleted(
                     message: message.toMessage(),
                     metadata: commit.metadata ?? LLMResponse()
@@ -172,29 +236,9 @@ actor TurnFinalizer {
         }
     }
 
-    /// Resolves the final message and commits the outcome. A completed Turn without a captured
-    /// assistant row falls back to the last durable assistant message after the caller's input.
+    /// Commits the outcome with the finalizer-resolved final message.
     private func completeTerminalOutcome(_ commit: TerminalCommit) async throws -> TurnOutcome {
-        let finalMessage: TimelineMessage?
-        switch commit.outcome {
-        case .completed:
-            if let terminalAssistantMessage = commit.terminalAssistantMessage {
-                finalMessage = terminalAssistantMessage
-            } else {
-                let messages = try await repository.fetchMessages(for: commit.timelineID)
-                let userIndex = messages.firstIndex(where: { $0.id == commit.requestID })
-                finalMessage = userIndex.flatMap { index in
-                    messages.dropFirst(index + 1).last(where: {
-                        $0.role == Message.MessageRole.assistant.rawValue
-                    })
-                }
-            }
-        case .cancelled, .failed:
-            finalMessage = commit.partialMessage
-        case .interrupted:
-            finalMessage = nil
-        }
-
+        let finalMessage = try await resolveFinalMessage(commit)
         let record = try await repository.completeTurn(
             turnID: commit.turnID,
             outcome: commit.outcome,
@@ -206,6 +250,41 @@ actor TurnFinalizer {
             throw TurnFinalizerError.missingOutcome(commit.turnID)
         }
         return persistedOutcome
+    }
+
+    /// The one place a terminal assistant message is resolved: a captured complete row, a
+    /// durable-history fallback for a completed Turn, or a partial row built from captured outputs
+    /// for a cancelled or failed one.
+    private func resolveFinalMessage(_ commit: TerminalCommit) async throws -> TimelineMessage? {
+        switch commit.finalMessage {
+        case let .terminalAssistantMessage(message):
+            return message
+        case .lastDurableAssistantMessage:
+            let messages = try await repository.fetchMessages(for: commit.timelineID)
+            let userIndex = messages.firstIndex(where: { $0.id == commit.requestID })
+            return userIndex.flatMap { index in
+                messages.dropFirst(index + 1).last(where: {
+                    $0.role == Message.MessageRole.assistant.rawValue
+                })
+            }
+        case let .partialAssistant(source):
+            guard !source.responseIsDurable else { return nil }
+            if let terminalMessage = source.terminalMessage { return terminalMessage }
+            guard let material = source.material else { return nil }
+            let status = Self.partialStatus(for: commit.outcome)
+            logger.warning(
+                "Resolved partial assistant turn for timeline \(commit.timelineID) status=\(status.rawValue) contentChars=\(material.content.text.count) thinkingChars=\(material.thinking.count) toolCalls=\(material.toolCallsJSON != "[]")"
+            )
+            return MessagePersistenceStage.buildAssistantMessage(from: material, status: status)
+        case .none:
+            return nil
+        }
+    }
+
+    /// The status tag a partial row carries for a non-completed outcome.
+    private static func partialStatus(for outcome: TurnOutcome) -> Message.MessageStatus {
+        if case .cancelled = outcome { return .cancelled }
+        return .partial
     }
 
     private func emitTerminalSinks(commit: TerminalCommit, outcome: TurnOutcome) async {
