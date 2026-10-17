@@ -5,7 +5,7 @@ import PKContracts
 ///
 /// The runtime writes only what a host supplies here. The opinionated identity-file and
 /// `Notes/` templates live in the optional `PKAgentFiles` adapter; the runtime default
-/// (``none``) writes neither. Files supplied through an ``AgentTemplate/workspaceFilesSeed`` are
+/// (``none``) writes neither. Files supplied through a ``PKContracts/AgentTemplate/workspaceFilesSeed`` are
 /// still written by ``WorkspaceCatalog/createAgentWorkspace(agentID:template:)`` independently of
 /// this value.
 public struct AgentWorkspaceSeed: Sendable {
