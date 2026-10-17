@@ -33,7 +33,7 @@ second runtime-assembly product:
 | `TimelineRuntimeRepository` | `TimelineManager`, `AgentManager`, `ToolRouter`, `TurnEngine`, and Turn pipelines |
 | `TimelineAuthorityCoordinator` | `TimelineManager`, Workspace catalog, `AgentManager`, and Turn admission |
 | `AgentAuthorityCoordinator` | `AgentManager` and Turn admission |
-| `TimelinePromptJournals` | `TimelineManager` and `TurnEngine`; prompt cache and history-trim state, not Timeline history |
+| `TimelinePromptHistory` | `TimelineManager` only; per-Timeline tier fingerprint, history-trim state, projection watermark, and retained sibling request, not Timeline history |
 | `TurnEventHub` | `TurnEngine` views that join the same live Turn |
 
 Every Turn execution path receives the same cohesive repository. Independent Timeline and message
@@ -48,9 +48,10 @@ durable binding repository explicitly; `validateDurability()` cannot classify th
 
 `replacingLanguageModel(_:generationParameters:)` creates a new provider-facing view while
 preserving the Timeline manager, its task and Workspace execution coordinators, authority
-coordinators, PromptJournal registry, and Turn event hub. `AgentManager`, `ToolRouter`, and
-`TurnEngine` are rebuilt so the view can carry its replacement provider and other view-specific
-configuration while retaining those shared identities. Provider configuration is view-local: a
+coordinators, and Turn event hub. The per-Timeline prompt state lives on the Timeline manager, so
+it survives a model replacement. `AgentManager`, `ToolRouter`, and `TurnEngine` are rebuilt so the
+view can carry its replacement provider and other view-specific configuration while retaining
+those shared identities. Provider configuration is view-local: a
 Timeline handle binds the view's Turn engine when it opens, and the shared state carries no
 provider settings, so replacing a model never changes an in-flight Turn or an existing handle. A
 separate `RuntimeAssembly` module is not
@@ -70,9 +71,11 @@ snapshot.
   exclusively to one Timeline. Agent primary Workspaces remain Agent-owned rather than ordinary
   bindings.
 
-Timeline semantic history and `PromptJournal` have different jobs. Timeline history records durable
-runtime facts. `PromptJournal` observes assembled prompt state so providers can reuse stable prompt
-prefixes; it never becomes semantic history.
+Timeline semantic history and process-scoped prompt state have different jobs. Timeline history
+records durable runtime facts. The runtime keeps an internal per-Timeline `TierFingerprint` of the
+last rendered layout so providers can reuse stable prompt prefixes; it never becomes semantic
+history. A changed semi-stable segment is re-rendered in place and reported as one prefix reset
+rather than layered as a journal overlay.
 
 ## Turn admission and execution
 

@@ -27,8 +27,8 @@ Workspace execution uses a process-local FIFO lane per ordinary Workspace. This 
 overlapping tool side effects for one Workspace while allowing different Workspaces to proceed
 concurrently; multi-process hosts provide stronger coordination in their backend.
 
-`TimelineRuntimeRepository` does not own `PromptJournal` state and does not derive semantic summaries
-from prompt history. A `TimelineSummary` is a separate projection that may reference only message IDs
+`TimelineRuntimeRepository` does not own process-scoped prompt state and does not derive semantic
+summaries from prompt history. A `TimelineSummary` is a separate projection that may reference only message IDs
 already accepted into append-only history.
 
 `PKRuntime.PersistenceConfiguration.fullyPersistent(...)` requires the runtime, Workspace, tool,

@@ -264,7 +264,7 @@ struct RuntimeAssemblyTests {
         #expect(notices.contains { $0.kind == "tool-intent-durable" })
     }
 
-    @Test("replacement views preserve repositories, authorities, PromptJournal state, and live events")
+    @Test("replacement views preserve repositories, authorities, prompt state, and live events")
     func replacingLanguageModelViewsPreserveRuntimeState() async throws {
         let repository = InMemoryTimelineRuntimeRepository()
         let bindingRepository = InMemoryWorkspaceBindingRepository()
@@ -291,14 +291,6 @@ struct RuntimeAssemblyTests {
         #expect(originalKit.turnEngine.dependencies.agentAuthorityCoordinator === replacementKit.agentAuthorityCoordinator)
         #expect(originalKit.turnEngine.dependencies.timelineAuthorityCoordinator === replacementKit.turnEngine.dependencies.timelineAuthorityCoordinator)
         #expect(originalKit.turnEngine.dependencies.eventHub === replacementKit.turnEngine.dependencies.eventHub)
-        #expect(originalKit.turnEngine.dependencies.promptHistoryRegistry === replacementKit.turnEngine.dependencies.promptHistoryRegistry)
-
-        let managerRegistry = await originalKit.timelineManager.promptHistoryRegistry
-        guard let managerRegistry else {
-            Issue.record("TimelineManager lost the shared PromptJournal registry")
-            return
-        }
-        #expect(managerRegistry === originalKit.turnEngine.dependencies.promptHistoryRegistry)
         let originalRepository = originalKit.runtimeRepository
         let replacementRepository = replacementKit.runtimeRepository
         #expect(originalRepository as AnyObject === replacementRepository as AnyObject)
@@ -319,14 +311,14 @@ struct RuntimeAssemblyTests {
             return
         }
 
-        let journalBefore = await originalKit.turnEngine.dependencies.promptHistoryRegistry.history(for: timeline.id)
+        let stateBefore = await originalKit.timelineManager.promptHistory(for: timeline.id)
         let joined = try await replacementKit.timelines.open(timeline.id).startDirectTurn(
             "same request",
             context: DirectTurnContext(systemInstructions: "", contributor: .host),
             options: TurnOptions(requestID: requestID)
         )
-        let journalAfter = await replacementKit.turnEngine.dependencies.promptHistoryRegistry.history(for: timeline.id)
-        #expect(journalBefore === journalAfter)
+        let stateAfter = await replacementKit.timelineManager.promptHistory(for: timeline.id)
+        #expect(stateBefore === stateAfter)
         #expect(joined.id == original.id)
 
         let eventsTask = Task { await joined.events().collect() }

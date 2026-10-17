@@ -265,7 +265,7 @@ extension TimelineManager {
         timelines.removeValue(forKey: id)
         toolManagers.removeValue(forKey: id)
         timelineDegradations.removeValue(forKey: id)
-        await promptHistoryRegistry?.removeHistory(for: id)
+        promptHistoriesByTimelineID.removeValue(forKey: id)
     }
 
     /// Permanently deletes a timeline and all related persisted records: the timeline row, its

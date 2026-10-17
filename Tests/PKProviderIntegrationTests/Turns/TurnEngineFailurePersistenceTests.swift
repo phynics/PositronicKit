@@ -29,13 +29,11 @@ struct TurnEngineFailurePersistenceTests {
     /// self-contained. Seeds a hydrated timeline the engine can run a turn against.
     private func withTurnEngineDependencies<T>(
         streamTimeout: TimeInterval = 60,
-        promptHistoryRegistry: TimelinePromptJournals? = nil,
         turnOutcomeSink: any TurnOutcomeSink? = nil,
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let registry = promptHistoryRegistry ?? TimelinePromptJournals()
         let timelineManager = TimelineManager(
             stores: .init(
                 timelineStore: mockPersistence,
@@ -60,7 +58,6 @@ struct TurnEngineFailurePersistenceTests {
                 llmService: mockLLM,
                 toolRouter: toolRouter,
                 turnOutcomeSink: turnOutcomeSink,
-                promptHistoryRegistry: registry,
                 policy: RuntimePolicy(streamTimeout: streamTimeout)
             )
         )
@@ -416,70 +413,6 @@ struct TurnEngineFailurePersistenceTests {
             let messages = try await mockPersistence.fetchMessages(for: timelineID)
             #expect(messages.filter { $0.role == "user" }.count == 1)
             #expect(messages.filter { $0.role == "tool" && $0.toolCallID == "retry_call" }.count == 1)
-        }
-    }
-
-    @Test("A fail-once prompt-history update retries inputs idempotently")
-    func promptHistoryFailureRetryIsInputIdempotent() async throws {
-        let registry = TimelinePromptJournals()
-        try await withTurnEngineDependencies(promptHistoryRegistry: registry) { engine, mockLLM, mockPersistence in
-            let requestID = UUID()
-            let toolCallID = "history_retry_call"
-            let toolCalls = [ToolCall(id: toolCallID, name: "external_tool", arguments: [:])]
-            let toolCallsData = try SerializationUtils.jsonEncoder.encode(toolCalls)
-            try await mockPersistence.saveMessage(TimelineMessage(
-                timelineID: timelineID,
-                role: .assistant,
-                content: "",
-                toolCalls: String(decoding: toolCallsData, as: UTF8.self)
-            ))
-
-            let history = await registry.history(for: timelineID)
-            await history.failNextUpdate(with: .duplicateSectionIDs(["fail-once"]))
-
-            do {
-                _ = try await engine.execute(TurnExecutionRequest(
-                    TurnRequest(
-                        timelineID: timelineID,
-                        requestID: requestID,
-                        message: "retry after history failure",
-                        tools: [],
-                        toolOutputs: [ToolOutputSubmission(toolCallID: toolCallID, output: "tool result")]
-                    )
-                ))
-                Issue.record("Expected the fail-once prompt-history update to throw")
-            } catch let error as TurnEngineError {
-                guard case let .promptHistoryInconsistent(detail) = error else {
-                    Issue.record("Expected promptHistoryInconsistent, got \(error)")
-                    return
-                }
-                #expect(detail.contains("fail-once"), "The original prompt-history error must remain diagnosable")
-            } catch {
-                Issue.record("Expected TurnEngineError.promptHistoryInconsistent, got \(error)")
-            }
-
-            let messagesAfterFailure = try await mockPersistence.fetchMessages(for: timelineID)
-            #expect(messagesAfterFailure.filter { $0.role == "user" }.count == 1)
-            #expect(messagesAfterFailure.first(where: { $0.role == "user" })?.content == "retry after history failure")
-            #expect(messagesAfterFailure.filter { $0.role == "tool" }.isEmpty)
-
-            mockLLM.mockClient.nextResponse = "Recovered reply"
-            let retryStream = try await engine.execute(TurnExecutionRequest(
-                TurnRequest(
-                    timelineID: timelineID,
-                    requestID: requestID,
-                    message: "retry after history failure",
-                    tools: [],
-                    toolOutputs: [ToolOutputSubmission(toolCallID: toolCallID, output: "tool result")]
-                )
-            ))
-            _ = try await collect(retryStream)
-
-            let messagesAfterRetry = try await mockPersistence.fetchMessages(for: timelineID)
-            let userMessages = messagesAfterRetry.filter { $0.role == "user" }
-            #expect(userMessages.count == 1)
-            #expect(userMessages.first?.id == requestID)
-            #expect(messagesAfterRetry.filter { $0.role == "tool" && $0.toolCallID == toolCallID }.count == 1)
         }
     }
 

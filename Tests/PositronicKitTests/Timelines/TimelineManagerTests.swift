@@ -147,69 +147,47 @@ struct TimelineManagerTests {
         #expect(retrieved == nil, "Session should be cleaned up")
     }
 
-    @Test("evictTimelineFromMemory(id:) evicts the prompt-history registry entry, not just the cache")
+    @Test("evictTimelineFromMemory(id:) evicts the per-Timeline prompt state, not just the cache")
     func deleteTimelineEvictsPromptHistory() async throws {
-        let workspace = TestWorkspace()
-        let registry = TimelinePromptJournals()
-        let timelineManager = TimelineManager(
-            workspaceProfile: .hostManaged(root: workspace.root),
-            promptHistoryRegistry: registry
-        )
-
-        let session = try await timelineManager.createTimeline()
-
-        // Populate the registry with distinguishing state.
-        let history = await registry.history(for: session.id)
-        await history.recordAppend(messageCount: 3, estimatedTokens: 90)
-        #expect(await history.appendedMessageCount == 3)
-
-        // evictTimelineFromMemory is the runtime-eviction seam: cache + registry.
-        await timelineManager.evictTimelineFromMemory(id: session.id)
-
-        // Cache evicted.
-        #expect(await timelineManager.timeline(id: session.id) == nil)
-
-        // Registry evicted — re-fetch yields a fresh instance with reset state.
-        let fresh = await registry.history(for: session.id)
-        #expect(await fresh.appendedMessageCount == 0)
-        #expect(await fresh.appendedTokens == 0)
-        #expect(await fresh.lastDiff == nil)
-    }
-
-    @Test("cleanupStaleTimelines(maxAge:) also drops the prompt-history registry entry")
-    func cleanupStaleEvictsPromptHistory() async throws {
-        let workspace = TestWorkspace()
-        let registry = TimelinePromptJournals()
-        let timelineManager = TimelineManager(
-            workspaceProfile: .hostManaged(root: workspace.root),
-            promptHistoryRegistry: registry
-        )
-
-        let session = try await timelineManager.createTimeline()
-
-        let history = await registry.history(for: session.id)
-        await history.recordAppend(messageCount: 5, estimatedTokens: 150)
-        #expect(await history.appendedMessageCount == 5)
-
-        await timelineManager.cleanupStaleTimelines(maxAge: 0)
-
-        #expect(await timelineManager.timeline(id: session.id) == nil)
-
-        let fresh = await registry.history(for: session.id)
-        #expect(await fresh.appendedMessageCount == 0)
-        #expect(await fresh.appendedTokens == 0)
-    }
-
-    @Test("evictTimelineFromMemory(id:) with no injected registry still evicts the cache")
-    func deleteTimelineWithoutRegistry() async throws {
         let workspace = TestWorkspace()
         let timelineManager = TimelineManager(workspaceProfile: .hostManaged(root: workspace.root))
 
         let session = try await timelineManager.createTimeline()
 
+        // Populate the manager-owned prompt state with distinguishing state.
+        let history = await timelineManager.promptHistory(for: session.id)
+        await history.recordHistoryTrimState(HistoryTrimState(droppedMessageCount: 3, budgetTokens: 90))
+        #expect(await history.historyTrimState().droppedMessageCount == 3)
+
+        // evictTimelineFromMemory is the runtime-eviction seam: cache + prompt state.
         await timelineManager.evictTimelineFromMemory(id: session.id)
 
+        // Cache evicted.
         #expect(await timelineManager.timeline(id: session.id) == nil)
+
+        // Prompt state evicted — re-fetch yields a fresh instance with reset state.
+        let fresh = await timelineManager.promptHistory(for: session.id)
+        #expect(await fresh.historyTrimState() == HistoryTrimState())
+        #expect(await fresh.promptStateSnapshot().turnID == nil)
+    }
+
+    @Test("cleanupStaleTimelines(maxAge:) also drops the per-Timeline prompt state")
+    func cleanupStaleEvictsPromptHistory() async throws {
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(workspaceProfile: .hostManaged(root: workspace.root))
+
+        let session = try await timelineManager.createTimeline()
+
+        let history = await timelineManager.promptHistory(for: session.id)
+        await history.recordHistoryTrimState(HistoryTrimState(droppedMessageCount: 5, budgetTokens: 150))
+        #expect(await history.historyTrimState().droppedMessageCount == 5)
+
+        await timelineManager.cleanupStaleTimelines(maxAge: 0)
+
+        #expect(await timelineManager.timeline(id: session.id) == nil)
+
+        let fresh = await timelineManager.promptHistory(for: session.id)
+        #expect(await fresh.historyTrimState() == HistoryTrimState())
     }
 
     @Test("Test Task Registration and Cancellation")
