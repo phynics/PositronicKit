@@ -46,7 +46,7 @@ REQUIRED_TEXT = {
     ROOT / "docs/Architecture.md": ("TimelineRuntimeRepository", "call_tool"),
     ROOT / "Sources/PositronicKit/PositronicKit.docc/ArchitectureOverview.md": (
         "TimelineRuntimeRepository",
-        "PromptJournal",
+        "TierFingerprint",
     ),
     ROOT / "Sources/PositronicKit/PositronicKit.docc/PersistenceLayer.md": (
         "TimelineRuntimeRepository",

@@ -119,11 +119,6 @@ A semantic projection over a covered history range; it is not a message role and
 the covered messages.
 _Avoid_: summary message
 
-**PromptJournal**:
-PKPrompt’s cache and emission state for an assembled prompt. It observes semantic history but does
-not create or own Timeline summaries.
-_Avoid_: runtime history, summary store
-
 **PKTool Intent**:
 A durable declaration of a tool call associated with a Turn and Model Round, recorded before the
 corresponding tool execution begins.

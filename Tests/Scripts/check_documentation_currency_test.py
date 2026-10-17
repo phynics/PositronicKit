@@ -47,7 +47,7 @@ REQUIRED_SNIPPETS = {
     "docs/Usage.md": "startDirectTurn TimelineHandle.startTurn",
     "docs/Architecture.md": "TimelineRuntimeRepository call_tool",
     "Sources/PositronicKit/PositronicKit.docc/ArchitectureOverview.md": (
-        "TimelineRuntimeRepository PromptJournal"
+        "TimelineRuntimeRepository TierFingerprint"
     ),
     "Sources/PositronicKit/PositronicKit.docc/PersistenceLayer.md": (
         "TimelineRuntimeRepository TimelineMessageStoreProtocol fullyPersistent(...)"

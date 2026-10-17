@@ -30,7 +30,6 @@ struct CustomPipelineStageInternalStoriesTests {
                     requestOriginStore: mockPersistence
                 )
             ),
-            sharedRegistry: TimelinePromptJournals(),
             additionalStages: [customStage]
         )
 

@@ -90,8 +90,8 @@ for message in history {
 }
 ```
 
-Timeline history records semantic runtime messages. `PromptJournal` observes assembled prompt state
-for provider prompt reuse and does not replace Timeline history.
+Timeline history records semantic runtime messages. The runtime keeps only process-scoped tier
+fingerprints for provider prompt reuse; they do not replace Timeline history.
 
 ### Error Delivery And Cancellation
 

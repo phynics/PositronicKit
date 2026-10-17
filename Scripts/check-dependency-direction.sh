@@ -61,6 +61,16 @@ if [[ -d Sources/PKPrompt ]]; then
     fi
 fi
 
+# The runtime owns no PromptJournal state (issue #293). PromptJournal is an optional
+# PKPrompt feature; the runtime keeps only per-Timeline tier fingerprints for #280.
+if [[ -d Sources/PositronicKit ]]; then
+    if matches="$(find_matches 'PromptJournal' Sources/PositronicKit || true)"; then
+        if [[ -n "$matches" ]]; then
+            report_failure "PositronicKit references PromptJournal:\n$matches"
+        fi
+    fi
+fi
+
 # PKUtilities remains package-internal while its helpers are relocated in later
 # work; it must not be advertised as a consumer-facing product.
 if grep -nE '^\s*\.library\(name: "PKUtilities"' Package.swift >/dev/null; then

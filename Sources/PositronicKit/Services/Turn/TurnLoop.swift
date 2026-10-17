@@ -84,7 +84,6 @@ struct TurnLoop: Sendable {
 
         var loopMessages = context.currentMessages
         var loopRenderedPrompt = context.renderedPrompt
-        var loopPromptHistoryUpdate = context.promptHistoryUpdate
         var modelRoundIndex = 0
         var terminalContext = context
 
@@ -106,8 +105,7 @@ struct TurnLoop: Sendable {
             let turnContext = context.forTurn(
                 modelRoundIndex: modelRoundIndex,
                 messages: loopMessages,
-                renderedPrompt: loopRenderedPrompt,
-                promptHistoryUpdate: loopPromptHistoryUpdate
+                renderedPrompt: loopRenderedPrompt
             )
             terminalContext = turnContext
 
@@ -132,36 +130,11 @@ struct TurnLoop: Sendable {
             case let .continueWith(newMessages):
                 // A tool result or internal thought needs the LLM to process it in the next turn
                 loopMessages += newMessages
-                // Track appended messages for compaction awareness
-                if let history = context.promptHistory {
-                    let responseText = await turnContext.outputs.fullResponse + turnContext.outputs.fullThinking
-                    _ = await history.append(
-                        messageCount: newMessages.count,
-                        estimatedTokens: TokenEstimator.estimate(text: responseText)
-                    )
-                }
-                let snapshot: (renderedPrompt: RenderedPrompt?, promptHistoryUpdate: PromptHistoryUpdate?)
-                do {
-                    snapshot = try await snapshotBuilder.buildFollowUpSnapshot(
-                        from: turnContext,
-                        appendedMessages: newMessages,
-                        nextTurnIndex: modelRoundIndex
-                    )
-                } catch {
-                    // Snapshot failures terminate the send after preparation, so the caller may
-                    // retry with the same request ID.
-                    await commitTerminal(
-                        decision: .failed(
-                            because: error,
-                            streamError: wrapForeignError(error)
-                        ),
-                        context: turnContext,
-                        continuation: continuation
-                    )
-                    return
-                }
-                loopRenderedPrompt = snapshot.renderedPrompt
-                loopPromptHistoryUpdate = snapshot.promptHistoryUpdate
+                loopRenderedPrompt = snapshotBuilder.buildFollowUpSnapshot(
+                    from: turnContext,
+                    appendedMessages: newMessages,
+                    nextTurnIndex: modelRoundIndex
+                )
 
             case .cancelled:
                 // Terminal: the stream was cancelled mid-flight. `runOneTurn` already

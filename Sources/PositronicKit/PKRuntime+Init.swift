@@ -37,21 +37,17 @@ extension PKRuntime {
     /// Resolves a ``PKRuntime/Configuration`` plus the runtime-owned seams that configuration
     /// deliberately does not expose, and forwards the result to the designated initializer.
     ///
-    /// The three extra parameters are the internal seams: `sharedRegistry` is the prompt-journal
-    /// state shared across ``PKRuntime/replacingLanguageModel(_:generationParameters:)`` views,
-    /// `additionalStages` is reserved for runtime-owned verification stages, and `clock` exists so
-    /// tests can drive the stream watchdog deterministically. Consumers reach this through
-    /// ``PKRuntime/init(configuration:)``.
+    /// The extra parameters are the internal seams: `additionalStages` is reserved for
+    /// runtime-owned verification stages, and `clock` exists so tests can drive the stream watchdog
+    /// deterministically. Consumers reach this through ``PKRuntime/init(configuration:)``.
     convenience init(
         configuration: Configuration,
-        sharedRegistry: TimelinePromptJournals,
         additionalStages: [any PipelineStage<TurnContext, TurnEvent>],
         clock: any RuntimeClock = ContinuousRuntimeClock()
     ) {
         self.init(
             dependencies: RuntimeDependencies(
                 configuration: configuration,
-                sharedRegistry: sharedRegistry,
                 additionalStages: additionalStages,
                 clock: clock
             )

@@ -141,7 +141,6 @@ public final class PKRuntime: Sendable {
         // was asked for.
         var resolvedDependencies = dependencies
         resolvedDependencies.agentAuthorityCoordinator = state.agentAuthorityCoordinator
-        resolvedDependencies.sharedRegistry = state.promptHistoryRegistry
         self.dependencies = resolvedDependencies
 
         runtimeState = state
@@ -173,7 +172,7 @@ public final class PKRuntime: Sendable {
 
     /// Returns a new provider-facing view with a replacement language model and, optionally,
     /// replacement default generation parameters, while preserving the current instance's
-    /// runtime-owned cross-send state (prompt-history journal diffs and inspection turn indexing),
+    /// runtime-owned cross-send state (per-Timeline prompt-state and inspection turn indexing),
     /// stores, tools, plugins, and workspace wiring.
     ///
     /// Provider configuration is view-local. Handles opened from the original instance keep

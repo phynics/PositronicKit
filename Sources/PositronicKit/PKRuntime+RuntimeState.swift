@@ -11,7 +11,6 @@ internal extension PKRuntime {
     /// configuration remains on each view's `TurnEngine`.
     final class RuntimeState: Sendable {
         let timelineManager: TimelineManager
-        let promptHistoryRegistry: TimelinePromptJournals
         let agentAuthorityCoordinator: AgentAuthorityCoordinator
         let eventHub: TurnEventHub
         /// Per-runtime-identity registry of live ephemeral Timeline handles. Shared across
@@ -27,7 +26,6 @@ internal extension PKRuntime {
         
         init(
             timelineManager: TimelineManager,
-            promptHistoryRegistry: TimelinePromptJournals,
             agentAuthorityCoordinator: AgentAuthorityCoordinator,
             eventHub: TurnEventHub,
             ephemeralRegistry: EphemeralTimelineRegistry,
@@ -35,7 +33,6 @@ internal extension PKRuntime {
             finalizer: TurnFinalizer
         ) {
             self.timelineManager = timelineManager
-            self.promptHistoryRegistry = promptHistoryRegistry
             self.agentAuthorityCoordinator = agentAuthorityCoordinator
             self.eventHub = eventHub
             self.ephemeralRegistry = ephemeralRegistry
@@ -80,12 +77,10 @@ internal extension PKRuntime {
                 workspaceProfile: dependencies.workspaceProfile,
                 workspaceCreator: dependencies.workspaceCreator,
                 runtimeToolPolicy: dependencies.runtimeToolPolicy,
-                promptHistoryRegistry: dependencies.sharedRegistry,
                 finalizer: finalizer
             )
             return RuntimeState(
                 timelineManager: timelineManager,
-                promptHistoryRegistry: dependencies.sharedRegistry,
                 agentAuthorityCoordinator: dependencies.agentAuthorityCoordinator ?? AgentAuthorityCoordinator(),
                 eventHub: TurnEventHub(),
                 ephemeralRegistry: EphemeralTimelineRegistry(),

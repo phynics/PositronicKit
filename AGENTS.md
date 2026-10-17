@@ -32,7 +32,9 @@ through the owning issue or an ADR.
 - `PKContracts` imports no PositronicKit project target. Providers and external integrations do not
   import the runtime. Optional **runtime adapters** (`PKObservable`, `PKSQLiteStorage`, `PKMCP`)
   import `PositronicKit` to implement its host-facing protocols; see [ADR 0015](docs/adr/0015-runtime-adapter-tier.md). `PKUtilities` is not a public product.
-- `PromptJournal` observes assembled prompt state. It does not own semantic Timeline history.
+- The runtime holds no journal state; it keeps only a per-Timeline tier fingerprint for cache
+  accounting. `PromptJournal` is an optional `PKPrompt` feature and does not own semantic Timeline
+  history.
 
 Require an owning issue and an independently justified consumer story before adding a public
 product, protocol, plugin bus, compatibility alias, or migration path. New seams without an

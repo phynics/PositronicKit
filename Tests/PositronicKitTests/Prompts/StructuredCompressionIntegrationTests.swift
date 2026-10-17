@@ -40,31 +40,6 @@ private actor IntegrationCounter {
 
 @Suite("Structured compression integration", .tags(.unit))
 struct StructuredCompressionIntegrationTests {
-    @Test("Changed subtree is prioritized under token pressure")
-    func changedSubtreePrioritized() async throws {
-        let request = LLMPromptRequest(userQuery: "test", chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, requestOriginName: nil)
-
-        let prompt = try await PromptAssembler.assemble(
-            request,
-            options: PromptAssemblyOptions(
-                customSections: {
-                    [
-                        makeCompressionSection(id: "stable_node", priority: 10, estimatedTokens: 300, compression: .summarize, cachePolicy: .stable, text: { "stable text" }),
-                        makeCompressionSection(id: "changed_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: { "changed text" }),
-                    ]
-                },
-                tokenBudget: TokenBudget(maxTokens: 180, reserveForResponse: 0),
-                compressor: IntegrationCompressor(summary: "short"),
-                structuredDiff: StructuredDiffHint(
-                    changedNodePaths: [["prompt", "CompressionMockSection", "TextPrompt", "volatile", "changed_node"]],
-                    stableNodePaths: [["prompt", "CompressionMockSection", "TextPrompt", "stable", "stable_node"]]
-                )
-            )
-        )
-
-        #expect(prompt.sections.map { $0.id } == ["changed_node"])
-    }
-
     @Test("Shared executor re-summarizes repeated builds without a summary cache")
     func cachePreservedAcrossBuilds() async throws {
         struct CountingCompressor: SectionCompressor {

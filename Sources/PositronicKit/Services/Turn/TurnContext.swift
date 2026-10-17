@@ -166,11 +166,11 @@ struct TurnContext {
     /// and the runtime default. Constant across model rounds.
     let promptCaching: PromptCachingPolicy
 
-    /// Shared actor tracking prompt snapshots and append chain growth across turns.
-    /// Created once per `prepareTurn()` call and carried through all model rounds in the loop.
+    /// Shared actor holding process-scoped prompt state for this Timeline: the previous round's
+    /// tier fingerprint, the stepwise history cut, the projection watermark, and the retained
+    /// sibling request. Carried through all model rounds in the loop.
     let promptHistory: TimelinePromptHistory?
     let renderedPrompt: RenderedPrompt?
-    let promptHistoryUpdate: PromptHistoryUpdate?
 
     // Per-turn snapshot (changes each iteration)
     let currentMessages: [LLMMessage]
@@ -209,7 +209,6 @@ struct TurnContext {
         diagnostics: [TurnDiagnostic] = [],
         promptHistory: TimelinePromptHistory? = nil,
         renderedPrompt: RenderedPrompt? = nil,
-        promptHistoryUpdate: PromptHistoryUpdate? = nil,
         currentMessages: [LLMMessage],
         modelRoundIndex: Int,
         promptCacheBreakpoints: [PromptCacheBreakpoint] = [],
@@ -246,7 +245,6 @@ struct TurnContext {
         self.promptCaching = promptCaching
         self.promptHistory = promptHistory
         self.renderedPrompt = renderedPrompt
-        self.promptHistoryUpdate = promptHistoryUpdate
         self.currentMessages = currentMessages
         self.modelRoundIndex = modelRoundIndex
         self.promptCacheBreakpoints = promptCacheBreakpoints
@@ -263,8 +261,7 @@ struct TurnContext {
     func forTurn(
         modelRoundIndex: Int,
         messages: [LLMMessage],
-        renderedPrompt: RenderedPrompt? = nil,
-        promptHistoryUpdate: PromptHistoryUpdate? = nil
+        renderedPrompt: RenderedPrompt? = nil
     ) -> TurnContext {
         TurnContext(
             timelineID: timelineID,
@@ -289,7 +286,6 @@ struct TurnContext {
             diagnostics: diagnostics,
             promptHistory: promptHistory,
             renderedPrompt: renderedPrompt ?? self.renderedPrompt,
-            promptHistoryUpdate: promptHistoryUpdate ?? self.promptHistoryUpdate,
             currentMessages: messages,
             modelRoundIndex: modelRoundIndex,
             promptCacheBreakpoints: promptCacheBreakpoints,

@@ -20,8 +20,6 @@ struct PromptAssemblyOptions: Sendable {
     ///
     /// If omitted, summarize actions degrade to drop behavior in the compression pipeline.
     var compressor: SectionCompressor?
-    /// Optional diff hint that helps the structured planner prioritize changed nodes.
-    var structuredDiff: StructuredDiffHint?
     /// Optional bounded replacement for a covered historical prefix. When present, prompt
     /// assembly renders it as a semi-stable section ahead of the retained `chat_history` tail.
     var historyProjectionReplacement: String?
@@ -34,7 +32,6 @@ struct PromptAssemblyOptions: Sendable {
         tokenBudget: TokenBudget? = nil,
         logger: Logger? = nil,
         compressor: SectionCompressor? = nil,
-        structuredDiff: StructuredDiffHint? = nil,
         historyProjectionReplacement: String? = nil,
         structuredExecutor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) {
@@ -42,7 +39,6 @@ struct PromptAssemblyOptions: Sendable {
         self.tokenBudget = tokenBudget
         self.logger = logger
         self.compressor = compressor
-        self.structuredDiff = structuredDiff
         self.historyProjectionReplacement = historyProjectionReplacement
         self.structuredExecutor = structuredExecutor
     }

@@ -349,7 +349,7 @@ struct ProviderCapabilityMatrixTests {
         #expect(llm.mockClient.generationCaptureHistory.isEmpty, "\(id): low-level provider request occurred")
         #expect(persistence.messages.isEmpty, "\(id): user message was persisted")
         #expect(persistence.timelines.isEmpty, "\(id): timeline admission was persisted")
-        #expect(await kit.turnEngine.dependencies.promptHistoryRegistry.containsHistory(for: timelineID) == false, "\(id): prompt history was created")
+        #expect(await kit.turnEngine.dependencies.timelineManager.containsPromptHistory(for: timelineID) == false, "\(id): prompt history was created")
     }
 
     private func assertRuntimeAudioOutputOrdering(
@@ -397,7 +397,7 @@ struct ProviderCapabilityMatrixTests {
         #expect(llm.mockClient.generationCaptureHistory.isEmpty, "\(id): low-level provider request occurred")
         #expect(persistence.messages.isEmpty, "\(id): user message was persisted")
         #expect(persistence.timelines.isEmpty, "\(id): timeline admission was persisted")
-        #expect(await kit.turnEngine.dependencies.promptHistoryRegistry.containsHistory(for: timelineID) == false, "\(id): prompt history was created")
+        #expect(await kit.turnEngine.dependencies.timelineManager.containsPromptHistory(for: timelineID) == false, "\(id): prompt history was created")
     }
 }
 

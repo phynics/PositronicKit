@@ -357,7 +357,6 @@ public extension PKRuntime {
     convenience init(configuration: Configuration) {
         self.init(
             configuration: configuration,
-            sharedRegistry: TimelinePromptJournals(),
             additionalStages: []
         )
     }

@@ -26,6 +26,16 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **The runtime holds no prompt-journal state (#293).** `TimelinePromptJournals`, the
+  `TimelinePromptHistory` journal diff, append-pressure compaction, and `StructuredDiffHint`
+  plumbing are removed. A changed semi-stable segment is re-rendered in place and reported as one
+  prefix reset. Prefix-reset detection now compares a small internal per-Timeline `TierFingerprint`
+  (an ordered hash per tier and segment ID) against the previous model round, producing
+  `stableTierChanged`, `semiStableSegmentChanged`, `toolsChanged`, `historyTrim`, and
+  `historyProjectionChanged` for `PromptCacheReport` (#280). The first round after launch or after
+  Timeline eviction reports `firstRound`. Per-Timeline prompt state now lives on the Timeline
+  manager, so it still survives `replacingLanguageModel(_:generationParameters:)` without a journal
+  registry. `PromptJournal` and its overlay format remain in the optional `PKPrompt` product.
 - **Tiered prompt wire layout (#277).** The runtime renders provider requests in cache tiers:
   tools, stable system, semi-stable system, prior history, volatile per-Turn context, then the
   query. `TurnContextContributions` no longer sit at byte zero, so per-Turn context changes no

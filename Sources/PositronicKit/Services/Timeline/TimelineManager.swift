@@ -133,10 +133,10 @@ actor TimelineManager {
     /// construction; they don't reach back through `TimelineManager` to get one.
     let workspaceResolver: any WorkspaceResolver
     let runtimeToolPolicy: RuntimeToolPolicy
-    /// Per-timeline prompt-history/journal-diff registry. When non-nil, `evictTimelineFromMemory(id:)`
-    /// and `cleanupStaleTimelines(maxAge:)` evict the corresponding history entry alongside the
-    /// in-memory caches, so deleted/stale timelines don't leak journal-diff state.
-    let promptHistoryRegistry: TimelinePromptJournals?
+    /// Per-Timeline process-scoped prompt state: the previous round's tier fingerprint (#280),
+    /// the stepwise history cut (#277), the projection watermark, and the retained sibling
+    /// request (#281). Created on first use and dropped when the Timeline is evicted.
+    var promptHistoriesByTimelineID: [UUID: TimelinePromptHistory] = [:]
 
     /// The runtime-owned terminal-commit executor. When present, hydration classifies an active
     /// Turn this process does not own so an orphan is interrupted on load rather than only at the
@@ -155,15 +155,13 @@ actor TimelineManager {
     /// bundled local-filesystem default can build one via `WorkspaceResolverFactory.makeDefault`
     /// or use the `workspaceCreator:`-based convenience initializer below.
     ///
-    /// Not `public`: `promptHistoryRegistry`'s type (`TimelinePromptJournals`) is
-    /// package-internal, so this initializer can't be exposed with that parameter present.
+    /// Not `public`: the initializer carries package-internal coordinator seams.
     /// Same-module callers (the facade) use it directly; public callers use the overload below.
     init(
         stores: Stores,
         workspaceProfile: WorkspaceProfile,
         resolver: any WorkspaceResolver,
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        promptHistoryRegistry: TimelinePromptJournals? = nil,
         finalizer: TurnFinalizer? = nil,
         taskRegistry: TimelineTaskRegistry? = nil,
         workspaceExecutionCoordinator: WorkspaceExecutionCoordinator? = nil,
@@ -176,7 +174,6 @@ actor TimelineManager {
         runtimeRepository = stores.runtimeRepository
         self.workspaceProfile = workspaceProfile
         self.runtimeToolPolicy = runtimeToolPolicy
-        self.promptHistoryRegistry = promptHistoryRegistry
         self.finalizer = finalizer
         self.taskRegistry = taskRegistry ?? TimelineTaskRegistry()
         self.workspaceExecutionCoordinator = workspaceExecutionCoordinator ?? WorkspaceExecutionCoordinator()
@@ -192,6 +189,26 @@ actor TimelineManager {
     @discardableResult
     func registerTask(_ task: Task<Void, Never>, turnID: UUID, for timelineID: UUID) async -> Bool {
         await taskRegistry.register(task, turnID: turnID, for: timelineID)
+    }
+
+    /// Returns the process-scoped prompt state for `timelineID`, creating it on first use.
+    ///
+    /// The state holds the previous round's tier fingerprint, the stepwise history cut, the
+    /// projection watermark, and the retained sibling request. It is dropped when the Timeline is
+    /// evicted from memory, so a later Turn starts a fresh fingerprint and reports `firstRound`.
+    func promptHistory(for timelineID: UUID) -> TimelinePromptHistory {
+        if let existing = promptHistoriesByTimelineID[timelineID] {
+            return existing
+        }
+        let created = TimelinePromptHistory()
+        promptHistoriesByTimelineID[timelineID] = created
+        return created
+    }
+
+    /// Package-only inspection used by runtime ordering tests. Unlike `promptHistory(for:)`, this
+    /// does not create an entry as a side effect.
+    package func containsPromptHistory(for timelineID: UUID) -> Bool {
+        promptHistoriesByTimelineID[timelineID] != nil
     }
 
     /// Explicitly cancels an ongoing generation task for a timeline. The entry is removed by

@@ -65,7 +65,6 @@ enum PromptAssembler {
             from: build.sections,
             tokenBudget: options.tokenBudget,
             compressor: options.compressor,
-            structuredDiff: options.structuredDiff,
             structuredExecutor: options.structuredExecutor,
             logger: options.logger
         )
@@ -199,7 +198,6 @@ enum PromptAssembler {
         from resolvedSections: [PromptSection],
         tokenBudget: TokenBudget?,
         compressor: SectionCompressor?,
-        structuredDiff: StructuredDiffHint?,
         structuredExecutor: StructuredCompressionExecutor,
         logger: Logger?
     ) async throws -> AssembledPrompt {
@@ -219,7 +217,6 @@ enum PromptAssembler {
         let compressionResult = try await tokenBudget.result(
             forResolvedSections: resolvedSections,
             compressor: compressor,
-            structuredDiff: structuredDiff,
             nodeMetadata: metadata,
             executor: structuredExecutor
         )

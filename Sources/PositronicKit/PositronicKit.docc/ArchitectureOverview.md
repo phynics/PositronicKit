@@ -42,5 +42,5 @@ for await event in turn.events() {
 7. **PKTool routing**: If the AI calls a tool, the internal router executes runtime-managed tools and
    defers attached tools for host-side execution when needed.
 
-`PromptJournal` observes assembled prompt state for provider prompt reuse. It does not replace
-semantic Timeline history or own Turn durability.
+The runtime keeps an internal per-Timeline `TierFingerprint` for provider prompt reuse. It does
+not replace semantic Timeline history or own Turn durability.

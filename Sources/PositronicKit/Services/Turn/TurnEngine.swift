@@ -128,7 +128,6 @@ struct TurnEngine: Sendable {
         let turnHistoryProjectionSource: any TurnHistoryProjectionSource?
         let agentActivitySink: any AgentActivitySink?
         let turnOutcomeSink: any TurnOutcomeSink?
-        let promptHistoryRegistry: TimelinePromptJournals
         let eventHub: TurnEventHub
         let submissionGate: ExternalToolOutputSubmissionGate
         /// Runtime-owned executor for terminal Turn commits (ADR 0010).
@@ -152,7 +151,6 @@ struct TurnEngine: Sendable {
             turnHistoryProjectionSource: any TurnHistoryProjectionSource? = nil,
             agentActivitySink: any AgentActivitySink? = nil,
             turnOutcomeSink: any TurnOutcomeSink? = nil,
-            promptHistoryRegistry: TimelinePromptJournals? = nil,
             eventHub: TurnEventHub? = nil,
             submissionGate: ExternalToolOutputSubmissionGate? = nil,
             finalizer: TurnFinalizer? = nil,
@@ -171,7 +169,6 @@ struct TurnEngine: Sendable {
             self.turnHistoryProjectionSource = turnHistoryProjectionSource
             self.agentActivitySink = agentActivitySink
             self.turnOutcomeSink = turnOutcomeSink
-            self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptJournals()
             self.eventHub = eventHub ?? TurnEventHub()
             self.submissionGate = submissionGate ?? ExternalToolOutputSubmissionGate()
             self.policy = policy
