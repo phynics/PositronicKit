@@ -281,14 +281,24 @@ public actor OpenAIClient: LLMClientProtocol {
 
     private func fetchResponses(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, promptCache: PromptCacheDirective?) async throws -> LLMStreamChunk {
         struct CompletedResponse: Decodable {
+            struct ContentPart: Decodable {
+                let type: String
+                let text: String?
+                let refusal: String?
+            }
             struct OutputItem: Decodable {
                 let type: String
                 let text: String?
+                let content: [ContentPart]?
+                let status: String?
                 let name: String?
                 let arguments: String?
                 let callId: String?
                 let id: String?
-                enum CodingKeys: String, CodingKey { case type, text, name, arguments; case callId = "call_id"; case id }
+                enum CodingKeys: String, CodingKey { case type, text, content, status, name, arguments; case callId = "call_id"; case id }
+            }
+            struct IncompleteDetails: Decodable {
+                let reason: String?
             }
             struct Usage: Decodable {
                 struct InputTokensDetails: Decodable {
@@ -315,7 +325,13 @@ public actor OpenAIClient: LLMClientProtocol {
             let id: String
             let model: String?
             let output: [OutputItem]?
+            let status: String?
+            let incompleteDetails: IncompleteDetails?
             let usage: Usage?
+            enum CodingKeys: String, CodingKey {
+                case id, model, output, status, usage
+                case incompleteDetails = "incomplete_details"
+            }
         }
         let request = try makeResponsesRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, promptCache: promptCache, stream: false)
         let decoded: CompletedResponse = try await RetryPolicy.retry(maxRetries: maxRetries) {
@@ -325,12 +341,34 @@ public actor OpenAIClient: LLMClientProtocol {
         var toolDeltas: [LLMToolCallDelta] = []
         for (i, item) in (decoded.output ?? []).enumerated() {
             switch item.type {
-            case "message", "output_text": text += item.text ?? ""
+            case "message":
+                for part in item.content ?? [] {
+                    switch part.type {
+                    case "output_text": text += part.text ?? ""
+                    case "refusal": text += part.refusal ?? ""
+                    default: break
+                    }
+                }
+                // Keep accepting the earlier flat shape while decoding the real nested form.
+                if item.content == nil { text += item.text ?? "" }
+            case "output_text": text += item.text ?? ""
             case "function_call": toolDeltas.append(.init(index: i, id: item.callId ?? item.id, function: .init(name: item.name, arguments: item.arguments)))
             default: break
             }
         }
-        return LLMStreamChunk(id: decoded.id, model: decoded.model ?? modelName, choices: [.init(index: 0, delta: .init(role: .assistant, content: text.isEmpty ? nil : text, toolCalls: toolDeltas.isEmpty ? nil : toolDeltas), finishReason: FinishReason.stop.wireValue)], usage: decoded.usage.map {
+        let responseStatus = decoded.status ?? decoded.output?.compactMap(\.status).first
+        let finishReason: String = switch responseStatus {
+        case nil, "completed": FinishReason.stop.wireValue
+        case "incomplete":
+            switch decoded.incompleteDetails?.reason {
+            case "max_output_tokens": FinishReason.length.wireValue
+            case "content_filter": FinishReason.contentFilter.wireValue
+            case let reason?: FinishReason.other(reason).wireValue
+            case nil: FinishReason.other("incomplete").wireValue
+            }
+        case let status?: FinishReason.other(status).wireValue
+        }
+        return LLMStreamChunk(id: decoded.id, model: decoded.model ?? modelName, choices: [.init(index: 0, delta: .init(role: .assistant, content: text.isEmpty ? nil : text, toolCalls: toolDeltas.isEmpty ? nil : toolDeltas), finishReason: finishReason)], usage: decoded.usage.map {
             let writeTokens = $0.cacheWriteTokens ?? $0.inputTokensDetails?.cacheWriteTokens
             let details: LLMTokenUsagePromptDetails? = ($0.inputTokensDetails?.cachedTokens != nil || writeTokens != nil)
                 ? .init(cachedTokens: $0.inputTokensDetails?.cachedTokens, cacheWriteTokens: writeTokens)

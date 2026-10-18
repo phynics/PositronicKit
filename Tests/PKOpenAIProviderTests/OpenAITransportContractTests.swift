@@ -59,6 +59,33 @@ struct OpenAITransportContractTests {
         )
     }
 
+    private func makeResponsesClient(port: UInt16) -> OpenAIClient {
+        OpenAIClient(
+            apiKey: "secret-key",
+            modelName: "gpt-4o",
+            host: "127.0.0.1",
+            port: Int(port),
+            scheme: "http",
+            maxRetries: 0,
+            api: .responses
+        )
+    }
+
+    private func makeRuntime(client: OpenAIClient, port: UInt16) -> PKRuntime {
+        let endpoint = "http://127.0.0.1:\(port)"
+        let configuration = LLMConfiguration.fixture(
+            endpoint: endpoint,
+            modelName: "gpt-4o",
+            apiKey: "secret-key",
+            activeProvider: .openAI
+        )
+        let provider = ConfiguredLLMProvider(configuration: configuration, client: client)
+        return PKRuntime(configuration: .init(
+            provider: provider,
+            persistence: .init(runtimeRepository: InMemoryTimelineRuntimeRepository())
+        ))
+    }
+
     private func waitForRequest(_ middleware: CapturingMiddleware) async {
         for _ in 0..<100 {
             if !middleware.recordedRequests().isEmpty { return }
@@ -345,5 +372,75 @@ data: {bad json
             _ = try await client.chatCompletion(messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil)
         }
         #expect(middleware.recordedRequests().count == 1)
+    }
+
+    @Test("Responses chatCompletion decodes native nested message text")
+    func nativeResponsesChatCompletionDecodesNestedText() async throws {
+        let server = try await TestHTTPServer.start(response: .json(#"{"id":"resp_text","model":"gpt-4o","status":"completed","output":[{"type":"message","id":"msg_text","status":"completed","role":"assistant","content":[{"type":"output_text","text":"hello from Responses","annotations":[] }]}]}"#))
+        defer { server.stop() }
+
+        let client = makeResponsesClient(port: server.port)
+        let response = try await client.chatCompletion(
+            messages: [.init(role: .user, content: "hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil,
+            responseModalities: [.text],
+            audioOutput: nil
+        )
+
+        #expect(response.id == "resp_text")
+        #expect(response.choices.first?.delta.content == "hello from Responses")
+        #expect(response.choices.first?.finishReason == "stop")
+    }
+
+    @Test("requestResponse preserves nested Responses text, JSON, refusal, and status")
+    func nativeResponsesRequestResponseDecodesNestedContent() async throws {
+        let server = try await TestHTTPServer.startSequential(responses: [
+            .json(#"{"id":"resp_text","model":"gpt-4o","status":"completed","output":[{"type":"message","id":"msg_text","status":"completed","role":"assistant","content":[{"type":"output_text","text":"native response text","annotations":[]}]}]}"#),
+            .json(#"{"id":"resp_parts","model":"gpt-4o","status":"completed","output":[{"type":"message","id":"msg_parts","status":"completed","role":"assistant","content":[{"type":"output_text","text":"multiple ","annotations":[]},{"type":"output_text","text":"content parts","annotations":[]}]}]}"#),
+            .json(#"{"id":"resp_flat","model":"gpt-4o","output":[{"type":"output_text","text":"legacy flat text"}]}"#),
+            .json(#"{"id":"resp_json","model":"gpt-4o","status":"completed","output":[{"type":"message","id":"msg_json","status":"completed","role":"assistant","content":[{"type":"output_text","text":"{\"tags\":[\"swift\",\"agents\"]}","annotations":[]}]}]}"#),
+            .json(#"{"id":"resp_refusal","model":"gpt-4o","status":"completed","output":[{"type":"message","id":"msg_refusal","status":"completed","role":"assistant","content":[{"type":"refusal","refusal":"I cannot help with that request."}]}]}"#),
+            .json(#"{"id":"resp_incomplete","model":"gpt-4o","status":"incomplete","incomplete_details":{"reason":"max_output_tokens"},"output":[{"type":"message","id":"msg_incomplete","status":"incomplete","role":"assistant","content":[{"type":"output_text","text":"partial answer","annotations":[]}]}]}"#),
+            .json(#"{"id":"resp_filtered","model":"gpt-4o","status":"incomplete","incomplete_details":{"reason":"content_filter"},"output":[{"type":"message","id":"msg_filtered","status":"incomplete","role":"assistant","content":[{"type":"output_text","text":"filtered answer","annotations":[]}]}]}"#),
+        ])
+        defer { server.stop() }
+
+        let client = makeResponsesClient(port: server.port)
+        let runtime = makeRuntime(client: client, port: server.port)
+
+        let textChunks = try await runtime.model.stream("say hello", transport: .requestResponse).collect()
+        #expect(textChunks.count == 1)
+        #expect(textChunks.first?.choices.first?.delta.content == "native response text")
+
+        let partChunks = try await runtime.model.stream("combine parts", transport: .requestResponse).collect()
+        #expect(partChunks.first?.choices.first?.delta.content == "multiple content parts")
+
+        let flatChunks = try await runtime.model.stream("legacy format", transport: .requestResponse).collect()
+        #expect(flatChunks.first?.choices.first?.delta.content == "legacy flat text")
+
+        let schemaRequest = StructuredOutputRequest.jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
+        let json = try await runtime.model.generate(
+            "extract tags",
+            structuredOutput: schemaRequest,
+            transport: .requestResponse
+        )
+        #expect(json == #"{"tags":["swift","agents"]}"#)
+        let decoded = try StructuredOutputDecoder.decode([String: [String]].self, from: json)
+        #expect(decoded["tags"] == ["swift", "agents"])
+
+        let refusalChunks = try await runtime.model.stream("decline", transport: .requestResponse).collect()
+        #expect(refusalChunks.first?.choices.first?.delta.content == "I cannot help with that request.")
+        #expect(refusalChunks.first?.choices.first?.finishReason == "stop")
+
+        let incompleteChunks = try await runtime.model.stream("continue", transport: .requestResponse).collect()
+        #expect(incompleteChunks.first?.choices.first?.delta.content == "partial answer")
+        #expect(incompleteChunks.first?.choices.first?.finishReason == "length")
+
+        let filteredChunks = try await runtime.model.stream("content filter", transport: .requestResponse).collect()
+        #expect(filteredChunks.first?.choices.first?.delta.content == "filtered answer")
+        #expect(filteredChunks.first?.choices.first?.finishReason == "content_filter")
     }
 }
