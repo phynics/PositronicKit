@@ -56,6 +56,11 @@ for tagged releases beginning with `1.0.0`.
 - Two Workspaces that declare the same custom tool ID stay independently routable. The registry
   no longer lets dictionary order overwrite one declaration, so `call_tool` rejects an implicit
   ambiguous selection and `at` routes to the named Workspace.
+- `PKMCP` builds for iOS again. `MCPConnection` referenced `Process`, which is unavailable on iOS,
+  tvOS, watchOS, and visionOS, outside the platform guard that already rejects the stdio transport
+  there. The stored process handle and its termination now sit behind that same guard, so the new
+  all-products iOS lane (#316) can compile the module. The stdio transport still reports
+  `unsupportedTransport` on those platforms.
 
 ### Changed
 

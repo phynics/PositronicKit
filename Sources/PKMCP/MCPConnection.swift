@@ -18,7 +18,9 @@ actor MCPConnection {
     private let transportFactory: MCPTransportFactory?
 
     private var client: MCP.Client?
+    #if !(os(iOS) || os(tvOS) || os(watchOS) || os(visionOS))
     private var process: Process?
+    #endif
     private var inputPipe: Pipe?
     private var outputPipe: Pipe?
     private var cachedTools: [ToolReference]?
@@ -223,10 +225,12 @@ actor MCPConnection {
     }
 
     private func terminateProcess() {
+        #if !(os(iOS) || os(tvOS) || os(watchOS) || os(visionOS))
         if let process, process.isRunning {
             process.terminate()
         }
         process = nil
+        #endif
         try? inputPipe?.fileHandleForWriting.close()
         try? outputPipe?.fileHandleForReading.close()
         inputPipe = nil
