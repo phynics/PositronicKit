@@ -342,6 +342,7 @@ let package = Package(
                 "PKTestSupport",
                 "PositronicKit",
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "JSONSchema", package: "swift-json-schema"),
             ],
             path: "Tests/PKOpenAIProviderTests",
             swiftSettings: approachableConcurrency
