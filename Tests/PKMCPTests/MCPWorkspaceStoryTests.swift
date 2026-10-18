@@ -83,7 +83,7 @@ struct MCPWorkspaceStoryTests {
         #expect(calls.first?.arguments?["text"]?.stringValue == "hello")
         #expect(events.contains { event in
             if case let .completion(.toolExecution(id, status)) = event,
-               case let .success(result) = status
+               case let .workspaceSucceeded(result, _, _) = status
             {
                 return id == "call-1" && result.output == "echo:hello"
             }

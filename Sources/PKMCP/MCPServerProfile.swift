@@ -1,5 +1,6 @@
 import Foundation
 import PKContracts
+import PositronicKit
 
 /// How a profile's transport is shared across the session Workspaces that use it.
 public enum MCPSessionScope: String, Codable, Sendable, Hashable, CaseIterable {

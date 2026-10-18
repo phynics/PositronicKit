@@ -22,7 +22,7 @@ enum MCPToolMapping {
         }
 
         let schema = anyCodable(tool.inputSchema).asDictionary ?? [:]
-        let definition = WorkspaceToolDefinition(
+        let definition = ToolDefinition(
             id: tool.name,
             name: tool.title ?? tool.name,
             description: tool.description ?? "",

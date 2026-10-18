@@ -1,5 +1,6 @@
 import Foundation
 @testable import PKContracts
+import PositronicKit
 import Testing
 
 /// Pins the exact JSON wire format of every `TurnEvent` payload shape, so a change to how the
@@ -27,6 +28,77 @@ struct TurnEventWireFormatTests {
         try Self.assertWireFormat(
             TurnEvent.DeltaEvent.toolExecution(toolCallID: "c", status: .executionError("e")),
             #"{"toolExecution":{"status":{"executionError":{"_0":"e"}},"toolCallId":"c"}}"#
+        )
+        try Self.assertWireFormat(
+            TurnEvent.DeltaEvent.toolExecution(toolCallID: "c", status: .success(.success("ok"))),
+            #"{"toolExecution":{"status":{"success":{"_0":{"isSuccess":true,"output":"ok"}}},"toolCallId":"c"}}"#
+        )
+        let reference = ToolReference.known("tool-1")
+        try Self.assertWireFormat(
+            TurnEvent.DeltaEvent.toolExecution(
+                toolCallID: "c",
+                status: .failed(reference: reference, error: "e")
+            ),
+            #"{"toolExecution":{"status":{"failed":{"error":"e","reference":{"id":"tool-1","type":"known"}}},"toolCallId":"c"}}"#
+        )
+        let workspaceID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
+        try Self.assertWireFormat(
+            TurnEvent.DeltaEvent.toolExecution(
+                toolCallID: "c",
+                status: .workspaceFailed(
+                    reference: reference,
+                    error: "e",
+                    workspaceID: workspaceID,
+                    routing: .explicit
+                )
+            ),
+            #"{"toolExecution":{"status":{"workspaceFailed":{"error":"e","reference":{"id":"tool-1","type":"known"},"routing":"explicit","workspaceID":"00000000-0000-0000-0000-000000000001"}},"toolCallId":"c"}}"#
+        )
+        try Self.assertWireFormat(
+            TurnEvent.DeltaEvent.toolExecution(
+                toolCallID: "c",
+                status: .workspaceSucceeded(
+                    result: .success("ok"),
+                    workspaceID: workspaceID,
+                    routing: .explicit
+                )
+            ),
+            #"{"toolExecution":{"status":{"success":{"_0":{"isSuccess":true,"output":"ok","workspaceID":"00000000-0000-0000-0000-000000000001","workspaceRouting":"explicit"}}},"toolCallId":"c"}}"#
+        )
+        let definition = ToolDefinition(
+            id: "tool-1",
+            name: "Read file",
+            description: "Reads one file",
+            parametersSchema: ["type": .string("object")],
+            usageExample: "read_file(path: \"README.md\")",
+            requiresPermission: true,
+            contextInjection: "Read the requested file."
+        )
+        try Self.assertWireFormat(
+            TurnEvent.DeltaEvent.toolExecution(
+                toolCallID: "c",
+                status: .attempting(name: "read_file", reference: .custom(definition))
+            ),
+            #"{"toolExecution":{"status":{"attempting":{"name":"read_file","reference":{"definition":{"contextInjection":"Read the requested file.","description":"Reads one file","id":"tool-1","name":"Read file","parametersSchema":{"type":"object"},"requiresPermission":true,"usageExample":"read_file(path: \"README.md\")"},"type":"custom"}}},"toolCallId":"c"}}"#
+        )
+        try Self.assertWireFormat(
+            TurnEvent.DeltaEvent.toolExecution(
+                toolCallID: "c",
+                status: .persistenceFailed(reference: reference, error: "e")
+            ),
+            #"{"toolExecution":{"status":{"persistenceFailed":{"error":"e","reference":{"id":"tool-1","type":"known"}}},"toolCallId":"c"}}"#
+        )
+        try Self.assertWireFormat(
+            TurnEvent.DeltaEvent.toolExecution(
+                toolCallID: "c",
+                status: .workspacePersistenceFailed(
+                    reference: reference,
+                    error: "e",
+                    workspaceID: workspaceID,
+                    routing: .implicit
+                )
+            ),
+            #"{"toolExecution":{"status":{"workspacePersistenceFailed":{"error":"e","reference":{"id":"tool-1","type":"known"},"routing":"implicit","workspaceID":"00000000-0000-0000-0000-000000000001"}},"toolCallId":"c"}}"#
         )
     }
 

@@ -24,7 +24,7 @@ public struct ToolParameterSchema: Sendable {
 
 extension Schema {
     /// Encodes this JSON Schema to the `[String: AnyCodable]` wire/transfer form used by
-    /// `WorkspaceToolDefinition` and by dynamic schema introspection (e.g. the FoundationModels
+    /// `ToolDefinition` and by dynamic schema introspection (e.g. the FoundationModels
     /// bridge). Round-trips through `JSONEncoder`/`JSONDecoder` since `Schema` is `Codable`.
     /// Returns an empty object schema dictionary on encode/decode failure.
     public var asDictionary: [String: AnyCodable] {
@@ -37,7 +37,7 @@ extension Schema {
     }
 
     /// Builds a `Schema` from a `[String: AnyCodable]` JSON-Schema-shaped dictionary (the
-    /// `WorkspaceToolDefinition` transfer form). Falls back to an empty object schema on failure.
+    /// `ToolDefinition` transfer form). Falls back to an empty object schema on failure.
     public init(_ dictionary: [String: AnyCodable]) {
         if let data = try? JSONEncoder().encode(dictionary),
            let decoded = try? JSONDecoder().decode(Schema.self, from: data)

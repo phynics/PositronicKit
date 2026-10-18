@@ -3,6 +3,7 @@ import struct JSONSchema.Schema
 import JSONSchemaBuilder
 @testable import PKContracts
 import PKUtilities
+import PositronicKit
 import Testing
 
 /// Coverage for `LLMConfiguration.validate()` and `ConfigurationError` — the validation

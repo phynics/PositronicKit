@@ -1,6 +1,7 @@
 import Testing
 @testable import PKContracts
 import Foundation
+import PositronicKit
 
 @Suite final class AgentTemplateModelTests {
     private func assertCodable<T: Codable & Equatable>(_ value: T) throws {

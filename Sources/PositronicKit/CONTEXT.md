@@ -19,10 +19,33 @@ One provider interaction within a Turn. PKTool continuation creates another Mode
 Turn.
 _Avoid_: turn count, nested Turn
 
+**Turn Identity**:
+The Turn UUID, optional Request ID, and model-round index that identify one Turn and its current
+model interaction.
+_Avoid_: Timeline identity, message identity
+
+**Turn Event**:
+A runtime notification about streamed output, tool activity, errors, or Turn completion. Events are
+not Timeline history.
+_Avoid_: durable message, Timeline record
+
+**Turn Snapshot**:
+A serializable diagnostic projection of one Turn's context, model output, tool activity, and
+performance metrics.
+_Avoid_: Timeline history, live Turn state
+
+**Turn Context Snapshot**:
+The ordered prompt messages assembled for a Turn, stored as a serializable value.
+_Avoid_: live execution context, Agent context snapshot
+
 **Agent**:
 A persistent identity and continuity entity that participates through Timelines. An Agent is not an
 independently callable execution target.
 _Avoid_: AgentInstance, agent run
+
+**Agent Template**:
+Creation-time instructions and optional workspace-file seeds used to create an Agent.
+_Avoid_: live Agent, Agent context source
 
 **Agent Context Source**:
 The authoritative replaceable supplier of typed Agent continuity captured for a managed Turn.
@@ -39,6 +62,10 @@ The durable active, retiring, or retired state that controls managed Turn admiss
 drain-to-purge lifecycle of an Agent’s primary resources.
 _Avoid_: Agent deletion as normal shutdown
 
+**Request Origin**:
+A registered requester identity known to the runtime, with a host name, display name, and platform.
+_Avoid_: tool origin, Workspace provider
+
 **Workspace**:
 A host-owned execution and storage boundary. Ordinary Workspaces bind exclusively to Timelines;
 an Agent’s primary Workspace is permanently Agent-owned.
@@ -48,6 +75,19 @@ _Avoid_: tool bag, workspace array
 The durable identity and metadata snapshot for a Workspace. It is the runtime’s persisted model;
 it does not imply that the workspace is local, filesystem-backed, or currently connected.
 _Avoid_: live workspace, workspace implementation
+
+**Workspace URI**:
+A parsed address for a Workspace in a host-defined scheme. It identifies the resource without
+claiming that the resource is local or reachable.
+_Avoid_: filesystem path, Workspace reference
+
+**Workspace Tool Candidate**:
+An authorized Workspace tool captured for one Turn's ambiguity correction and dispatch.
+_Avoid_: available tool list, live Workspace catalog
+
+**Workspace Tool Routing**:
+Whether the runtime selected a Workspace explicitly from the request or implicitly from one match.
+_Avoid_: distributed routing, provider routing
 
 **WorkspaceProvider**:
 A live host adapter for a `WorkspaceReference`. It supplies reachability and may opt into
@@ -94,6 +134,26 @@ _Avoid_: execution ID, message ID
 The terminal truth for a Turn: completed, failed, cancelled, or interrupted, with any durable
 diagnostic or terminal handle associated with that result.
 _Avoid_: stream finished, best-effort completion
+
+**Turn Diagnostic**:
+Host-visible metadata for a dependency that was unavailable during Turn preparation.
+_Avoid_: log message, Turn outcome
+
+**Sidecar Directive**:
+An optional structured-output field requested with a Turn, including its schema and delivery policy.
+_Avoid_: model tool call, provider tool
+
+**Sidecar Delta**:
+A streamed update for one Sidecar Directive field.
+_Avoid_: Turn text delta, tool-call delta
+
+**Sidecar Result**:
+The parsed value, decline, or failure for one Sidecar Directive.
+_Avoid_: Tool Result, Turn outcome
+
+**Sidecar Completion**:
+The identified set of Sidecar Results committed for one model round or terminal Turn.
+_Avoid_: Turn completion event, Timeline message
 
 **Timeline Runtime Repository**:
 The single transactional owner of Timeline metadata, append-only history, Turn admission with its

@@ -177,8 +177,9 @@ the downstream audit and migration boundary.
 
 ## Module boundaries
 
-- `PKContracts` owns runtime-neutral provider, tool, structured-output, and diagnostic
-  contracts. It imports no PositronicKit project target.
+- `PKContracts` owns runtime-neutral model messages, tool definitions/calls/results, embeddings,
+  structured output, and diagnostics. It imports no PositronicKit project target. Turn, Agent,
+  Workspace, and Sidecar entities and events live in the runtime module.
 - `PKPrompt` is the optional prompt authoring product: the `@PromptBuilder` DSL, composition,
   assembly, and journaling. It depends only on `PKContracts` and the package-internal
   `PKUtilities` prompt core, and it renders `[LLMMessage]` directly. The runtime never imports it.
@@ -186,8 +187,9 @@ the downstream audit and migration boundary.
   token budgeting, compression, and journal-support values that `PKPrompt` uses, and it is not a
   public product. The runtime shares only the neutral section model; it does not call the
   compression machinery.
-- `PositronicKit` owns domain state, orchestration, durability, Workspace dispatch, and an
-  internal tiered `PromptLayout` that it renders into provider requests. The layout emits tools,
+- `PositronicKit` owns domain state, public Turn/Agent/Workspace/Sidecar values, orchestration,
+  durability, Workspace dispatch, and an internal tiered `PromptLayout` that it renders into
+  provider requests. The layout emits tools,
   then stable and semi-stable system tiers, prior history, volatile per-Turn context, and the
   current query last, and it derives cache breakpoints at the stable, semi-stable, and history
   boundaries (plus a per-round tool-loop boundary) so changing volatile context cannot reset the

@@ -95,7 +95,7 @@ final class TimelineToolRegistryTests {
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), location: .runtime, originID: nil)
 
-        let def = WorkspaceToolDefinition(
+        let def = ToolDefinition(
             id: "wsTool1",
             name: "wsTool1",
             description: "A workspace tool",
@@ -130,7 +130,7 @@ final class TimelineToolRegistryTests {
 
         // Workspace tool resolution
         let workspaceId = UUID()
-        let def = WorkspaceToolDefinition(id: "wsTool", name: "wsTool", description: "WS", parametersSchema: [:])
+        let def = ToolDefinition(id: "wsTool", name: "wsTool", description: "WS", parametersSchema: [:])
         let mockWS = try MockWorkspace(
             id: workspaceId,
             reference: WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), location: .runtime, originID: nil),
@@ -157,7 +157,7 @@ final class TimelineToolRegistryTests {
         let uri = try #require(WorkspaceURI(parsing: "pk://test-workspace-prov"))
         let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, location: .runtime, originID: nil)
 
-        let def = WorkspaceToolDefinition(id: "provTool", name: "provTool", description: "prov", parametersSchema: [:])
+        let def = ToolDefinition(id: "provTool", name: "provTool", description: "prov", parametersSchema: [:])
         let mockWS = MockWorkspace(id: workspaceId, reference: workspaceRef, toolsToReturn: [.custom(def)])
 
         await manager.registerWorkspace(mockWS)
@@ -283,7 +283,7 @@ final class TimelineToolRegistryTests {
             location: .runtime,
             originID: nil
         )
-        let def = WorkspaceToolDefinition(
+        let def = ToolDefinition(
             id: "ws-omega",
             name: "Omega",
             description: "Workspace Omega",
@@ -322,8 +322,8 @@ final class TimelineToolRegistryTests {
         let refA = WorkspaceReference(id: wsA, uri: try #require(WorkspaceURI(parsing: "pk://ws-a")), location: .runtime, originID: nil)
         let refB = WorkspaceReference(id: wsB, uri: try #require(WorkspaceURI(parsing: "pk://ws-b")), location: .runtime, originID: nil)
 
-        let defA = WorkspaceToolDefinition(id: "toolA", name: "toolA", description: "A", parametersSchema: [:])
-        let defB = WorkspaceToolDefinition(id: "toolB", name: "toolB", description: "B", parametersSchema: [:])
+        let defA = ToolDefinition(id: "toolA", name: "toolA", description: "A", parametersSchema: [:])
+        let defB = ToolDefinition(id: "toolB", name: "toolB", description: "B", parametersSchema: [:])
 
         await manager.registerWorkspace(MockWorkspace(id: wsA, reference: refA, toolsToReturn: [.custom(defA)]))
         await manager.registerWorkspace(MockWorkspace(id: wsB, reference: refB, toolsToReturn: [.custom(defB)]))
@@ -381,8 +381,8 @@ final class TimelineToolRegistryTests {
         let refA = WorkspaceReference(id: wsA, uri: try #require(WorkspaceURI(parsing: "pk://ws-a")), location: .runtime, originID: nil)
         let refB = WorkspaceReference(id: wsB, uri: try #require(WorkspaceURI(parsing: "pk://ws-b")), location: .runtime, originID: nil)
 
-        let defA = WorkspaceToolDefinition(id: "dup", name: "Dup A", description: "A", parametersSchema: [:])
-        let defB = WorkspaceToolDefinition(id: "dup", name: "Dup B", description: "B", parametersSchema: [:])
+        let defA = ToolDefinition(id: "dup", name: "Dup A", description: "A", parametersSchema: [:])
+        let defB = ToolDefinition(id: "dup", name: "Dup B", description: "B", parametersSchema: [:])
 
         await manager.registerWorkspace(MockWorkspace(id: wsA, reference: refA, toolsToReturn: [.custom(defA)]))
         await manager.registerWorkspace(MockWorkspace(id: wsB, reference: refB, toolsToReturn: [.custom(defB)]))

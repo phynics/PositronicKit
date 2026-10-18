@@ -1,6 +1,7 @@
 import Testing
 @testable import PKContracts
 import Foundation
+import PositronicKit
 
 @Suite final class WorkspaceReferenceTests {
     private func assertCodable<T: Codable>(_ value: T) throws {

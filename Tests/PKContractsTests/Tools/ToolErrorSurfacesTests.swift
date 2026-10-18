@@ -97,19 +97,17 @@ final class ToolErrorSurfacesTests {
         let firstID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
         let secondID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000002"))
         let candidates = [
-            WorkspaceToolCandidate(
+            ToolError.AmbiguousWorkspaceCandidate(
                 workspaceID: firstID,
                 label: "primary",
-                toolID: "read_file",
                 toolName: "Read file",
                 description: "Reads a file",
                 parametersSchema: ["type": .string("object")],
                 isPrimary: true
             ),
-            WorkspaceToolCandidate(
+            ToolError.AmbiguousWorkspaceCandidate(
                 workspaceID: secondID,
                 label: "project",
-                toolID: "read_file",
                 toolName: "Read file",
                 description: "Reads a project file",
                 parametersSchema: ["type": .string("object")]

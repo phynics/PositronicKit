@@ -6,11 +6,11 @@ relationships between them are translation boundaries, not shared ownership.
 ## Contexts
 
 - [PositronicKit runtime](Sources/PositronicKit/CONTEXT.md) — durable Timelines, Turns, Agents,
-  Workspaces, and execution authority.
+  Workspaces, Sidecars, and execution authority.
 - [PKPrompt](Sources/PKPrompt/CONTEXT.md) — optional prompt authoring: composition, assembly,
   rendering, and journaling.
-- [PKContracts](Sources/PKContracts/CONTEXT.md) — provider-neutral messages, model clients,
-  tools, structured output, and diagnostics.
+- [PKContracts](Sources/PKContracts/CONTEXT.md) — provider-neutral model messages, tool
+  definitions, calls and results, embedding contracts, structured output, and diagnostics.
 
 ## Relationships
 
@@ -20,9 +20,9 @@ relationships between them are translation boundaries, not shared ownership.
 - **PKPrompt → PKUtilities**: the optional authoring product consumes the shared prompt section
   model, token budgeting, compression, and journal-support values from the package-internal
   `PKUtilities` target and re-exports them.
-- **PositronicKit → PKContracts + PKUtilities**: the runtime composes model contracts and its own
-  internal tiered `PromptLayout` into Turns; it does not import `PKPrompt` and does not redefine
-  either vocabulary.
+- **PositronicKit → PKContracts + PKUtilities**: the runtime owns Turn, Agent, Workspace, and
+  Sidecar values. It composes the model and tool contracts with its internal tiered `PromptLayout`.
+  It does not import `PKPrompt` or redefine the leaf vocabulary.
 - **Observation / examples / integrations → PositronicKit**: outward-facing layers consume the
   runtime capabilities without owning orchestration internals.
 - **Gnostic adapter → PositronicKit**: Gnostic’s downstream domain term maps to a PositronicKit
@@ -36,4 +36,5 @@ exact glossary `_Avoid_` line; issue #73’s semantic checker must treat that li
 exception.
 
 PKContracts is a leaf context: it owns no Timeline, Turn, Agent, Workspace binding, repository, or
-orchestration concept.
+orchestration concept. Runtime events, snapshots, and entities live in `PositronicKit`, even when
+their payloads use `PKContracts` values.

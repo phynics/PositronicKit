@@ -6,7 +6,7 @@ import PKUtilities
 /// Wraps a tool from a workspace tool provider to conform to the PKTool protocol.
 public struct WorkspaceToolWrapper: PKTool, Sendable {
     public let workspace: any WorkspaceToolProvider
-    public let definition: WorkspaceToolDefinition
+    public let definition: ToolDefinition
 
     public var callName: String { definition.id }
     public var name: String { definition.name }
@@ -15,12 +15,12 @@ public struct WorkspaceToolWrapper: PKTool, Sendable {
     public var usageExample: String? { definition.usageExample }
 
     public var parametersSchema: Schema {
-        // WorkspaceToolDefinition stores the wire/transfer `[String: AnyCodable]` form; rebuild
+        // ToolDefinition stores the wire/transfer `[String: AnyCodable]` form; rebuild
         // the typed `Schema` the PKTool protocol now expects.
         Schema(definition.parametersSchema)
     }
 
-    public init(workspace: any WorkspaceToolProvider, definition: WorkspaceToolDefinition) {
+    public init(workspace: any WorkspaceToolProvider, definition: ToolDefinition) {
         self.workspace = workspace
         self.definition = definition
     }

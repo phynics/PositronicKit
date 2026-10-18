@@ -24,7 +24,7 @@ import Foundation
     @Test
 
     func testToolReferenceWithWorkspace() throws {
-        let def = WorkspaceToolDefinition(
+        let def = ToolDefinition(
             id: "list-files",
             name: "List Files",
             description: "Lists workspace files"

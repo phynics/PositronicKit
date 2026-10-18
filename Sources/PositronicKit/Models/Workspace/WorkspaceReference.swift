@@ -1,4 +1,5 @@
 import Foundation
+import PKContracts
 
 /// A workspace reference defines the metadata and location of a workspace
 public struct WorkspaceReference: Codable, Sendable, Identifiable {

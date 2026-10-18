@@ -44,7 +44,7 @@ struct WorkspaceToolWrapperCoverageTests {
     @Test("wrapper delegates callName, name, description to the definition")
     func delegatesMetadata() async throws {
         let workspace = StubWorkspace()
-        let definition = WorkspaceToolDefinition(
+        let definition = ToolDefinition(
             id: "custom_tool",
             name: "Custom Tool",
             description: "A custom tool",
@@ -64,7 +64,7 @@ struct WorkspaceToolWrapperCoverageTests {
     @Test("canExecute delegates to workspace.isHealthy")
     func canExecuteDelegatesToHealthCheck() async throws {
         let healthy = StubWorkspace(healthy: true)
-        let definition = WorkspaceToolDefinition(
+        let definition = ToolDefinition(
             id: "tool", name: "T", description: "D",
             parametersSchema: [:], requiresPermission: false
         )
@@ -79,7 +79,7 @@ struct WorkspaceToolWrapperCoverageTests {
     @Test("execute delegates to workspace and returns success on success")
     func executeReturnsSuccess() async throws {
         let workspace = StubWorkspace(toolResult: .success("done"))
-        let definition = WorkspaceToolDefinition(
+        let definition = ToolDefinition(
             id: "my_tool", name: "My PKTool", description: "Does things",
             parametersSchema: [:], requiresPermission: false
         )
@@ -92,7 +92,7 @@ struct WorkspaceToolWrapperCoverageTests {
     @Test("execute returns failure when workspace returns failure")
     func executeReturnsFailure() async throws {
         let workspace = StubWorkspace(toolResult: .failure("boom"))
-        let definition = WorkspaceToolDefinition(
+        let definition = ToolDefinition(
             id: "my_tool", name: "My PKTool", description: "Does things",
             parametersSchema: [:], requiresPermission: false
         )

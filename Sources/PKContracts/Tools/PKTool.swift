@@ -139,9 +139,9 @@ public protocol PKTool: Sendable, PromptFormattable {
 
     /// JSON Schema describing the parameters this tool accepts.
     ///
-    /// Typed as `JSONSchema.Schema` — the same surface used by `LLMToolDefinition.parameters`
-    /// and `SidecarDirective.schema` — so a tool's schema flows to the LLM without an
-    /// encode/decode round-trip. Use ``ToolParameterSchema`` to build this in a type-safe way:
+    /// Typed as `JSONSchema.Schema`, matching `LLMToolDefinition.parameters`, so a tool's
+    /// schema flows to the LLM without an encode/decode round-trip. Use ``ToolParameterSchema``
+    /// to build this in a type-safe way:
     /// ```swift
     /// var parametersSchema: Schema {
     ///     ToolParameterSchema.object {

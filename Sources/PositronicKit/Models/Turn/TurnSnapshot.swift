@@ -1,4 +1,5 @@
 import Foundation
+import PKContracts
 
 /// Record of a tool call made during a chat exchange
 public struct ToolCallRecord: Codable, Sendable, Equatable {
