@@ -219,7 +219,7 @@ private struct PromptLayoutProjection {
             case .userQuery:
                 if userQueryContent == nil {
                     switch segment.content {
-                    case let .text(content) where !content.text.isEmpty:
+                    case let .text(content) where content.hasProjectableContent:
                         userQueryContent = content
                     case .text, .messages:
                         break
@@ -435,5 +435,15 @@ private struct PromptLayoutProjection {
         let hiddenInstruction = "\n[System: This is a system message hidden from user; now respond to the user about this result.]"
         let responseContent = "<tool_response>\n\(msg.content)\n</tool_response>\(hiddenInstruction)"
         return LLMMessage(role: .user, content: responseContent)
+    }
+}
+
+private extension MessageContent {
+    /// Whether the content carries at least one projectable prompt part.
+    ///
+    /// Mirrors Turn admission: image-only and audio-only content is projectable even though its
+    /// text projection is empty. Empty parts, and empty text-only content, contribute nothing.
+    var hasProjectableContent: Bool {
+        !parts.isEmpty && (!isTextOnly || !text.isEmpty)
     }
 }

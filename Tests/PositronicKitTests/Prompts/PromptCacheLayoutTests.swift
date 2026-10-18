@@ -28,10 +28,11 @@ struct PromptCacheLayoutTests {
         turn: Int,
         history: [Message],
         tools: [AnyTool],
-        timelineTitle: String = "Stable Timeline"
+        timelineTitle: String = "Stable Timeline",
+        userContent: MessageContent? = nil
     ) async throws -> PromptWireLayout {
         let request = LLMPromptRequest(
-            userContent: MessageContent("turn \(turn) question"),
+            userContent: userContent ?? MessageContent("turn \(turn) question"),
             contextContributions: [
                 try TurnContextContribution(namespace: "host", key: "volatile", text: "dynamic-\(turn)"),
             ],
@@ -69,6 +70,60 @@ struct PromptCacheLayoutTests {
         #expect(!wire.messages[1].content.contains("dynamic-1"))
         #expect(wire.messages[4].content.contains("dynamic-1"))
         #expect(wire.messages[5].content == "turn 1 question")
+    }
+
+    @Test("an image-only query survives layout with its parts")
+    func imageOnlyQuerySurvivesLayout() async throws {
+        let image = ImageContent(data: Data([0x01, 0x02]), mediaType: "image/png", detail: .high, estimatedTokens: 42)
+        let content = MessageContent(parts: [.image(image)])
+        let wire = try await assembled(turn: 1, history: [], tools: [], userContent: content)
+
+        #expect(wire.messages.last?.role == .user)
+        #expect(wire.messages.last?.messageContent == content)
+        #expect(wire.messages.last?.content.isEmpty == true)
+    }
+
+    @Test("an audio-only query survives layout with its parts")
+    func audioOnlyQuerySurvivesLayout() async throws {
+        let audio = AudioContent(data: Data([0x03, 0x04]), format: .wav)
+        let content = MessageContent(parts: [.audio(audio)])
+        let wire = try await assembled(turn: 1, history: [], tools: [], userContent: content)
+
+        #expect(wire.messages.last?.role == .user)
+        #expect(wire.messages.last?.messageContent == content)
+    }
+
+    @Test("a mixed query keeps text and media parts in order")
+    func mixedQueryPreservesPartOrder() async throws {
+        let image = ImageContent(data: Data([0x05]), mediaType: "image/png")
+        let content = MessageContent(parts: [.text("look "), .image(image), .text("now")])
+        let wire = try await assembled(turn: 1, history: [], tools: [], userContent: content)
+
+        #expect(wire.messages.last?.messageContent.parts == content.parts)
+        #expect(wire.messages.last?.content == "look now")
+    }
+
+    @Test("empty text-only and empty-part query segments stay dropped")
+    func emptyQuerySegmentsAreDropped() {
+        func layout(_ content: MessageContent) -> PromptLayout {
+            PromptLayout(
+                segments: [
+                    LayoutSegment(
+                        id: "user_query",
+                        role: .userQuery,
+                        tier: .query,
+                        content: .text(content),
+                        estimatedTokens: content.estimatedTokens
+                    ),
+                ],
+                string: "",
+                sectionsByID: [:]
+            )
+        }
+
+        #expect(layout(MessageContent(parts: [.text("")])).renderMessages().isEmpty)
+        #expect(layout(MessageContent(parts: [])).renderMessages().isEmpty)
+        #expect(layout(MessageContent(parts: [.text("")])).renderTimelineMessages().isEmpty)
     }
 
     @Test("breakpoints land on tier boundaries and never exceed four")
