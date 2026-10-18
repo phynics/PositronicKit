@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchema
 import JSONSchemaBuilder
 import PKAnthropicProvider
 import PKAgentFiles
@@ -209,3 +210,94 @@ let loggingConfiguredKit = PKRuntime(configuration: .init(
     logging: customLoggingConfiguration
 ))
 _ = loggingConfiguredKit.model
+
+// A host can own direct execution, request-scoped tools, durable history, and ordinary Workspaces
+// using only public package products. The function is compile coverage; it does not call a provider.
+func exerciseHostDefinedRuntime() async throws {
+    let repository = InMemoryTimelineRuntimeRepository()
+    let runtime = PKRuntime(configuration: .init(
+        provider: configuredProvider,
+        persistence: .init(runtimeRepository: repository),
+        runtime: .init(workspaceCreator: ConsumerWorkspaceFactory())
+    ))
+    let timeline = try await runtime.timelines.create(title: "Host-owned runtime")
+    let directTurn = try await timeline.startDirectTurn(
+        "Look up a host value.",
+        context: DirectTurnContext(systemInstructions: "Use the supplied host context."),
+        options: TurnOptions(tools: [ConsumerHostTool()])
+    )
+    for await _ in directTurn.events() {}
+
+    let restoredRuntime = PKRuntime(configuration: .init(
+        provider: configuredProvider,
+        persistence: .init(runtimeRepository: repository),
+        runtime: .init(workspaceCreator: ConsumerWorkspaceFactory())
+    ))
+    let restoredTimeline = restoredRuntime.timelines.open(timeline.timelineID)
+    _ = try await restoredRuntime.timelines.messages(for: timeline.timelineID)
+    _ = try await restoredTimeline.startDirectTurn(
+        "Continue from stored history.",
+        context: DirectTurnContext(systemInstructions: "Use the supplied host context.")
+    )
+
+    let workspace = try await runtime.workspaces.createAndAttach(
+        uri: WorkspaceURI(host: "consumer", path: "/catalog"),
+        location: .runtimeTimeline,
+        to: timeline.timelineID
+    )
+    _ = workspace
+    let workspaceTurn = try await timeline.startDirectTurn(
+        "Use the bound Workspace.",
+        context: DirectTurnContext(systemInstructions: "Use the bound Workspace."),
+        options: TurnOptions()
+    )
+    for await _ in workspaceTurn.events() {}
+}
+
+private struct ConsumerHostTool: PKTool {
+    let callName = "consumer_lookup"
+    let name = "Consumer lookup"
+    let toolDescription = "Looks up a value in host-owned data."
+    let requiresPermission = false
+    let sideEffects: ToolSideEffects = .none
+    let parametersSchema = makeEmptyObjectSchema()
+
+    func canExecute() async -> Bool { true }
+
+    func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
+        .success("host value")
+    }
+}
+
+private struct ConsumerWorkspaceFactory: WorkspaceFactory {
+    func create(from reference: WorkspaceReference) throws -> any WorkspaceProvider {
+        ConsumerWorkspace(reference: reference)
+    }
+}
+
+private actor ConsumerWorkspace: WorkspaceToolProvider {
+    let reference: WorkspaceReference
+
+    init(reference: WorkspaceReference) {
+        self.reference = reference
+    }
+
+    func listTools() async throws -> [ToolReference] {
+        [.custom(ToolDefinition(
+            id: "workspace_lookup",
+            name: "workspace_lookup",
+            description: "Looks up a value in the host Workspace."
+        ))]
+    }
+
+    func executeTool(id: String, parameters _: [String: AnyCodable]) async throws -> ToolResult {
+        guard id == "workspace_lookup" else {
+            throw WorkspaceError.toolExecutionNotSupported
+        }
+        return .success("workspace value")
+    }
+
+    var isHealthy: Bool {
+        get async { true }
+    }
+}
