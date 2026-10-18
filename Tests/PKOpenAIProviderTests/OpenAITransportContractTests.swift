@@ -5,7 +5,8 @@ import FoundationNetworking
 import PKContracts
 import PKTestSupport
 import PKUtilities
-import PositronicKit
+import JSONSchema
+@testable import PositronicKit
 import Synchronization
 import Testing
 @testable import PKOpenAIProvider
@@ -395,6 +396,164 @@ data: {bad json
         #expect(response.choices.first?.finishReason == "stop")
     }
 
+    @Test("streamed Responses tool metadata routes calls and persists matching result identities")
+    func streamedResponsesToolCallIdentitySurvivesTurnHistory() async throws {
+        struct WeatherTool: PKTool {
+            let callName = "get_weather"
+            let name = "Weather"
+            let toolDescription = "Returns the requested city's weather."
+            let requiresPermission = false
+            let parametersSchema = makeEmptyObjectSchema()
+
+            func canExecute() async -> Bool { true }
+
+            func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
+                .success("weather:\(parameters["city"]?.value as? String ?? "missing")")
+            }
+        }
+
+        struct TimeTool: PKTool {
+            let callName = "get_time"
+            let name = "Time"
+            let toolDescription = "Returns the requested time zone."
+            let requiresPermission = false
+            let parametersSchema = makeEmptyObjectSchema()
+
+            func canExecute() async -> Bool { true }
+
+            func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
+                .success("time:\(parameters["zone"]?.value as? String ?? "missing")")
+            }
+        }
+
+        let server = try await TestHTTPServer.startSequential(responses: [
+            .sse(#"""
+            data: {"type":"response.output_item.added","output_index":0,"item":{"id":"fc_weather","type":"function_call","call_id":"call_weather","name":"get_weather","arguments":""}}
+
+            data: {"type":"response.output_item.added","output_index":1,"item":{"id":"fc_time","type":"function_call","call_id":"call_time","name":"get_time","arguments":""}}
+
+            data: {"type":"response.function_call_arguments.delta","item_id":"fc_weather","output_index":0,"delta":"{\"city\":\""}
+
+            data: {"type":"response.function_call_arguments.delta","item_id":"fc_time","output_index":1,"delta":"{\"zone\":\""}
+
+            data: {"type":"response.function_call_arguments.delta","item_id":"fc_weather","output_index":0,"delta":"Paris\"}"}
+
+            data: {"type":"response.function_call_arguments.delta","item_id":"fc_time","output_index":1,"delta":"Europe/London\"}"}
+
+            data: {"type":"response.function_call_arguments.done","item_id":"fc_weather","output_index":0,"arguments":"{\"city\":\"Paris\"}"}
+
+            data: {"type":"response.function_call_arguments.done","item_id":"fc_time","output_index":1,"arguments":"{\"zone\":\"Europe/London\"}"}
+
+            data: {"type":"response.completed","response":{"id":"resp_tools","status":"completed","output":[],"usage":{"input_tokens":1,"output_tokens":2,"total_tokens":3}}}
+
+            """#),
+            .sse(#"""
+            data: {"type":"response.output_text.delta","delta":"Both tools completed."}
+
+            data: {"type":"response.completed","response":{"id":"resp_final","status":"completed","output":[]}}
+
+            """#),
+            .json(#"{"id":"resp_native","model":"gpt-4o","status":"completed","output":[{"type":"function_call","id":"fc_weather","call_id":"call_weather","name":"get_weather","arguments":"{\"city\":\"Paris\"}"},{"type":"function_call","id":"fc_time","call_id":"call_time","name":"get_time","arguments":"{\"zone\":\"Europe/London\"}"}]}"#),
+        ])
+        defer { server.stop() }
+
+        let workspace = TestWorkspace()
+        let persistence = MockPersistenceService()
+        let middleware = CapturingMiddleware()
+        let client = OpenAIClient(
+            apiKey: "secret-key",
+            modelName: "gpt-4o",
+            host: "127.0.0.1",
+            port: Int(server.port),
+            scheme: "http",
+            maxRetries: 0,
+            transport: middleware,
+            api: .responses
+        )
+        let configuration = LLMConfiguration.fixture(
+            endpoint: "http://127.0.0.1:\(server.port)",
+            modelName: "gpt-4o",
+            apiKey: "secret-key",
+            activeProvider: .openAI
+        )
+        let provider = ConfiguredLLMProvider(
+            configuration: configuration,
+            client: client
+        )
+        let runtime = PKRuntime(configuration: .init(
+            provider: provider,
+            persistence: .init(
+                runtimeRepository: persistence,
+                workspacePersistence: persistence,
+                agentStore: persistence,
+                requestOriginStore: persistence
+            ),
+            runtime: .init(
+                workspaceProfile: .hostManaged(root: workspace.root),
+                workspaceCreator: MockWorkspaceCreator()
+            )
+        ))
+        let timeline = try await runtime.timelines.create(title: "Responses streamed tool identity")
+        let tools = [AnyTool(WeatherTool()), AnyTool(TimeTool())]
+        let workspaceReference = WorkspaceReference(
+            uri: WorkspaceURI(host: "pk-runtime", path: workspace.root.path),
+            location: .runtime,
+            rootPath: workspace.root.path
+        )
+        try await persistence.saveWorkspace(workspaceReference)
+        for tool in tools {
+            try await persistence.addToolToWorkspace(workspaceID: workspaceReference.id, tool: tool.identity)
+        }
+        try await runtime.timelines.attachWorkspace(workspaceReference.id, to: timeline.id)
+
+        _ = try await runtime.turnEngine.run(TurnRequest(
+            timelineID: timeline.id,
+            message: "Get weather in Paris and the time in London.",
+            tools: tools
+        )).collect()
+
+        let messages = try await persistence.fetchMessages(for: timeline.id)
+        let assistant = try #require(messages.first {
+            $0.role == "assistant" && $0.toMessage().toolCalls?.isEmpty == false
+        })
+        let calls = assistant.toMessage().toolCalls ?? []
+        let weatherCall = try #require(calls.first)
+        let timeCall = try #require(calls.dropFirst().first)
+        #expect(calls.map(\.id) == ["call_weather", "call_time"])
+        #expect(calls.map(\.name) == ["get_weather", "get_time"])
+        #expect(weatherCall.arguments["city"]?.value as? String == "Paris")
+        #expect(timeCall.arguments["zone"]?.value as? String == "Europe/London")
+
+        let results = messages.filter { $0.role == "tool" }.sorted {
+            ($0.toolCallID ?? "") < ($1.toolCallID ?? "")
+        }
+        #expect(results.map(\.toolCallID) == ["call_time", "call_weather"])
+        #expect(results.map(\.content) == ["time:Europe/London", "weather:Paris"])
+        #expect(!results.contains { ["fc_weather", "fc_time"].contains($0.toolCallID ?? "") })
+
+        let requests = middleware.recordedRequests()
+        let continuationBody = try #require(requests.dropFirst().first?.httpBody)
+        let continuation = try #require(JSONSerialization.jsonObject(with: continuationBody) as? [String: Any])
+        let input = try #require(continuation["input"] as? [[String: Any]])
+        let outputCallIDs = input.compactMap { item -> String? in
+            guard item["type"] as? String == "function_call_output" else { return nil }
+            return item["call_id"] as? String
+        }
+        #expect(outputCallIDs == ["call_weather", "call_time"])
+
+        let native = try await client.chatCompletion(
+            messages: [.init(role: .user, content: "Repeat these calls.")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+        let nativeCalls = try #require(native.choices.first?.delta.toolCalls)
+        #expect(nativeCalls.map(\.id) == calls.map(\.id))
+        #expect(nativeCalls.map { $0.function?.name } == calls.map(\.name))
+        #expect(nativeCalls.map { $0.function?.arguments } == [#"{"city":"Paris"}"#, #"{"zone":"Europe/London"}"#])
+    }
+
     @Test("requestResponse preserves nested Responses text, JSON, refusal, and status")
     func nativeResponsesRequestResponseDecodesNestedContent() async throws {
         let server = try await TestHTTPServer.startSequential(responses: [
@@ -414,6 +573,7 @@ data: {bad json
         let textChunks = try await runtime.model.stream("say hello", transport: .requestResponse).collect()
         #expect(textChunks.count == 1)
         #expect(textChunks.first?.choices.first?.delta.content == "native response text")
+        #expect(textChunks.first?.choices.first?.delta.toolCalls == nil)
 
         let partChunks = try await runtime.model.stream("combine parts", transport: .requestResponse).collect()
         #expect(partChunks.first?.choices.first?.delta.content == "multiple content parts")

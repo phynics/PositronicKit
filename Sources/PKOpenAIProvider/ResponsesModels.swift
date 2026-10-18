@@ -146,8 +146,7 @@ package struct ResponsesStreamAccumulator: Sendable {
     package var textDeltas: [String] = []
     package var reasoningDeltas: [String] = []
     package var toolArgs: [Int: String] = [:]
-    package var toolNames: [Int: String] = [:]
-    package var toolCallIds: [Int: String] = [:]
+    package var toolItemIds: [Int: String] = [:]
     package var sawContent = false
     package init() {}
     package var hasYielded: Bool { sawContent }
@@ -166,13 +165,60 @@ package enum ResponsesEvents {
             guard let d = json["delta"] as? String else { return nil }
             accumulator.reasoningDeltas.append(d); accumulator.sawContent = true
             return LLMStreamChunk(id: responseID, model: model, choices: [.init(index: 0, delta: .init(role: .assistant, content: nil, reasoning: d), finishReason: nil)], usage: nil)
-        case "response.function_call_arguments.delta":
-            let idx = (json["output_index"] as? Int) ?? 0
-            if let d = json["delta"] as? String { accumulator.toolArgs[idx, default: ""] += d }
-            if let id = json["item_id"] as? String { accumulator.toolCallIds[idx] = id }
-            if let name = json["name"] as? String { accumulator.toolNames[idx] = name }
+        case "response.output_item.added":
+            guard let idx = json["output_index"] as? Int,
+                  let item = json["item"] as? [String: Any],
+                  item["type"] as? String == "function_call",
+                  let itemID = item["id"] as? String,
+                  let callID = item["call_id"] as? String,
+                  let name = item["name"] as? String
+            else { return nil }
+            let initialArguments = item["arguments"] as? String ?? ""
+            accumulator.toolItemIds[idx] = itemID
+            accumulator.toolArgs[idx] = initialArguments
             accumulator.sawContent = true
-            return LLMStreamChunk(id: responseID, model: model, choices: [.init(index: 0, delta: .init(role: .assistant, toolCalls: [.init(index: idx, id: accumulator.toolCallIds[idx], function: .init(name: accumulator.toolNames[idx], arguments: json["delta"] as? String))]), finishReason: nil)], usage: nil)
+            return LLMStreamChunk(
+                id: responseID,
+                model: model,
+                choices: [.init(index: 0, delta: .init(role: .assistant, toolCalls: [
+                    .init(
+                        index: idx,
+                        id: callID,
+                        function: .init(name: name, arguments: initialArguments.isEmpty ? nil : initialArguments)
+                    ),
+                ]), finishReason: nil)],
+                usage: nil
+            )
+        case "response.function_call_arguments.delta":
+            guard let idx = json["output_index"] as? Int,
+                  let delta = json["delta"] as? String
+            else { return nil }
+            guard let knownItemID = accumulator.toolItemIds[idx] else { return nil }
+            if let itemID = json["item_id"] as? String,
+               itemID != knownItemID
+            {
+                return nil
+            }
+            accumulator.toolArgs[idx, default: ""] += delta
+            accumulator.sawContent = true
+            return LLMStreamChunk(id: responseID, model: model, choices: [.init(index: 0, delta: .init(role: .assistant, toolCalls: [.init(index: idx, function: .init(arguments: delta))]), finishReason: nil)], usage: nil)
+        case "response.function_call_arguments.done":
+            guard let idx = json["output_index"] as? Int,
+                  let arguments = json["arguments"] as? String
+            else { return nil }
+            guard let knownItemID = accumulator.toolItemIds[idx] else { return nil }
+            if let itemID = json["item_id"] as? String,
+               itemID != knownItemID
+            {
+                return nil
+            }
+            let streamedArguments = accumulator.toolArgs[idx, default: ""]
+            guard arguments.hasPrefix(streamedArguments) else { return nil }
+            let missingArguments = String(arguments.dropFirst(streamedArguments.count))
+            guard !missingArguments.isEmpty else { return nil }
+            accumulator.toolArgs[idx] = arguments
+            accumulator.sawContent = true
+            return LLMStreamChunk(id: responseID, model: model, choices: [.init(index: 0, delta: .init(role: .assistant, toolCalls: [.init(index: idx, function: .init(arguments: missingArguments))]), finishReason: nil)], usage: nil)
         case "response.completed":
             accumulator.sawContent = true
             var usageOut = usage
