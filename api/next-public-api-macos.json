@@ -2011,6 +2011,16 @@
       "declaration": "let choices: [LLMStreamChoice]"
     },
     {
+      "precise": "s:11PKContracts14LLMStreamChunkV7folding_8providerACSayACG_SStKFZ",
+      "module": "PKContracts",
+      "kind": "swift.type.method",
+      "path": [
+        "LLMStreamChunk",
+        "folding(_:provider:)"
+      ],
+      "declaration": "static func folding(_ chunks: [LLMStreamChunk], provider: String) throws -> LLMStreamChunk"
+    },
+    {
       "precise": "s:11PKContracts14LLMStreamChunkV7foldingyACSgSayACGFZ",
       "module": "PKContracts",
       "kind": "swift.type.method",
@@ -12888,7 +12898,7 @@
         "LLMService",
         "init(configuration:clients:logger:)"
       ],
-      "declaration": "convenience init(configuration: LLMConfiguration, clients: LLMClientSet, logger: Logger = Logger.module(named: \"llm\"))"
+      "declaration": "init(configuration: LLMConfiguration, clients: LLMClientSet, logger: Logger = Logger.module(named: \"llm\"))"
     },
     {
       "precise": "s:13PositronicKit10LLMServiceC13healthDetailsSDyS2SGSgvp",
@@ -16092,14 +16102,14 @@
       "declaration": "func generationCompletion(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?, promptCache _: PromptCacheDirective?) async throws -> LLMStreamChunk"
     },
     {
-      "precise": "s:13PositronicKit15LLMStreamClientPAAE21sendStructuredMessage_16structuredOutput20generationParameters11idleTimeout9modelTier9transport11promptCacheS2S_11PKContracts0fI7RequestOAK010GenerationK0VSgSdAA05ModelO0OAA0U9TransportOAK06PromptR9DirectiveVSgtYaKF",
+      "precise": "s:13PositronicKit15LLMStreamClientPAAE21sendStructuredMessage_16structuredOutput20generationParameters11idleTimeout9modelTier9transport11promptCacheS2S_11PKContracts0fI7RequestOAK010GenerationK0VSgSdSgAA05ModelO0OAA0U9TransportOAK06PromptR9DirectiveVSgtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "LLMStreamClient",
         "sendStructuredMessage(_:structuredOutput:generationParameters:idleTimeout:modelTier:transport:promptCache:)"
       ],
-      "declaration": "func sendStructuredMessage(_ content: String, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, modelTier: ModelTier = .primary, transport: GenerationTransport = .streaming, promptCache: PromptCacheDirective? = nil) async throws -> String"
+      "declaration": "func sendStructuredMessage(_ content: String, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval? = nil, modelTier: ModelTier = .primary, transport: GenerationTransport = .streaming, promptCache: PromptCacheDirective? = nil) async throws -> String"
     },
     {
       "precise": "s:13PositronicKit15LLMStreamClientPAAE23structuredOutputAdapter3for11PKContracts010StructuredfG0_pAA9ModelTierO_tYaF",
@@ -19061,25 +19071,6 @@
       "declaration": "init()"
     },
     {
-      "precise": "s:13PositronicKit18LLMClientResolvingP",
-      "module": "PositronicKit",
-      "kind": "swift.protocol",
-      "path": [
-        "LLMClientResolving"
-      ],
-      "declaration": "protocol LLMClientResolving : Sendable"
-    },
-    {
-      "precise": "s:13PositronicKit18LLMClientResolvingP7clients3forAA0C3SetV11PKContracts16LLMConfigurationV_tF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "LLMClientResolving",
-        "clients(for:)"
-      ],
-      "declaration": "func clients(for configuration: LLMConfiguration) -> LLMClientSet"
-    },
-    {
       "precise": "s:13PositronicKit18TimelineCapabilityV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -20819,55 +20810,6 @@
       "declaration": "let resources: [AgentContextResource]"
     },
     {
-      "precise": "s:13PositronicKit20FixedClientsResolverV",
-      "module": "PositronicKit",
-      "kind": "swift.struct",
-      "path": [
-        "FixedClientsResolver"
-      ],
-      "declaration": "struct FixedClientsResolver"
-    },
-    {
-      "precise": "s:13PositronicKit20FixedClientsResolverV5emptyACvpZ",
-      "module": "PositronicKit",
-      "kind": "swift.type.property",
-      "path": [
-        "FixedClientsResolver",
-        "empty"
-      ],
-      "declaration": "static var empty: FixedClientsResolver { get }"
-    },
-    {
-      "precise": "s:13PositronicKit20FixedClientsResolverV7clients3forAA12LLMClientSetV11PKContracts16LLMConfigurationV_tF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "FixedClientsResolver",
-        "clients(for:)"
-      ],
-      "declaration": "func clients(for configuration: LLMConfiguration) -> LLMClientSet"
-    },
-    {
-      "precise": "s:13PositronicKit20FixedClientsResolverV7clientsAA12LLMClientSetVvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "FixedClientsResolver",
-        "clients"
-      ],
-      "declaration": "let clients: LLMClientSet"
-    },
-    {
-      "precise": "s:13PositronicKit20FixedClientsResolverV7clientsAcA12LLMClientSetV_tcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "FixedClientsResolver",
-        "init(clients:)"
-      ],
-      "declaration": "init(clients: LLMClientSet)"
-    },
-    {
       "precise": "s:13PositronicKit20InMemoryMessageStoreC",
       "module": "PositronicKit",
       "kind": "swift.class",
@@ -22059,44 +22001,44 @@
       "declaration": "func checkHealth() async throws -> HealthStatus"
     },
     {
-      "precise": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeout9transport13promptCachingScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AI010GenerationH0VSgSdAA0R9TransportOAI06PromptM6PolicyOSgtF",
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeout9transport13promptCachingScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AI010GenerationH0VSgSdSgAA0R9TransportOAI06PromptM6PolicyOSgtF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ModelInferenceCapability",
         "stream(_:generationParameters:idleTimeout:transport:promptCaching:)"
       ],
-      "declaration": "func stream(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, transport: GenerationTransport = .streaming, promptCaching: PromptCachingPolicy? = nil) -> AsyncThrowingStream<LLMStreamChunk, Error>"
+      "declaration": "func stream(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval? = nil, transport: GenerationTransport = .streaming, promptCaching: PromptCachingPolicy? = nil) -> AsyncThrowingStream<LLMStreamChunk, Error>"
     },
     {
-      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_16structuredOutput20generationParameters11idleTimeout9transport13promptCachingS2S_11PKContracts010StructuredH7RequestOAJ010GenerationJ0VSgSdAA0S9TransportOAJ06PromptO6PolicyOSgtYaKF",
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_16structuredOutput20generationParameters11idleTimeout9transport13promptCachingS2S_11PKContracts010StructuredH7RequestOAJ010GenerationJ0VSgSdSgAA0S9TransportOAJ06PromptO6PolicyOSgtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ModelInferenceCapability",
         "generate(_:structuredOutput:generationParameters:idleTimeout:transport:promptCaching:)"
       ],
-      "declaration": "func generate(_ prompt: String, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, transport: GenerationTransport = .streaming, promptCaching: PromptCachingPolicy? = nil) async throws -> String"
+      "declaration": "func generate(_ prompt: String, structuredOutput: StructuredOutputRequest, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval? = nil, transport: GenerationTransport = .streaming, promptCaching: PromptCachingPolicy? = nil) async throws -> String"
     },
     {
-      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_20generationParameters11idleTimeout9transport13promptCaching11PKContracts11LLMResponseVSS_AI010GenerationH0VSgSdAA0P9TransportOAI06PromptM6PolicyOSgtYaKF",
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_20generationParameters11idleTimeout9transport13promptCaching11PKContracts11LLMResponseVSS_AI010GenerationH0VSgSdSgAA0P9TransportOAI06PromptM6PolicyOSgtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ModelInferenceCapability",
         "generate(_:generationParameters:idleTimeout:transport:promptCaching:)"
       ],
-      "declaration": "func generate(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, transport: GenerationTransport = .streaming, promptCaching: PromptCachingPolicy? = nil) async throws -> LLMResponse"
+      "declaration": "func generate(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval? = nil, transport: GenerationTransport = .streaming, promptCaching: PromptCachingPolicy? = nil) async throws -> LLMResponse"
     },
     {
-      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_4from20generationParameters11idleTimeout9transport13promptCaching7decoderxxm_SS11PKContracts010GenerationI0VSgSdAA0Q9TransportOAK06PromptN6PolicyOSg10Foundation11JSONDecoderCtYaK17JSONSchemaBuilder9SchemableRzSeRzs8SendableRz6SchemaAwXP_6OutputQZRszlF",
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_4from20generationParameters11idleTimeout9transport13promptCaching7decoderxxm_SS11PKContracts010GenerationI0VSgSdSgAA0Q9TransportOAK06PromptN6PolicyOSg10Foundation11JSONDecoderCtYaK17JSONSchemaBuilder9SchemableRzSeRzs8SendableRz6SchemaAxYP_6OutputQZRszlF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ModelInferenceCapability",
         "generate(_:from:generationParameters:idleTimeout:transport:promptCaching:decoder:)"
       ],
-      "declaration": "func generate<Output>(_ type: Output.Type, from prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60, transport: GenerationTransport = .streaming, promptCaching: PromptCachingPolicy? = nil, decoder: JSONDecoder = SerializationUtils.jsonDecoder) async throws -> Output where Output : Schemable, Output : Decodable, Output : Sendable, Output == Output.Schema.Output"
+      "declaration": "func generate<Output>(_ type: Output.Type, from prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval? = nil, transport: GenerationTransport = .streaming, promptCaching: PromptCachingPolicy? = nil, decoder: JSONDecoder = SerializationUtils.jsonDecoder) async throws -> Output where Output : Schemable, Output : Decodable, Output : Sendable, Output == Output.Schema.Output"
     },
     {
       "precise": "s:13PositronicKit24ModelInferenceCapabilityV9readiness11PKContracts0C9ReadinessOyYaF",
@@ -38246,20 +38188,6 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
-      "source": "s:13PositronicKit18LLMClientResolvingP",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit18LLMClientResolvingP",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
       "source": "s:13PositronicKit18TimelineCapabilityV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
@@ -39122,26 +39050,6 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit20AgentContextSnapshotV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit20FixedClientsResolverV",
-      "target": "s:13PositronicKit18LLMClientResolvingP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit20FixedClientsResolverV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit20FixedClientsResolverV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -42604,6 +42512,12 @@
       "module": "PKContracts",
       "kind": "memberOf",
       "source": "s:11PKContracts14LLMStreamChunkV7choicesSayAA0B6ChoiceVGvp",
+      "target": "s:11PKContracts14LLMStreamChunkV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14LLMStreamChunkV7folding_8providerACSayACG_SStKFZ",
       "target": "s:11PKContracts14LLMStreamChunkV"
     },
     {
@@ -52748,7 +52662,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit15LLMStreamClientPAAE21sendStructuredMessage_16structuredOutput20generationParameters11idleTimeout9modelTier9transport11promptCacheS2S_11PKContracts0fI7RequestOAK010GenerationK0VSgSdAA05ModelO0OAA0U9TransportOAK06PromptR9DirectiveVSgtYaKF",
+      "source": "s:13PositronicKit15LLMStreamClientPAAE21sendStructuredMessage_16structuredOutput20generationParameters11idleTimeout9modelTier9transport11promptCacheS2S_11PKContracts0fI7RequestOAK010GenerationK0VSgSdSgAA05ModelO0OAA0U9TransportOAK06PromptR9DirectiveVSgtYaKF",
       "target": "s:13PositronicKit15LLMStreamClientP"
     },
     {
@@ -55372,34 +55286,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20FixedClientsResolverV5emptyACvpZ",
-      "target": "s:13PositronicKit20FixedClientsResolverV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20FixedClientsResolverV7clients3forAA12LLMClientSetV11PKContracts16LLMConfigurationV_tF",
-      "target": "s:13PositronicKit20FixedClientsResolverV",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit18LLMClientResolvingP7clients3forAA0C3SetV11PKContracts16LLMConfigurationV_tF",
-        "displayName": "LLMClientResolving.clients(for:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20FixedClientsResolverV7clientsAA12LLMClientSetVvp",
-      "target": "s:13PositronicKit20FixedClientsResolverV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit20FixedClientsResolverV7clientsAcA12LLMClientSetV_tcfc",
-      "target": "s:13PositronicKit20FixedClientsResolverV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit20InMemoryMessageStoreC04saveE0yyAA08TimelineE0VYaKF",
       "target": "s:13PositronicKit20InMemoryMessageStoreC",
       "sourceOrigin": {
@@ -56078,25 +55964,25 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeout9transport13promptCachingScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AI010GenerationH0VSgSdAA0R9TransportOAI06PromptM6PolicyOSgtF",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeout9transport13promptCachingScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AI010GenerationH0VSgSdSgAA0R9TransportOAI06PromptM6PolicyOSgtF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_16structuredOutput20generationParameters11idleTimeout9transport13promptCachingS2S_11PKContracts010StructuredH7RequestOAJ010GenerationJ0VSgSdAA0S9TransportOAJ06PromptO6PolicyOSgtYaKF",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_16structuredOutput20generationParameters11idleTimeout9transport13promptCachingS2S_11PKContracts010StructuredH7RequestOAJ010GenerationJ0VSgSdSgAA0S9TransportOAJ06PromptO6PolicyOSgtYaKF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_20generationParameters11idleTimeout9transport13promptCaching11PKContracts11LLMResponseVSS_AI010GenerationH0VSgSdAA0P9TransportOAI06PromptM6PolicyOSgtYaKF",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_20generationParameters11idleTimeout9transport13promptCaching11PKContracts11LLMResponseVSS_AI010GenerationH0VSgSdSgAA0P9TransportOAI06PromptM6PolicyOSgtYaKF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_4from20generationParameters11idleTimeout9transport13promptCaching7decoderxxm_SS11PKContracts010GenerationI0VSgSdAA0Q9TransportOAK06PromptN6PolicyOSg10Foundation11JSONDecoderCtYaK17JSONSchemaBuilder9SchemableRzSeRzs8SendableRz6SchemaAwXP_6OutputQZRszlF",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_4from20generationParameters11idleTimeout9transport13promptCaching7decoderxxm_SS11PKContracts010GenerationI0VSgSdSgAA0Q9TransportOAK06PromptN6PolicyOSg10Foundation11JSONDecoderCtYaK17JSONSchemaBuilder9SchemableRzSeRzs8SendableRz6SchemaAxYP_6OutputQZRszlF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
@@ -58700,12 +58586,6 @@
       "kind": "requirementOf",
       "source": "s:13PositronicKit18AgentStoreProtocolP14fetchAllAgentsSayAA0C0VGyYaKF",
       "target": "s:13PositronicKit18AgentStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit18LLMClientResolvingP7clients3forAA0C3SetV11PKContracts16LLMConfigurationV_tF",
-      "target": "s:13PositronicKit18LLMClientResolvingP"
     },
     {
       "module": "PositronicKit",
