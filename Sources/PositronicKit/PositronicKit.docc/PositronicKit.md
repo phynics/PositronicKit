@@ -60,8 +60,10 @@ request and preparation work before returning an admitted `TurnHandle`:
 
 The configurable `complete`, `completeResult`, `stream`, and structured-output `complete`
 overloads accept per-call `GenerationParameters` and an `idleTimeout`. Non-`nil` per-call
-parameters override the facade defaults; `nil` uses those defaults. The timeout defaults to 60
-seconds, measures provider inactivity rather than total duration, and resets after each chunk.
+parameters override the facade defaults; `nil` uses those defaults. An omitted `idleTimeout` uses
+the runtime-configured `RuntimeConfiguration.streamTimeout`, whose default is 60 seconds; an
+explicit value overrides it for that call. The timeout measures provider inactivity rather than
+total duration and resets after each chunk.
 Typed structured one-shot requests use the same provider adapter path as full runs and return a
 `Decodable` value. The requested type must conform to `Decodable`, `Sendable`, and `Schemable`;
 its generated schema and decoder key strategy must agree. Pass a configured `JSONDecoder` when
