@@ -1,7 +1,7 @@
 .PHONY: help build clean test test-fast doctor validate-docs verify-documentation \
 	verify verify-concurrency-scan verify-diagnose-scan verify-runtime-architecture \
 	verify-linux-agent verify-linux-filter verify-linux-repeat verify-linux-coverage \
-	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-domain-vocabulary verify-doc-snippets detect-flakes \
+	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-domain-vocabulary verify-doc-snippets detect-flakes detect-flakes-run \
 	verify-public-api update-public-api-baseline verify-public-api-immutability verify-release sbom \
 	verify-static verify-documentation-static verify-docc verify-macos-ci verify-macos-ci-gates verify-ios \
 	agent-verify agent-test agent-test-repeat linux-image linux-build linux-coverage require-container-runtime
@@ -309,6 +309,32 @@ detect-flakes:
 		exit 2; \
 	fi
 	@python3 Scripts/detect-flaky-tests.py --report $(XUNIT_FILES)
+
+# Nightly flake-detection runner (see .github/workflows/nightly-flake-detection.yml).
+# Runs the full suite `ITERATIONS` times, recording one xUnit file per iteration
+# under .build/flake-detection/. It applies $(SWIFT_BUILD_FLAGS), so the nightly
+# signal uses the same `-warnings-as-errors` configuration as the PR gate instead
+# of a bare `swift test`. A failing iteration is the data this target collects,
+# not a step error, so the loop always runs every iteration; `make detect-flakes`
+# (or the workflow's report step) reads the files afterwards. This target reports
+# only; it never gates pull requests.
+detect-flakes-run:
+	@if [ -z "$(ITERATIONS)" ]; then \
+		echo "make: ITERATIONS is required (for example: make detect-flakes-run ITERATIONS=5)." >&2; \
+		exit 2; \
+	fi
+	@set -eu; \
+	mkdir -p .build/flake-detection; \
+	n="$(ITERATIONS)"; \
+	run_id="$${GITHUB_RUN_ID:-0}"; \
+	for i in $$(seq 1 "$$n"); do \
+		echo "=== flake-detection: iteration $$i/$$n ==="; \
+		seed="$$(( run_id + i ))"; \
+		echo "PK_GENERATIVE_SEED=$$seed"; \
+		PK_GENERATIVE_SEED="$$seed" \
+			swift test $(SWIFT_BUILD_FLAGS) --xunit-output ".build/flake-detection/iteration-$$i.xml" 2>&1 \
+			| tee ".build/flake-detection/iteration-$$i.log" || true; \
+	done
 
 verify-agent-harness:
 	@bash Tests/Scripts/doctor_test.sh

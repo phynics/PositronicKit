@@ -6,10 +6,10 @@ This guide covers contributor and agent setup. Application configuration belongs
 ## Platform gates
 
 Use native Swift/Xcode on macOS. The canonical macOS gate is `make verify`, which includes the
-iOS Simulator lane. Run only the iOS lane with `make verify-ios`; it builds and tests `PKObservable`
-on an available iOS Simulator and builds `PKFoundationModelsProvider` for the iOS destination, so
-an Apple-platform-only availability regression cannot hide behind the native macOS build. CI runs
-the same script in its `ios-verify` job.
+iOS Simulator lane. Run only the iOS lane with `make verify-ios`; it builds every library product
+`Package.swift` declares for `generic/platform=iOS Simulator`, then builds and tests `PKObservable`
+on an available iOS Simulator, so an Apple-platform-only availability regression cannot hide behind
+the native macOS build. CI runs the same script in its `ios-verify` job.
 
 Linux verification runs only through the repository-owned container runner, which accepts Podman
 (preferred) or Docker:
@@ -60,8 +60,9 @@ nix develop -c swift test --filter MessageContentTests
 
 Inside the shell, `make doctor` reports the Nix backend and validates the toolchain instead of
 requiring a container runtime. The container stays canonical for CI and `make agent-verify`;
-the flake is the supported path for a contributor without Podman or Docker. Nightly CI runs
-`nix develop -c make verify-products` so the flake cannot rot. Refresh the pinned toolchain with
+the flake is the supported path for a contributor without Podman or Docker. The `nix-verify-products`
+job in `.github/workflows/nightly-live.yml` runs `nix develop -c make verify-products` nightly so
+the flake cannot rot. Refresh the pinned toolchain with
 `Scripts/update-flake-swift.sh <version>`, which rewrites the swift.org URLs and their SHA-256
 hashes in `flake.nix`.
 

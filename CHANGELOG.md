@@ -104,8 +104,21 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   Linux toolchain, patch it with `autoPatchelfHook`, and fall back to Xcode's 6.4 toolchain on
   macOS, so `nix develop` is a supported second development path next to the container. `make
   doctor` reports a Nix backend and validates the toolchain and its patched libraries,
-  `Scripts/update-flake-swift.sh` refreshes the pinned URLs and hashes, and a nightly CI job runs
-  `nix develop -c make verify-products`.
+   `Scripts/update-flake-swift.sh` refreshes the pinned URLs and hashes, and a nightly CI job runs
+   `nix develop -c make verify-products`.
+- **CI builds every library product for iOS and adds the nightly live lanes (#316).** The
+  `ios-verify` lane now builds every library product `Package.swift` declares for
+  `generic/platform=iOS Simulator` (driven by `Scripts/list-library-products.swift`) before it
+  builds and tests `PKObservable` on a simulator, so an iOS-only availability regression in any
+  provider or in `PKTestSupport` cannot hide behind the macOS build. A new report-only
+  `.github/workflows/nightly-live.yml` runs on a schedule or manual dispatch only: the opt-in
+  prompt-cache live checks (`POSITRONICKIT_LIVE_TESTS=1` plus a provider key, each job skipped when
+  its secret is absent), the recorded OpenAI transport contract, the Nix flake build (folded from
+  the deleted `nix-devshell.yml`), and report-only local-path-override builds of Gnostic and
+  Yakamoz against `main`. Nightly flake detection now runs through
+  `make detect-flakes-run ITERATIONS=…`, so it applies the gate's `-warnings-as-errors` flags, and
+  a weekly macOS schedule repeats the full suite for the Apple-only paths.
+  `.github/dependabot.yml` opens grouped weekly `github-actions` and `swift` update pull requests.
 
 ### Added
 

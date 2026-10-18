@@ -1,0 +1,345 @@
+name: Nightly live checks
+
+# Report-only. Every job here runs on a schedule or manual dispatch only, never on
+# `pull_request`, so forked pull requests can never reach a repository secret and a
+# red live job never blocks a merge. The live provider jobs are additionally gated on
+# their secret being present, so a repository without keys runs nothing and still
+# records a green workflow.
+on:
+  schedule:
+    # 05:37 UTC daily, after the flake-detection sweep.
+    - cron: "37 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Every `run:` step uses an explicit `bash` shell so GitHub Actions applies `-eo pipefail`.
+defaults:
+  run:
+    shell: bash
+
+env:
+  SWIFT_TOOLCHAIN_VERSION: "6.4.0"
+
+jobs:
+  # Secrets are not available to a job-level `if:`, so detect their presence once and
+  # let the live jobs depend on the booleans. The detection step never prints a value.
+  gating:
+    name: "Detect live secrets (Ubuntu 24.04)"
+    runs-on: ubuntu-24.04
+    outputs:
+      anthropic: ${{ steps.detect.outputs.anthropic }}
+      openai: ${{ steps.detect.outputs.openai }}
+      openrouter: ${{ steps.detect.outputs.openrouter }}
+    steps:
+      - name: Detect provider secrets
+        id: detect
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          set -euo pipefail
+          for provider in anthropic openai openrouter; do
+            name="$(echo "$provider" | tr '[:lower:]' '[:upper:]')_API_KEY"
+            if [ -n "${!name:-}" ]; then
+              echo "$provider=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$provider=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
+
+  # Prompt-cache live check (#279): the 7.0 definition of done requires the nightly live
+  # cache check to show `cachedTokens > 0` on Anthropic and OpenAI. Each job is skipped
+  # when its key is absent, and each is report-only.
+  live-prompt-cache-anthropic:
+    needs: gating
+    if: needs.gating.outputs.anthropic == 'true'
+    name: "Live — Anthropic prompt cache (Ubuntu 24.04)"
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
+        run: |
+          set -euo pipefail
+          archive="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          curl -fsSL -o "/tmp/${archive}" \
+            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/ubuntu2404/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${archive}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
+
+      - name: Cache SwiftPM downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build/checkouts
+            ~/.swiftpm
+          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-
+
+      - name: Live Anthropic prompt cache
+        env:
+          POSITRONICKIT_LIVE_TESTS: "1"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: swift test -Xswiftc -warnings-as-errors --filter LiveAnthropicPromptCache
+
+  live-prompt-cache-openai:
+    needs: gating
+    if: needs.gating.outputs.openai == 'true'
+    name: "Live — OpenAI prompt cache (Ubuntu 24.04)"
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
+        run: |
+          set -euo pipefail
+          archive="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          curl -fsSL -o "/tmp/${archive}" \
+            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/ubuntu2404/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${archive}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
+
+      - name: Cache SwiftPM downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build/checkouts
+            ~/.swiftpm
+          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-
+
+      - name: Live OpenAI prompt cache
+        env:
+          POSITRONICKIT_LIVE_TESTS: "1"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: swift test -Xswiftc -warnings-as-errors --filter LiveOpenAIPromptCache
+
+  live-prompt-cache-openrouter:
+    needs: gating
+    if: needs.gating.outputs.openrouter == 'true'
+    name: "Live — OpenRouter prompt cache (Ubuntu 24.04)"
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
+        run: |
+          set -euo pipefail
+          archive="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          curl -fsSL -o "/tmp/${archive}" \
+            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/ubuntu2404/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${archive}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
+
+      - name: Cache SwiftPM downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build/checkouts
+            ~/.swiftpm
+          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-
+
+      - name: Live OpenRouter prompt cache
+        env:
+          POSITRONICKIT_LIVE_TESTS: "1"
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: swift test -Xswiftc -warnings-as-errors --filter LiveOpenRouterPromptCache
+
+  # The OpenAI contract test (#274). It is recorded, not live: it binds a loopback
+  # server and observes SDK traffic, so it needs no secret and reruns the same contract
+  # the PR gate covers, catching contract rot the nightly cadence would otherwise miss.
+  openai-contract:
+    name: "OpenAI contract, recorded (Ubuntu 24.04)"
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
+        run: |
+          set -euo pipefail
+          archive="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          curl -fsSL -o "/tmp/${archive}" \
+            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/ubuntu2404/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${archive}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Assert Swift 6.4
+        run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
+
+      - name: Cache SwiftPM downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build/checkouts
+            ~/.swiftpm
+          key: swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-
+
+      - name: Run the recorded OpenAI transport contract
+        run: swift test -Xswiftc -warnings-as-errors --filter OpenAITransportContract
+
+  # The Nix flake build (#272). Folded here from the former nix-devshell.yml so one
+  # nightly workflow owns every scheduled lane. The flake is the supported path, so the
+  # job fails before the build when the pinned toolchain or its patched libraries break.
+  nix-verify-products:
+    name: "Nix — dev shell verify-products (Ubuntu 24.04)"
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Validate the flake dev shell
+        run: nix develop -c make doctor
+
+      - name: Build every library product in the flake dev shell
+        run: nix develop -c make verify-products
+
+      - name: Run a focused test in the flake dev shell
+        run: nix develop -c swift test --filter MessageContentTests
+
+  # Downstream compatibility (#282): build the two consumers against this checkout via a
+  # local-path override. 7.0 breaks them intentionally until #282 lands, so the job is
+  # report-only. The override makes SwiftPM resolve PositronicKit from this working copy
+  # instead of the consumer's pinned release.
+  downstream-gnostic:
+    name: "Downstream — Gnostic against main (Ubuntu 24.04)"
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: positronickit
+          fetch-depth: 0
+
+      - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
+        run: |
+          set -euo pipefail
+          archive="swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE-ubuntu24.04.tar.gz"
+          curl -fsSL -o "/tmp/${archive}" \
+            "https://download.swift.org/swift-${SWIFT_TOOLCHAIN_VERSION}-release/ubuntu2404/swift-${SWIFT_TOOLCHAIN_VERSION}-RELEASE/${archive}"
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf "/tmp/${archive}" -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Check out Gnostic and point it at this checkout
+        run: |
+          set -euo pipefail
+          workspace="$GITHUB_WORKSPACE"
+          git clone --depth 1 https://github.com/phynics/Gnostic.git "$workspace/gnostic"
+          cd "$workspace/gnostic"
+          python3 - "$workspace" <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          workspace = sys.argv[1]
+          manifest = pathlib.Path("Package.swift")
+          text = manifest.read_text(encoding="utf-8")
+          override = f'.package(path: "{workspace}/positronickit")'
+          patched, count = re.subn(
+              r'\.package\(url: "https://github\.com/phynics/PositronicKit\.git",[^)]*\)',
+              override,
+              text,
+          )
+          if count == 0:
+              raise SystemExit("Gnostic no longer pins PositronicKit; update this override")
+          manifest.write_text(patched, encoding="utf-8")
+          PY
+
+      - name: Build Gnostic against main
+        run: swift build -Xswiftc -warnings-as-errors
+        working-directory: gnostic
+
+  downstream-yakamoz:
+    name: "Downstream — Yakamoz against main (xcode-27)"
+    runs-on: xcode-27
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: positronickit
+          fetch-depth: 0
+
+      - name: Check out Yakamoz and point it at this checkout
+        run: |
+          set -euo pipefail
+          workspace="$GITHUB_WORKSPACE"
+          git clone --depth 1 https://github.com/phynics/Yakamoz.git "$workspace/yakamoz"
+          cd "$workspace/yakamoz"
+          python3 - "$workspace" <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          workspace = sys.argv[1]
+          manifest = pathlib.Path("project.yml")
+          text = manifest.read_text(encoding="utf-8")
+          override = f'  PositronicKit:\n    path: {workspace}/positronickit\n'
+          patched, count = re.subn(
+              r"  PositronicKit:\n    url: [^\n]*\n    exactVersion: [^\n]*\n",
+              override,
+              text,
+          )
+          if count == 0:
+              raise SystemExit("Yakamoz no longer declares a PositronicKit package; update this override")
+          manifest.write_text(patched, encoding="utf-8")
+          PY
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: xcodegen generate
+        working-directory: yakamoz
+
+      - name: Build Yakamoz against main
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -project Yakamoz.xcodeproj \
+            -scheme Yakamoz \
+            -destination 'generic/platform=macOS' \
+            -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO
+        working-directory: yakamoz
