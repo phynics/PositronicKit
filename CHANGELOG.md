@@ -109,8 +109,8 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   Linux toolchain, patch it with `autoPatchelfHook`, and fall back to Xcode's 6.4 toolchain on
   macOS, so `nix develop` is a supported second development path next to the container. `make
   doctor` reports a Nix backend and validates the toolchain and its patched libraries,
-   `Scripts/update-flake-swift.sh` refreshes the pinned URLs and hashes, and a nightly CI job runs
-   `nix develop -c make verify-products`.
+  `Scripts/update-flake-swift.sh` refreshes the pinned URLs and hashes, and a nightly CI job runs
+  `nix develop -c make verify-products`.
 - **CI builds every library product for iOS and adds the nightly live lanes (#316).** The
   `ios-verify` lane now builds every library product `Package.swift` declares for
   `generic/platform=iOS Simulator` (driven by `Scripts/list-library-products.swift`) before it

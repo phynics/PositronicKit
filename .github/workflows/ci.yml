@@ -277,9 +277,9 @@ jobs:
             swiftpm-ios-simulator-${{ runner.os }}-
 
       # `make verify-ios` runs `Scripts/run-ios-verify.sh`, the same gate
-      # `make verify` runs on macOS. It builds PKObservable, tests
-      # PKObservableTests on an available iOS Simulator, and builds
-      # PKFoundationModelsProvider for the iOS destination. The runner image
+      # `make verify` runs on macOS. It builds every library product the package
+      # declares for the generic iOS Simulator destination, then tests
+      # PKObservableTests on an available iOS Simulator. The runner image
       # installs a different iPhone generation with each Xcode release, so the
       # script resolves a device by UDID instead of a hard-coded name (#298).
       - name: Verify PKObservable on the iOS Simulator
