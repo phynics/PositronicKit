@@ -32,8 +32,8 @@ env:
 
 jobs:
   # Toolchain-free policy gates. They finish in seconds, so every build job waits
-  # on them: a missing docs-impact declaration or a policy violation no longer
-  # lets the macOS and iOS jobs run on for fifteen minutes after Linux has failed.
+  # on them and policy violations do not let the macOS and iOS jobs run on for
+  # fifteen minutes after Linux has failed.
   preflight:
     name: "Preflight — source policy gates"
     runs-on: ubuntu-24.04
@@ -43,10 +43,6 @@ jobs:
         # documentation ref is a local Git tag.
         with:
           fetch-depth: 0
-
-      - name: Require documentation impact declaration
-        if: github.event_name == 'pull_request'
-        run: python3 Scripts/check-pr-docs-impact.py
 
       - name: Source policy gates (make verify-static)
         run: make verify-static

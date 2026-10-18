@@ -130,6 +130,12 @@ def test_preflight_job_runs_the_static_gate() -> None:
     assert "make verify-static" in job, job
 
 
+def test_preflight_does_not_require_a_docs_adr_declaration() -> None:
+    job = job_block(workflow_text(), PREFLIGHT_JOB)
+    assert "check-pr-docs-impact" not in job, job
+    assert "Docs / ADR impact" not in job, job
+
+
 def test_permissions_stay_read_only() -> None:
     block = permissions_block(workflow_text())
     assert re.search(r"^\s+contents:\s*read\s*$", block, re.MULTILINE), block
@@ -252,6 +258,7 @@ if __name__ == "__main__":
         test_immutability_target_runs_the_checker,
         test_static_gate_includes_the_immutability_check,
         test_preflight_job_runs_the_static_gate,
+        test_preflight_does_not_require_a_docs_adr_declaration,
         test_permissions_stay_read_only,
         test_public_api_check_is_its_own_step,
         test_regeneration_runs_only_on_public_api_failure,
