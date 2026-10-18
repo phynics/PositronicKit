@@ -37,7 +37,10 @@ targets: the runtime must not depend on Swift Testing.
 - **Contract.** Store, model, and protocol contracts, including the
   conformance suites under `Tests/PKTestSupport/Conformance` and the
   `*ContractTests` suites. A conformance suite must pass against every store
-  implementation it covers.
+  implementation it covers. A downstream Timeline repository can run
+  `TimelineRuntimeRepositoryConformanceSuite` with a fresh repository for each
+  scenario. The suite checks request replay, tool-intent barriers, terminal
+  outcomes, and quarantine release.
 - **Unit.** Fast, deterministic single-type behavior, tagged `.unit` (see
   below). Pure functions, Codable shapes, policy validation, prompt assembly.
 - **Story.** User-visible behavior told as stories under

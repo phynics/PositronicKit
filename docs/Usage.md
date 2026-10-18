@@ -322,6 +322,78 @@ let turn = try await timeline.startDirectTurn(
 
 Pass an explicit contributor array when a `TurnContextSource` needs a different selection.
 
+### Build host-defined direct execution
+
+A detached Timeline lets your application own the prompt and request-scoped tools. PositronicKit
+still admits the Turn, runs model and tool rounds, records tool intents and results, streams events,
+and commits the terminal outcome. Your application owns identity, authorization, and the policy
+for each tool.
+
+```swift
+import JSONSchema
+import PKContracts
+import PKOpenAIProvider
+import PositronicKit
+
+struct HostLookupTool: PKTool {
+	let callName = "host_lookup"
+	let name = "Host lookup"
+	let toolDescription = "Looks up a value in host-owned data."
+	let requiresPermission = false
+	let sideEffects: ToolSideEffects = .none
+	let parametersSchema = makeEmptyObjectSchema()
+
+	func canExecute() async -> Bool { true }
+
+	func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
+		.success("value from host data")
+	}
+}
+
+let provider = PKOpenAI.makeConfiguredProvider(apiKey: "sk-...")
+let runtime = PKRuntime(configuration: .init(
+	provider: provider,
+	persistence: .init(runtimeRepository: myRuntimeRepository)
+))
+let timeline = try await runtime.timelines.create(title: "Host-owned conversation")
+let requestID = UUID()
+let turn = try await timeline.startDirectTurn(
+	"Look up the requested value.",
+	context: DirectTurnContext(systemInstructions: "Use host data. Do not invent results."),
+	options: TurnOptions(requestID: requestID, tools: [HostLookupTool()])
+)
+
+for await event in turn.events() {
+	if case let .completion(.generationCompleted(_, metadata)) = event {
+		print("tokens: \(metadata.usage?.totalTokens ?? 0)")
+	}
+}
+let result = try await turn.result()
+print(result.message?.content ?? "")
+```
+
+`DirectTurnContext` supplies the complete system instructions and contributor selection for this
+Turn. `TurnOptions.tools` supplies request-scoped tools. These tools do not become Timeline-bound
+Workspace tools.
+
+Use an ordinary Workspace when a tool belongs to a durable host resource that can be bound to one
+Timeline. Supply a `WorkspaceFactory` and a `WorkspaceToolProvider`, then bind the Workspace with
+`kit.workspaces.createAndAttach(...)`. The runtime captures its tool catalog when it admits the
+Turn and dispatches those calls through the Workspace provider. Request-scoped tools and ordinary
+Workspace tools remain separate execution paths.
+
+To continue after a process restart, construct a new `PKRuntime` with the same durable
+`TimelineRuntimeRepository` and open the stored Timeline ID. The runtime reloads Timeline history
+from that repository. It does not need Agent records or a separate prompt journal for semantic
+history.
+
+Do not treat cancellation as proof that an external operation stopped. A tool marked `.mutating` or
+`.externalProcess` may finish after its caller stops waiting. If the Turn ends with no result for one
+of those tools, the runtime quarantines the Timeline instead of admitting a request that could
+repeat the side effect. Reconcile the operation with the external system before releasing the
+quarantine. Use an external idempotency key when the system provides one. The repository's replay
+guarantee does not replace that system-level check.
+
 ### Observing a Turn with a controller
 
 `PKObservable.TimelineController` is the package's SwiftUI-shaped helper. It accumulates streamed

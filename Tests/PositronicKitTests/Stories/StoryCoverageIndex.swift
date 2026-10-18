@@ -12,6 +12,7 @@
 /// Primary story suites:
 /// - `Stories/Setup/RuntimeSetupStoriesTests.swift`
 /// - `Stories/Runtime/PublicRuntimeStoriesTests.swift`
+/// - `Stories/Runtime/HostDefinedRuntimeStoriesTests.swift`
 /// - `Stories/Extensions/ExtensionStoriesTests.swift`
 /// - `PKProviderIntegrationTests/Stories/Examples/IntroductoryStoriesTests.swift`
 /// - `PKProviderIntegrationTests/Stories/Examples/ExampleUsageStoriesTests.swift`
@@ -35,6 +36,14 @@
 /// - tool-call execution and continuation → `PublicRuntimeStoriesTests`
 /// - externally submitted tool outputs resume a run → `PublicRuntimeStoriesTests`
 /// - timeline-managed context is used by default → `PublicRuntimeStoriesTests`
+///
+/// Host-defined runtime stories
+/// - direct host context and request-scoped tools across model rounds →
+///   `HostDefinedRuntimeStoriesTests`
+/// - ordinary Workspace dispatch on a detached Timeline → `HostDefinedRuntimeStoriesTests`
+/// - injected history reload, request replay, and continuation → `HostDefinedRuntimeStoriesTests`
+/// - unresolved external effect recovery and direct Turn cancellation →
+///   `HostDefinedRuntimeStoriesTests`
 ///
 /// Extension stories
 /// - prompt section providers inject runtime prompt content → `ExtensionStoriesTests`
