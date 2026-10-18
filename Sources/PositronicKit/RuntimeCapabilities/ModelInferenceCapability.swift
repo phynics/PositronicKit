@@ -69,14 +69,11 @@ public struct ModelInferenceCapability: Sendable {
     ///   - prompt: The user prompt to send.
     ///   - generationParameters: Per-call generation parameters. Defaults to the facade's
     ///     configured parameters when `nil`.
-    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. This defaults to
-    ///     60 seconds rather than the runtime's configured `RuntimeConfiguration.streamTimeout`:
-    ///     a default argument is baked in at the call site, so honouring the configured value
-    ///     here would change this method's public signature. Pass the value explicitly to match
-    ///     a non-default runtime configuration.
-    ///   - transport: Which provider transport to use. Streaming is the default. With
-    ///     `.requestResponse`, `idleTimeout` bounds the whole request because the provider
+    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. Defaults to the
+    ///     runtime's configured `RuntimeConfiguration.streamTimeout`; pass a value to override it
+    ///     for this call. With `.requestResponse`, it bounds the whole request because the provider
     ///     returns one terminal chunk.
+    ///   - transport: Which provider transport to use. Streaming is the default.
     ///   - promptCaching: Overrides the runtime's prompt-caching policy for this call. `nil`
     ///     uses the runtime default. This Timeline-free path has no Timeline routing key, so
     ///     the directive carries only the retention window.
@@ -84,7 +81,7 @@ public struct ModelInferenceCapability: Sendable {
     public func generate(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval = 60,
+        idleTimeout: TimeInterval? = nil,
         transport: GenerationTransport = .streaming,
         promptCaching: PromptCachingPolicy? = nil
     ) async throws -> LLMResponse {
@@ -109,9 +106,9 @@ public struct ModelInferenceCapability: Sendable {
     ///   - prompt: The user prompt to send.
     ///   - generationParameters: Per-call generation parameters. Defaults to the facade's
     ///     configured parameters when `nil`.
-    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. This defaults to
-    ///     60 seconds and is applied by the existing one-shot structured-output path. With
-    ///     `.requestResponse`, it bounds the whole request.
+    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. Defaults to the
+    ///     runtime's configured `RuntimeConfiguration.streamTimeout`; pass a value to override it
+    ///     for this call. With `.requestResponse`, it bounds the whole request.
     ///   - transport: Which provider transport to use. Streaming is the default.
     ///   - promptCaching: Overrides the runtime's prompt-caching policy for this call. `nil`
     ///     uses the runtime default. This Timeline-free path has no Timeline routing key, so
@@ -125,7 +122,7 @@ public struct ModelInferenceCapability: Sendable {
         _ type: Output.Type,
         from prompt: String,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval = 60,
+        idleTimeout: TimeInterval? = nil,
         transport: GenerationTransport = .streaming,
         promptCaching: PromptCachingPolicy? = nil,
         decoder: JSONDecoder = SerializationUtils.jsonDecoder
@@ -169,12 +166,9 @@ public struct ModelInferenceCapability: Sendable {
     ///   - prompt: The user prompt to send.
     ///   - generationParameters: Per-call generation parameters. Defaults to the facade's
     ///     configured parameters when `nil`.
-    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. This defaults to
-    ///     60 seconds rather than the runtime's configured `RuntimeConfiguration.streamTimeout`:
-    ///     a default argument is baked in at the call site, so honouring the configured value
-    ///     here would change this method's public signature. Pass the value explicitly to match
-    ///     a non-default runtime configuration. With `.requestResponse`, it bounds the whole
-    ///     request.
+    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. Defaults to the
+    ///     runtime's configured `RuntimeConfiguration.streamTimeout`; pass a value to override it
+    ///     for this call. With `.requestResponse`, it bounds the whole request.
     ///   - transport: Which provider transport to use. Streaming is the default.
     ///   - promptCaching: Overrides the runtime's prompt-caching policy for this call. `nil`
     ///     uses the runtime default. This Timeline-free path has no Timeline routing key, so
@@ -184,14 +178,14 @@ public struct ModelInferenceCapability: Sendable {
     public func stream(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval = 60,
+        idleTimeout: TimeInterval? = nil,
         transport: GenerationTransport = .streaming,
         promptCaching: PromptCachingPolicy? = nil
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         streamChunks(
             prompt,
             generationParameters: generationParameters,
-            idleTimeout: idleTimeout,
+            idleTimeout: idleTimeout ?? configuredStreamTimeout,
             transport: transport,
             promptCaching: promptCaching
         )
@@ -210,12 +204,9 @@ public struct ModelInferenceCapability: Sendable {
     ///   - structuredOutput: The schema the response must conform to.
     ///   - generationParameters: Per-call generation parameters. Defaults to the facade's
     ///     configured parameters when `nil`.
-    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. This defaults to
-    ///     60 seconds rather than the runtime's configured `RuntimeConfiguration.streamTimeout`:
-    ///     a default argument is baked in at the call site, so honouring the configured value
-    ///     here would change this method's public signature. Pass the value explicitly to match
-    ///     a non-default runtime configuration. With `.requestResponse`, it bounds the whole
-    ///     request.
+    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. Defaults to the
+    ///     runtime's configured `RuntimeConfiguration.streamTimeout`; pass a value to override it
+    ///     for this call. With `.requestResponse`, it bounds the whole request.
     ///   - transport: Which provider transport to use. Streaming is the default.
     ///   - promptCaching: Overrides the runtime's prompt-caching policy for this call. `nil`
     ///     uses the runtime default. This Timeline-free path has no Timeline routing key, so
@@ -225,7 +216,7 @@ public struct ModelInferenceCapability: Sendable {
         _ prompt: String,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval = 60,
+        idleTimeout: TimeInterval? = nil,
         transport: GenerationTransport = .streaming,
         promptCaching: PromptCachingPolicy? = nil
     ) async throws -> String {
@@ -281,21 +272,15 @@ extension ModelInferenceCapability {
             throw wrapForeignError(error)
         }
 
-        let content = chunks
-            .flatMap { $0.choices.compactMap { $0.delta.content } }
-            .joined()
-        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            let provider = await languageModelClient.configuration.activeProvider
-            throw LLMServiceError.emptyResponse(provider: provider.rawValue)
-        }
-
-        let terminalChunk = chunks.last
+        let provider = await languageModelClient.configuration.activeProvider
+        let folded = try LLMStreamChunk.folding(chunks, provider: provider.rawValue)
+        let content = folded.choices.compactMap { $0.delta.content }.joined()
         return LLMResponse(
             content: content,
-            id: terminalChunk?.id,
-            model: terminalChunk?.model,
-            usage: chunks.reversed().compactMap(\.usage).first,
-            finishReason: chunks.reversed().compactMap { $0.choices.first?.finishReason }.first
+            id: folded.id.isEmpty ? nil : folded.id,
+            model: folded.model.isEmpty ? nil : folded.model,
+            usage: folded.usage,
+            finishReason: folded.choices.first?.finishReason
         )
     }
 

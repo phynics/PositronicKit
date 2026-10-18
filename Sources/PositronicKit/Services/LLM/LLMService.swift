@@ -18,8 +18,8 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
 
     /// Reports whether the LLM configuration is **valid** (all required fields present for
     /// the active provider). This reflects configuration completeness only — it does **not**
-    /// guarantee a primary client is resolved and a send can start. A valid configuration with
-    /// no registered client resolver yields `isConfigured == true` but ``isReady`` == `false`.
+    /// guarantee a primary client is resolved and a send can start. A valid configuration built
+    /// with no primary client yields `isConfigured == true` but ``isReady`` == `false`.
     /// Use ``isReady`` for operational readiness checks before dispatching a request.
     public var isConfigured: Bool {
         snapshot.configuration.isValid
@@ -87,19 +87,21 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
     // MARK: - Runtime State
 
     private var snapshot: LLMRuntimeSnapshot
-    private let clientResolver: any LLMClientResolving
+    private let clients: LLMClientSet
 
     nonisolated let logger: Logger
 
-    /// Applies a configuration through the resolver, clearing clients when it is invalid.
+    /// Applies a configuration, clearing clients when it is invalid.
     ///
     /// This is the only path that transitions runtime state; no update or clear operation
-    /// assigns configuration and clients separately.
+    /// assigns configuration and clients separately. The client set is pinned at construction:
+    /// a configuration transition replaces the configuration but keeps dispatching through the
+    /// same clients, so hosts whose clients depend on configuration build a new service.
     private func apply(_ configuration: LLMConfiguration) {
-        let clients = configuration.isValid
-            ? clientResolver.clients(for: configuration)
-            : .empty
-        snapshot = LLMRuntimeSnapshot(configuration: configuration, clients: clients)
+        snapshot = LLMRuntimeSnapshot(
+            configuration: configuration,
+            clients: configuration.isValid ? clients : .empty
+        )
     }
 
     /// Resolves the client and generation defaults for a model tier.
@@ -142,10 +144,11 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
         clients: LLMClientSet,
         logger: Logger = Logger.module(named: "llm")
     ) {
-        self.init(
+        self.logger = logger
+        self.clients = clients
+        snapshot = LLMRuntimeSnapshot(
             configuration: configuration,
-            clientResolver: FixedClientsResolver(clients: clients),
-            logger: logger
+            clients: configuration.isValid ? clients : .empty
         )
     }
 
@@ -158,20 +161,6 @@ public actor LLMService: LLMStreamClient, HealthCheckable {
             configuration: provider.configuration,
             clients: LLMClientSet(primary: provider.client),
             logger: logger
-        )
-    }
-
-    /// Package designated init: explicit configuration plus a client resolver.
-    package init(
-        configuration: LLMConfiguration,
-        clientResolver: any LLMClientResolving,
-        logger: Logger = Logger.module(named: "llm")
-    ) {
-        self.logger = logger
-        self.clientResolver = clientResolver
-        snapshot = LLMRuntimeSnapshot(
-            configuration: configuration,
-            clients: configuration.isValid ? clientResolver.clients(for: configuration) : .empty
         )
     }
 

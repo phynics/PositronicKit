@@ -91,6 +91,40 @@ struct LLMStreamChunkFoldingTests {
         #expect(LLMStreamChunk.folding([]) == nil)
     }
 
+    @Test("Folding into one chunk throws the empty-response error with the caller's provider label")
+    func foldingThrowsWithProviderLabel() {
+        #expect(throws: LLMServiceError.emptyResponse(provider: "OpenAI")) {
+            _ = try LLMStreamChunk.folding([], provider: "OpenAI")
+        }
+    }
+
+    @Test("Folding into one chunk preserves parallel choices and their independent deltas")
+    func foldingWithProviderPreservesParallelChoices() throws {
+        let chunks = [
+            LLMStreamChunk(
+                id: "response",
+                model: "model",
+                choices: [
+                    LLMStreamChoice(index: 1, delta: LLMStreamDelta(content: "second")),
+                    LLMStreamChoice(index: 0, delta: LLMStreamDelta(content: "first")),
+                ]
+            ),
+            LLMStreamChunk(
+                id: "response",
+                model: "model",
+                choices: [
+                    LLMStreamChoice(index: 0, delta: LLMStreamDelta(content: " choice"), finishReason: "stop"),
+                    LLMStreamChoice(index: 1, delta: LLMStreamDelta(content: " choice"), finishReason: "length"),
+                ]
+            ),
+        ]
+
+        let folded = try LLMStreamChunk.folding(chunks, provider: "OpenAI")
+        #expect(folded.choices.map(\.index) == [1, 0])
+        #expect(folded.choices[0].delta.content == "second choice")
+        #expect(folded.choices[1].delta.content == "first choice")
+    }
+
     @Test("Default chat completion folds the client's stream")
     func defaultChatCompletionFoldsStream() async throws {
         let chunks = [

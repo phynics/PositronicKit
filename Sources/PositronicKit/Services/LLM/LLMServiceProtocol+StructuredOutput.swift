@@ -7,7 +7,7 @@ public extension LLMStreamClient {
         _ content: String,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval = 60,
+        idleTimeout: TimeInterval? = nil,
         modelTier: ModelTier = .primary,
         transport: GenerationTransport = .streaming,
         promptCache: PromptCacheDirective? = nil
@@ -33,31 +33,17 @@ public extension LLMStreamClient {
         transport: GenerationTransport = .streaming,
         promptCache: PromptCacheDirective? = nil
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        let prepared = StructuredOutputExecution.prepareRequest(
+        await structuredGenerationStream(
             messages: messages,
             tools: tools,
-            adapter: await structuredOutputAdapter(for: modelTier),
-            output: structuredOutput
-        )
-
-        let stream = await generation(
-            transport: transport,
-            messages: prepared.messages,
-            tools: prepared.tools,
-            toolChoice: prepared.toolChoice,
-            responseFormat: prepared.responseFormat,
+            structuredOutput: structuredOutput,
             generationParameters: generationParameters,
             modelTier: modelTier,
             responseModalities: [.text],
             audioOutput: nil,
+            transport: transport,
             promptCache: promptCache
         )
-
-        guard let syntheticToolName = prepared.syntheticToolName else {
-            return stream
-        }
-
-        return StructuredOutputExecution.rewriteSyntheticToolStream(stream, syntheticToolName: syntheticToolName)
     }
 
     func generationStream(
@@ -71,26 +57,17 @@ public extension LLMStreamClient {
         transport: GenerationTransport = .streaming,
         promptCache: PromptCacheDirective? = nil
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        let prepared = StructuredOutputExecution.prepareRequest(
+        await structuredGenerationStream(
             messages: messages,
             tools: tools,
-            adapter: await structuredOutputAdapter(for: modelTier),
-            output: structuredOutput
-        )
-        let stream = await generation(
-            transport: transport,
-            messages: prepared.messages,
-            tools: prepared.tools,
-            toolChoice: prepared.toolChoice,
-            responseFormat: prepared.responseFormat,
+            structuredOutput: structuredOutput,
             generationParameters: generationParameters,
             modelTier: modelTier,
             responseModalities: responseModalities,
             audioOutput: audioOutput,
+            transport: transport,
             promptCache: promptCache
         )
-        guard let syntheticToolName = prepared.syntheticToolName else { return stream }
-        return StructuredOutputExecution.rewriteSyntheticToolStream(stream, syntheticToolName: syntheticToolName)
     }
 
     func sendStructured<T: Decodable & Sendable>(
@@ -114,6 +91,67 @@ public extension LLMStreamClient {
     }
 }
 
+/// The single structured-preparation step shared by every structured streaming entry point
+/// (Turn stage, one-shot `kit.model`, and ``LLMStreamClient/generationStreamWithContext(_:)``):
+/// prepare the request for the selected tier's adapter, stream through the transport seam, and
+/// rewrite a synthetic forced-tool call back into content deltas.
+extension LLMStreamClient {
+    func structuredGenerationStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        structuredOutput: StructuredOutputRequest,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        transport: GenerationTransport,
+        promptCache: PromptCacheDirective?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        let prepared = StructuredOutputExecution.prepareRequest(
+            messages: messages,
+            tools: tools,
+            adapter: await structuredOutputAdapter(for: modelTier),
+            output: structuredOutput
+        )
+        return await generationStream(
+            prepared: prepared,
+            generationParameters: generationParameters,
+            modelTier: modelTier,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput,
+            transport: transport,
+            promptCache: promptCache
+        )
+    }
+
+    func generationStream(
+        prepared: PreparedStructuredOutputRequest,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        transport: GenerationTransport,
+        promptCache: PromptCacheDirective?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        let stream = await generation(
+            transport: transport,
+            messages: prepared.messages,
+            tools: prepared.tools,
+            toolChoice: prepared.toolChoice,
+            responseFormat: prepared.responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput,
+            promptCache: promptCache
+        )
+        guard let syntheticToolName = prepared.syntheticToolName else {
+            return stream
+        }
+        return StructuredOutputExecution.rewriteSyntheticToolStream(stream, syntheticToolName: syntheticToolName)
+    }
+}
+
 package extension LLMStreamClient {
     /// Structured send with the runtime clock injected, so callers inside the package can run
     /// the idle watchdog on virtual time. `RuntimeClock` is package-scoped, which is why this
@@ -122,7 +160,7 @@ package extension LLMStreamClient {
         _ content: String,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval = 60,
+        idleTimeout: TimeInterval? = nil,
         clock: any RuntimeClock,
         modelTier: ModelTier = .primary,
         transport: GenerationTransport = .streaming,
@@ -139,27 +177,23 @@ package extension LLMStreamClient {
         )
 
         let provider = await configuration.activeProvider
-        let content: String
+        let timeout = idleTimeout ?? RuntimePolicy.defaultStreamTimeout
+        let folded: LLMStreamChunk
         do {
-            content = try await StreamIdleTimeout.run(timeout: idleTimeout, clock: clock) { deadline in
-                var fullContent = ""
+            folded = try await StreamIdleTimeout.run(timeout: timeout, clock: clock) { deadline in
+                var chunks: [LLMStreamChunk] = []
                 for try await chunk in stream {
                     if Task.isCancelled { throw CancellationError() }
                     await deadline.reset()
-                    if let delta = chunk.choices.first?.delta.content {
-                        fullContent += delta
-                    }
+                    chunks.append(chunk)
                 }
                 if Task.isCancelled { throw CancellationError() }
-                return fullContent
+                return try LLMStreamChunk.folding(chunks, provider: provider.rawValue)
             }
         } catch {
             throw wrapForeignError(error)
         }
-        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw LLMServiceError.emptyResponse(provider: provider.rawValue)
-        }
-        return content
+        return folded.choices.compactMap { $0.delta.content }.joined()
     }
 }
 

@@ -10,6 +10,22 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **One model-client stack: a single fold, no resolver seam, and configured timeouts (#311).**
+  `LLMClientResolving` and `FixedClientsResolver` are removed. Construct `LLMService` with
+  `configuration:` and `clients:` directly; the client set is pinned, so `updateConfiguration(_:)`
+  replaces the configuration but keeps dispatching through the same clients. `LLMStreamChunk`
+  gains a throwing `folding(_:provider:)` that is the single one-shot fold and empty-response
+  rule: a stream with no chunks throws `LLMServiceError.emptyResponse(provider:)` with the real
+  provider label. The public `kit.model` one-shot entry points now defer to the runtime's
+  configured `RuntimeConfiguration.streamTimeout`, so `idleTimeout` is `TimeInterval? = nil` on
+  `ModelInferenceCapability.generate(_:generationParameters:idleTimeout:transport:promptCaching:)`,
+  `generate(_:from:generationParameters:idleTimeout:transport:promptCaching:decoder:)`,
+  `stream(_:generationParameters:idleTimeout:transport:promptCaching:)`,
+  `generate(_:structuredOutput:generationParameters:idleTimeout:transport:promptCaching:)`, and
+  `LLMStreamClient.sendStructuredMessage`. Hosts that set a non-default `streamTimeout` and called
+  `kit.model` without passing `idleTimeout` explicitly now honour that configured value. The
+  Turn-stage, `kit.model`, and `generationStreamWithContext` structured paths share one
+  structured-preparation step.
 - **Move runtime vocabulary into `PositronicKit` (#314).** `Agent`, `AgentTemplate`,
   `RequestOriginIdentity`, `TurnEvent`, `TurnIdentity`, `TurnSnapshot`, `TurnDiagnostic`,
   `TurnContextSnapshot`, `Sidecar*`, `WorkspaceReference`, `WorkspaceURI`, `WorkspaceToolCandidate`,
