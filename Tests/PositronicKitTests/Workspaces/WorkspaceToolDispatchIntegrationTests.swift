@@ -656,4 +656,78 @@ struct WorkspaceToolDispatchIntegrationTests {
         #expect(await probe.events == ["enter-1", "leave-1", "enter-2", "leave-2"])
         #expect(await probe.maximumActive == 1)
     }
+
+    @Test("cancelled mutating call holds the Workspace lane until the abandoned tool ends (#367)")
+    func cancelledMutationHoldsLaneUntilAbandonedToolEnds() async throws {
+        // Regression for #367: the timeout path hands a still-running mutating tool to the lane,
+        // but the cancellation path used to finish the race without that handoff. The lane then
+        // released and a second mutation could overlap the first. This drives the real
+        // `ToolTimeoutEnforcer` + `TimelineManager` lane wiring and cancels the first caller.
+        let probe = OverlapProbe()
+        let started = AsyncLatch()
+        let release = AsyncLatch()
+        let tool = AnyTool(CancellationIgnoringMutatingTool(
+            callName: "workspace_probe",
+            started: started,
+            release: release,
+            probe: probe
+        ))
+        let environment = try await makeEnvironment(location: .runtime, tool: tool)
+        let manager = environment.manager
+        let workspaceID = environment.workspace.id
+        let parkedSleep: @Sendable (UInt64) async throws -> Void = { _ in
+            try await Task.sleep(for: .seconds(3600))
+        }
+
+        let first = Task {
+            try await manager.withWorkspaceExecution(workspaceID) {
+                try await ToolTimeoutEnforcer.execute(
+                    tool,
+                    arguments: [:],
+                    timeout: 60,
+                    sleep: parkedSleep,
+                    onAbandon: { task in
+                        manager.retainWorkspaceLane(workspaceID, until: task)
+                    }
+                )
+            }
+        }
+        await started.wait()
+        first.cancel()
+        await #expect(throws: CancellationError.self) {
+            _ = try await first.value
+        }
+
+        // The cancelled operation returned, but the cancellation-ignoring mutation is still
+        // running, so the lane must stay held rather than released to the next caller.
+        #expect(manager.isWorkspaceBusy(workspaceID))
+
+        let second = Task {
+            try await manager.withWorkspaceExecution(workspaceID) {
+                try await ToolTimeoutEnforcer.execute(
+                    tool,
+                    arguments: [:],
+                    timeout: 60,
+                    sleep: parkedSleep
+                )
+            }
+        }
+
+        // With the lane held, the second mutation cannot enter during a bounded window. Without
+        // the cancellation handoff the lane is already open and it enters here.
+        let deadline = ContinuousClock.now + .milliseconds(500)
+        while await probe.enterCount < 2, ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(await probe.maximumActive == 1)
+        #expect(await probe.enterCount == 1)
+
+        // Releasing the first tool lets the held lane drain and the second mutation resume.
+        release.open()
+        _ = try await second.value
+
+        #expect(await probe.events == ["enter-1", "leave-1", "enter-2", "leave-2"])
+        #expect(await probe.maximumActive == 1)
+        #expect(manager.isWorkspaceBusy(workspaceID) == false)
+    }
 }

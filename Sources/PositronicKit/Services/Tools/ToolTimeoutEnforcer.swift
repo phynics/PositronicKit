@@ -23,9 +23,17 @@ import PKUtilities
 ///   still be executing, whether as another Swift task or in an external process or service, and
 ///   retrying may duplicate side effects. Before throwing, the enforcer reports the abandoned
 ///   `toolTask` to `onAbandon` so the caller can keep its execution lane closed until the task
-///   actually ends. The enforcer itself does not await the cancellation-ignoring loser; subject
-///   to the nonblocking tool contract above, only the reported status and the abandoned-task
-///   handoff change from the `.none` case.
+/// actually ends. The enforcer itself does not await the cancellation-ignoring loser; subject
+/// to the nonblocking tool contract above, only the reported status and the abandoned-task
+/// handoff change from the `.none` case.
+///
+/// Outer cancellation follows the same ownership rule as the timeout path (#367). The race
+/// finishes immediately so the caller's `CancellationError` is delivered, but when a
+/// `.mutating`/`.externalProcess` tool may still be running, the enforcer reports its task to
+/// `onAbandon` before finishing so the execution lane cannot be released while the mutation is
+/// still in flight. `.none` tools keep the fast abandonment. A cancellation-ignoring mutation
+/// therefore keeps the lane closed exactly as a timed-out one does, and a later call resumes
+/// only once the underlying task really exits.
 ///
 /// The `sleep` closure is injected so tests can substitute an instant-timeout fake clock and
 /// exercise the timeout branch without `Task.sleep`'s real-time delay or a `TimelineManager`.
@@ -50,8 +58,10 @@ package enum ToolTimeoutEnforcer {
     ///     delay. The closure must throw on cancellation to mirror `Task.sleep` semantics so the
     ///     tool-completion path can cancel the pending timeout cleanly.
     ///   - onAbandon: Called with the abandoned tool task when a `.mutating` or `.externalProcess`
-    ///     tool times out and may still be running. The callback must not block; the Workspace
-    ///     Execution Lane uses it to keep the lane closed until the task ends. Defaults to a no-op.
+    ///     tool times out, or when the caller is cancelled while such a tool may still be running,
+    ///     and must be kept from overlapping a later call. The callback must not block; the
+    ///     Workspace Execution Lane uses it to keep the lane closed until the task ends. Defaults
+    ///     to a no-op.
     /// - Returns: The tool's `ToolResult` if it completes within the timeout.
     /// - Throws: `ToolError.executionFailed` with a timeout message if the wall-clock race wins
     ///   and the tool is side-effect-free (`.none`); `ToolError.timedOutButMayStillBeRunning`
@@ -139,6 +149,17 @@ package enum ToolTimeoutEnforcer {
                 }
             }
             if Task.isCancelled {
+                // #367: a cancelled caller still receives `CancellationError`, but a
+                // `.mutating`/`.externalProcess` tool that ignores cancellation may outlive the
+                // race. Hand its task to `onAbandon` exactly as the timeout branch does, so the
+                // owning lane stays closed until the tool actually exits and a later call cannot
+                // overlap it. `.none` tools keep the fast abandonment.
+                switch tool.sideEffects {
+                case .none:
+                    break
+                case .mutating, .externalProcess:
+                    onAbandon(toolTask)
+                }
                 throw CancellationError()
             }
             throw ToolError.executionFailed("Tool race produced no winner")
