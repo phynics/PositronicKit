@@ -390,6 +390,78 @@ struct PublicRuntimeStoriesTests {
     }
 
     @Test
+    func reloadedToolHistoryKeepsCallResultPairingAcrossTurnsAndFork() async throws {
+        let (chat, mockLLM, _, timelineID, _) = try await makeAcceptanceRuntime()
+        let mockTool = AcceptanceMockTool()
+
+        // Turn 1: the assistant emits two tool calls in one round; both execute and persist.
+        mockLLM.mockClient.nextToolCalls = [[
+            MockToolCall(id: "call_a", name: "mock_tool"),
+            MockToolCall(id: "call_b", name: "mock_tool"),
+        ]]
+        mockLLM.mockClient.nextResponses = ["", "first turn done"]
+
+        let first = try await chat.timelines.open(timelineID).startTurn(
+            "Run the tools",
+            options: TurnOptions(tools: [AnyTool(mockTool)])
+        )
+        _ = await first.events().collect()
+
+        // Turn 2: reload the persisted history and inspect the provider request.
+        mockLLM.mockClient.nextResponse = "second turn done"
+        let second = try await chat.timelines.open(timelineID).startTurn(
+            "Summarize",
+            options: TurnOptions(tools: [AnyTool(mockTool)])
+        )
+        _ = await second.events().collect()
+
+        let secondRequest = try #require(mockLLM.mockClient.messageHistory.last)
+        try assertToolPairing(in: secondRequest, expectedCallIDs: ["call_a", "call_b"])
+        let secondPrefix = toolPairingPrefix(of: secondRequest, callCount: 2)
+
+        // Fork replay: the forked session reloads the same tool-bearing history, sends the
+        // same pairing, and shares byte-identical tool-bearing prefix bytes.
+        let fork = try await chat.timelines.fork(from: timelineID)
+        mockLLM.mockClient.nextResponse = "fork done"
+        let forkTurn = try await fork.startDirectTurn(
+            "Summarize on the fork",
+            context: DirectTurnContext(systemInstructions: "Be concise."),
+            options: TurnOptions(tools: [AnyTool(mockTool)])
+        )
+        _ = await forkTurn.events().collect()
+
+        let forkRequest = try #require(mockLLM.mockClient.messageHistory.last)
+        try assertToolPairing(in: forkRequest, expectedCallIDs: ["call_a", "call_b"])
+        #expect(toolPairingPrefix(of: forkRequest, callCount: 2) == secondPrefix)
+    }
+
+    private func assertToolPairing(in messages: [LLMMessage], expectedCallIDs: [String]) throws {
+        let assistantIndex = try #require(messages.firstIndex(where: {
+            $0.role == .assistant && !($0.toolCalls ?? []).isEmpty
+        }))
+        // Multiple-call ordering is preserved on the reloaded assistant message.
+        #expect(messages[assistantIndex].toolCalls?.map(\.id) == expectedCallIDs)
+        // Each tool result is adjacent to its call with the matching call ID and the tool
+        // role, so the pairing survives persist/reload instead of degrading to a user
+        // message with a nil result ID.
+        for (offset, callID) in expectedCallIDs.enumerated() {
+            let result = messages[assistantIndex + 1 + offset]
+            #expect(result.role == .tool)
+            #expect(result.toolCallID == callID)
+            #expect(result.content == "PKTool result")
+        }
+        #expect(!messages.contains(where: { $0.content.contains("<tool_response>") }))
+        try validateLLMMessageHistory(messages)
+    }
+
+    private func toolPairingPrefix(of messages: [LLMMessage], callCount: Int) -> [LLMMessage] {
+        guard let assistantIndex = messages.firstIndex(where: {
+            $0.role == .assistant && !($0.toolCalls ?? []).isEmpty
+        }) else { return [] }
+        return Array(messages[assistantIndex ..< assistantIndex + 1 + callCount])
+    }
+
+    @Test
     func facadeRejectsForgedToolOutputWithoutPendingCall() async throws {
         let (chat, _, mockPersistence, timelineID, _) = try await makeAcceptanceRuntime()
 

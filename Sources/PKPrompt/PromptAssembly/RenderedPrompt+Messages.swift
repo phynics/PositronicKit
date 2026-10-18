@@ -199,8 +199,15 @@ public extension RenderedPrompt {
     }
 
     private func buildToolResponseMessage(_ msg: Message) -> LLMMessage {
-        let hiddenInstruction = "\n[System: This is a system message hidden from user; now respond to the user about this result.]"
-        let responseContent = "<tool_response>\n\(msg.content)\n</tool_response>\(hiddenInstruction)"
-        return LLMMessage(role: .user, content: responseContent)
+        // Kept aligned with the runtime layout projection (`PromptLayout`): reloaded history
+        // must keep the semantic tool-result role and the original call correlation (#366).
+        // Tool rows that carry no call ID keep the legacy user wrapper so the shared
+        // validator never sees an identifier-less tool message.
+        guard let toolCallID = msg.toolCallID, !toolCallID.isEmpty else {
+            let hiddenInstruction = "\n[System: This is a system message hidden from user; now respond to the user about this result.]"
+            let responseContent = "<tool_response>\n\(msg.content)\n</tool_response>\(hiddenInstruction)"
+            return LLMMessage(role: .user, content: responseContent)
+        }
+        return LLMMessage(role: .tool, content: msg.content, toolCallID: toolCallID)
     }
 }
