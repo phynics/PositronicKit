@@ -26,6 +26,10 @@ ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/ci.yml"
 RELEASE_WORKFLOW = ROOT / ".github/workflows/release-gate.yml"
 SBOM_WORKFLOW = ROOT / ".github/workflows/release-sbom.yml"
+NIGHTLY_LIVE = ROOT / ".github/workflows/nightly-live.yml"
+NIGHTLY_FLAKE = ROOT / ".github/workflows/nightly-flake-detection.yml"
+DEPENDABOT = ROOT / ".github/dependabot.yml"
+IOS_SCRIPT = ROOT / "Scripts/run-ios-verify.sh"
 MAKEFILE = ROOT / "Makefile"
 MACOS_JOB = "macos-verify"
 LINUX_JOB = "linux-verify"
@@ -51,6 +55,18 @@ def release_workflow_text() -> str:
 
 def sbom_workflow_text() -> str:
     return SBOM_WORKFLOW.read_text(encoding="utf-8")
+
+
+def nightly_live_text() -> str:
+    return NIGHTLY_LIVE.read_text(encoding="utf-8")
+
+
+def nightly_flake_text() -> str:
+    return NIGHTLY_FLAKE.read_text(encoding="utf-8")
+
+
+def dependabot_text() -> str:
+    return DEPENDABOT.read_text(encoding="utf-8")
 
 
 def job_block(workflow: str, job: str) -> str:
@@ -252,6 +268,84 @@ def test_sbom_upload_requires_a_successful_gate_for_the_same_tag_and_commit() ->
     ), job
 
 
+def test_ios_script_builds_every_library_product_for_the_simulator() -> None:
+    script = IOS_SCRIPT.read_text(encoding="utf-8")
+    assert "Scripts/list-library-products.swift" in script, script
+    assert "generic/platform=iOS Simulator" in script, script
+    assert "for product in $products" in script, script
+
+
+def test_nightly_live_is_report_only_and_scheduled() -> None:
+    workflow = nightly_live_text()
+    assert "schedule:" in workflow, workflow
+    assert "workflow_dispatch:" in workflow, workflow
+    # Live lanes must never run for a pull request, so a fork can never reach a secret.
+    assert "pull_request:" not in workflow, workflow
+    assert "push:" not in workflow, workflow
+    block = permissions_block(workflow)
+    assert re.search(r"^\s+contents:\s*read\s*$", block, re.MULTILINE), block
+    assert "write" not in block, block
+
+
+def test_nightly_live_skips_each_live_job_when_its_secret_is_absent() -> None:
+    workflow = nightly_live_text()
+    gating = job_block(workflow, "gating")
+    assert "outputs:" in gating, gating
+    for provider in ("anthropic", "openai", "openrouter"):
+        assert f"needs.gating.outputs.{provider} == 'true'" in workflow, workflow
+    for job in (
+        "live-prompt-cache-anthropic",
+        "live-prompt-cache-openai",
+        "live-prompt-cache-openrouter",
+    ):
+        block = job_block(workflow, job)
+        assert "needs: gating" in block, block
+        assert "continue-on-error: true" in block, block
+        assert "--filter Live" in block, block
+
+
+def test_nightly_live_includes_the_contract_nix_and_downstream_lanes() -> None:
+    workflow = nightly_live_text()
+    assert "OpenAITransportContract" in job_block(workflow, "openai-contract"), workflow
+    assert "nix develop -c make verify-products" in job_block(workflow, "nix-verify-products"), workflow
+    for job in ("downstream-gnostic", "downstream-yakamoz"):
+        block = job_block(workflow, job)
+        assert "continue-on-error: true" in block, block
+    # The downstream override points SwiftPM and XcodeGen at this checkout.
+    assert ".package(path: " in workflow, workflow
+    assert "https://github.com/phynics/Gnostic.git" in workflow, workflow
+    assert "https://github.com/phynics/Yakamoz.git" in workflow, workflow
+
+
+def test_dependabot_groups_actions_and_swift_weekly() -> None:
+    text = dependabot_text()
+    assert "version: 2" in text, text
+    assert 'package-ecosystem: "github-actions"' in text, text
+    assert 'package-ecosystem: "swift"' in text, text
+    assert text.count('interval: "weekly"') == 2, text
+    assert text.count("groups:") == 2, text
+    assert "patterns:" in text, text
+
+
+def test_detect_flakes_run_uses_the_gate_flags() -> None:
+    block = target_block(makefile_text(), "detect-flakes-run")
+    assert "ITERATIONS is required" in block, block
+    assert "$(SWIFT_BUILD_FLAGS)" in block, block
+    assert "--xunit-output" in block, block
+
+
+def test_detect_flakes_run_is_phony() -> None:
+    block = target_block(makefile_text(), ".PHONY")
+    assert "detect-flakes-run" in block, block
+
+
+def test_nightly_flake_runs_through_the_make_target() -> None:
+    workflow = nightly_flake_text()
+    assert "make detect-flakes-run ITERATIONS=" in workflow, workflow
+    # The old inline loop ignored $(SWIFT_BUILD_FLAGS); the Make target owns it now.
+    assert "swift test --xunit-output" not in workflow, workflow
+
+
 if __name__ == "__main__":
     tests = [
         test_main_api_check_reads_the_next_baseline,
@@ -267,6 +361,14 @@ if __name__ == "__main__":
         test_ios_job_runs_the_shared_ios_gate,
         test_full_verify_includes_the_ios_gate,
         test_ios_gate_runs_the_runner_script,
+        test_ios_script_builds_every_library_product_for_the_simulator,
+        test_nightly_live_is_report_only_and_scheduled,
+        test_nightly_live_skips_each_live_job_when_its_secret_is_absent,
+        test_nightly_live_includes_the_contract_nix_and_downstream_lanes,
+        test_dependabot_groups_actions_and_swift_weekly,
+        test_detect_flakes_run_uses_the_gate_flags,
+        test_detect_flakes_run_is_phony,
+        test_nightly_flake_runs_through_the_make_target,
         test_release_gate_triggers_for_stable_and_rc_tags_and_dispatch,
         test_release_gate_checks_the_tag_with_full_history_on_both_platforms,
         test_release_sbom_is_generated_after_both_platform_gates,

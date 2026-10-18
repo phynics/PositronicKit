@@ -1,0 +1,25 @@
+version: 2
+
+updates:
+  # The workflows pin every action to a commit SHA, so without Dependabot they
+  # never move. One grouped pull request per week keeps the pins current.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # SwiftPM dependencies are `exact:` pins and resolved in Package.resolved, so
+  # this is the only automated signal for updates and advisories. Keep the
+  # updates grouped so one weekly pull request moves the graph together.
+  - package-ecosystem: "swift"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      swift:
+        patterns:
+          - "*"

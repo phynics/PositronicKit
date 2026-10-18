@@ -140,16 +140,24 @@ budgeting, `PathSanitizer`) are tested generatively with a small in-repo generat
 ## Nightly flake detection
 
 `.github/workflows/nightly-flake-detection.yml` runs on a schedule (plus manual
-dispatch) — never on pull requests. It runs the full suite N times (default 5),
-records one xUnit file per iteration via `swift test --xunit-output`, then runs
+dispatch) — never on pull requests. It runs the full suite N times (default 5)
+through `make detect-flakes-run ITERATIONS=…`, which applies the same
+`$(SWIFT_BUILD_FLAGS)` (`-warnings-as-errors`) as the PR gate and records one xUnit
+file per iteration via `swift test --xunit-output`. The job then runs
 `Scripts/detect-flaky-tests.py --report iteration-*.xml`, which reports every test
 that did not pass every run by name with the failing iteration count
-(`make detect-flakes XUNIT_FILES='...'` runs the report locally). Each iteration
+(`make detect-flakes XUNIT_FILES='...'` runs the report locally, and
+`make detect-flakes-run ITERATIONS=5` reproduces the loop). Each iteration
 runs under its own `PK_GENERATIVE_SEED` (derived from the run ID) and echoes it, so the
 nightly job explores generative cases beyond the fixed seed the PR gate pins while any
 failure still reproduces from the log. A failing iteration does not stop the loop: all N
 iterations always run, because a test that fails only sometimes is the signal being
-collected. A `.serialized`
+collected.
+
+The daily lane runs on Linux. A second schedule fires the same repetition weekly on
+the `xcode-27` macOS runner, so the Apple-only paths (Foundation Models,
+NaturalLanguage embeddings) get the flake signal the Linux lane cannot produce.
+A `.serialized`
 marker is kept only for a real ordering requirement (loopback-listener churn,
 process-global protocol registration, wall-clock timing sensitivity, or contained
 stress load); each remaining marker carries a comment stating that requirement.
@@ -165,6 +173,42 @@ make agent-test-repeat FILTER='AgentAuthorityCoordinatorTests' N=50
 times. This complements the nightly whole-suite loop: the nightly job reports
 flakes by name across iterations, while `agent-test-repeat` reproduces one suite
 on demand.
+
+## Live provider checks
+
+The prompt-cache adapters have opt-in live suites that call a real provider and assert
+the property the runtime depends on: a repeated stable prefix reports
+`cachedTokens > 0`. They live next to the adapter fixtures:
+
+- `Tests/PKAnthropicProviderTests/LivePromptCacheChecks.swift`
+- `Tests/PKOpenAIProviderTests/LivePromptCacheChecks.swift`
+- `Tests/PKOpenRouterProviderTests/LivePromptCacheChecks.swift`
+
+Each suite is disabled unless both opt-ins are set, so the default gate and every fork
+pull request stay network-free and deterministic:
+
+```bash
+POSITRONICKIT_LIVE_TESTS=1 \
+ANTHROPIC_API_KEY=… \
+  swift test --filter LiveAnthropicPromptCache
+```
+
+`.github/workflows/nightly-live.yml` runs them on a schedule (plus manual dispatch)
+only. It reads the secrets once in a `gating` job and skips a provider's job when its
+key is absent, so a repository without keys runs nothing. Every job is report-only
+(`continue-on-error: true`) and never gates a pull request. The same workflow owns the
+recorded OpenAI transport contract, the Nix flake build, and report-only downstream
+builds of Gnostic and Yakamoz against this checkout via a local-path override.
+
+## iOS Simulator lane
+
+`Scripts/run-ios-verify.sh` builds every library product `Package.swift` declares for
+`generic/platform=iOS Simulator` (the product list comes from
+`Scripts/list-library-products.swift`, not a hard-coded scheme list), then builds and
+tests `PKObservableTests` on a booted simulator. `make verify-ios` runs it locally on
+macOS, and the `ios-verify` CI job runs the same target, so a product added later is
+covered on iOS without editing the script. An empty product list fails the gate rather
+than reporting a green lane.
 
 ## File layout rules
 

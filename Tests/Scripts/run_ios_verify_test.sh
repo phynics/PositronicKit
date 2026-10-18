@@ -39,13 +39,24 @@ make_probe_path() {
   done
 }
 
-# make_fixture <dir> <test-exit> <devices>
+# make_fixture <dir> <test-exit> <devices> [products]
 # test-exit: exit status for the PKObservableTests invocation.
 # devices:   output of `xcrun simctl list devices available` (may be empty).
+# products:  newline-separated library products the `swift` shim reports; the
+#            default exercises the scripts/executables filter.
 make_fixture() {
   local fixture="$1"
   local test_exit="$2"
   local devices="$3"
+  local products
+  if [ "$#" -ge 4 ]; then
+    products="$4"
+  else
+    products="PKContracts
+PositronicKit
+PKObservable
+PKFoundationModelsProvider"
+  fi
   mkdir -p "$fixture/bin"
 
   cat > "$fixture/bin/xcodebuild" <<SHIM
@@ -66,6 +77,32 @@ fi
 exit 0
 SHIM
   chmod +x "$fixture/bin/xcrun"
+
+  # The script enumerates products with `swift package describe` piped into
+  # Scripts/list-library-products.swift. The shim answers the describe call with
+  # a minimal JSON document and the lister call with the product names, so the
+  # case never shells out to a real toolchain (list_library_products_test.sh
+  # covers the lister itself). The lister branch drains its standard input first:
+  # the real lister reads the describe output to EOF, and a shim that exits
+  # without reading would close the pipe and, under `set -o pipefail`, surface
+  # the writer's SIGPIPE as a spurious 141.
+  cat > "$fixture/bin/swift" <<SHIM
+#!/usr/bin/env bash
+for arg in "\$@"; do
+  case "\$arg" in
+    *list-library-products.swift*)
+      cat > /dev/null
+      printf '%s\n' '$products'
+      exit 0
+      ;;
+  esac
+done
+case "\$*" in
+  *"package describe"*) printf '%s\n' '{"products":[]}' ;;
+esac
+exit 0
+SHIM
+  chmod +x "$fixture/bin/swift"
 }
 
 # run_case <name> <expected-exit> <expected-message> <fixture> <path-dir> <isolate-path>
@@ -126,15 +163,23 @@ no_simulator="$tmp_dir/no-simulator"
 make_fixture "$no_simulator" 0 ''
 run_case no-available-simulator-fails 1 'No available iPhone simulator found' "$no_simulator" "$no_simulator/bin" 0
 
-# The success path builds PKObservable, tests PKObservableTests on the resolved
-# UDID, and builds the iOS-restricted provider.
+# An empty product list must fail instead of reporting a green lane, so a
+# manifest the lister cannot read cannot silently shrink the iOS build.
+empty_products="$tmp_dir/empty-products"
+make_fixture "$empty_products" 0 "$device" ''
+run_case no-library-products-fails 1 'No library products discovered' "$empty_products" "$empty_products/bin" 0
+
+# The success path builds every library product for the generic iOS Simulator
+# destination, then tests PKObservableTests on the resolved UDID.
 success="$tmp_dir/success"
 make_fixture "$success" 0 "$device"
 run_case success-builds-and-tests 0 '' "$success" "$success/bin" 0
-if grep -qF -- '-scheme PKObservable ' "$success/xcodebuild.log" \
-  && grep -qF -- '-scheme PKObservableTests ' "$success/xcodebuild.log" \
-  && grep -qF -- 'platform=iOS Simulator,id=11111111-1111-1111-1111-111111111111' "$success/xcodebuild.log" \
+if grep -qF -- '-scheme PKContracts ' "$success/xcodebuild.log" \
+  && grep -qF -- '-scheme PKObservable ' "$success/xcodebuild.log" \
   && grep -qF -- '-scheme PKFoundationModelsProvider ' "$success/xcodebuild.log" \
+  && grep -qF -- '-scheme PKObservableTests ' "$success/xcodebuild.log" \
+  && grep -qF -- "generic/platform=iOS Simulator" "$success/xcodebuild.log" \
+  && grep -qF -- 'platform=iOS Simulator,id=11111111-1111-1111-1111-111111111111' "$success/xcodebuild.log" \
   && grep -qF -- 'CODE_SIGNING_ALLOWED=NO' "$success/xcodebuild.log"; then
   report_pass success-invokes-every-required-scheme
 else
