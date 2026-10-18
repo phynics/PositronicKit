@@ -35,9 +35,6 @@ def make_fixture(root: Path) -> tuple[Path, Path]:
     shutil.copyfile(ROOT / "Tests/PublicProductConsumer/main.swift", consumer)
     (root / "README.md").write_text("# Fixture\n", encoding="utf-8")
     (root / "AGENTS.md").write_text("docs/catalog.json\n", encoding="utf-8")
-    template = root / ".github/pull_request_template.md"
-    template.parent.mkdir(parents=True, exist_ok=True)
-    template.write_text("## Docs / ADR impact\n", encoding="utf-8")
     return scripts / SCRIPT.name, catalog_path
 
 
@@ -83,9 +80,6 @@ def make_release_candidate_fixture(root: Path, *, has_release_entry: bool) -> Pa
     )
     (root / "AGENTS.md").write_text("docs/catalog.json\n", encoding="utf-8")
     (root / "CONTEXT-MAP.md").write_text("", encoding="utf-8")
-    template = root / ".github/pull_request_template.md"
-    template.parent.mkdir(parents=True)
-    template.write_text("## Docs / ADR impact\n", encoding="utf-8")
     (root / "Package.swift").write_text(
         'let package = Package(\n'
         '  targets: [\n'

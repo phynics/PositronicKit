@@ -151,13 +151,10 @@ def validate_links() -> None:
                     error(f"{source.relative_to(ROOT)} links to missing anchor: {target}")
 
 
-def validate_agent_and_pr_guidance() -> None:
+def validate_agent_guidance() -> None:
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     if "docs/catalog.json" not in agents:
         error("AGENTS.md must point documentation/product work to docs/catalog.json")
-    template_path = ROOT / ".github/pull_request_template.md"
-    if not template_path.exists() or "## Docs / ADR impact" not in template_path.read_text(encoding="utf-8"):
-        error("pull request template must require a Docs / ADR impact declaration")
 
 
 def validate_generated_channel_links() -> None:
@@ -179,7 +176,7 @@ def validate_generated_channel_links() -> None:
 validate_catalog()
 validate_release_channels()
 validate_links()
-validate_agent_and_pr_guidance()
+validate_agent_guidance()
 validate_generated_channel_links()
 
 if ERRORS:

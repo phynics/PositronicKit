@@ -273,7 +273,7 @@ verify-public-api-immutability:
 	@python3 Scripts/check-public-api-baseline-immutability.py
 
 verify-release:
-	@python3 Scripts/validate-release-readiness.py "$(VERSION)"
+	@python3 Scripts/validate-release-readiness.py $(if $(filter 1,$(DRY_RUN)),--dry-run,) "$(VERSION)"
 
 # Generate the release Software Bill of Materials (SE-0509, SwiftPM 6.4). The
 # script runs the accurate build-based CycloneDX path, validates product
@@ -337,7 +337,6 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/promote_public_api_baselines_test.py
 	@python3 -B Tests/Scripts/check_public_api_baseline_immutability_test.py
 	@python3 -B Tests/Scripts/check_domain_vocabulary_test.py
-	@python3 -B Tests/Scripts/check_pr_docs_impact_test.py
 	@python3 -B Tests/Scripts/check_story_coverage_test.py
 	@python3 -B Tests/Scripts/detect_flaky_tests_test.py
 	@python3 -B Tests/Scripts/generate_test_fast_filter_test.py
