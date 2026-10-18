@@ -96,15 +96,19 @@ jobs:
           VERSION: ${{ steps.release-metadata.outputs.version }}
         run: make verify-release VERSION="$VERSION" DRY_RUN=1
 
-  linux-release-gate:
+  resolve-release-tag:
     if: github.event_name != 'pull_request'
-    name: "Linux — release readiness and semver (Ubuntu 24.04)"
+    name: "Resolve the release tag commit"
     runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      commit: ${{ steps.resolve.outputs.commit }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: refs/tags/${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
+          fetch-tags: true
           persist-credentials: false
 
       - name: Require dispatch from the default branch
@@ -114,6 +118,26 @@ jobs:
             echo "dispatch Release Gate from main and enter the tag to verify" >&2
             exit 1
           fi
+
+      - name: Resolve the tag to its commit
+        id: resolve
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: python3 Scripts/release-sbom-gate.py resolve-tag --tag "$TAG" >> "$GITHUB_OUTPUT"
+
+  linux-release-gate:
+    if: github.event_name != 'pull_request'
+    needs:
+      - resolve-release-tag
+    name: "Linux — release readiness and semver (Ubuntu 24.04)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-release-tag.outputs.commit }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
 
       - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
         run: |
@@ -133,27 +157,22 @@ jobs:
 
       - name: Run release readiness and semver checks
         env:
-          TAG: ${{ inputs.tag || github.ref_name }}
+          TAG: ${{ needs.resolve-release-tag.outputs.tag }}
         run: make verify-release VERSION="$TAG"
 
   macos-release-gate:
     if: github.event_name != 'pull_request'
+    needs:
+      - resolve-release-tag
     name: "macOS — release readiness and semver (xcode-27)"
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          ref: ${{ needs.resolve-release-tag.outputs.commit }}
           fetch-depth: 0
+          fetch-tags: true
           persist-credentials: false
-
-      - name: Require dispatch from the default branch
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-            echo "dispatch Release Gate from main and enter the tag to verify" >&2
-            exit 1
-          fi
 
       - name: Assert Swift 6.4
         run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.4'
@@ -163,12 +182,13 @@ jobs:
 
       - name: Run release readiness and semver checks
         env:
-          TAG: ${{ inputs.tag || github.ref_name }}
+          TAG: ${{ needs.resolve-release-tag.outputs.tag }}
         run: make verify-release VERSION="$TAG"
 
   release-sbom:
     if: github.event_name != 'pull_request'
     needs:
+      - resolve-release-tag
       - linux-release-gate
       - macos-release-gate
     name: "Generate the gated release SBOM"
@@ -176,8 +196,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          ref: ${{ needs.resolve-release-tag.outputs.commit }}
           fetch-depth: 0
+          fetch-tags: true
           persist-credentials: false
 
       - name: Install Swift ${{ env.SWIFT_TOOLCHAIN_VERSION }}
@@ -195,12 +216,24 @@ jobs:
 
       - name: Generate the CycloneDX release SBOM
         env:
-          TAG: ${{ inputs.tag || github.ref_name }}
+          TAG: ${{ needs.resolve-release-tag.outputs.tag }}
         run: make sbom VERSION="$TAG"
 
-      - name: Retain the SBOM for the published release
+      - name: Record the resolved tag commit as artifact provenance
+        env:
+          TAG: ${{ needs.resolve-release-tag.outputs.tag }}
+          COMMIT: ${{ needs.resolve-release-tag.outputs.commit }}
+        run: |
+          python3 Scripts/release-sbom-gate.py write-provenance \
+            --tag "$TAG" \
+            --commit "$COMMIT" \
+            --output ".build/sboms/PositronicKit-${TAG}.provenance.json"
+
+      - name: Retain the SBOM and its provenance for the published release
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-sbom
-          path: .build/sboms/PositronicKit-${{ inputs.tag || github.ref_name }}.cyclonedx.json
+          path: |
+            .build/sboms/PositronicKit-${{ needs.resolve-release-tag.outputs.tag }}.cyclonedx.json
+            .build/sboms/PositronicKit-${{ needs.resolve-release-tag.outputs.tag }}.provenance.json
           if-no-files-found: error

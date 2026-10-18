@@ -134,18 +134,35 @@ do not fall back to host Swift or compose an ad hoc container command.
    annotated tag points to `HEAD`, and verifies that the catalog, changelog, generated stable docs,
    the semver comparison, and the release SBOM agree. For a candidate tag such as `7.0.0-rc.1`,
    the catalog and changelog still name `7.0.0`.
-5. Push the tag to start the Release Gate workflow. Wait for both its Linux and macOS readiness and
-   semver jobs to pass. Its final SBOM job runs only after both jobs pass and stores the CycloneDX
-   document as a workflow artifact. Then publish the GitHub release from the matching changelog
-   entry. The `Release SBOM` workflow checks for a successful gate run for the exact tag and commit,
-   downloads that run's SBOM, and attaches it; no manual upload is required.
+5. Push the tag to start the Release Gate workflow. The workflow resolves the tag to one commit,
+   pins every gate job to that commit, and waits for both its Linux and macOS readiness and semver
+   jobs to pass. Its final SBOM job runs only after both jobs pass and stores the CycloneDX document
+   with a provenance file naming the resolved tag commit. Then publish the GitHub release from the
+   matching changelog entry. The `Release SBOM` workflow resolves the tag from its own checkout and
+   attaches an SBOM only when the artifact provenance names that same commit; no manual upload is
+   required.
 6. Read back the tag, GitHub release, stable landing, and changelog links, and confirm the tag is
    reachable from `main` (`git branch -r --contains <version>`). After those artifacts agree,
    downstream consumers may bump their pins to the new release.
 
-The tag-push workflow runs after a tag is created. A GitHub tag ruleset with a required-workflow rule
-is needed to prevent tag creation until the Release Gate succeeds. Without that hosting-level rule,
-do not publish the GitHub release until both platform jobs are green.
+## Tag protection and mutability
+
+Repository tag protection rules or rulesets can restrict which actors may create, update, or delete
+matching tags. Configure those actor restrictions to match the release process; they control tag
+mutability, not whether a workflow has passed. This repository does not have a required-workflow tag
+rule, so tag creation is not blocked until the Release Gate succeeds. Do not publish a GitHub release
+until both platform jobs are green.
+
+The Release Gate records the commit resolved from the tag and pins all gate jobs to that revision.
+The `Release SBOM` workflow compares the artifact provenance with the commit in its release checkout
+before attaching the SBOM. If a tag has moved or been recreated since the gate ran, the old artifact
+is rejected; run the gate successfully for the tag's current commit before publishing.
+
+Use an annotated tag. Do not tag unreleased work or skip the changelog entry. Avoid updating or
+deleting a published tag. If a tag must change before publication, restrict the change to authorized
+release maintainers, confirm the tree is unchanged (`git rev-parse <version>^{tree}`), and run the
+Release Gate again for the tag's new commit. Existing clones may need `git fetch --tags --force` to
+observe an updated tag.
 
 To run either workflow manually, select `main` as the workflow ref. For `Release Gate`, enter the
 full tag in its `tag` input. A manual `Release SBOM` run requires an existing release and a
@@ -176,11 +193,11 @@ cannot generate the document, if a public library product is missing from the co
 the per-product dependency edges change: `PKOpenAIProvider` must list `MacPaw/OpenAI` while
 `PKContracts` must not.
 
-`make verify-release` runs the same generation for the tag being verified, so the SBOM is a
-blocking release artifact rather than an afterthought. The Release Gate workflow generates a final
-SBOM artifact only after both platform checks succeed. The `Release SBOM` workflow confirms a
-successful gate run for the same tag and commit, downloads its artifact, and attaches it to the
-published GitHub release. A manual SBOM run has the same gate check. Set
+`make verify-release` runs the same generation for the tag being verified, so the SBOM is a blocking
+release artifact rather than an afterthought. The Release Gate workflow generates a final SBOM only
+after both platform checks succeed and stores provenance with the resolved tag commit. The
+`Release SBOM` workflow checks that provenance against its release checkout before attaching the
+artifact to the published GitHub release. A manual SBOM run has the same commit check. Set
 `SBOM_FORMAT=spdx` to emit SPDX instead, but the release artifact stays CycloneDX.
 
 ## Downstream Cadence
