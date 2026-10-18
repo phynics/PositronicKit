@@ -62,6 +62,8 @@ for tagged releases beginning with `1.0.0`.
 - Image-only and audio-only Turns reach the provider request. The prompt layout now preserves a
   user query whenever it has nonempty parts, instead of dropping it when the text projection is
   empty (#365).
+- OpenAI Responses non-streaming completions now decode assistant text and refusals from nested
+  message content parts, preserve structured JSON, and retain incomplete-response status (#360).
 - The Workspace Execution Lane stays closed after a mutating or external-process tool times out,
   until the abandoned task ends. A later call for the same Workspace now waits instead of
   overlapping the still-running tool (#302).
