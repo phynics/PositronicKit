@@ -103,8 +103,8 @@ _Avoid_: mutable Timeline workspace list, shared workspace claim
 **Workspace Execution Lane**:
 A process-local FIFO coordinator that prevents overlapping execution for one Workspace while
 allowing independent Workspaces to execute concurrently. When a mutating or external-process tool
-times out but may still run, the lane stays closed until that abandoned task ends, so a later call
-for the same Workspace cannot overlap it.
+times out, or its caller is cancelled, but may still run, the lane stays closed until that
+abandoned task ends, so a later call for the same Workspace cannot overlap it.
 _Avoid_: distributed lock, global execution queue
 
 **Timeline Execution Context**:

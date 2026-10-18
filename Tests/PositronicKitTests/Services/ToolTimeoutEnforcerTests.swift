@@ -288,6 +288,76 @@ struct ToolTimeoutEnforcerTests {
         #expect(sleepObservedCancellation.withLock { $0 })
     }
 
+    @Test("Cancellation hands a mutating cancellation-ignoring tool to onAbandon (#367)")
+    func cancellationHandsOffMutatingTool() async throws {
+        // A cancellation-ignoring `.mutating` tool must outlive the cancelled race, so the
+        // enforcer has to report its task to `onAbandon` before delivering `CancellationError`.
+        let started = AsyncLatch()
+        let release = AsyncLatch()
+        defer { release.open() }
+        let abandoned = Mutex<Int>(0)
+        let parkedSleep: @Sendable (UInt64) async throws -> Void = { _ in
+            try await Task.sleep(for: .seconds(3600))
+        }
+        let tool = ControlledUncooperativeTool(
+            sideEffects: .mutating,
+            started: started,
+            release: release
+        )
+
+        let raceTask = Task {
+            try await ToolTimeoutEnforcer.execute(
+                AnyTool(tool),
+                arguments: [:],
+                timeout: 60,
+                sleep: parkedSleep,
+                onAbandon: { _ in abandoned.withLock { $0 += 1 } }
+            )
+        }
+        await started.wait()
+        raceTask.cancel()
+
+        await #expect(throws: CancellationError.self) {
+            _ = try await raceTask.value
+        }
+        #expect(abandoned.withLock { $0 } == 1)
+    }
+
+    @Test("Cancellation does not hand off a side-effect-free tool (#367)")
+    func cancellationDoesNotHandOffSideEffectFreeTool() async throws {
+        // `.none` tools keep the fast abandonment: cancellation delivers `CancellationError`
+        // without registering an ownership hold for a tool the runtime has declared safe.
+        let started = AsyncLatch()
+        let release = AsyncLatch()
+        defer { release.open() }
+        let abandoned = Mutex<Int>(0)
+        let parkedSleep: @Sendable (UInt64) async throws -> Void = { _ in
+            try await Task.sleep(for: .seconds(3600))
+        }
+        let tool = ControlledUncooperativeTool(
+            sideEffects: .none,
+            started: started,
+            release: release
+        )
+
+        let raceTask = Task {
+            try await ToolTimeoutEnforcer.execute(
+                AnyTool(tool),
+                arguments: [:],
+                timeout: 60,
+                sleep: parkedSleep,
+                onAbandon: { _ in abandoned.withLock { $0 += 1 } }
+            )
+        }
+        await started.wait()
+        raceTask.cancel()
+
+        await #expect(throws: CancellationError.self) {
+            _ = try await raceTask.value
+        }
+        #expect(abandoned.withLock { $0 } == 0)
+    }
+
     @Test("timeoutDescription formats integer timeouts without a decimal")
     func integerTimeoutFormat() {
         #expect(ToolTimeoutEnforcer.timeoutDescription(60) == "60 seconds")

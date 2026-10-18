@@ -62,6 +62,10 @@ for tagged releases beginning with `1.0.0`.
 - The Workspace Execution Lane stays closed after a mutating or external-process tool times out,
   until the abandoned task ends. A later call for the same Workspace now waits instead of
   overlapping the still-running tool (#302).
+- Cancelling a tool caller no longer releases the Workspace Execution Lane while a
+  cancellation-ignoring mutating or external-process tool may still be running. Cancellation
+  carries the same abandoned-mutation ownership handoff as the timeout path, so a later call waits
+  for the underlying task to exit instead of overlapping it (#367).
 - `append_file` preserves existing files when a read fails, including oversized files,
   permission errors, and invalid UTF-8. It creates a file only when the provider reports
   a recognized missing-file error.
