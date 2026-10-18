@@ -144,6 +144,45 @@ struct PublicRuntimeStoriesTests {
         #expect(mockLLM.mockClient.lastMessages.first(where: { $0.role == .system })?.content.contains("Use direct context.") == true)
     }
 
+    @Test("public image-only admission reaches the provider request")
+    func publicImageOnlyQueryReachesProviderRequest() async throws {
+        let (chat, mockLLM, mockPersistence, timelineID, _) = try await makeAcceptanceRuntime()
+        var configuration = mockLLM.mockConfig
+        configuration.providers[.openAI]?.capabilities = [.imageInput]
+        mockLLM.mockConfig = configuration
+        mockLLM.mockClient.nextResponse = "image reply"
+        let image = ImageContent(data: Data([0x0A, 0x0B]), mediaType: "image/png", detail: .high)
+        let content = MessageContent(parts: [.image(image)])
+
+        let turn = try await chat.timelines.open(timelineID).startTurn(content)
+        _ = await turn.events().collect()
+
+        // Admission persisted the image part independently of the empty text projection.
+        let persisted = try await mockPersistence.fetchMessages(for: timelineID)
+        #expect(persisted.first?.messageContent == content)
+        // The provider request carries the same image-only user message.
+        let query = try #require(mockLLM.mockClient.lastMessages.last(where: { $0.role == .user }))
+        #expect(query.messageContent == content)
+        #expect(query.content.isEmpty)
+    }
+
+    @Test("public audio-only admission reaches the provider request")
+    func publicAudioOnlyQueryReachesProviderRequest() async throws {
+        let (chat, mockLLM, _, timelineID, _) = try await makeAcceptanceRuntime()
+        var configuration = mockLLM.mockConfig
+        configuration.providers[.openAI]?.capabilities = [.audioInput]
+        mockLLM.mockConfig = configuration
+        mockLLM.mockClient.nextResponse = "audio reply"
+        let audio = AudioContent(data: Data([0x0C, 0x0D]), format: .wav, transcript: "spoken")
+        let content = MessageContent(parts: [.audio(audio)])
+
+        let turn = try await chat.timelines.open(timelineID).startTurn(content)
+        _ = await turn.events().collect()
+
+        let query = try #require(mockLLM.mockClient.lastMessages.last(where: { $0.role == .user }))
+        #expect(query.messageContent == content)
+    }
+
     @Test("explicit agent requests reject an unattached agent before side effects")
     func managedTimelineRejectsUnattachedAgent() async throws {
         let (kit, mockLLM, mockPersistence, timelineID, _) = try await makeAcceptanceRuntime(attachAgent: false)
