@@ -255,6 +255,50 @@ struct PromptCacheLayoutTests {
         #expect(alpha.lowerBound < zebra.lowerBound)
     }
 
+    @Test("reloaded tool history keeps assistant calls adjacent to their paired results")
+    func reloadedToolHistoryKeepsCallResultPairing() async throws {
+        let history: [Message] = [
+            Message(content: "first question", role: .user),
+            Message(
+                content: "working",
+                role: .assistant,
+                toolCalls: [
+                    ToolCall(id: "call_a", name: "alpha", arguments: [:]),
+                    ToolCall(id: "call_b", name: "alpha", arguments: [:]),
+                ]
+            ),
+            Message(content: "result a", role: .tool, toolCallID: "call_a"),
+            Message(content: "result b", role: .tool, toolCallID: "call_b"),
+            Message(content: "done", role: .assistant),
+            Message(content: "follow-up question", role: .user),
+        ]
+        let wire = try await assembled(
+            turn: 2,
+            history: history,
+            tools: [AnyTool(CacheTestTool(callName: "alpha", name: "Alpha"))]
+        )
+
+        let messages = wire.messages
+        let assistantIndex = try #require(messages.firstIndex(where: {
+            $0.role == .assistant && !($0.toolCalls ?? []).isEmpty
+        }))
+        // Multiple-call ordering is preserved on the assistant message.
+        #expect(messages[assistantIndex].toolCalls?.map(\.id) == ["call_a", "call_b"])
+        // Each tool result stays adjacent to its call with the matching call ID.
+        #expect(messages[assistantIndex + 1].role == .tool)
+        #expect(messages[assistantIndex + 1].toolCallID == "call_a")
+        #expect(messages[assistantIndex + 1].content == "result a")
+        #expect(messages[assistantIndex + 2].role == .tool)
+        #expect(messages[assistantIndex + 2].toolCallID == "call_b")
+        #expect(messages[assistantIndex + 2].content == "result b")
+        // Genuine user messages keep the user role, and no tool result falls back to the
+        // legacy wrapper.
+        #expect(messages.contains(where: { $0.role == .user && $0.content == "follow-up question" }))
+        #expect(!messages.contains(where: { $0.content.contains("<tool_response>") }))
+        // The provider-facing history is protocol-valid: every tool message carries its ID.
+        try validateLLMMessageHistory(messages)
+    }
+
     @Test("crossing the history budget trims once and the next three Turns keep the new prefix")
     func stepwiseTrimKeepsPrefix() {
         let base = (0 ..< 5).map { index in

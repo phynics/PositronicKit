@@ -59,6 +59,10 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- Reloaded and forked history keeps the semantic tool-result role and the original call
+  correlation. A persisted tool result now re-enters the provider request as a `.tool` message
+  adjacent to its assistant call with the matching `tool_call_id`, instead of degrading to a
+  user XML wrapper with a nil result ID (#366).
 - Image-only and audio-only Turns reach the provider request. The prompt layout now preserves a
   user query whenever it has nonempty parts, instead of dropping it when the text projection is
   empty (#365).

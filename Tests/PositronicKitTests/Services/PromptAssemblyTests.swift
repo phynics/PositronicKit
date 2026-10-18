@@ -187,8 +187,13 @@ struct PromptAssemblyTests {
             userContent: MessageContent(parts: [.text("Latest question")]),
             chatHistory: [
                 Message(content: "Question", role: .user),
-                Message(content: "Answer", role: .assistant, reasoning: "Reasoning"),
-                Message(content: "PKTool output", role: .tool),
+                Message(
+                    content: "Answer",
+                    role: .assistant,
+                    reasoning: "Reasoning",
+                    toolCalls: [ToolCall(id: "call_1", name: "search", arguments: ["q": .string("x")])]
+                ),
+                Message(content: "PKTool output", role: .tool, toolCallID: "call_1"),
             ],
             tools: [],
             workspaces: [],
@@ -253,9 +258,9 @@ struct PromptAssemblyTests {
                             content: "Answer",
                             role: .assistant,
                             reasoning: "Reasoning",
-                            toolCalls: [ToolCall(name: "search", arguments: ["q": .string("x")])]
+                            toolCalls: [ToolCall(id: "call_1", name: "search", arguments: ["q": .string("x")])]
                         ),
-                        Message(content: "PKTool output", role: .tool),
+                        Message(content: "PKTool output", role: .tool, toolCallID: "call_1"),
                     ])
                 ),
                 .init(
@@ -292,11 +297,15 @@ struct PromptAssemblyTests {
         #expect(llmMessages[2].role == LLMMessage.Role.assistant)
         #expect(llmMessages[2].content == "<think>Reasoning</think>\nAnswer")
         #expect(llmMessages[2].toolCalls?.first?.name == "search")
+        #expect(llmMessages[2].toolCalls?.first?.id == "call_1")
         #expect(uiMessages[2].content == "Answer")
         #expect(uiMessages[2].reasoning == "Reasoning")
 
-        #expect(llmMessages[3].role == LLMMessage.Role.user)
-        #expect(llmMessages[3].content.contains("<tool_response>"))
+        // Reloaded history keeps the semantic tool-result role and the call correlation
+        // (#366): the tool result stays adjacent to its assistant call with the same ID.
+        #expect(llmMessages[3].role == LLMMessage.Role.tool)
+        #expect(llmMessages[3].toolCallID == "call_1")
+        #expect(llmMessages[3].content == "PKTool output")
         #expect(uiMessages[3].role == Message.MessageRole.tool)
         #expect(uiMessages[3].content == "PKTool output")
 
