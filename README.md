@@ -170,9 +170,11 @@ and `cancel()` targets exactly that Turn.
 
 One-shot text, result, stream, and structured-output calls all accept per-call generation
 parameters and an inactivity timeout on their configurable overloads. Per-call parameters override
-the facade defaults; `nil` uses those defaults. `idleTimeout` defaults to 60 seconds and resets
-after every provider chunk. Structured one-shot output uses the same native-response-format or
-synthetic-tool adapter path as full runs:
+the facade defaults; `nil` uses those defaults. When `idleTimeout` is omitted, a `kit.model` call
+uses the runtime-configured `RuntimeConfiguration.streamTimeout`, whose default is 60 seconds; an
+explicit value overrides it for that call. The timer measures provider inactivity between chunks
+and resets after every provider chunk. Structured one-shot output uses the same
+native-response-format or synthetic-tool adapter path as full runs:
 
 ```swift
 import JSONSchemaBuilder

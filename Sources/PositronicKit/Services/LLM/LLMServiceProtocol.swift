@@ -328,11 +328,8 @@ public extension LLMStreamClient {
         for try await chunk in stream {
             chunks.append(chunk)
         }
-        guard let response = LLMStreamChunk.folding(chunks) else {
-            let provider = await configuration.activeProvider
-            throw LLMServiceError.emptyResponse(provider: provider.rawValue)
-        }
-        return response
+        let provider = await configuration.activeProvider
+        return try LLMStreamChunk.folding(chunks, provider: provider.rawValue)
     }
 
     /// Drops the prompt-cache directive and forwards to the modality-only requirement.

@@ -652,10 +652,9 @@ public extension LLMClientProtocol {
         for try await chunk in stream {
             chunks.append(chunk)
         }
-        guard let response = LLMStreamChunk.folding(chunks) else {
-            throw LLMServiceError.emptyResponse(provider: "LLM")
-        }
-        return response
+        // The runtime-neutral protocol has no provider identity, so the shared empty rule uses
+        // the neutral `"LLM"` label. Runtime one-shot paths carry the real provider label.
+        return try LLMStreamChunk.folding(chunks, provider: "LLM")
     }
 
     /// Sends a single user message and returns the full accumulated text response.

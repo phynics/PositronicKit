@@ -137,6 +137,49 @@ struct FacadeOneShotTests {
         }
     }
 
+    @Test("one-shot calls honour the configured streamTimeout when idleTimeout is omitted")
+    func oneShotUsesConfiguredStreamTimeout() async throws {
+        let llm = MockLLMService()
+        llm.stubbedStream = AsyncThrowingStream { _ in }
+        let kit = PKRuntime(configuration: .init(
+            languageModel: llm,
+            persistence: .init(
+                runtimeRepository: InMemoryTimelineRuntimeRepository()
+            ),
+            runtime: .init(streamTimeout: 0.01)
+        ))
+
+        do {
+            _ = try await kit.model.completeResult("hi")
+            Issue.record("Expected the stalled one-shot stream to time out at the configured value")
+        } catch let error as TurnEngineError {
+            guard case let .streamTimedOut(timeout) = error else {
+                Issue.record("Expected stream timeout, got \(error)")
+                return
+            }
+            #expect(timeout == 0.01)
+        }
+    }
+
+    @Test("a terminal chunk without content succeeds instead of reporting an empty response")
+    func oneShotSucceedsForContentlessTerminalChunk() async throws {
+        let llm = MockLLMService()
+        llm.stubbedStream = AsyncThrowingStream { continuation in
+            continuation.yield(LLMStreamChunk(
+                id: "test",
+                model: "test",
+                choices: [LLMStreamChoice(index: 0, delta: LLMStreamDelta(), finishReason: "stop")]
+            ))
+            continuation.finish()
+        }
+        let kit = Self.makeKit(languageModel: llm)
+
+        let response = try await kit.model.completeResult("hi")
+
+        #expect(response.content == "")
+        #expect(response.finishReason == "stop")
+    }
+
     @Test("one-shot cancellation terminates promptly")
     func oneShotCancellation() async throws {
         let probe = OneShotTerminationProbe()

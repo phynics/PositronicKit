@@ -111,4 +111,17 @@ public extension LLMStreamChunk {
             usage: usage
         )
     }
+
+    /// Folds streamed deltas into one chunk, throwing when the stream produced no chunks.
+    ///
+    /// This is the single empty-response rule for every one-shot path: a stream with no chunks
+    /// throws ``LLMServiceError/emptyResponse(provider:)`` carrying the caller's real provider
+    /// label. Callers that own a provider identity pass it as `provider`; the runtime-neutral
+    /// ``LLMClientProtocol`` default has none and uses `"LLM"`.
+    static func folding(_ chunks: [LLMStreamChunk], provider: String) throws -> LLMStreamChunk {
+        guard let response = folding(chunks) else {
+            throw LLMServiceError.emptyResponse(provider: provider)
+        }
+        return response
+    }
 }

@@ -25,28 +25,31 @@ public extension LLMStreamClient {
         } else {
             result.rawPrompt
         }
-        let responseFormat = preparedOutput?.responseFormat
-        let toolChoice = preparedOutput?.toolChoice
 
-        // Delegate to the configured provider implementation for streaming.
-        let resolvedTools = preparedOutput?.tools ?? toolParams
-        let stream = await generationStream(
-            messages: messages,
-            tools: resolvedTools,
-            toolChoice: toolChoice,
-            responseFormat: responseFormat,
-            generationParameters: promptRequest.generationParameters,
-            modelTier: request.modelTier,
-            promptCache: promptRequest.promptCache
-        )
-
-        let resolvedStream = if let syntheticToolName = preparedOutput?.syntheticToolName {
-            StructuredOutputExecution.rewriteSyntheticToolStream(stream, syntheticToolName: syntheticToolName)
+        // Delegate to the single structured-preparation step when structured output was
+        // requested, or stream the assembled messages directly otherwise.
+        let stream: AsyncThrowingStream<LLMStreamChunk, Error>
+        if let preparedOutput {
+            stream = await generationStream(
+                prepared: preparedOutput,
+                generationParameters: promptRequest.generationParameters,
+                modelTier: request.modelTier,
+                responseModalities: [.text],
+                audioOutput: nil,
+                transport: .streaming,
+                promptCache: promptRequest.promptCache
+            )
         } else {
-            stream
+            stream = await generationStream(
+                messages: messages,
+                tools: toolParams,
+                generationParameters: promptRequest.generationParameters,
+                modelTier: request.modelTier,
+                promptCache: promptRequest.promptCache
+            )
         }
 
-        return LLMStreamResult(stream: resolvedStream, rawPrompt: rawPrompt)
+        return LLMStreamResult(stream: stream, rawPrompt: rawPrompt)
     }
 }
 
