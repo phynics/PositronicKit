@@ -360,6 +360,7 @@ verify-agent-harness:
 	@python3 -B Tests/Scripts/generate_doc_navigation_test.py
 	@python3 -B Tests/Scripts/validate_release_readiness_test.py
 	@python3 -B Tests/Scripts/generate_sbom_test.py
+	@python3 -B Tests/Scripts/release_sbom_gate_test.py
 	@python3 -B Tests/Scripts/promote_public_api_baselines_test.py
 	@python3 -B Tests/Scripts/check_public_api_baseline_immutability_test.py
 	@python3 -B Tests/Scripts/check_domain_vocabulary_test.py

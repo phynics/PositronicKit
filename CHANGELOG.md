@@ -147,6 +147,12 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   `make detect-flakes-run ITERATIONS=…`, so it applies the gate's `-warnings-as-errors` flags, and
   a weekly macOS schedule repeats the full suite for the Apple-only paths.
   `.github/dependabot.yml` opens grouped weekly `github-actions` and `swift` update pull requests.
+- **Bind release SBOM artifacts to the resolved tag commit (#359).** The Release Gate resolves a
+  tag once and pins each gate job to that commit; its SBOM artifact includes provenance naming the
+  tag and commit. The `Release SBOM` workflow attaches only an artifact whose provenance matches
+  the release checkout, so a moved or recreated tag requires a fresh successful gate for its
+  current commit. `docs/Releasing.md` documents tag actor restrictions separately; the workflow
+  does not depend on a required-workflow tag rule.
 
 ### Added
 

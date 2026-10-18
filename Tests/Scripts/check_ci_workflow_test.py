@@ -216,15 +216,26 @@ def test_release_gate_triggers_for_stable_and_rc_tags_and_dispatch() -> None:
 
 def test_release_gate_checks_the_tag_with_full_history_on_both_platforms() -> None:
     workflow = release_workflow_text()
-    assert "fetch-depth: 0" in job_block(workflow, "linux-release-gate"), workflow
-    assert "fetch-depth: 0" in job_block(workflow, "macos-release-gate"), workflow
     for job_name in ("linux-release-gate", "macos-release-gate"):
         job = job_block(workflow, job_name)
+        assert "fetch-depth: 0" in job, job
+        assert "fetch-tags: true" in job, job
         assert "make verify-public-api-immutability" in job, job
         assert 'make verify-release VERSION="$TAG"' in job, job
-        assert 'GITHUB_REF" != "refs/heads/main"' in job, job
     assert "runs-on: ubuntu-24.04" in job_block(workflow, "linux-release-gate"), workflow
     assert "runs-on: xcode-27" in job_block(workflow, "macos-release-gate"), workflow
+
+
+def test_release_gate_pins_every_job_to_the_resolved_tag_commit() -> None:
+    workflow = release_workflow_text()
+    resolve = job_block(workflow, "resolve-release-tag")
+    assert "outputs:" in resolve, resolve
+    assert "resolve-tag --tag" in resolve, resolve
+    assert 'GITHUB_REF" != "refs/heads/main"' in resolve, resolve
+    for job_name in ("linux-release-gate", "macos-release-gate", "release-sbom"):
+        job = job_block(workflow, job_name)
+        assert "- resolve-release-tag" in job, job
+        assert "ref: ${{ needs.resolve-release-tag.outputs.commit }}" in job, job
 
 
 def test_release_sbom_is_generated_after_both_platform_gates() -> None:
@@ -234,6 +245,8 @@ def test_release_sbom_is_generated_after_both_platform_gates() -> None:
     assert "- linux-release-gate" in job, job
     assert "- macos-release-gate" in job, job
     assert "Generate the CycloneDX release SBOM" in job, job
+    assert "write-provenance" in job, job
+    assert ".provenance.json" in job, job
     assert "name: release-sbom" in job, job
     assert "if-no-files-found: error" in job, job
 
@@ -248,23 +261,25 @@ def test_release_metadata_pull_requests_run_the_dry_gate_only_when_relevant() ->
     assert "DRY_RUN=1" in job, job
 
 
-def test_sbom_upload_requires_a_successful_gate_for_the_same_tag_and_commit() -> None:
+def test_sbom_upload_validates_provenance_before_attaching() -> None:
     workflow = sbom_workflow_text()
     assert re.search(r"^  actions:\s*read\s*$", workflow, re.MULTILINE), workflow
     assert re.search(r"^  contents:\s*write\s*$", workflow, re.MULTILINE), workflow
     job = job_block(workflow, "attach-sbom")
-    assert "actions/workflows/release-gate.yml/runs" in job, job
-    assert "Release gate for " in job, job
-    assert ".head_sha == env.TAG_SHA" in job, job
-    assert "event=workflow_dispatch" in job, job
-    assert "branch=main" in job, job
     assert "persist-credentials: false" in job, job
+    assert "fetch-tags: true" in job, job
+    assert "ref: ${{ github.workflow_sha }}" in job, job
+    assert "path: .trusted-release-tools-${{ github.run_id }}" in job, job
     assert "github.ref == 'refs/heads/main'" in job, job
-    assert "gh run download \"$GATE_RUN_ID\" --name release-sbom" in job, job
+    # A dispatch run's head_sha describes main, so comparing it to the tag commit
+    # is not a valid binding; provenance against the release checkout is.
+    assert ".head_sha == env.TAG_SHA" not in job, job
+    assert ".trusted-release-tools-${{ github.run_id }}/Scripts/release-sbom-gate.py resolve-tag" in job, job
+    assert ".trusted-release-tools-${{ github.run_id }}/Scripts/release-sbom-gate.py select" in job, job
+    assert '--commit "$COMMIT"' in job, job
+    assert "gh release upload" in job, job
     assert (
-        job.index("Require a successful release gate")
-        < job.index("gh run download")
-        < job.index("gh release upload")
+        job.index("resolve-tag") < job.index("select") < job.index("gh release upload")
     ), job
 
 
@@ -371,9 +386,10 @@ if __name__ == "__main__":
         test_nightly_flake_runs_through_the_make_target,
         test_release_gate_triggers_for_stable_and_rc_tags_and_dispatch,
         test_release_gate_checks_the_tag_with_full_history_on_both_platforms,
+        test_release_gate_pins_every_job_to_the_resolved_tag_commit,
         test_release_sbom_is_generated_after_both_platform_gates,
         test_release_metadata_pull_requests_run_the_dry_gate_only_when_relevant,
-        test_sbom_upload_requires_a_successful_gate_for_the_same_tag_and_commit,
+        test_sbom_upload_validates_provenance_before_attaching,
     ]
     for test in tests:
         test()
