@@ -82,12 +82,16 @@ SHIM
   # Scripts/list-library-products.swift. The shim answers the describe call with
   # a minimal JSON document and the lister call with the product names, so the
   # case never shells out to a real toolchain (list_library_products_test.sh
-  # covers the lister itself).
+  # covers the lister itself). The lister branch drains its standard input first:
+  # the real lister reads the describe output to EOF, and a shim that exits
+  # without reading would close the pipe and, under `set -o pipefail`, surface
+  # the writer's SIGPIPE as a spurious 141.
   cat > "$fixture/bin/swift" <<SHIM
 #!/usr/bin/env bash
 for arg in "\$@"; do
   case "\$arg" in
     *list-library-products.swift*)
+      cat > /dev/null
       printf '%s\n' '$products'
       exit 0
       ;;
