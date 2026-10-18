@@ -47,8 +47,8 @@ enum PromptBudgetError: PKError, Sendable, Equatable {
 
 /// The runtime's provider prompt budget.
 ///
-/// The runtime never compresses or summarizes prompt content. The budget only bounds stepwise
-/// history trimming and the non-history overflow check that fails preparation with
+/// The runtime never compresses or summarizes prompt content. The budget bounds stepwise history
+/// trimming and the final assembled-prompt check that fails preparation with
 /// ``TurnError/promptExceedsContextWindow(estimated:limit:)``. Projection and trimming receive
 /// their bounds from here.
 ///
