@@ -103,6 +103,55 @@ struct PromptOverflowTests {
         #expect(!prompt.contains("long answer"))
     }
 
+    @Test("projection replacement contributes to the assembled prompt budget")
+    func projectionReplacementOverflowFailsBeforeProviderRequest() async throws {
+        let model = MockLLMService()
+        setContextWindow(1_200, on: model)
+        let repository = InMemoryTimelineRuntimeRepository()
+        let source = RecordingProjectionSource(
+            recorder: ProjectionRecorder(),
+            requirement: .optional,
+            error: nil,
+            makeProjection: { request in
+                guard !request.messages.isEmpty else { return nil }
+                return TurnHistoryProjection(
+                    coveredMessageIDs: request.messages.map(\.id),
+                    replacement: String(repeating: "checkpoint ", count: 2_800),
+                    firstRetainedMessageID: nil
+                )
+            }
+        )
+        let runtime = makeRuntime(
+            model: model,
+            repository: repository,
+            customization: RuntimeCustomization(turnHistoryProjectionSource: source)
+        )
+        let timeline = try await runtime.timelines.create(title: "Large projection")
+
+        model.mockClient.nextResponse = "first answer"
+        let firstTurn = try await timeline.startDirectTurn(
+            "first question",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        )
+        _ = await firstTurn.events().collect()
+
+        do {
+            _ = try await timeline.startDirectTurn(
+                "second question",
+                context: DirectTurnContext(systemInstructions: "", contributor: .host)
+            )
+            Issue.record("Expected promptExceedsContextWindow")
+        } catch let error as TurnError {
+            guard case let .promptExceedsContextWindow(estimated, limit) = error else {
+                Issue.record("Unexpected TurnError: \(error)")
+                return
+            }
+            #expect(estimated > limit)
+            #expect(limit == 1_200 - 1 - TurnEngine.Constants.providerOverhead)
+        }
+        #expect(model.mockClient.streamCallCount == 1)
+    }
+
     @Test("history trimming absorbs an over-budget history before the Turn fails")
     func historyTrimAbsorbsOverflow() async throws {
         let model = MockLLMService()
@@ -129,6 +178,105 @@ struct PromptOverflowTests {
         let prompt = model.mockClient.lastMessages.map(\.content).joined(separator: "\n")
         // The oldest messages were dropped at a tool-transaction boundary instead of failing.
         #expect(!prompt.contains("long answer"))
+        #expect(prompt.contains("second question"))
+    }
+
+    @Test("assembled context reduces the history allowance below the former fixed reserve")
+    func assembledContextAndHistoryShareBudget() async throws {
+        let model = MockLLMService()
+        setContextWindow(8_192, on: model)
+        let repository = InMemoryTimelineRuntimeRepository()
+        let runtime = makeRuntime(model: model, repository: repository)
+        let timeline = try await runtime.timelines.create(title: "Context and history")
+
+        model.mockClient.nextResponse = String(repeating: "a", count: 9_000)
+        let firstTurn = try await timeline.startDirectTurn(
+            "first question",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        )
+        _ = await firstTurn.events().collect()
+
+        model.mockClient.nextResponse = String(repeating: "b", count: 18_000)
+        let secondTurn = try await timeline.startDirectTurn(
+            "second question",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        )
+        _ = await secondTurn.events().collect()
+
+        model.mockClient.nextResponse = "final answer"
+        let finalTurn = try await timeline.startDirectTurn(
+            "final question",
+            context: DirectTurnContext(
+                systemInstructions: String(repeating: "instruction ", count: 2_600),
+                contributor: .host
+            )
+        )
+        _ = await finalTurn.events().collect()
+
+        #expect(try await finalTurn.outcome() == .completed)
+        let prompt = model.mockClient.lastMessages.map(\.content).joined(separator: "\n")
+        #expect(prompt.contains("instruction"))
+        #expect(prompt.contains("final question"))
+        #expect(!prompt.contains(String(repeating: "b", count: 100)))
+    }
+
+    @Test("a prompt exactly at the assembled input boundary is accepted")
+    func exactBudgetBoundaryIsAccepted() async throws {
+        let model = MockLLMService()
+        let title = "Exact boundary"
+        let timelineRecord = TimelineRecord(title: title)
+        let request = LLMPromptRequest(
+            userContent: MessageContent("hello"),
+            chatHistory: [],
+            tools: [],
+            workspaces: [],
+            primaryWorkspace: nil,
+            requestOriginName: nil,
+            systemInstructions: ""
+        )
+        let rendered = try await PromptAssembler.assemble(request, timeline: timelineRecord)
+        let exactInputTokens = PromptLayoutBuilder.build(from: rendered).estimatedTokens
+        setContextWindow(exactInputTokens + 1 + TurnEngine.Constants.providerOverhead, on: model)
+
+        let repository = InMemoryTimelineRuntimeRepository()
+        let runtime = makeRuntime(model: model, repository: repository)
+        let timeline = try await runtime.timelines.create(title: title)
+        let turn = try await timeline.startDirectTurn(
+            "hello",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        )
+        _ = await turn.events().collect()
+
+        #expect(try await turn.outcome() == .completed)
+        #expect(model.mockClient.streamCallCount == 1)
+    }
+
+    @Test("history that fits the assembled budget remains in the provider request")
+    func underBudgetHistoryRemainsUnchanged() async throws {
+        let model = MockLLMService()
+        setContextWindow(4_096, on: model)
+        let repository = InMemoryTimelineRuntimeRepository()
+        let runtime = makeRuntime(model: model, repository: repository)
+        let timeline = try await runtime.timelines.create(title: "Under budget")
+
+        model.mockClient.nextResponse = "first answer"
+        let firstTurn = try await timeline.startDirectTurn(
+            "first question",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        )
+        _ = await firstTurn.events().collect()
+
+        model.mockClient.nextResponse = "second answer"
+        let secondTurn = try await timeline.startDirectTurn(
+            "second question",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        )
+        _ = await secondTurn.events().collect()
+
+        #expect(try await secondTurn.outcome() == .completed)
+        let prompt = model.mockClient.lastMessages.map(\.content).joined(separator: "\n")
+        #expect(prompt.contains("first question"))
+        #expect(prompt.contains("first answer"))
         #expect(prompt.contains("second question"))
     }
 }

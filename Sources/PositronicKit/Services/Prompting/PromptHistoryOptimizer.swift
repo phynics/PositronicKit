@@ -36,40 +36,20 @@ struct HistoryTrimResult: Sendable, Equatable {
 
 /// Stateless history budgeting policy used during prompt assembly.
 enum PromptHistoryOptimizer {
-    /// The context window assumed when a caller does not supply one. It matches
-    /// ``ProviderConfiguration``'s default so the unbudgeted assembly path trims for a small
-    /// model instead of a fixed large one.
-    static let defaultContextWindowTokens = 8_192
-    /// The response reserve assumed when a caller does not supply one.
-    static let defaultResponseReserve = 0
-    /// Estimated tokens reserved for the non-history prompt tiers (tools, system, workspace,
-    /// timeline, and query) so history does not crowd them out. The value is an estimate; the
-    /// budgeted assembly pass still enforces the hard limit.
-    static let nonHistoryTokenReserve = 4_000
     /// When history is over budget, the trim drops down to this fraction of the budget.
     static let trimTargetRatio = 0.75
 
-    /// Derives the history-token budget from the model context window (#288).
+    /// Derives the history-token budget from the prompt that cannot be trimmed.
     ///
-    /// The budget is `contextWindowTokens - responseReserve - nonHistoryTokens`, clamped to
-    /// zero. It scales with the model's context window instead of a fixed constant, so an 8k
-    /// model keeps a small history and a 1M model can use most of its window. The runtime uses
-    /// the same derivation before and during assembly, so the per-Timeline trim state stays
-    /// consistent.
+    /// The fixed prompt includes the assembled context, current query, tools, and any history
+    /// projection replacement. The response reserve is already excluded from
+    /// `availablePromptTokens`. Projection text is counted here because it is part of the final
+    /// prompt but is not eligible for raw-history trimming.
     static func historyBudget(
-        contextWindowTokens: Int,
-        responseReserve: Int = defaultResponseReserve,
-        nonHistoryTokens: Int = nonHistoryTokenReserve
+        availablePromptTokens: Int,
+        fixedPromptTokens: Int
     ) -> Int {
-        max(0, contextWindowTokens - responseReserve - nonHistoryTokens)
-    }
-
-    /// The history budget for the default (unbudgeted) assembly path.
-    static var defaultHistoryBudget: Int {
-        historyBudget(
-            contextWindowTokens: defaultContextWindowTokens,
-            responseReserve: defaultResponseReserve
-        )
+        max(0, availablePromptTokens - fixedPromptTokens)
     }
 
     /// Truncates timeline history to fit a budget with a stable, stepwise cut (#277).

@@ -409,58 +409,67 @@ struct TurnPreparation: Sendable {
                 }
             }
 
-            // 9. Build the initial prompt messages. Stepwise history trimming (#277) reads and
-            //    writes the per-Timeline cut so a trim happens once and the new prefix survives
-            //    later Turns. The runtime never compresses or summarizes sections; the trim budget
-            //    is derived from the model context window (#288), not a fixed constant.
+            // 9. Assemble the fixed prompt tiers first so stepwise history trimming uses the
+            //    actual cost of context, tools, the current query, and any projection replacement.
+            //    The projection stays in the prompt budget but cannot be dropped as raw history.
             let promptHistory = await dependencies.timelineManager.promptHistory(for: timelineID)
-            let historyTrim = PromptHistoryOptimizer.stepwise(
-                history,
-                availableTokens: PromptHistoryOptimizer.historyBudget(
-                    contextWindowTokens: providerConfig.contextWindowTokens,
-                    responseReserve: budget.reserveForResponse
-                ),
-                state: await promptHistory.historyTrimState()
-            )
+            func makePromptRequest(chatHistory: [Message]) -> LLMPromptRequest {
+                LLMPromptRequest(
+                    userContent: messageContent,
+                    turnInstructions: sidecarTurnInstructions,
+                    contextContributions: resolvedContributions,
+                    chatHistory: chatHistory,
+                    tools: effectiveTools,
+                    workspaces: workspaceResult.attached,
+                    primaryWorkspace: workspaceResult.primary,
+                    requestOriginName: requestOriginName,
+                    systemInstructions: effectiveSystemInstructions,
+                    generationParameters: generationParameters
+                )
+            }
 
-            let promptRequest = LLMPromptRequest(
-                userContent: messageContent,
-                turnInstructions: sidecarTurnInstructions,
-                contextContributions: resolvedContributions,
-                chatHistory: historyTrim.messages,
-                tools: effectiveTools,
-                workspaces: workspaceResult.attached,
-                primaryWorkspace: workspaceResult.primary,
-                requestOriginName: requestOriginName,
-                systemInstructions: effectiveSystemInstructions,
-                generationParameters: generationParameters
+            let promptOptions = PromptAssemblyOptions(
+                logger: assemblyLogger,
+                historyProjectionReplacement: projectionResult.replacement
             )
-
-            let renderedPrompt = try await PromptAssembler.assemble(
-                promptRequest,
+            let fixedPrompt = try await PromptAssembler.assemble(
+                makePromptRequest(chatHistory: []),
                 agent: resolvedAgent,
                 agentContext: resolvedAgentContext,
                 timeline: timeline,
-                options: PromptAssemblyOptions(
-                    logger: assemblyLogger,
-                    historyProjectionReplacement: projectionResult.replacement
-                )
+                options: promptOptions
             )
-            await promptHistory.recordHistoryTrimState(historyTrim.state)
+            let fixedPromptTokens = PromptLayoutBuilder.build(from: fixedPrompt).estimatedTokens
+            let historyBudget = PromptHistoryOptimizer.historyBudget(
+                availablePromptTokens: budget.availableTokens,
+                fixedPromptTokens: fixedPromptTokens
+            )
+            let historyTrim = PromptHistoryOptimizer.stepwise(
+                history,
+                availableTokens: historyBudget,
+                state: await promptHistory.historyTrimState()
+            )
 
-            // 10. Reuse the final rendered artifact for messages. The tiered layout also yields
-            //     the cache breakpoints sent with the first model round.
+            // 10. Reassemble with the retained raw history and enforce the budget on the complete
+            //     provider-facing layout. The same final artifact supplies messages and cache
+            //     breakpoints, so accounting and request construction cannot diverge.
+            let renderedPrompt = try await PromptAssembler.assemble(
+                makePromptRequest(chatHistory: historyTrim.messages),
+                agent: resolvedAgent,
+                agentContext: resolvedAgentContext,
+                timeline: timeline,
+                options: promptOptions
+            )
             let promptLayout = PromptLayoutBuilder.build(from: renderedPrompt)
-            // Overflow is mechanism only: projection already ran, history was trimmed to fit, and
-            // a non-history tier that alone exceeds the budget is a structured preparation
-            // failure. The runtime never silently drops a section.
-            let nonHistoryTokens = promptLayout.nonHistoryEstimatedTokens
-            guard nonHistoryTokens <= budget.availableTokens else {
+            // The runtime never silently drops a section. History trimming is complete before
+            // this final boundary, and projection, history, context, and tools all count.
+            guard promptLayout.estimatedTokens <= budget.availableTokens else {
                 throw TurnError.promptExceedsContextWindow(
-                    estimated: nonHistoryTokens,
+                    estimated: promptLayout.estimatedTokens,
                     limit: budget.availableTokens
                 )
             }
+            await promptHistory.recordHistoryTrimState(historyTrim.state)
             let initialMessages = promptLayout.renderMessages()
             let promptCacheBreakpoints = promptLayout.cacheBreakpoints()
 

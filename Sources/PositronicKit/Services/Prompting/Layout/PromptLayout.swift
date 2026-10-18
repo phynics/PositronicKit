@@ -71,17 +71,6 @@ struct PromptLayout: Sendable {
         segments.reduce(0) { $0 + $1.estimatedTokens }
     }
 
-    /// Estimated token count across every segment outside the history region.
-    ///
-    /// The history region is every `.chatHistory` segment, including a projection replacement.
-    /// The runtime compares this value with the prompt budget before it commits a Turn; a
-    /// non-history overflow is a structured preparation failure, never a silent drop.
-    var nonHistoryEstimatedTokens: Int {
-        segments.reduce(0) { total, segment in
-            segment.role == .chatHistory ? total : total + segment.estimatedTokens
-        }
-    }
-
     init(segments: [LayoutSegment], string: String, sectionsByID: [String: String]) {
         self.segments = segments
         self.string = string

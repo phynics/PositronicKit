@@ -108,35 +108,25 @@ struct PromptBudgetDerivationTests {
         #expect(decoded.contextWindowTokens == 8_192)
     }
 
-    // MARK: - History budget derivation (#288)
+    // MARK: - Assembled history budget
 
-    @Test("The history budget scales with the model context window")
-    func historyBudgetScalesWithContextWindow() {
-        let small = PromptHistoryOptimizer.historyBudget(contextWindowTokens: 8_192)
-        let medium = PromptHistoryOptimizer.historyBudget(contextWindowTokens: 128_000)
-        let large = PromptHistoryOptimizer.historyBudget(contextWindowTokens: 1_000_000)
-
-        let reserve = PromptHistoryOptimizer.nonHistoryTokenReserve
-        #expect(small == 8_192 - reserve)
-        #expect(medium == 128_000 - reserve)
-        #expect(large == 1_000_000 - reserve)
-        #expect(small < medium)
-        #expect(medium < large)
-    }
-
-    @Test("The history budget subtracts the response reserve and measured non-history tiers")
-    func historyBudgetSubtractsReserveAndNonHistory() {
+    @Test("The history budget subtracts the assembled fixed prompt from available input")
+    func historyBudgetSubtractsAssembledFixedPrompt() {
         let budget = PromptHistoryOptimizer.historyBudget(
-            contextWindowTokens: 128_000,
-            responseReserve: 4_608,
-            nonHistoryTokens: 2_000
+            availablePromptTokens: 128_000 - 4_608,
+            fixedPromptTokens: 2_000
         )
         #expect(budget == 128_000 - 4_608 - 2_000)
     }
 
     @Test("The history budget never goes negative")
     func historyBudgetNeverNegative() {
-        #expect(PromptHistoryOptimizer.historyBudget(contextWindowTokens: 1_000, responseReserve: 4_608) == 0)
+        #expect(PromptHistoryOptimizer.historyBudget(availablePromptTokens: 1_000, fixedPromptTokens: 4_608) == 0)
+    }
+
+    @Test("A fixed prompt at the available-token boundary leaves no history capacity")
+    func fixedPromptAtBoundaryLeavesNoHistoryBudget() {
+        #expect(PromptHistoryOptimizer.historyBudget(availablePromptTokens: 1_000, fixedPromptTokens: 1_000) == 0)
     }
 
     @Test("Stepwise trimming keeps more history for a larger context-window budget")
@@ -148,7 +138,10 @@ struct PromptBudgetDerivationTests {
         func retained(_ contextWindow: Int) -> Int {
             PromptHistoryOptimizer.stepwise(
                 history,
-                availableTokens: PromptHistoryOptimizer.historyBudget(contextWindowTokens: contextWindow),
+                availableTokens: PromptHistoryOptimizer.historyBudget(
+                    availablePromptTokens: contextWindow,
+                    fixedPromptTokens: 2_000
+                ),
                 state: HistoryTrimState()
             ).messages.count
         }
