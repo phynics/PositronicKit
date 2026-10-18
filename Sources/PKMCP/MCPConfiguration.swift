@@ -1,5 +1,6 @@
 import Foundation
 import PKContracts
+import PositronicKit
 
 /// Whether an MCP tool call requires the runtime's approval gate.
 ///

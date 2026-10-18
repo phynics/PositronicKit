@@ -2,7 +2,7 @@ import Testing
 @testable import PKContracts
 import Foundation
 
-@Suite final class WorkspaceToolDefinitionTests {
+@Suite final class ToolDefinitionTests {
     private func assertCodable<T: Codable & Equatable>(_ value: T) throws {
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
@@ -14,8 +14,8 @@ import Foundation
 
     @Test
 
-    func testWorkspaceToolDefinitionCodable() throws {
-        let def = WorkspaceToolDefinition(
+    func testToolDefinitionCodable() throws {
+        let def = ToolDefinition(
             id: "tool-id-1",
             name: "test_tool",
             description: "A test tool",

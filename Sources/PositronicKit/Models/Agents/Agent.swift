@@ -1,4 +1,5 @@
 import Foundation
+import PKContracts
 
 /// Durable lifecycle of an Agent identity.
 public enum AgentLifecycleState: String, Codable, Sendable, Equatable {

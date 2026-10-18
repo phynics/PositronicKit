@@ -1,6 +1,7 @@
 import Testing
 @testable import PKContracts
 import Foundation
+import PositronicKit
 
 @Suite final class WorkspaceURITests {
     @Test

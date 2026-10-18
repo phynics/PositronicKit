@@ -1,9 +1,9 @@
 import Foundation
 
-/// Reference to a tool available in a workspace
+/// Reference to a known tool or a custom tool definition.
 public enum ToolReference: Codable, Sendable, Hashable {
-    case known(id: String)  // Runtime-known tool by ID
-    case custom(definition: WorkspaceToolDefinition)  // Host-provided definition
+    case known(id: String)
+    case custom(definition: ToolDefinition)
 
     /// The tool ID regardless of type
     public var toolID: String {
@@ -25,7 +25,7 @@ public enum ToolReference: Codable, Sendable, Hashable {
         }
     }
 
-    /// Workspace-specific instructions for this tool
+    /// Optional context instructions contributed by a custom tool.
     public var contextInjection: String? {
         switch self {
         case .known:
@@ -41,7 +41,7 @@ public enum ToolReference: Codable, Sendable, Hashable {
     }
 
     /// Create a custom tool reference from a definition
-    public static func custom(_ definition: WorkspaceToolDefinition) -> ToolReference {
+    public static func custom(_ definition: ToolDefinition) -> ToolReference {
         .custom(definition: definition)
     }
 }
@@ -67,7 +67,7 @@ extension ToolReference {
             let id = try container.decode(String.self, forKey: .id)
             self = .known(id: id)
         case .custom:
-            let definition = try container.decode(WorkspaceToolDefinition.self, forKey: .definition)
+            let definition = try container.decode(ToolDefinition.self, forKey: .definition)
             self = .custom(definition: definition)
         }
     }

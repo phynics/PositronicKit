@@ -1,5 +1,6 @@
 import Foundation
 @testable import PKContracts
+import PositronicKit
 import Testing
 
 final class SharedAPIModelsTests {

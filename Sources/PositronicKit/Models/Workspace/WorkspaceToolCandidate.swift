@@ -1,4 +1,5 @@
 import Foundation
+import PKContracts
 
 /// How a Workspace was selected for a provider-facing tool call.
 public enum WorkspaceToolRouting: String, Codable, Equatable, Hashable, Sendable {

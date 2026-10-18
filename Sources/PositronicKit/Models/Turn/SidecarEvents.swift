@@ -1,4 +1,5 @@
 import Foundation
+import PKContracts
 
 /// Streaming update for a single sidecar directive field.
 public struct SidecarDelta: Sendable, Equatable, Codable {

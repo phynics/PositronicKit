@@ -1,7 +1,7 @@
 # PKContracts Context
 
 PKContracts owns the runtime-neutral vocabulary shared by model providers and prompt consumers. It
-is a leaf context and does not own runtime orchestration.
+is a leaf context and owns no runtime entities or orchestration.
 
 ## Model interaction
 
@@ -43,15 +43,16 @@ _Avoid_: tokenizer
 ## Tools and structured output
 
 **Tool Definition**:
-The provider-neutral name, description, and schema for a callable capability.
-_Avoid_: Workspace binding
+The stable ID, name, description, parameter schema, permission requirement, and optional context
+injection for a callable tool. `LLMToolDefinition` is the request form sent to a model.
+_Avoid_: Workspace binding, Workspace tool catalog
 
 **Tool Call**:
 A model-issued request to invoke a named tool with arguments and an independent call identity.
 _Avoid_: Turn, Model Round
 
 **Tool Result**:
-The provider-neutral success or failure value returned for one Tool Call.
+The success or failure value returned by one tool execution, without runtime routing metadata.
 _Avoid_: TurnOutcome
 
 **Structured Output**:
@@ -59,6 +60,10 @@ A schema-constrained model result contract independent of runtime persistence or
 _Avoid_: Codable runtime entity
 
 ## Diagnostics
+
+**Error Identity**:
+A stable error domain, code, and blocked classification extracted from a `PKError` causal chain.
+_Avoid_: Turn error event, error message
 
 **Diagnostic Value**:
 A bounded, redaction-compatible value suitable for cross-module error or notice details.

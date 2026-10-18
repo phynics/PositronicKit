@@ -1,4 +1,5 @@
 import Foundation
+import PKContracts
 
 /// A dependency whose loss can change the meaning of a generated turn.
 public enum TurnDependency: String, Codable, Sendable, Equatable {
@@ -21,14 +22,14 @@ public struct TurnDiagnostic: Codable, Sendable, Equatable {
     public let dependency: TurnDependency
     public let operation: String
     public let entityID: String
-    public let errorIdentity: TurnEvent.ErrorIdentity?
+    public let errorIdentity: ErrorIdentity?
     public let message: String
 
     public init(
         dependency: TurnDependency,
         operation: String,
         entityID: String,
-        errorIdentity: TurnEvent.ErrorIdentity?,
+        errorIdentity: ErrorIdentity?,
         message: String
     ) {
         self.dependency = dependency

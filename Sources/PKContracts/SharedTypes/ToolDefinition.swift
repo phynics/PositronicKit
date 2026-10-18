@@ -1,7 +1,7 @@
 import Foundation
 
 /// Minimal definition of a tool for transfer
-public struct WorkspaceToolDefinition: Codable, Sendable, Hashable, Identifiable {
+public struct ToolDefinition: Codable, Sendable, Hashable, Identifiable {
     public let id: String
     public let name: String
     public let description: String

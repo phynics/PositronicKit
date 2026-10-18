@@ -198,7 +198,7 @@ struct WorkspacesContextTests {
 
     @Test("custom tool with context injection shows instructions")
     func customToolContextInjection() async throws {
-        let def = WorkspaceToolDefinition(
+        let def = ToolDefinition(
             id: "my_tool",
             name: "My PKTool",
             description: "Does things",
@@ -217,7 +217,7 @@ struct WorkspacesContextTests {
 
     @Test("custom tool without context injection does not show Instructions line")
     func customToolNoContextInjection() async throws {
-        let def = WorkspaceToolDefinition(
+        let def = ToolDefinition(
             id: "silent_tool", name: "Silent", description: "Quiet"
         )
         let section = WorkspacesContext(

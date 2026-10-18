@@ -514,8 +514,8 @@ struct WorkspaceToolDispatchIntegrationTests {
         )
         let timeline = try await manager.createTimeline(title: "Duplicate tool IDs")
 
-        let defA = WorkspaceToolDefinition(id: "dup", name: "Dup A", description: "A", parametersSchema: [:])
-        let defB = WorkspaceToolDefinition(id: "dup", name: "Dup B", description: "B", parametersSchema: [:])
+        let defA = ToolDefinition(id: "dup", name: "Dup A", description: "A", parametersSchema: [:])
+        let defB = ToolDefinition(id: "dup", name: "Dup B", description: "B", parametersSchema: [:])
         let wsA = WorkspaceReference(
             uri: WorkspaceURI(host: "duplicate", path: "/a"),
             location: .runtime,

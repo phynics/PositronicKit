@@ -22,7 +22,7 @@ import Testing
             location: .runtimeTimeline,
             rootPath: workspaceRoot.root.path
         )
-        let workspaceTool = WorkspaceToolDefinition(
+        let workspaceTool = ToolDefinition(
             id: "workspace_echo",
             name: "workspace_echo",
             description: "Echoes a fixed workspace-owned result"
@@ -43,7 +43,7 @@ import Testing
 
         #expect(events.contains(where: {
             if case let .completion(.toolExecution(id, status)) = $0,
-               case let .success(result) = status
+               case let .workspaceSucceeded(result, _, _) = status
             {
                 return id == "call_ws" && result.output == "workspace:ok"
             }

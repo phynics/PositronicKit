@@ -21,7 +21,7 @@ produced from the same context in a single request.
 
 ```swift
 import JSONSchemaBuilder
-import PKContracts
+import PositronicKit
 
 let title = SidecarDirective(
     name: "title",

@@ -147,7 +147,16 @@ struct WorkspaceToolDispatcher: Sendable {
             throw ToolError.ambiguousWorkspaceTool(
                 tool: requestedTool,
                 candidates: matches.compactMap { match in
-                    match.entry.candidates.first(where: { $0.toolID == match.tool.callName })
+                    match.entry.candidates.first(where: { $0.toolID == match.tool.callName }).map { candidate in
+                        ToolError.AmbiguousWorkspaceCandidate(
+                            workspaceID: candidate.workspaceID,
+                            label: candidate.label,
+                            toolName: candidate.toolName,
+                            description: candidate.description,
+                            parametersSchema: candidate.parametersSchema,
+                            isPrimary: candidate.isPrimary
+                        )
+                    }
                 }
             )
         }

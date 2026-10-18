@@ -520,14 +520,21 @@ actor ToolRouter {
         switch outcome {
         case let .completed(output):
             logger.info("Tool \(toolDisplayName) succeeded")
+            let result = ToolResult.success(output)
+            let status: ToolExecutionStatus
+            if let workspaceRoute {
+                status = .workspaceSucceeded(
+                    result: result,
+                    workspaceID: workspaceRoute.workspaceID,
+                    routing: workspaceRoute.routing
+                )
+            } else {
+                status = .success(result)
+            }
             return await persistToolResult(
                 output: output,
                 isSuccessful: true,
-                status: .success(ToolResult.success(
-                    output,
-                    workspaceID: workspaceRoute?.workspaceID,
-                    workspaceRouting: workspaceRoute?.routing
-                )),
+                status: status,
                 call: call,
                 toolRef: toolRef,
                 workspaceRoute: workspaceRoute,
@@ -668,7 +675,7 @@ private struct ToolProjection {
 }
 
 private func safeErrorMessage(_ error: Error) -> String {
-    guard let identity = TurnEvent.ErrorIdentity.extracting(from: error) else {
+    guard let identity = ErrorIdentity.extracting(from: error) else {
         return "The tool execution failed."
     }
     return "Tool execution failed (\(identity.domain):\(identity.code))."

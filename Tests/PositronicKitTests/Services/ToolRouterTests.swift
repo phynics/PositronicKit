@@ -371,8 +371,10 @@ final class ToolRouterTests {
 
         #expect(events.contains(where: {
             guard case let .completion(.toolExecution(toolCallID: id, status: status)) = $0 else { return false }
-            guard id == "call-success", case let .success(result) = status else { return false }
-            return result.isSuccess && result.workspaceID == workspace.id && result.workspaceRouting == .explicit
+            guard id == "call-success",
+                  case let .workspaceSucceeded(result, workspaceID, routing) = status
+            else { return false }
+            return result.isSuccess && workspaceID == workspace.id && routing == .explicit
         }))
         let results = try await runtimeRepository.fetchToolResults(turnID: turnID)
         #expect(results.first?.isSuccessful == true)

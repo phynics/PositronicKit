@@ -10,6 +10,16 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Move runtime vocabulary into `PositronicKit` (#314).** `Agent`, `AgentTemplate`,
+  `RequestOriginIdentity`, `TurnEvent`, `TurnIdentity`, `TurnSnapshot`, `TurnDiagnostic`,
+  `TurnContextSnapshot`, `Sidecar*`, `WorkspaceReference`, `WorkspaceURI`, `WorkspaceToolCandidate`,
+  and `WorkspaceToolRouting` now live in `PositronicKit`. `ToolCallDelta`, `ToolCallRecord`, and
+  `ToolResultRecord` move with their Turn event or snapshot owners. Import `PositronicKit` for these
+  types. `PKContracts` retains model messages, tool definitions/calls/results, structured output,
+  embeddings, and diagnostics. `WorkspaceToolDefinition` is now the neutral `ToolDefinition` in
+  `PKContracts`. `ToolResult` no longer carries Workspace routing; successful Workspace calls expose
+  that metadata through `ToolExecutionStatus.workspaceSucceeded`. `TurnEvent` keeps its existing
+  Codable wire format.
 - **The runtime adds no default prompt instructions (#288).** `DefaultInstructions` is removed.
   A Turn with no host `systemInstructions` and no Agent context now sends an empty stable system
   tier instead of the old "You are PKRuntime…" persona. Hosts that relied on the default must

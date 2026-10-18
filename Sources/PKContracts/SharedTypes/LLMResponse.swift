@@ -3,9 +3,9 @@ import Foundation
 /// One provider response: the assembled content when the caller observes it directly, plus the
 /// terminal metadata a provider reports.
 ///
-/// The runtime attaches this value to `TurnEvent.CompletionEvent.generationCompleted` and returns
-/// it from Timeline-free one-shot generation. `content` is set on one-shot results and left `nil`
-/// in the Turn event, where the persisted `Message` owns the response body.
+/// The runtime attaches this value to its generation-completed event and returns it from
+/// Timeline-free one-shot generation. `content` is set on one-shot results and left `nil` in the
+/// Turn event, where the persisted `Message` owns the response body.
 public struct LLMResponse: Equatable, Sendable, Codable {
     /// The assembled response text, when the response is not already carried by a `Message`.
     public var content: String?

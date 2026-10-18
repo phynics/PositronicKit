@@ -1,9 +1,16 @@
 import ErrorKit
 import Foundation
+import PKContracts
 
 public enum ToolExecutionStatus: Sendable, Codable {
     case attempting(name: String, reference: ToolReference)
     case success(ToolResult)
+    /// A Workspace tool succeeded; the runtime route stays with the execution status.
+    case workspaceSucceeded(
+        result: ToolResult,
+        workspaceID: UUID?,
+        routing: WorkspaceToolRouting?
+    )
     case failed(reference: ToolReference, error: String)
     /// A resolved Workspace tool failed; provenance remains attached to the failure event.
     case workspaceFailed(
@@ -12,17 +19,9 @@ public enum ToolExecutionStatus: Sendable, Codable {
         workspaceID: UUID,
         routing: WorkspaceToolRouting
     )
-    /// PKTool execution failed without a tool reference (e.g. the tool could not be
-    /// resolved before execution began). Distinct from `.failed` which carries the
-    /// `ToolReference` of the tool that was attempted, and from `ToolResult.failure(_:)`
-    /// which is the static factory that constructs a failed `ToolResult` value (a
-    /// result, not a lifecycle status).
+    /// PKTool execution failed before a tool reference was resolved.
     case executionError(String)
-    /// The tool executed (successfully or with an error) but the result could not be
-    /// persisted to the message store. Emitted instead of `.success` or `.failed` when
-    /// `saveMessage` throws, so the terminal status is always consistent with persisted
-    /// history — a consumer that observes `.persistenceFailed` knows the result is not
-    /// durable and a retry may be needed (PKRR-016).
+    /// The tool executed, but the result could not be persisted to the message store.
     case persistenceFailed(reference: ToolReference, error: String)
     /// A resolved Workspace tool result could not be persisted; provenance remains attached.
     case workspacePersistenceFailed(
@@ -31,6 +30,172 @@ public enum ToolExecutionStatus: Sendable, Codable {
         workspaceID: UUID,
         routing: WorkspaceToolRouting
     )
+
+    private enum CodingKeys: String, CodingKey {
+        case attempting, success, failed, workspaceFailed, executionError
+        case persistenceFailed, workspacePersistenceFailed
+    }
+
+    private enum ValueCodingKeys: String, CodingKey {
+        case value = "_0"
+    }
+
+    private enum AttemptingCodingKeys: String, CodingKey {
+        case name, reference
+    }
+
+    private enum FailureCodingKeys: String, CodingKey {
+        case reference, error
+    }
+
+    private enum WorkspaceFailureCodingKeys: String, CodingKey {
+        case reference, error, workspaceID, routing
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        guard container.allKeys.count == 1, let key = container.allKeys.first else {
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: decoder.codingPath,
+                debugDescription: "Tool execution status must contain exactly one case."
+            ))
+        }
+
+        switch key {
+        case .attempting:
+            let payload = try container.nestedContainer(keyedBy: AttemptingCodingKeys.self, forKey: .attempting)
+            self = .attempting(
+                name: try payload.decode(String.self, forKey: .name),
+                reference: try payload.decode(ToolReference.self, forKey: .reference)
+            )
+        case .success:
+            let payload = try container.nestedContainer(keyedBy: ValueCodingKeys.self, forKey: .success)
+            let value = try payload.decode(ToolResultWireValue.self, forKey: .value)
+            if value.workspaceID != nil || value.workspaceRouting != nil {
+                self = .workspaceSucceeded(
+                    result: value.toolResult,
+                    workspaceID: value.workspaceID,
+                    routing: value.workspaceRouting
+                )
+            } else {
+                self = .success(value.toolResult)
+            }
+        case .failed:
+            let payload = try container.nestedContainer(keyedBy: FailureCodingKeys.self, forKey: .failed)
+            self = .failed(
+                reference: try payload.decode(ToolReference.self, forKey: .reference),
+                error: try payload.decode(String.self, forKey: .error)
+            )
+        case .workspaceFailed:
+            let payload = try container.nestedContainer(keyedBy: WorkspaceFailureCodingKeys.self, forKey: .workspaceFailed)
+            self = .workspaceFailed(
+                reference: try payload.decode(ToolReference.self, forKey: .reference),
+                error: try payload.decode(String.self, forKey: .error),
+                workspaceID: try payload.decode(UUID.self, forKey: .workspaceID),
+                routing: try payload.decode(WorkspaceToolRouting.self, forKey: .routing)
+            )
+        case .executionError:
+            let payload = try container.nestedContainer(keyedBy: ValueCodingKeys.self, forKey: .executionError)
+            self = .executionError(try payload.decode(String.self, forKey: .value))
+        case .persistenceFailed:
+            let payload = try container.nestedContainer(keyedBy: FailureCodingKeys.self, forKey: .persistenceFailed)
+            self = .persistenceFailed(
+                reference: try payload.decode(ToolReference.self, forKey: .reference),
+                error: try payload.decode(String.self, forKey: .error)
+            )
+        case .workspacePersistenceFailed:
+            let payload = try container.nestedContainer(
+                keyedBy: WorkspaceFailureCodingKeys.self,
+                forKey: .workspacePersistenceFailed
+            )
+            self = .workspacePersistenceFailed(
+                reference: try payload.decode(ToolReference.self, forKey: .reference),
+                error: try payload.decode(String.self, forKey: .error),
+                workspaceID: try payload.decode(UUID.self, forKey: .workspaceID),
+                routing: try payload.decode(WorkspaceToolRouting.self, forKey: .routing)
+            )
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case let .attempting(name, reference):
+            var payload = container.nestedContainer(keyedBy: AttemptingCodingKeys.self, forKey: .attempting)
+            try payload.encode(name, forKey: .name)
+            try payload.encode(reference, forKey: .reference)
+        case let .success(result):
+            try Self.encodeSuccess(result, workspaceID: nil, routing: nil, forKey: .success, in: &container)
+        case let .workspaceSucceeded(result, workspaceID, routing):
+            try Self.encodeSuccess(
+                result,
+                workspaceID: workspaceID,
+                routing: routing,
+                forKey: .success,
+                in: &container
+            )
+        case let .failed(reference, error):
+            var payload = container.nestedContainer(keyedBy: FailureCodingKeys.self, forKey: .failed)
+            try payload.encode(reference, forKey: .reference)
+            try payload.encode(error, forKey: .error)
+        case let .workspaceFailed(reference, error, workspaceID, routing):
+            var payload = container.nestedContainer(keyedBy: WorkspaceFailureCodingKeys.self, forKey: .workspaceFailed)
+            try payload.encode(reference, forKey: .reference)
+            try payload.encode(error, forKey: .error)
+            try payload.encode(workspaceID, forKey: .workspaceID)
+            try payload.encode(routing, forKey: .routing)
+        case let .executionError(error):
+            var payload = container.nestedContainer(keyedBy: ValueCodingKeys.self, forKey: .executionError)
+            try payload.encode(error, forKey: .value)
+        case let .persistenceFailed(reference, error):
+            var payload = container.nestedContainer(keyedBy: FailureCodingKeys.self, forKey: .persistenceFailed)
+            try payload.encode(reference, forKey: .reference)
+            try payload.encode(error, forKey: .error)
+        case let .workspacePersistenceFailed(reference, error, workspaceID, routing):
+            var payload = container.nestedContainer(
+                keyedBy: WorkspaceFailureCodingKeys.self,
+                forKey: .workspacePersistenceFailed
+            )
+            try payload.encode(reference, forKey: .reference)
+            try payload.encode(error, forKey: .error)
+            try payload.encode(workspaceID, forKey: .workspaceID)
+            try payload.encode(routing, forKey: .routing)
+        }
+    }
+
+    private static func encodeSuccess(
+        _ result: ToolResult,
+        workspaceID: UUID?,
+        routing: WorkspaceToolRouting?,
+        forKey key: CodingKeys,
+        in container: inout KeyedEncodingContainer<CodingKeys>
+    ) throws {
+        var payload = container.nestedContainer(keyedBy: ValueCodingKeys.self, forKey: key)
+        try payload.encode(
+            ToolResultWireValue(result: result, workspaceID: workspaceID, workspaceRouting: routing),
+            forKey: .value
+        )
+    }
+}
+
+private struct ToolResultWireValue: Codable {
+    let isSuccess: Bool
+    let output: String
+    let error: String?
+    let workspaceID: UUID?
+    let workspaceRouting: WorkspaceToolRouting?
+
+    init(result: ToolResult, workspaceID: UUID?, workspaceRouting: WorkspaceToolRouting?) {
+        isSuccess = result.isSuccess
+        output = result.output
+        error = result.error
+        self.workspaceID = workspaceID
+        self.workspaceRouting = workspaceRouting
+    }
+
+    var toolResult: ToolResult {
+        ToolResult(isSuccess: isSuccess, output: output, error: error)
+    }
 }
 
 /// Events emitted by TurnEngine during a turn.
@@ -40,110 +205,8 @@ public enum ToolExecutionStatus: Sendable, Codable {
 /// - `error`: Error events (tool errors, general errors)
 /// - `completion`: Terminal events signaling final results
 public enum TurnEvent: Sendable, Codable {
-    /// A value-type projection of a `PKError`'s stable identity (`errorDomain` +
-    /// `errorCode`), carried on `.error` events so consumers can classify turn
-    /// failures by structured error identity instead of sniffing message substrings
-    /// (STAB-6).
-    ///
-    /// It is a plain value type (`String` + `Int`) so `TurnEvent` stays `Sendable`,
-    /// `Equatable`, and `Codable` without carrying an untyped `Error`. Extraction
-    /// traverses the causal chain through ``CausalError`` conformers (e.g.
-    /// `PipelineError`) to find the root `PKError` identity — so a provider 429
-    /// wrapped in a pipeline stage failure retains its LLM/HTTP identity instead of
-    /// collapsing to the generic pipeline code 4001 (PKRR-014). Non-`PKError` errors
-    /// (including `CancellationError` and foreign provider failures wrapped only by
-    /// `PipelineError`) yield `identity == nil` and are intentionally not classified
-    /// as blocked (see `blockedIdentityContract`).
-    ///
-    /// `isBlocked` is carried as a stored field, populated by `extracting(from:)`
-    /// from `PKError.isBlocked` at extraction time. This moves the classification
-    /// onto the error types themselves rather than a hand-curated `(domain, code)`
-    /// set. Directly constructed identities (via `init(domain:code:)`) default
-    /// `isBlocked` to `false` since they are not derived from a concrete error.
-    public struct ErrorIdentity: Sendable, Equatable, Hashable, Codable {
-        /// The error domain identifying the module the error originated in
-        /// (a `PKErrorDomain` string, e.g. `"com.positronickit.core.tool"`).
-        public let domain: String
-        /// A unique integer code for the specific error case within the domain.
-        public let code: Int
-        /// Whether this identity represents a blocked/approval/disallowed condition,
-        /// derived from `PKError.isBlocked` at extraction time. Identities constructed
-        /// directly (not via `extracting(from:)`) default to `false`.
-        public let isBlocked: Bool
-
-        public init(domain: String, code: Int, isBlocked: Bool = false) {
-            self.domain = domain
-            self.code = code
-            self.isBlocked = isBlocked
-        }
-
-        /// Extracts an `ErrorIdentity` from `error` by traversing the causal chain
-        /// through ``CausalError`` conformers to find the root `PKError` identity
-        /// (PKRR-014).
-        ///
-        /// When the error is a `CausalError` wrapper (e.g.
-        /// `PipelineError.stageFailed`), extraction recurses into the underlying
-        /// causes and returns the first `PKError` identity found — preserving the
-        /// root cause's domain/code/isBlocked instead of the wrapper's. If no
-        /// `PKError` is found in the causal chain, the wrapper's own `PKError`
-        /// identity is used as a fallback when `usesOwnIdentityAsFallback` is
-        /// `true` (the default), or `nil` when it is `false` (e.g.
-        /// `PipelineError`, whose stage-failure code is orchestration context
-        /// rather than the root cause).
-        ///
-        /// Non-`CausalError` errors are inspected directly: if they conform to
-        /// `PKError`, their identity is returned; otherwise `nil`. The `isBlocked`
-        /// field is populated from `PKError.isBlocked` so blocked-error
-        /// classification lives on the error types themselves.
-        public static func extracting(from error: Error) -> ErrorIdentity? {
-            if let causal = error as? CausalError {
-                for cause in causal.underlyingCauses {
-                    if let identity = extracting(from: cause) {
-                        return identity
-                    }
-                }
-                if causal.usesOwnIdentityAsFallback, let pk = error as? any PKError {
-                    return ErrorIdentity(domain: pk.errorDomain, code: pk.errorCode, isBlocked: pk.isBlocked)
-                }
-                return nil
-            }
-            if let pk = error as? any PKError {
-                return ErrorIdentity(domain: pk.errorDomain, code: pk.errorCode, isBlocked: pk.isBlocked)
-            }
-            return nil
-        }
-
-        // MARK: - Equatable / Hashable (identity is domain + code only; isBlocked is derived)
-
-        public static func == (lhs: ErrorIdentity, rhs: ErrorIdentity) -> Bool {
-            lhs.domain == rhs.domain && lhs.code == rhs.code
-        }
-
-        public func hash(into hasher: inout Hasher) {
-            hasher.combine(domain)
-            hasher.combine(code)
-        }
-
-        // MARK: - Codable (isBlocked is optional on decode for backward compatibility)
-
-        private enum CodingKeys: String, CodingKey {
-            case domain, code, isBlocked
-        }
-
-        public init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            domain = try container.decode(String.self, forKey: .domain)
-            code = try container.decode(Int.self, forKey: .code)
-            isBlocked = try container.decodeIfPresent(Bool.self, forKey: .isBlocked) ?? false
-        }
-
-        public func encode(to encoder: Encoder) throws {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(domain, forKey: .domain)
-            try container.encode(code, forKey: .code)
-            try container.encode(isBlocked, forKey: .isBlocked)
-        }
-    }
+    /// The shared structured identity of a PKError reported by this Turn.
+    public typealias ErrorIdentity = PKContracts.ErrorIdentity
 
     public enum DeltaEvent: Sendable, Codable {
         /// Chain-of-thought reasoning chunk

@@ -1,4 +1,5 @@
 import Foundation
+import PKContracts
 import struct JSONSchema.Schema
 
 /// A directive requesting an auxiliary structured output field alongside the main chat response.

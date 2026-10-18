@@ -102,7 +102,7 @@ public enum TimelineError: PKError, Equatable {
 public struct StoreDegradation: Sendable {
     public let operation: String
     public let entityID: String
-    public let errorIdentity: TurnEvent.ErrorIdentity?
+    public let errorIdentity: ErrorIdentity?
     public let message: String
 
     public init(operation: String, entityID: String, error: Error) {
@@ -112,7 +112,7 @@ public struct StoreDegradation: Sendable {
         self.message = ErrorKit.userFriendlyMessage(for: error)
     }
 
-    public init(operation: String, entityID: String, errorIdentity: TurnEvent.ErrorIdentity?, message: String) {
+    public init(operation: String, entityID: String, errorIdentity: ErrorIdentity?, message: String) {
         self.operation = operation
         self.entityID = entityID
         self.errorIdentity = errorIdentity

@@ -3,6 +3,7 @@ import Foundation
 @testable import PKContracts
 import PKUtilities
 import ErrorKit
+import PositronicKit
 
 /// Regression tests for PKRR-014: pipeline wrapping must not destroy the
 /// underlying error's structured identity. `ErrorIdentity.extracting` traverses

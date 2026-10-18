@@ -10,7 +10,7 @@ extension TurnDiagnostic {
             dependency: dependency,
             operation: operation,
             entityID: entityID,
-            errorIdentity: TurnEvent.ErrorIdentity.extracting(from: error),
+            errorIdentity: ErrorIdentity.extracting(from: error),
             message: ErrorKit.userFriendlyMessage(for: error)
         )
     }

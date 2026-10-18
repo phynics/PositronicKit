@@ -25,6 +25,32 @@ import Foundation
 ///   and the model must choose a workspace explicitly.
 /// - **reservedToolName**: A caller attempted to replace a runtime-reserved dispatcher name.
 public enum ToolError: PKError, Sendable, Equatable {
+    /// Diagnostic fields for one authorized Workspace tool that can resolve an ambiguous call.
+    public struct AmbiguousWorkspaceCandidate: Sendable, Equatable {
+        public let workspaceID: UUID
+        public let label: String
+        public let toolName: String
+        public let description: String
+        public let parametersSchema: [String: AnyCodable]
+        public let isPrimary: Bool
+
+        public init(
+            workspaceID: UUID,
+            label: String,
+            toolName: String,
+            description: String,
+            parametersSchema: [String: AnyCodable] = [:],
+            isPrimary: Bool = false
+        ) {
+            self.workspaceID = workspaceID
+            self.label = label
+            self.toolName = toolName
+            self.description = description
+            self.parametersSchema = parametersSchema
+            self.isPrimary = isPrimary
+        }
+    }
+
     case missingArgument(String)
     case invalidArgument(String, expected: String, got: String)
     case malformedArguments(String)
@@ -38,7 +64,7 @@ public enum ToolError: PKError, Sendable, Equatable {
     case permissionDenied(String)
     case unmatchedToolOutput(String)
     case invalidWorkspaceID(String)
-    case ambiguousWorkspaceTool(tool: String, candidates: [WorkspaceToolCandidate])
+    case ambiguousWorkspaceTool(tool: String, candidates: [AmbiguousWorkspaceCandidate])
     case reservedToolName(String)
 
     public var errorDomain: String {

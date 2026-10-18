@@ -3,10 +3,10 @@
 # names, labels, filenames, and current prose must use Timeline terminology.
 Sources/PositronicKit/CONTEXT.md|^_Avoid_:
 Sources/PKUtilities/LogKeys.swift|threadID
-Sources/PKContracts/SharedTypes/Agent.swift|privateThreadId
-Sources/PKContracts/SharedTypes/TurnSnapshot.swift|threadId
-Sources/PKContracts/SharedTypes/WorkspaceReference.swift|runtimeThread
-Sources/PKContracts/SharedTypes/WorkspaceURI.swift|/threads/
+Sources/PositronicKit/Models/Agents/Agent.swift|privateThreadId
+Sources/PositronicKit/Models/Turn/TurnSnapshot.swift|threadId
+Sources/PositronicKit/Models/Workspace/WorkspaceReference.swift|runtimeThread
+Sources/PositronicKit/Models/Workspace/WorkspaceURI.swift|/threads/
 Sources/PKContracts/Tools/PKTool.swift|Thread\.sleep
 Sources/PositronicKit/Models/Agents/AgentContext.swift|primaryThreadSummary
 Sources/PositronicKit/Models/Timeline/TimelineMessage.swift|thread_send|threadId
@@ -29,9 +29,9 @@ Tests/PositronicKitTests/Turns/TurnEnginePipelineTests.swift|threadID
 Tests/PositronicKitTests/Timelines/TimelineObservationToolsTests.swift|thread_(list|peek|send|id)
 Tests/PositronicKitTests/Timelines/TimelineSendToolTests.swift|thread_(send|id)
 Tests/PositronicKitTests/Timelines/TimelineSerializationCompatibilityTests.swift|thread(Id|ID)|privateThreadId|primaryThreadSummary|thread_(list|peek|send|id)|runtimeThread|/threads/
-Tests/PKContractsTests/CoreAPIClarityTests.swift|thread(Id|ID)|privateThreadId
-Tests/PKContractsTests/SharedModelCoverageTests.swift|runtimeThread
-Tests/PKContractsTests/WorkspaceURITests.swift|/threads/
+Tests/PositronicKitTests/Models/CoreAPIClarityTests.swift|thread(Id|ID)|privateThreadId
+Tests/PositronicKitTests/Models/SharedModelCoverageTests.swift|runtimeThread
+Tests/PositronicKitTests/Workspaces/WorkspaceURITests.swift|/threads/
 docs/Setup.md|thread_send
 docs/Usage.md|privateThreadId
 # SE-0491 module-selector examples name platform declarations, not retired vocabulary.

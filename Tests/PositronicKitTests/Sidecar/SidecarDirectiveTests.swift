@@ -1,6 +1,7 @@
 import Foundation
 import JSONSchemaBuilder
 @testable import PKContracts
+import PositronicKit
 import Testing
 
 struct SidecarDirectiveTests {

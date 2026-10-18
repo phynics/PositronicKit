@@ -134,7 +134,7 @@ individually; grouping them under their profile is deferred until a consumer nee
 
 | MCP | PositronicKit |
 | --- | --- |
-| `tools/list` (paginated) | `listTools()` → `.custom(WorkspaceToolDefinition)`; `inputSchema` → `parametersSchema` |
+| `tools/list` (paginated) | `listTools()` → `.custom(ToolDefinition)`; `inputSchema` → `parametersSchema` |
 | `annotations.readOnlyHint` | `requiresPermission` under the `.annotations` policy |
 | `tools/call` `content[]` | `ToolResult.output`; text parts are joined, non-text parts become typed placeholder lines |
 | `tools/call` `isError: true` | `ToolResult(isSuccess: false)` |

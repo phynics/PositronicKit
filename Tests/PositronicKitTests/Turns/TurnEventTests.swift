@@ -3,6 +3,7 @@ import Testing
 import PKUtilities
 import Foundation
 import ErrorKit
+import PositronicKit
 
 @Suite final class TurnEventTests {
     @Test
