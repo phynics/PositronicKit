@@ -125,7 +125,7 @@ jobs:
 
       - name: Publish the regenerated Linux API baselines
         if: failure() && steps.linux-verify.outcome == 'failure'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux-public-api-baseline
           path: |
@@ -147,7 +147,7 @@ jobs:
 
       - name: Publish Linux test log
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux-verify-test-log
           path: .build/linux-verify.log
@@ -222,7 +222,7 @@ jobs:
 
       - name: Publish the regenerated macOS API baselines
         if: failure() && steps.public-api.outcome == 'failure'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: macos-public-api-baseline
           path: |
@@ -244,7 +244,7 @@ jobs:
 
       - name: Publish macOS verify log
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: macos-verify-log
           path: .build/macos-verify.log
@@ -289,7 +289,7 @@ jobs:
 
       - name: Publish iOS Simulator build log
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ios-verify-build-log
           path: .build/ios-verify.log
@@ -354,7 +354,7 @@ jobs:
 
       - name: Publish Linux coverage artifacts
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux-coverage-reports
           path: |
