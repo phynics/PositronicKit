@@ -23,6 +23,7 @@ actor TurnOutputs {
     private(set) var toolCallAccumulators: [Int: StreamedToolCall] = [:]
     private(set) var streamUsage: LLMTokenUsage?
     private(set) var streamFinishReason: String?
+    private(set) var hasIncompleteStreamTerminal = false
     private(set) var turnDuration: TimeInterval = 0
     private(set) var tokensPerSecond: Double?
     private(set) var sidecarResults: [SidecarResult] = []
@@ -66,6 +67,16 @@ actor TurnOutputs {
 
     func setStreamFinishReason(_ finishReason: String?) {
         streamFinishReason = finishReason
+    }
+
+    func markIncompleteStreamTerminal() {
+        hasIncompleteStreamTerminal = true
+    }
+
+    func markTerminalAssistantMessagePartial() {
+        guard var message = terminalAssistantMessage else { return }
+        message.status = .partial
+        terminalAssistantMessage = message
     }
 
     func appendThinking(_ chunk: String) {

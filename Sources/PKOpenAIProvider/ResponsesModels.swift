@@ -257,7 +257,13 @@ package enum ResponsesEvents {
             // (`length` for token/length limits) plus usage on the terminal chunk so the
             // Turn's terminal metadata stays truthful (issue #369).
             accumulator.sawContent = true
-            return LLMStreamChunk(id: responseID, model: model, choices: [.init(index: 0, delta: .init(role: .assistant), finishReason: incompleteFinishReason(from: json).wireValue)], usage: parseUsage(from: json))
+            return LLMStreamChunk(
+                id: responseID,
+                model: model,
+                choices: [.init(index: 0, delta: .init(role: .assistant), finishReason: incompleteFinishReason(from: json).wireValue)],
+                usage: parseUsage(from: json),
+                isIncompleteTerminal: true
+            )
         default: return nil
         }
     }
@@ -318,13 +324,21 @@ package enum ResponsesEvents {
         let nestedError = source["error"] as? [String: Any]
         let code = (nestedError?["code"] as? String) ?? (source["code"] as? String)
         let message = (nestedError?["message"] as? String) ?? (source["message"] as? String)
-        switch (code, message) {
-        case let (code?, message?): return "\(eventType): \(code): \(message)"
-        case let (code?, nil): return "\(eventType): \(code)"
-        case let (nil, message?): return "\(eventType): \(message)"
-        default: break
+        let errorType = (nestedError?["type"] as? String)
+            ?? (source["type"] as? String).flatMap { $0 == eventType ? nil : $0 }
+        guard code != nil || errorType != nil || message != nil else {
+            return "\(eventType): \(ProviderHTTPFailure.sanitize(String(decoding: payload, as: UTF8.self)))"
         }
-        return "\(eventType): \(ProviderHTTPFailure.sanitize(String(decoding: payload, as: UTF8.self)))"
+        return failureMessage(eventType: eventType, code: code, type: errorType, message: message)
+    }
+
+    /// Formats structured failure diagnostics shared by streaming and non-streaming Responses.
+    package static func failureMessage(eventType: String, code: String?, type: String?, message: String?) -> String {
+        var components = [eventType]
+        if let type { components.append("type=\(type)") }
+        if let code { components.append(code) }
+        if let message { components.append(message) }
+        return components.joined(separator: ": ")
     }
 
     /// Parses `usage` for terminal events, accepting the flat wire shape (usage beside the

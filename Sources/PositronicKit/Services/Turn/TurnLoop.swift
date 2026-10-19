@@ -14,7 +14,7 @@ private enum LoopContinuation {
     /// A tool result or internal thought needs the LLM to process it in the next turn.
     case continueWith([LLMMessage])
     /// The turn failed. `runOneTurn` already persisted the partial turn and finished the
-    /// continuation with the error; the outer loop must not run any post-terminal activity.
+    /// continuation with a failure signal; the outer loop must not run any post-terminal activity.
     case failed
     /// The turn was cancelled. `runOneTurn` already persisted the partial turn, surfaced
     /// `.generationCancelled()`, and finished the continuation; the outer loop must not run
@@ -109,8 +109,8 @@ struct TurnLoop: Sendable {
                 return
 
             case .failed:
-                // Terminal: the stream failed. `runOneTurn` already persisted the partial
-                // turn and finished the continuation with the error. No
+                // Terminal: the stream or model outcome failed. `runOneTurn` already persisted
+                // the partial turn and finished the continuation with the failure signal. No
                 // snapshot, message append, or further LLM turn is permitted after terminal
                 // delivery (PKRR-003).
                 return
@@ -195,6 +195,21 @@ private extension TurnLoop {
             // even though the owning Turn task is already cancelled. Recheck ownership before any
             // success/tool-routing path can durably complete the Turn.
             try Task.checkCancellation()
+            if await context.outputs.hasIncompleteStreamTerminal {
+                // OpenAI Responses `response.incomplete` is a valid provider terminal, not a
+                // thrown provider error. Preserve its finish reason on the response metadata,
+                // but commit the Turn as non-success instead of completing it cleanly.
+                let finishReason = await context.outputs.streamFinishReason ?? "incomplete"
+                let message = "Model response ended incomplete: \(finishReason)"
+                await context.outputs.markTerminalAssistantMessagePartial()
+                await commitTerminal(
+                    outcome: .failed(message: message),
+                    delivery: .event(.error(message)),
+                    context: context,
+                    continuation: continuation
+                )
+                return .failed
+            }
             // Retain the round's provider-neutral request for cache-exact sibling requests (#281).
             // Recording after the stream closes keeps an in-flight round out of the registry, and
             // each round overwrites the previous one so only the final round survives.

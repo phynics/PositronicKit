@@ -387,12 +387,34 @@ public struct LLMStreamChunk: Sendable, Codable, Equatable {
     public let choices: [LLMStreamChoice]
     /// Token usage accounting, typically only populated on the final chunk.
     public let usage: LLMTokenUsage?
+    /// Internal terminal semantics for a provider-valid but incomplete response.
+    /// This is intentionally excluded from the serialized and public contract.
+    package var isIncompleteTerminal = false
 
     public init(id: String, model: String, choices: [LLMStreamChoice], usage: LLMTokenUsage? = nil) {
         self.id = id
         self.model = model
         self.choices = choices
         self.usage = usage
+        isIncompleteTerminal = false
+    }
+
+    package init(
+        id: String,
+        model: String,
+        choices: [LLMStreamChoice],
+        usage: LLMTokenUsage? = nil,
+        isIncompleteTerminal: Bool
+    ) {
+        self.id = id
+        self.model = model
+        self.choices = choices
+        self.usage = usage
+        self.isIncompleteTerminal = isIncompleteTerminal
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, model, choices, usage
     }
 }
 

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+    import FoundationNetworking
+#endif
 import Testing
 @testable import PKOpenAIProvider
 import PKContracts
@@ -32,12 +35,12 @@ struct OpenAIResponsesStreamTerminalTests {
 
     @Test("response.failed is classified with structured provider diagnostics")
     func failedTerminalCarriesDiagnostics() throws {
-        let payload = #"{"type":"response.failed","response":{"id":"resp_f","status":"failed","error":{"code":"server_error","message":"The server had an error while processing your request."}}}"#
+        let payload = #"{"type":"response.failed","response":{"id":"resp_f","status":"failed","error":{"type":"server_error","code":"server_error","message":"The server had an error while processing your request."}}}"#
         let terminal = try #require(ResponsesEvents.terminalEvent(
             forEventType: "response.failed",
             payload: Data(payload.utf8)
         ))
-        #expect(terminal == .failed(message: "response.failed: server_error: The server had an error while processing your request."))
+        #expect(terminal == .failed(message: "response.failed: type=server_error: server_error: The server had an error while processing your request."))
 
         var accumulator = ResponsesStreamAccumulator()
         #expect(ResponsesEvents.chunk(
@@ -103,6 +106,7 @@ struct OpenAIResponsesStreamTerminalTests {
         #expect(length.choices.first?.finishReason == "length")
         #expect(length.choices.first?.delta.content == nil)
         #expect(length.usage?.totalTokens == 15)
+        #expect(length.isIncompleteTerminal)
 
         let filter = try #require(terminalChunk(
             "response.incomplete",
@@ -110,6 +114,7 @@ struct OpenAIResponsesStreamTerminalTests {
             responseID: "resp_i"
         ))
         #expect(filter.choices.first?.finishReason == "content_filter")
+        #expect(filter.isIncompleteTerminal)
 
         let passthrough = try #require(terminalChunk(
             "response.incomplete",
@@ -117,6 +122,7 @@ struct OpenAIResponsesStreamTerminalTests {
             responseID: "resp_i"
         ))
         #expect(passthrough.choices.first?.finishReason == "guardrail")
+        #expect(passthrough.isIncompleteTerminal)
 
         let missing = try #require(terminalChunk(
             "response.incomplete",
@@ -134,6 +140,12 @@ struct OpenAIResponsesStreamTerminalTests {
             forEventType: "response.incomplete",
             payload: Data(#"{"type":"response.incomplete"}"#.utf8)
         ) == .incomplete(.other("incomplete")))
+
+        let encoded = try JSONEncoder().encode(length)
+        let encodedObject = try #require(try JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        #expect(encodedObject["isIncompleteTerminal"] == nil)
+        let decoded = try JSONDecoder().decode(LLMStreamChunk.self, from: encoded)
+        #expect(!decoded.isIncompleteTerminal)
     }
 
     @Test("response.completed parses usage nested in the embedded response resource")
@@ -149,6 +161,31 @@ struct OpenAIResponsesStreamTerminalTests {
         #expect(details.cacheWriteTokens == 6)
     }
 
+    @Test("non-streaming failed Responses response surfaces its top-level error")
+    func nonStreamingFailedResponseThrowsProviderDiagnostics() async throws {
+        let transport = ScriptedProviderHTTPTransport(responses: [
+            .dataResponse(Data(#"{"model":"gpt-4o","status":"failed","error":{"type":"server_error","code":"server_error","message":"The provider rejected the response."},"output":[]}"#.utf8)),
+        ])
+        let client = OpenAIClient(
+            apiKey: "secret-key", modelName: "gpt-4o", maxRetries: 0,
+            transport: transport, api: .responses
+        )
+
+        await #expect(throws: LLMServiceError.unexpectedResponse(
+            provider: "OpenAI",
+            reason: "provider reported failure: response.failed: type=server_error: server_error: The provider rejected the response."
+        )) {
+            _ = try await client.chatCompletion(
+                messages: [.init(role: .user, content: "hello")],
+                tools: nil,
+                toolChoice: nil,
+                responseFormat: nil,
+                generationParameters: nil
+            )
+        }
+        #expect(await transport.requestCount() == 1)
+    }
+
     // MARK: - Captured-SSE client behavior (scripted transport)
 
     @Test("failed terminal after partial text preserves partial chunks and throws provider diagnostics")
@@ -156,13 +193,29 @@ struct OpenAIResponsesStreamTerminalTests {
         let transport = ScriptedProviderHTTPTransport(lines: [
             "data: {\"type\":\"response.output_text.delta\",\"response_id\":\"resp_a\",\"delta\":\"partial answer \"}",
             "data: {\"type\":\"response.output_text.delta\",\"response_id\":\"resp_a\",\"delta\":\"before failure\"}",
-            "data: {\"type\":\"response.failed\",\"response\":{\"id\":\"resp_a\",\"status\":\"failed\",\"error\":{\"code\":\"server_error\",\"message\":\"The server had an error while processing your request.\"}}}",
+            "data: {\"type\":\"response.failed\",\"response\":{\"id\":\"resp_a\",\"status\":\"failed\",\"error\":{\"type\":\"server_error\",\"code\":\"server_error\",\"message\":\"The server had an error while processing your request.\"}}}",
         ])
         let client = OpenAIClient(
             apiKey: "secret-key", modelName: "gpt-4o", maxRetries: 0,
             transport: transport, api: .responses
         )
-        let chunks = try await collectChunks(client: client)
+        let stream = await client.chatStream(
+            messages: [.init(role: .user, content: "hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+        var chunks: [LLMStreamChunk] = []
+        do {
+            for try await chunk in stream { chunks.append(chunk) }
+            Issue.record("expected response.failed to throw")
+        } catch let error as LLMServiceError {
+            #expect(error == .unexpectedResponse(
+                provider: "OpenAI",
+                reason: "provider reported failure: response.failed: type=server_error: server_error: The server had an error while processing your request."
+            ))
+        }
 
         #expect(chunks.count == 2)
         #expect(chunks.compactMap { $0.choices.first?.delta.content }.joined() == "partial answer before failure")
@@ -217,13 +270,52 @@ struct OpenAIResponsesStreamTerminalTests {
             responseFormat: nil,
             generationParameters: nil
         )
+        var chunks: [LLMStreamChunk] = []
         await #expect(throws: LLMServiceError.unexpectedResponse(
             provider: "OpenAI",
             reason: "stream ended before a terminal response event"
         )) {
-            var all: [LLMStreamChunk] = []
-            for try await chunk in stream { all.append(chunk) }
+            for try await chunk in stream { chunks.append(chunk) }
         }
+        #expect(chunks.compactMap { $0.choices.first?.delta.content }.joined() == "half")
+        #expect(await transport.requestCount() == 1)
+    }
+
+    @Test("consumer cancellation is not reclassified as premature EOF")
+    func cancellationDoesNotBecomeEOFFailure() async throws {
+        let transport = ScriptedProviderHTTPTransport(responses: [
+            .linesUntilCancelled(
+                ["data: {\"type\":\"response.output_text.delta\",\"delta\":\"partial\"}"],
+                HTTPURLResponse(
+                    url: URL(string: "https://api.openai.com/v1/responses")!,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "text/event-stream"]
+                )!
+            ),
+        ])
+        let client = OpenAIClient(
+            apiKey: "secret-key", modelName: "gpt-4o", maxRetries: 0,
+            transport: transport, api: .responses
+        )
+        let stream = await client.chatStream(
+            messages: [.init(role: .user, content: "hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+        let consumer = Task {
+            do {
+                for try await _ in stream {}
+            } catch {
+                // Cancellation is the expected terminal path.
+            }
+        }
+
+        await transport.waitForRequest()
+        consumer.cancel()
+        await transport.waitForTermination()
         #expect(await transport.requestCount() == 1)
     }
 
@@ -380,7 +472,7 @@ struct OpenAIResponsesStreamTerminalTests {
         #expect(partialAssistant.toMessage().status == .partial)
     }
 
-    @Test("incomplete terminal completes the Turn but records the truncation finish reason")
+    @Test("incomplete terminal records its finish reason and a durable non-success outcome")
     func turnDurableIncompleteTerminal() async throws {
         let (runtime, _, persistence, _) = try await makeRuntime([
             "data: {\"type\":\"response.output_text.delta\",\"delta\":\"partial answer that hit the cap\"}",
@@ -394,28 +486,50 @@ struct OpenAIResponsesStreamTerminalTests {
 
         let events = await turn.events().collect()
 
-        guard case let .completion(lastCompletion) = try #require(events.last) else {
-            Issue.record("expected a terminal completion event, got \(String(describing: events.last))")
+        guard case .error = try #require(events.last) else {
+            Issue.record("expected an incomplete terminal error event, got \(String(describing: events.last))")
             return
         }
-        guard case let .generationCompleted(message, metadata) = lastCompletion else {
-            Issue.record("unexpected completion event shape")
-            return
-        }
-        // The terminal metadata records the truncation, not a clean stop.
-        #expect(metadata.finishReason == "length")
-        #expect(metadata.usage?.totalTokens == 15)
-        #expect(message.content == "partial answer that hit the cap")
+        #expect(!events.contains { if case .completion(.generationCompleted) = $0 { return true }; return false })
 
-        // An incomplete terminal is still a valid terminal: the Turn completes, but the
-        // durable assistant row preserves the truncated text and the `length` finish reason.
+        // The provider stream itself ended normally, but the mapped incomplete finish reason
+        // makes the durable Turn non-successful and retains the truncated assistant text.
         let durableRecord = try #require(try await persistence.fetchTurn(id: turn.id))
-        #expect(durableRecord.outcome == .completed)
+        #expect(durableRecord.outcome == .failed(message: "Model response ended incomplete: length"))
         #expect(durableRecord.isTerminal)
+        #expect(try await turn.outcome() == durableRecord.outcome)
         let messages = try await persistence.fetchMessages(for: timeline.id)
         let assistant = try #require(messages.first { $0.role == "assistant" })
         #expect(assistant.content == "partial answer that hit the cap")
-        #expect(assistant.toMessage().status == nil)
+        #expect(assistant.toMessage().status == .partial)
+    }
+
+    @Test("incomplete passthrough reason also commits a durable non-success Turn")
+    func turnDurableIncompleteOtherTerminal() async throws {
+        let (runtime, _, persistence, _) = try await makeRuntime([
+            "data: {\"type\":\"response.output_text.delta\",\"delta\":\"blocked answer\"}",
+            "data: {\"type\":\"response.incomplete\",\"response\":{\"id\":\"resp_guardrail\",\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"guardrail\"}}}",
+        ])
+        let timeline = try await runtime.timelines.create(title: "Responses incomplete passthrough")
+        let turn = try await timeline.startDirectTurn(
+            "Answer this request.",
+            context: DirectTurnContext(systemInstructions: "")
+        )
+
+        let events = await turn.events().collect()
+        guard case .error = try #require(events.last) else {
+            Issue.record("expected an incomplete terminal error event, got \(String(describing: events.last))")
+            return
+        }
+        #expect(!events.contains { if case .completion(.generationCompleted) = $0 { return true }; return false })
+
+        let durableRecord = try #require(try await persistence.fetchTurn(id: turn.id))
+        #expect(durableRecord.outcome == .failed(message: "Model response ended incomplete: guardrail"))
+        #expect(try await turn.outcome() == durableRecord.outcome)
+        let messages = try await persistence.fetchMessages(for: timeline.id)
+        let assistant = try #require(messages.first { $0.role == "assistant" })
+        #expect(assistant.content == "blocked answer")
+        #expect(assistant.toMessage().status == .partial)
     }
 
     @Test("abnormal EOF drives a durable failed Turn")

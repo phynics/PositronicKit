@@ -188,6 +188,9 @@ struct LLMStreamingStage: PipelineStage {
             if Task.isCancelled { throw CancellationError() }
             // Reset the inactivity deadline: progress was made this chunk.
             await idleDeadline.reset()
+            if result.isIncompleteTerminal {
+                await context.outputs.markIncompleteStreamTerminal()
+            }
             if let finishReason = result.choices.first?.finishReason {
                 await context.outputs.setStreamFinishReason(finishReason)
             }
