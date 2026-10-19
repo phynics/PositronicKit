@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import fcntl
 import math
 import os
@@ -253,7 +254,12 @@ def run_command(
             sampler = None
             reported_sampler_samples = 0
     try:
-        process = subprocess.Popen(command, start_new_session=True)
+        try:
+            process = subprocess.Popen(command, start_new_session=True)
+        except OSError as error:
+            if error.errno != errno.EPERM:
+                raise
+            process = subprocess.Popen(command, start_new_session=True)
         deadline = started + timeout
         next_sample = started
         while True:

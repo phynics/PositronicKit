@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import errno
+import importlib.util
 import os
 import signal
 import subprocess
@@ -10,11 +12,20 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
 RESOURCE_RUNNER = ROOT / "Scripts/with-agent-resources.py"
 FOCUSED_RUNNER = ROOT / "Scripts/run-focused-agent-tests.py"
+
+
+def load_resource_runner():
+    spec = importlib.util.spec_from_file_location("with_agent_resources", RESOURCE_RUNNER)
+    check(spec is not None and spec.loader is not None, "could not load resource runner")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def check(condition: bool, message: str) -> None:
@@ -221,6 +232,55 @@ def test_cancellation_stops_the_child_and_records_status() -> None:
             raise AssertionError("cancelled agent command left its child process running")
 
 
+def test_command_spawn_retries_eperm_without_retrying_exec_errors() -> None:
+    resource_runner = load_resource_runner()
+    real_popen = subprocess.Popen
+    attempts: list[dict[str, object]] = []
+
+    def fail_once(*arguments: object, **options: object) -> subprocess.Popen[bytes]:
+        attempts.append(options)
+        if len(attempts) == 1:
+            raise PermissionError(errno.EPERM, os.strerror(errno.EPERM), "fixture")
+        return real_popen(*arguments, **options)
+
+    with patch.object(resource_runner.subprocess, "Popen", side_effect=fail_once):
+        status, _, _, _, _ = resource_runner.run_command(
+            [sys.executable, "-c", "pass"],
+            timeout=5,
+            sample_runtime=None,
+            sample_container=None,
+            sample_interval=1,
+        )
+    check(status == 0, f"command failed after transient EPERM: status {status}")
+    check(len(attempts) == 2, f"expected one EPERM retry, got {len(attempts)} spawn attempts")
+    check(
+        all(options.get("start_new_session") is True for options in attempts),
+        "EPERM retry weakened process-session isolation",
+    )
+
+    for error_number in (errno.ENOENT, errno.EACCES):
+        attempts.clear()
+
+        def fail_exec(*_arguments: object, **_options: object) -> subprocess.Popen[bytes]:
+            attempts.append({})
+            raise OSError(error_number, os.strerror(error_number), "fixture")
+
+        with patch.object(resource_runner.subprocess, "Popen", side_effect=fail_exec):
+            try:
+                resource_runner.run_command(
+                    ["fixture"],
+                    timeout=5,
+                    sample_runtime=None,
+                    sample_container=None,
+                    sample_interval=1,
+                )
+            except OSError as error:
+                check(error.errno == error_number, f"spawn error changed: expected {error_number}, got {error.errno}")
+            else:
+                raise AssertionError(f"spawn error {error_number} was swallowed")
+        check(len(attempts) == 1, f"spawn error {error_number} was retried")
+
+
 def test_container_memory_is_recorded_when_the_runtime_reports_it() -> None:
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
@@ -347,6 +407,7 @@ def main() -> None:
         test_same_resource_lock_blocks_the_second_writer,
         test_slot_cap_and_timeout_and_exit_status,
         test_cancellation_stops_the_child_and_records_status,
+        test_command_spawn_retries_eperm_without_retrying_exec_errors,
         test_container_memory_is_recorded_when_the_runtime_reports_it,
         test_focused_runner_preserves_flags_and_fails_unmatched_filters,
     ]
