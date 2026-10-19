@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import fcntl
 import math
 import os
@@ -253,7 +254,14 @@ def run_command(
             sampler = None
             reported_sampler_samples = 0
     try:
-        process = subprocess.Popen(command, start_new_session=True)
+        for spawn_attempt in range(3):
+            try:
+                process = subprocess.Popen(command, start_new_session=True)
+                break
+            except OSError as error:
+                if error.errno != errno.EPERM or spawn_attempt == 2:
+                    raise
+                time.sleep(0.05 * (spawn_attempt + 1))
         deadline = started + timeout
         next_sample = started
         while True:
