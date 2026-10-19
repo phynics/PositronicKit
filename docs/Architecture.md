@@ -197,13 +197,14 @@ the downstream audit and migration boundary.
   reusable prefix (#277). Because the tool block leads the cached prefix, hosts should keep a
   Timeline's tool set stable: changing it resets reuse for the whole prefix.
 - Provider products adapt concrete services to `PKContracts`; they do not import the runtime.
-- Runtime adapters (`PKObservable`, `PKAgentFiles`, planned `PKSQLiteStorage`, planned `PKMCP`)
+- Runtime adapters (`PKObservable`, `PKAgentFiles`, `PKMCP`, planned `PKSQLiteStorage`)
   import `PositronicKit` to implement its host-facing protocols, use only public API, and are never
   imported by the runtime or by providers (see [ADR 0015](adr/0015-runtime-adapter-tier.md)).
 - `PKObservable` projects runtime state outward for UI consumers.
 - `PKAgentFiles` installs the optional filesystem Agent conventions: a `SOUL.md`/`Notes/`
   `AgentContextSource`, the matching `AgentWorkspaceSeed`, and the `SOUL.md` protected write path.
   Without it, the runtime is identity-only, seeds nothing, and gates no write.
+- `PKMCP` connects Model Context Protocol servers as Workspaces through the official swift-sdk.
 - `PKTestSupport` provides ordinary-import fixtures for downstream test targets.
 - `PKUtilities` supports package implementation but is not a public product.
 
