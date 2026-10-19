@@ -98,7 +98,7 @@ public struct ModelInferenceCapability: Sendable {
     /// updating a Timeline.
     ///
     /// The messages are sent exactly as supplied, in order. This is the one-shot convenience
-    /// over the same provider contract as ``LLMClientProtocol``: the host owns conversation
+    /// over the same provider contract as ``PKContracts/LLMClientProtocol``: the host owns conversation
     /// history, tool definitions, tool choice, and any follow-up requests. The runtime neither
     /// reads nor writes Timeline or Agent state, and it does not execute returned tool calls.
     /// Use ``stream(messages:tools:toolChoice:responseFormat:generationParameters:idleTimeout:transport:promptCaching:)``
