@@ -59,6 +59,8 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- OpenAI Responses streaming now reads usage from the nested `response.completed.response.usage`
+  envelope and retains the flat usage fallback (#364).
 - Stateless OpenAI Responses follow-ups now replay each assistant `function_call` with its original
   name, arguments, and call ID before the matching tool results (#368).
 - Reloaded and forked history keeps the semantic tool-result role and the original call

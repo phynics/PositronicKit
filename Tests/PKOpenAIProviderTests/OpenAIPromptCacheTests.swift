@@ -117,6 +117,26 @@ struct OpenAIPromptCacheTests {
         #expect(details.cacheWriteTokens == 6)
     }
 
+    @Test("Responses completion envelope parses nested token and cache usage")
+    func nestedResponsesUsageEnvelope() throws {
+        var accumulator = ResponsesStreamAccumulator()
+        let payload = Data(#"{"type":"response.completed","response":{"id":"resp_1","status":"completed","output":[],"usage":{"input_tokens":100,"output_tokens":7,"total_tokens":107,"input_tokens_details":{"cached_tokens":31,"cache_write_tokens":4}}}}"#.utf8)
+        let chunk = ResponsesEvents.chunk(
+            forEventType: "response.completed",
+            payload: payload,
+            model: "gpt-5",
+            responseID: "resp_1",
+            accumulator: &accumulator
+        )
+
+        let usage = try #require(chunk?.usage)
+        #expect(usage.promptTokens == 100)
+        #expect(usage.completionTokens == 7)
+        #expect(usage.totalTokens == 107)
+        #expect(usage.promptTokensDetails?.cachedTokens == 31)
+        #expect(usage.promptTokensDetails?.cacheWriteTokens == 4)
+    }
+
     @Test("capability declares automatic prefix caching")
     func capabilityIsAutomatic() {
         let client = OpenAIClient(apiKey: "k")
