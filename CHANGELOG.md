@@ -162,7 +162,11 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   prompt-cache live checks (`POSITRONICKIT_LIVE_TESTS=1` plus a provider key, each job skipped when
   its secret is absent), the recorded OpenAI transport contract, the Nix flake build (folded from
   the deleted `nix-devshell.yml`), and report-only local-path-override builds of Gnostic and
-  Yakamoz against `main`. Nightly flake detection now runs through
+  Yakamoz against `main`. The live and contract steps run through
+  `make verify-live-{anthropic,openai,openrouter}-cache` and `make verify-openai-contract`, which
+  apply the gate's `$(SWIFT_BUILD_FLAGS)` and refuse to start a live target without both opt-ins,
+  so nightly compiler diagnostics cannot diverge from the PR gate and a skipped suite is never
+  reported as evidence. Nightly flake detection now runs through
   `make detect-flakes-run ITERATIONS=…`, so it applies the gate's `-warnings-as-errors` flags, and
   a weekly macOS schedule repeats the full suite for the Apple-only paths.
   `.github/dependabot.yml` opens grouped weekly `github-actions` and `swift` update pull requests.

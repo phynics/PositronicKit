@@ -22,6 +22,9 @@ defaults:
 env:
   SWIFT_TOOLCHAIN_VERSION: "6.4.0"
 
+# Test steps invoke Make targets rather than bare `swift test`, so the nightly
+# lanes share $(SWIFT_BUILD_FLAGS) (`-warnings-as-errors`) with the PR gate.
+
 jobs:
   # Secrets are not available to a job-level `if:`, so detect their presence once and
   # let the live jobs depend on the booleans. The detection step never prints a value.
@@ -91,7 +94,7 @@ jobs:
         env:
           POSITRONICKIT_LIVE_TESTS: "1"
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: swift test -Xswiftc -warnings-as-errors --filter LiveAnthropicPromptCache
+        run: make verify-live-anthropic-cache
 
   live-prompt-cache-openai:
     needs: gating
@@ -131,7 +134,7 @@ jobs:
         env:
           POSITRONICKIT_LIVE_TESTS: "1"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: swift test -Xswiftc -warnings-as-errors --filter LiveOpenAIPromptCache
+        run: make verify-live-openai-cache
 
   live-prompt-cache-openrouter:
     needs: gating
@@ -171,7 +174,7 @@ jobs:
         env:
           POSITRONICKIT_LIVE_TESTS: "1"
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: swift test -Xswiftc -warnings-as-errors --filter LiveOpenRouterPromptCache
+        run: make verify-live-openrouter-cache
 
   # The OpenAI contract test (#274). It is recorded, not live: it binds a loopback
   # server and observes SDK traffic, so it needs no secret and reruns the same contract
@@ -209,7 +212,7 @@ jobs:
             swiftpm-${{ runner.os }}-swift-${{ env.SWIFT_TOOLCHAIN_VERSION }}-
 
       - name: Run the recorded OpenAI transport contract
-        run: swift test -Xswiftc -warnings-as-errors --filter OpenAITransportContract
+        run: make verify-openai-contract
 
   # The Nix flake build (#272). Folded here from the former nix-devshell.yml so one
   # nightly workflow owns every scheduled lane. The flake is the supported path, so the

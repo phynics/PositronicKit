@@ -195,19 +195,22 @@ the property the runtime depends on: a repeated stable prefix reports
 - `Tests/PKOpenRouterProviderTests/LivePromptCacheChecks.swift`
 
 Each suite is disabled unless both opt-ins are set, so the default gate and every fork
-pull request stay network-free and deterministic:
+pull request stay network-free and deterministic. Run the matching Make target, which
+refuses to start without both variables and applies the gate's `$(SWIFT_BUILD_FLAGS)`:
 
 ```bash
 POSITRONICKIT_LIVE_TESTS=1 \
 ANTHROPIC_API_KEY=… \
-  swift test --filter LiveAnthropicPromptCache
+  make verify-live-anthropic-cache
 ```
 
-`.github/workflows/nightly-live.yml` runs them on a schedule (plus manual dispatch)
-only. It reads the secrets once in a `gating` job and skips a provider's job when its
-key is absent, so a repository without keys runs nothing. Every job is report-only
-(`continue-on-error: true`) and never gates a pull request. The same workflow owns the
-recorded OpenAI transport contract, the Nix flake build, and report-only downstream
+`make verify-live-openai-cache` and `make verify-live-openrouter-cache` are the
+counterparts for the other providers. `.github/workflows/nightly-live.yml` runs them
+on a schedule (plus manual dispatch) only. It reads the secrets once in a `gating` job
+and skips a provider's job when its key is absent, so a repository without keys runs
+nothing. Every job is report-only (`continue-on-error: true`) and never gates a pull
+request. The same workflow owns `make verify-openai-contract` (the recorded transport
+contract, which needs no secret), the Nix flake build, and report-only downstream
 builds of Gnostic and Yakamoz against this checkout via a local-path override.
 
 ## iOS Simulator lane
