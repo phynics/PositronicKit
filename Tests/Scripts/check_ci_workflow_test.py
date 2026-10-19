@@ -308,20 +308,54 @@ def test_nightly_live_skips_each_live_job_when_its_secret_is_absent() -> None:
     assert "outputs:" in gating, gating
     for provider in ("anthropic", "openai", "openrouter"):
         assert f"needs.gating.outputs.{provider} == 'true'" in workflow, workflow
-    for job in (
-        "live-prompt-cache-anthropic",
-        "live-prompt-cache-openai",
-        "live-prompt-cache-openrouter",
+    for job, target in (
+        ("live-prompt-cache-anthropic", "verify-live-anthropic-cache"),
+        ("live-prompt-cache-openai", "verify-live-openai-cache"),
+        ("live-prompt-cache-openrouter", "verify-live-openrouter-cache"),
     ):
         block = job_block(workflow, job)
         assert "needs: gating" in block, block
         assert "continue-on-error: true" in block, block
-        assert "--filter Live" in block, block
+        assert f"make {target}" in block, block
+        # Bare `swift test` would bypass $(SWIFT_BUILD_FLAGS).
+        assert "swift test" not in block, block
+
+
+def test_live_targets_use_the_gate_flags() -> None:
+    makefile = makefile_text()
+    for target, filter_name in (
+        ("verify-live-anthropic-cache", "LiveAnthropicPromptCache"),
+        ("verify-live-openai-cache", "LiveOpenAIPromptCache"),
+        ("verify-live-openrouter-cache", "LiveOpenRouterPromptCache"),
+        ("verify-openai-contract", "OpenAITransportContract"),
+    ):
+        block = target_block(makefile, target)
+        assert "$(SWIFT_BUILD_FLAGS)" in block, block
+        assert f"--filter {filter_name}" in block, block
+    for target in (
+        "verify-live-anthropic-cache",
+        "verify-live-openai-cache",
+        "verify-live-openrouter-cache",
+    ):
+        assert "POSITRONICKIT_LIVE_TESTS" in target_block(makefile, target)
+
+
+def test_live_targets_are_phony() -> None:
+    block = target_block(makefile_text(), ".PHONY")
+    for target in (
+        "verify-live-anthropic-cache",
+        "verify-live-openai-cache",
+        "verify-live-openrouter-cache",
+        "verify-openai-contract",
+    ):
+        assert target in block, block
 
 
 def test_nightly_live_includes_the_contract_nix_and_downstream_lanes() -> None:
     workflow = nightly_live_text()
-    assert "OpenAITransportContract" in job_block(workflow, "openai-contract"), workflow
+    contract = job_block(workflow, "openai-contract")
+    assert "make verify-openai-contract" in contract, contract
+    assert "swift test" not in contract, contract
     assert "nix develop -c make verify-products" in job_block(workflow, "nix-verify-products"), workflow
     for job in ("downstream-gnostic", "downstream-yakamoz"):
         block = job_block(workflow, job)
@@ -379,6 +413,8 @@ if __name__ == "__main__":
         test_ios_script_builds_every_library_product_for_the_simulator,
         test_nightly_live_is_report_only_and_scheduled,
         test_nightly_live_skips_each_live_job_when_its_secret_is_absent,
+        test_live_targets_use_the_gate_flags,
+        test_live_targets_are_phony,
         test_nightly_live_includes_the_contract_nix_and_downstream_lanes,
         test_dependabot_groups_actions_and_swift_weekly,
         test_detect_flakes_run_uses_the_gate_flags,

@@ -2,6 +2,7 @@
 	verify verify-concurrency-scan verify-diagnose-scan verify-runtime-architecture \
 	verify-linux-agent verify-linux-filter verify-linux-repeat verify-linux-coverage \
 	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-domain-vocabulary verify-doc-snippets detect-flakes detect-flakes-run \
+	verify-live-anthropic-cache verify-live-openai-cache verify-live-openrouter-cache verify-openai-contract \
 	verify-public-api update-public-api-baseline verify-public-api-immutability verify-release sbom \
 	verify-static verify-documentation-static verify-docc verify-macos-ci verify-macos-ci-gates verify-ios \
 	agent-verify agent-test agent-test-repeat linux-image linux-build linux-coverage require-container-runtime
@@ -117,6 +118,38 @@ test-fast:
 	 fi; \
 	 echo "Running fast tests (--filter $(FAST_FILTER))..."; \
 	 swift test $(SWIFT_BUILD_FLAGS) --filter "$(FAST_FILTER)"
+
+# Opt-in live prompt-cache checks (#279). They make real provider calls, so the
+# suites stay disabled unless `POSITRONICKIT_LIVE_TESTS=1` and the provider key
+# are set. The targets refuse to run without both, so a local invocation cannot
+# report a green skip as evidence. `.github/workflows/nightly-live.yml` supplies
+# the environment; these targets apply the same $(SWIFT_BUILD_FLAGS) as the PR
+# gate so nightly compiler diagnostics cannot diverge from the gate.
+verify-live-anthropic-cache:
+	@if [ "$${POSITRONICKIT_LIVE_TESTS:-}" != "1" ] || [ -z "$${ANTHROPIC_API_KEY:-}" ]; then \
+		echo "make: POSITRONICKIT_LIVE_TESTS=1 and ANTHROPIC_API_KEY are required." >&2; \
+		exit 2; \
+	fi
+	@swift test $(SWIFT_BUILD_FLAGS) --filter LiveAnthropicPromptCache
+
+verify-live-openai-cache:
+	@if [ "$${POSITRONICKIT_LIVE_TESTS:-}" != "1" ] || [ -z "$${OPENAI_API_KEY:-}" ]; then \
+		echo "make: POSITRONICKIT_LIVE_TESTS=1 and OPENAI_API_KEY are required." >&2; \
+		exit 2; \
+	fi
+	@swift test $(SWIFT_BUILD_FLAGS) --filter LiveOpenAIPromptCache
+
+verify-live-openrouter-cache:
+	@if [ "$${POSITRONICKIT_LIVE_TESTS:-}" != "1" ] || [ -z "$${OPENROUTER_API_KEY:-}" ]; then \
+		echo "make: POSITRONICKIT_LIVE_TESTS=1 and OPENROUTER_API_KEY are required." >&2; \
+		exit 2; \
+	fi
+	@swift test $(SWIFT_BUILD_FLAGS) --filter LiveOpenRouterPromptCache
+
+# The recorded OpenAI transport contract (#274). It binds a loopback server and
+# needs no secret, so the nightly lane can run it without live credentials.
+verify-openai-contract:
+	@swift test $(SWIFT_BUILD_FLAGS) --filter OpenAITransportContract
 
 validate-docs: verify-documentation verify-docc
 
