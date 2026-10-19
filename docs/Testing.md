@@ -103,6 +103,13 @@ the repository-owned runner:
 make agent-test FILTER='tag:unit'
 ```
 
+The focused runner compiles test products with the repository's strict Swift flags before running
+the selected tests. A filter that matches no tests fails. Warm scratch serializes writers to the
+same worktree/toolchain cache; `AGENT_TEST_MODE=isolated` gives each invocation a unique scratch
+directory so independent focused runs can proceed at the same time. Run-level logs and metadata are
+unique even when invocations start together. See [Development.md](Development.md#focused-checks)
+for compiler-job, concurrency, timeout, and resource-lock settings.
+
 The full gates (`make verify` on macOS, `make agent-verify` on Linux) exercise
 `make test-fast` before the complete test run and always run every suite. Every
 runtime suite uses Swift Testing and carries a taxonomy tag; the last XCTest

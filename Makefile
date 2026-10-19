@@ -9,7 +9,8 @@
 # Swift toolchain baked into the supported Linux development image.
 LINUX_SWIFT_VERSION ?= 6.4.0
 LINUX_IMAGE ?= positronickit-linux-dev-$(LINUX_SWIFT_VERSION)
-# `agent-test` and `linux-coverage` isolate their SwiftPM scratch per toolchain.
+# Focused agent tests scope SwiftPM scratch to the toolchain and worktree. Warm
+# mode reuses its `warm/` child under a resource lock; isolated mode uses a run ID.
 # `agent-verify` and `linux-build` use the bind-mounted checkout `.build`, so
 # remove that directory before switching LINUX_SWIFT_VERSION.
 LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/agent-scratch/swift-$(LINUX_SWIFT_VERSION)
@@ -18,7 +19,16 @@ LINUX_TEST_TRAITS ?=
 # Per-test repetition count for `verify-linux-repeat` / `agent-test-repeat`.
 LINUX_TEST_REPETITIONS ?=
 AGENT_LOG_DIR ?= $(CURDIR)/.build/agent-logs
+AGENT_METADATA_DIR ?= $(CURDIR)/.build/agent-metadata
 AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock
+AGENT_TEST_MODE ?= warm
+AGENT_SWIFT_JOBS ?= 1
+AGENT_MAX_CONCURRENT_RUNS ?= 3
+AGENT_RUN_TIMEOUT ?= 7200
+AGENT_MEMORY_SAMPLE_INTERVAL ?= 2
+AGENT_IMAGE_BUILD_TIMEOUT ?= 1200
+AGENT_LOCK_TIMEOUT ?= 7200
+AGENT_RESOURCE_LOCK ?=
 # Podman is preferred; Docker is an equally supported alternative. Set
 # CONTAINER_RUNTIME to pin an explicit binary and skip auto-detection.
 CONTAINER_RUNTIME ?= $(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null)
@@ -52,6 +62,7 @@ help:
 	@echo "  make agent-verify          Canonical full gate (container-only on Linux)"
 	@echo "  make agent-test FILTER='…' Run a focused containerized Linux test"
 	@echo "  make agent-test-repeat FILTER='…' N=…  Repeat a focused test N times for flake detection"
+	@echo "                              Use AGENT_TEST_MODE=isolated for concurrent scratch"
 	@echo "  make linux-coverage         Generate Linux llvm-cov reports in .build/linux-coverage"
 	@echo "  make test                  Run tests"
 	@echo "  make test-fast             Run generated fast test filter"
@@ -195,11 +206,11 @@ verify-linux-filter:
 		echo "make: LINUX_TEST_FILTER is required." >&2; \
 		exit 2; \
 	fi
-	@if [ -n "$(LINUX_TEST_TRAITS)" ]; then \
-		swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --traits "$(LINUX_TEST_TRAITS)" --filter "$(LINUX_TEST_FILTER)"; \
-	else \
-		swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --filter "$(LINUX_TEST_FILTER)"; \
-	fi
+	@python3 Scripts/run-focused-agent-tests.py \
+		--filter "$(LINUX_TEST_FILTER)" \
+		$(if $(LINUX_TEST_TRAITS),--traits "$(LINUX_TEST_TRAITS)",) \
+		--jobs "$(AGENT_SWIFT_JOBS)" --scratch-path /scratch \
+		$(if $(AGENT_METADATA_FILE),--metadata "$(AGENT_METADATA_FILE)",)
 
 # Repeat the matching test cases `LINUX_TEST_REPETITIONS` times to reproduce flaky
 # behavior. SwiftPM applies `--maximum-repetitions` per test case, unlike the nightly
@@ -213,11 +224,11 @@ verify-linux-repeat:
 		echo "make: LINUX_TEST_REPETITIONS is required." >&2; \
 		exit 2; \
 	fi
-	@if [ -n "$(LINUX_TEST_TRAITS)" ]; then \
-		swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --traits "$(LINUX_TEST_TRAITS)" --maximum-repetitions "$(LINUX_TEST_REPETITIONS)" --filter "$(LINUX_TEST_FILTER)"; \
-	else \
-		swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --maximum-repetitions "$(LINUX_TEST_REPETITIONS)" --filter "$(LINUX_TEST_FILTER)"; \
-	fi
+	@python3 Scripts/run-focused-agent-tests.py \
+		--filter "$(LINUX_TEST_FILTER)" --repetitions "$(LINUX_TEST_REPETITIONS)" \
+		$(if $(LINUX_TEST_TRAITS),--traits "$(LINUX_TEST_TRAITS)",) \
+		--jobs "$(AGENT_SWIFT_JOBS)" --scratch-path /scratch \
+		$(if $(AGENT_METADATA_FILE),--metadata "$(AGENT_METADATA_FILE)",)
 
 verify-products:
 	@set -eu; \
@@ -339,6 +350,7 @@ detect-flakes-run:
 verify-agent-harness:
 	@bash Tests/Scripts/doctor_test.sh
 	@bash Tests/Scripts/run_linux_container_test.sh
+	@python3 -B Tests/Scripts/agent_test_tools_test.py
 	@bash Tests/Scripts/public_api_baseline_test.sh
 	@python3 -B Tests/Scripts/check_ci_workflow_test.py
 	@bash Tests/Scripts/check_dependency_direction_test.sh
@@ -386,11 +398,15 @@ require-container-runtime:
 # Build artifacts land in the host .build/ directory (gitignored).
 
 agent-verify: require-container-runtime
-	@mkdir -p "$(AGENT_LOG_DIR)"
 	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
 		LINUX_SWIFT_VERSION="$(LINUX_SWIFT_VERSION)" \
+		AGENT_LOG_DIR="$(AGENT_LOG_DIR)" AGENT_METADATA_DIR="$(AGENT_METADATA_DIR)" \
+		AGENT_SWIFT_JOBS="$(AGENT_SWIFT_JOBS)" AGENT_MAX_CONCURRENT_RUNS="$(AGENT_MAX_CONCURRENT_RUNS)" \
+		AGENT_RUN_TIMEOUT="$(AGENT_RUN_TIMEOUT)" AGENT_MEMORY_SAMPLE_INTERVAL="$(AGENT_MEMORY_SAMPLE_INTERVAL)" \
+		AGENT_IMAGE_BUILD_TIMEOUT="$(AGENT_IMAGE_BUILD_TIMEOUT)" \
+		AGENT_LOCK_TIMEOUT="$(AGENT_LOCK_TIMEOUT)" \
 		bash Scripts/run-linux-container.sh \
-		--log "$(AGENT_LOG_DIR)/verify.log" \
+		--mode warm \
 		--lock "$(AGENT_LOCK_FILE)" \
 		-- make verify-linux-agent
 
@@ -399,14 +415,19 @@ agent-test: require-container-runtime
 		echo "make: FILTER is required (for example: make agent-test FILTER='MessageContentTests')." >&2; \
 		exit 2; \
 	fi
-	@mkdir -p "$(AGENT_LOG_DIR)" "$(LINUX_SCRATCH_DIR)"
 	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
 		LINUX_SWIFT_VERSION="$(LINUX_SWIFT_VERSION)" \
 		LINUX_TEST_FILTER="$(FILTER)" LINUX_TEST_TRAITS="$(TRAITS)" \
+		AGENT_LOG_DIR="$(AGENT_LOG_DIR)" AGENT_METADATA_DIR="$(AGENT_METADATA_DIR)" \
+		AGENT_TEST_MODE="$(AGENT_TEST_MODE)" AGENT_SWIFT_JOBS="$(AGENT_SWIFT_JOBS)" \
+		AGENT_MAX_CONCURRENT_RUNS="$(AGENT_MAX_CONCURRENT_RUNS)" \
+		AGENT_RUN_TIMEOUT="$(AGENT_RUN_TIMEOUT)" AGENT_MEMORY_SAMPLE_INTERVAL="$(AGENT_MEMORY_SAMPLE_INTERVAL)" \
+		AGENT_IMAGE_BUILD_TIMEOUT="$(AGENT_IMAGE_BUILD_TIMEOUT)" \
+		AGENT_LOCK_TIMEOUT="$(AGENT_LOCK_TIMEOUT)" \
 		bash Scripts/run-linux-container.sh \
-		--log "$(AGENT_LOG_DIR)/test.log" \
-		--lock "$(AGENT_LOCK_FILE)" \
-		--scratch "$(LINUX_SCRATCH_DIR)" \
+		--mode "$(AGENT_TEST_MODE)" --scratch-root "$(LINUX_SCRATCH_DIR)" \
+		$(if $(AGENT_RESOURCE_LOCK),--lock "$(AGENT_RESOURCE_LOCK)",) \
+		--read-only-workspace \
 		-- make verify-linux-filter
 
 # Repeat the filtered test cases N times to reproduce flaky concurrency behavior,
@@ -420,15 +441,20 @@ agent-test-repeat: require-container-runtime
 		echo "make: N is required (per-test repetition count)." >&2; \
 		exit 2; \
 	fi
-	@mkdir -p "$(AGENT_LOG_DIR)" "$(LINUX_SCRATCH_DIR)"
 	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
 		LINUX_SWIFT_VERSION="$(LINUX_SWIFT_VERSION)" \
 		LINUX_TEST_FILTER="$(FILTER)" LINUX_TEST_TRAITS="$(TRAITS)" \
 		LINUX_TEST_REPETITIONS="$(N)" \
+		AGENT_LOG_DIR="$(AGENT_LOG_DIR)" AGENT_METADATA_DIR="$(AGENT_METADATA_DIR)" \
+		AGENT_TEST_MODE="$(AGENT_TEST_MODE)" AGENT_SWIFT_JOBS="$(AGENT_SWIFT_JOBS)" \
+		AGENT_MAX_CONCURRENT_RUNS="$(AGENT_MAX_CONCURRENT_RUNS)" \
+		AGENT_RUN_TIMEOUT="$(AGENT_RUN_TIMEOUT)" AGENT_MEMORY_SAMPLE_INTERVAL="$(AGENT_MEMORY_SAMPLE_INTERVAL)" \
+		AGENT_IMAGE_BUILD_TIMEOUT="$(AGENT_IMAGE_BUILD_TIMEOUT)" \
+		AGENT_LOCK_TIMEOUT="$(AGENT_LOCK_TIMEOUT)" \
 		bash Scripts/run-linux-container.sh \
-		--log "$(AGENT_LOG_DIR)/test-repeat.log" \
-		--lock "$(AGENT_LOCK_FILE)" \
-		--scratch "$(LINUX_SCRATCH_DIR)" \
+		--mode "$(AGENT_TEST_MODE)" --scratch-root "$(LINUX_SCRATCH_DIR)" \
+		$(if $(AGENT_RESOURCE_LOCK),--lock "$(AGENT_RESOURCE_LOCK)",) \
+		--read-only-workspace \
 		-- make verify-linux-repeat
 
 linux-image: require-container-runtime

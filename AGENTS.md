@@ -54,6 +54,29 @@ On Linux, use the pinned container environment, which accepts Podman (preferred)
 supported Nix dev shell. Do not run host Swift outside the Nix shell or compose another container
 command. See [docs/Development.md](docs/Development.md) for setup.
 
+### Parallel agent execution
+
+- Use one isolated worktree per material task so agents do not edit the same checkout.
+- Use `make agent-test FILTER='…'` for focused Linux feedback. Warm scratch is scoped to the
+  worktree and toolchain and serializes runs that share that scratch. For concurrent focused runs,
+  use `make agent-test AGENT_TEST_MODE=isolated FILTER='…'`; each run gets its own scratch, log,
+  metadata file, and execution ID.
+- Set `AGENT_RESOURCE_LOCK=/path/to/resource.lock` when selected tests share an exclusive fixture
+  or other writable resource. Do not remove a lock while runs share writable build state.
+- Focused tests use `AGENT_SWIFT_JOBS=1` and `AGENT_MAX_CONCURRENT_RUNS=3` by default;
+  `AGENT_RUN_TIMEOUT` defaults to `7200` seconds; `AGENT_MEMORY_SAMPLE_INTERVAL` defaults to a
+  two-second retry delay for memory sampling. The runner records image setup, lock wait,
+  compile, test, total times, and sampled peak container memory with the selected toolchain,
+  scratch path, and exit status.
+- Run `make agent-verify` for the full Linux gate and `make verify` on macOS. The supported Nix
+  shell remains available on Linux and macOS. Keep platform-specific API baselines and product
+  verification on their supported platforms.
+- Report the exact commands, run logs, runtime failures, and test results. A container permission
+  failure does not permit a silent switch to host Swift or an unpinned container command.
+
+See [docs/Development.md](docs/Development.md) and [docs/Testing.md](docs/Testing.md) for setup,
+resource locking, execution modes, and test-layer details.
+
 For an intentional public API change, inspect `make verify-public-api` on every affected platform
 before running `make update-public-api-baseline`, which records the change in the unreleased
 `api/next-public-api-<platform>.json` and `api/next-experimental-api-<platform>.json` baselines. Release-named `api/<major>.<minor>-public-api-*.json`
