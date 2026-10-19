@@ -323,19 +323,37 @@ fi
 printf 'ok: Dockerfile system-dependency changes invalidate the image\n'
 
 # Isolated runs get distinct scratch, logs, metadata, and named containers.
-CONTAINER_RUNTIME="$fake_runtime" RUNTIME_ARGS_OUT="$runtime_args" \
+isolated_a_output="$tmp_dir/isolated-a-output"
+if CONTAINER_RUNTIME="$fake_runtime" RUNTIME_ARGS_OUT="$runtime_args" \
   AGENT_LOG_DIR="$tmp_dir/isolated-logs" AGENT_METADATA_DIR="$tmp_dir/isolated-metadata" \
   HOST_API_TOKEN=do-not-forward-this-value \
   bash "$linked_worktree/Scripts/run-linux-container.sh" --run-id isolated-a \
-    --mode isolated --scratch-root "$tmp_dir/isolated-scratch" --read-only-workspace -- true >/dev/null
+    --mode isolated --scratch-root "$tmp_dir/isolated-scratch" --read-only-workspace -- true \
+    >"$isolated_a_output" 2>&1; then
+  :
+else
+  isolated_status="$?"
+  printf 'FAIL: isolated-a run exited with status %s\n' "$isolated_status" >&2
+  cat "$isolated_a_output" >&2
+  exit "$isolated_status"
+fi
 if grep -F -- 'do-not-forward-this-value' "$runtime_args" >/dev/null; then
   printf 'FAIL: a host credential was forwarded to the agent container\n' >&2
   exit 1
 fi
-CONTAINER_RUNTIME="$fake_runtime" RUNTIME_ARGS_OUT="$runtime_args" \
+isolated_b_output="$tmp_dir/isolated-b-output"
+if CONTAINER_RUNTIME="$fake_runtime" RUNTIME_ARGS_OUT="$runtime_args" \
   AGENT_LOG_DIR="$tmp_dir/isolated-logs" AGENT_METADATA_DIR="$tmp_dir/isolated-metadata" \
   bash "$linked_worktree/Scripts/run-linux-container.sh" --run-id isolated-b \
-    --mode isolated --scratch-root "$tmp_dir/isolated-scratch" --read-only-workspace -- true >/dev/null
+    --mode isolated --scratch-root "$tmp_dir/isolated-scratch" --read-only-workspace -- true \
+    >"$isolated_b_output" 2>&1; then
+  :
+else
+  isolated_status="$?"
+  printf 'FAIL: isolated-b run exited with status %s\n' "$isolated_status" >&2
+  cat "$isolated_b_output" >&2
+  exit "$isolated_status"
+fi
 python3 - "$tmp_dir/isolated-metadata" "$tmp_dir/isolated-logs" "$tmp_dir/isolated-scratch" <<'PY'
 from pathlib import Path
 import sys
