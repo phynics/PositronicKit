@@ -273,13 +273,36 @@ public actor OpenAIClient: LLMClientProtocol {
                     continue
                 }
                 let payloadJSON = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
-                let eventType = payloadJSON["type"] as? String ?? ""
+                let eventType = (payloadJSON["type"] as? String) ?? ""
+                let terminal = ResponsesEvents.terminalEvent(forEventType: eventType, payload: data)
                 let chunk = accumulator.withLock { state in
                     ResponsesEvents.chunk(forEventType: eventType, payload: data, model: self.modelName, responseID: (payloadJSON["response_id"] as? String) ?? (payloadJSON["id"] as? String) ?? "", accumulator: &state)
                 }
                 if let chunk {
                     continuation.yield(chunk)
                 }
+                if let terminal {
+                    accumulator.withLock { $0.sawTerminalEvent = true }
+                    switch terminal {
+                    case .completed, .incomplete:
+                        // Valid terminal: the terminal chunk already carried `finishReason`
+                        // (`stop` or the mapped incomplete reason) and usage.
+                        break
+                    case let .failed(message), let .providerError(message):
+                        // Provider-reported failure after the event loop: throw so the stream
+                        // finishes with an error instead of a clean successful EOF. Chunks
+                        // yielded before the failure remain delivered (partial-output contract).
+                        throw LLMServiceError.unexpectedResponse(provider: "OpenAI", reason: "provider reported failure: \(message)")
+                    }
+                }
+            }
+            // Abnormal EOF (issue #369): the protocol requires exactly one terminal event
+            // (`response.completed`, `response.incomplete`, `response.failed`, `error`). A
+            // stream that ends without one (connection dropped, truncated SSE body) must not
+            // be mistaken for success; throw so the Turn ends failed with the partial output
+            // preserved. Cancellation by the consumer is not a protocol violation.
+            guard accumulator.withLock(\.sawTerminalEvent) || Task.isCancelled else {
+                throw LLMServiceError.unexpectedResponse(provider: "OpenAI", reason: "stream ended before a terminal response event")
             }
         }
     }

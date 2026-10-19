@@ -156,13 +156,35 @@ package struct ResponsesStreamAccumulator: Sendable {
     package var toolArgs: [Int: String] = [:]
     package var toolItemIds: [Int: String] = [:]
     package var sawContent = false
+    /// Whether the Responses stream delivered a valid terminal event
+    /// (`response.completed`, `response.incomplete`, `response.failed`, or `error`).
+    /// EOF without one is an abnormal stream (issue #369).
+    package var sawTerminalEvent = false
     package init() {}
     package var hasYielded: Bool { sawContent }
     package var shouldRetryAfterError: Bool { !sawContent }
 }
 
 package enum ResponsesEvents {
-    package static func chunk(forEventType type: String, payload: Data, model: String, responseID: String, audioFormat: AudioFormat? = nil, accumulator: inout ResponsesStreamAccumulator, usage: LLMTokenUsage? = nil) -> LLMStreamChunk? {
+    /// Terminal classification of a consumed Responses SSE event (issue #369).
+    ///
+    /// The Responses wire protocol terminates every stream with exactly one of
+    /// `response.completed`, `response.incomplete`, `response.failed`, or a bare `error`
+    /// event. `completed` and `incomplete` are valid terminals (the latter records a
+    /// non-`.stop` finish reason); `failed` and `error` are provider-reported failures that
+    /// must surface as a thrown error instead of a clean EOF.
+    package enum Terminal: Sendable, Equatable {
+        case completed
+        /// Valid terminal; the mapped finish reason (`length`, `content_filter`, or a
+        /// provider passthrough) is carried on the terminal chunk.
+        case incomplete(FinishReason)
+        /// Provider-reported failure; `message` preserves the provider's diagnostics.
+        case failed(message: String)
+        /// In-band `error` event; `message` preserves the provider's diagnostics.
+        case providerError(message: String)
+    }
+
+    package static func chunk(forEventType type: String, payload: Data, model: String, responseID: String, audioFormat: AudioFormat? = nil, accumulator: inout ResponsesStreamAccumulator) -> LLMStreamChunk? {
         guard let json = try? JSONSerialization.jsonObject(with: payload) as? [String: Any] else { return nil }
         switch type {
         case "response.output_text.delta":
@@ -229,21 +251,93 @@ package enum ResponsesEvents {
             return LLMStreamChunk(id: responseID, model: model, choices: [.init(index: 0, delta: .init(role: .assistant, toolCalls: [.init(index: idx, function: .init(arguments: missingArguments))]), finishReason: nil)], usage: nil)
         case "response.completed":
             accumulator.sawContent = true
-            var usageOut = usage
-            let response = json["response"] as? [String: Any]
-            let responseUsage = response?["usage"] as? [String: Any]
-            let envelopeUsage = json["usage"] as? [String: Any]
-            if let u = responseUsage ?? envelopeUsage {
-                let inputDetails = u["input_tokens_details"] as? [String: Any]
-                let writeTokens = (u["cache_write_tokens"] as? Int) ?? (inputDetails?["cache_write_tokens"] as? Int)
-                let cachedTokens = inputDetails?["cached_tokens"] as? Int
-                let details: LLMTokenUsagePromptDetails? = (cachedTokens != nil || writeTokens != nil)
-                    ? .init(cachedTokens: cachedTokens, cacheWriteTokens: writeTokens)
-                    : nil
-                usageOut = LLMTokenUsage(promptTokens: u["input_tokens"] as? Int, completionTokens: u["output_tokens"] as? Int, totalTokens: u["total_tokens"] as? Int, promptTokensDetails: details)
-            }
-            return LLMStreamChunk(id: responseID, model: model, choices: [.init(index: 0, delta: .init(role: .assistant), finishReason: FinishReason.stop.wireValue)], usage: usageOut)
+            return LLMStreamChunk(id: responseID, model: model, choices: [.init(index: 0, delta: .init(role: .assistant), finishReason: FinishReason.stop.wireValue)], usage: parseUsage(from: json))
+        case "response.incomplete":
+            // A truncation terminal is not a clean stop: record the mapped finish reason
+            // (`length` for token/length limits) plus usage on the terminal chunk so the
+            // Turn's terminal metadata stays truthful (issue #369).
+            accumulator.sawContent = true
+            return LLMStreamChunk(id: responseID, model: model, choices: [.init(index: 0, delta: .init(role: .assistant), finishReason: incompleteFinishReason(from: json).wireValue)], usage: parseUsage(from: json))
         default: return nil
         }
+    }
+
+    /// Classifies a Responses stream event as a protocol terminal, or `nil` when the event is
+    /// not terminal (deltas, `response.in_progress`, `sequence` events, …).
+    package static func terminalEvent(forEventType type: String, payload: Data) -> Terminal? {
+        switch type {
+        case "response.completed":
+            return .completed
+        case "response.incomplete":
+            guard let json = try? JSONSerialization.jsonObject(with: payload) as? [String: Any] else {
+                return .incomplete(.other("incomplete"))
+            }
+            return .incomplete(incompleteFinishReason(from: json))
+        case "response.failed":
+            return .failed(message: failureMessage(eventType: type, payload: payload))
+        case "error":
+            return .providerError(message: failureMessage(eventType: type, payload: payload))
+        default:
+            return nil
+        }
+    }
+
+    // MARK: - Terminal payload helpers
+
+    /// Maps an `incomplete_details.reason` onto the shared ``FinishReason`` vocabulary.
+    /// Length-family reasons map to `.length`; content filtering to `.contentFilter`;
+    /// anything else passes through verbatim as ``FinishReason.other(_:)``.
+    private static func incompleteFinishReason(from json: [String: Any]) -> FinishReason {
+        // The reason sits on `response.incomplete_details` for the terminal event object,
+        // or on `response.response.incomplete_details` when the payload embeds the full
+        // response resource.
+        let source = (json["response"] as? [String: Any]) ?? json
+        guard let details = source["incomplete_details"] as? [String: Any],
+              let reason = details["reason"] as? String
+        else {
+            return .other("incomplete")
+        }
+        switch reason {
+        case "max_output_tokens": return .length
+        case "content_filter": return .contentFilter
+        default: return .other(reason)
+        }
+    }
+
+    /// Builds a provider-diagnostic failure message from a `response.failed` or `error`
+    /// event payload. Prefers the structured `error.code`/`error.message` fields (the
+    /// nested `error` object may live inside the embedded `response` resource); falls back
+    /// to the flat `code`/`message` fields on the event payload itself, then to a sanitized
+    /// payload snippet so diagnostics are never silently dropped.
+    private static func failureMessage(eventType: String, payload: Data) -> String {
+        let source = if let json = try? JSONSerialization.jsonObject(with: payload) as? [String: Any] {
+            (json["response"] as? [String: Any]) ?? json
+        } else {
+            [String: Any]()
+        }
+        let nestedError = source["error"] as? [String: Any]
+        let code = (nestedError?["code"] as? String) ?? (source["code"] as? String)
+        let message = (nestedError?["message"] as? String) ?? (source["message"] as? String)
+        switch (code, message) {
+        case let (code?, message?): return "\(eventType): \(code): \(message)"
+        case let (code?, nil): return "\(eventType): \(code)"
+        case let (nil, message?): return "\(eventType): \(message)"
+        default: break
+        }
+        return "\(eventType): \(ProviderHTTPFailure.sanitize(String(decoding: payload, as: UTF8.self)))"
+    }
+
+    /// Parses `usage` for terminal events, accepting the flat wire shape (usage beside the
+    /// event type) and the real `response.completed` shape (usage nested inside the
+    /// embedded `response` resource).
+    private static func parseUsage(from json: [String: Any]) -> LLMTokenUsage? {
+        guard let u = json["usage"] as? [String: Any] ?? (json["response"] as? [String: Any])?["usage"] as? [String: Any] else { return nil }
+        let inputDetails = u["input_tokens_details"] as? [String: Any]
+        let writeTokens = (u["cache_write_tokens"] as? Int) ?? (inputDetails?["cache_write_tokens"] as? Int)
+        let cachedTokens = inputDetails?["cached_tokens"] as? Int
+        let details: LLMTokenUsagePromptDetails? = (cachedTokens != nil || writeTokens != nil)
+            ? .init(cachedTokens: cachedTokens, cacheWriteTokens: writeTokens)
+            : nil
+        return LLMTokenUsage(promptTokens: u["input_tokens"] as? Int, completionTokens: u["output_tokens"] as? Int, totalTokens: u["total_tokens"] as? Int, promptTokensDetails: details)
     }
 }
