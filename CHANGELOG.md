@@ -8,6 +8,18 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **Host-managed one-shot generation over the generic model contract (#290).**
+  `ModelInferenceCapability` gains
+  `generate(messages:tools:toolChoice:responseFormat:generationParameters:idleTimeout:transport:promptCaching:)`
+  and `stream(messages:tools:toolChoice:responseFormat:generationParameters:idleTimeout:transport:promptCaching:)`.
+  Both forward host-rendered `LLMMessage` arrays and tool definitions through
+  `LLMClientProtocol` without creating or updating a Timeline or Agent, and
+  `generate(messages:)` returns complete `LLMResponse.toolCalls` in provider order so a host can
+  run a tool round and correlate `.tool` results by `LLMToolCall.id`. An application that does not
+  need the runtime can use `PKContracts` and one provider product directly.
+
 ### Breaking
 
 - **One model-client stack: a single fold, no resolver seam, and configured timeouts (#311).**

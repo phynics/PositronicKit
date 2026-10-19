@@ -17,6 +17,12 @@ public struct LLMResponse: Equatable, Sendable, Codable {
     public var usage: LLMTokenUsage?
     /// The provider's terminal finish reason.
     public var finishReason: String?
+    /// Complete tool calls the model requested in this response, in provider order.
+    ///
+    /// Populated by one-shot paths that fold streamed tool-call deltas. The runtime never
+    /// executes these calls; a host that receives them decides whether and how to run each
+    /// tool and correlates `.tool` results by ``LLMToolCall/id``.
+    public var toolCalls: [LLMToolCall]?
     /// Provider system fingerprint, where the provider reports one.
     public var systemFingerprint: String?
     /// Wall-clock duration of the generation, where the runtime measured it.
@@ -30,6 +36,7 @@ public struct LLMResponse: Equatable, Sendable, Codable {
         model: String? = nil,
         usage: LLMTokenUsage? = nil,
         finishReason: String? = nil,
+        toolCalls: [LLMToolCall]? = nil,
         systemFingerprint: String? = nil,
         duration: TimeInterval? = nil,
         tokensPerSecond: Double? = nil
@@ -39,6 +46,7 @@ public struct LLMResponse: Equatable, Sendable, Codable {
         self.model = model
         self.usage = usage
         self.finishReason = finishReason
+        self.toolCalls = toolCalls
         self.systemFingerprint = systemFingerprint
         self.duration = duration
         self.tokensPerSecond = tokensPerSecond

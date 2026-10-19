@@ -94,6 +94,99 @@ public struct ModelInferenceCapability: Sendable {
         )
     }
 
+    /// Generates one complete response from host-rendered messages, without creating or
+    /// updating a Timeline.
+    ///
+    /// The messages are sent exactly as supplied, in order. This is the one-shot convenience
+    /// over the same provider contract as ``LLMClientProtocol``: the host owns conversation
+    /// history, tool definitions, tool choice, and any follow-up requests. The runtime neither
+    /// reads nor writes Timeline or Agent state, and it does not execute returned tool calls.
+    /// Use ``stream(messages:tools:toolChoice:responseFormat:generationParameters:idleTimeout:transport:promptCaching:)``
+    /// when the caller needs raw chunks or incremental tool-call deltas.
+    ///
+    /// - Parameters:
+    ///   - messages: The ordered provider-neutral conversation to send.
+    ///   - tools: Tool definitions to offer the model, if any.
+    ///   - toolChoice: How the model should select among `tools`, if constrained.
+    ///   - responseFormat: The response shape to request, if any.
+    ///   - generationParameters: Per-call generation parameters. Defaults to the facade's
+    ///     configured parameters when `nil`.
+    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. Defaults to the
+    ///     runtime's configured `RuntimeConfiguration.streamTimeout`; pass a value to override it
+    ///     for this call. With `.requestResponse`, it bounds the whole request because the provider
+    ///     returns one terminal chunk.
+    ///   - transport: Which provider transport to use. Streaming is the default.
+    ///   - promptCaching: Overrides the runtime's prompt-caching policy for this call. `nil`
+    ///     uses the runtime default. This Timeline-free path has no Timeline routing key, so
+    ///     the directive carries only the retention window.
+    /// - Returns: The assembled content, terminal metadata, and any complete tool calls.
+    public func generate(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]? = nil,
+        toolChoice: LLMToolChoice? = nil,
+        responseFormat: LLMResponseFormat? = nil,
+        generationParameters: GenerationParameters? = nil,
+        idleTimeout: TimeInterval? = nil,
+        transport: GenerationTransport = .streaming,
+        promptCaching: PromptCachingPolicy? = nil
+    ) async throws -> LLMResponse {
+        try await completeResult(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            idleTimeout: idleTimeout,
+            transport: transport,
+            promptCaching: promptCaching
+        )
+    }
+
+    /// Streams a response from host-rendered messages, without creating or updating a Timeline.
+    ///
+    /// The messages, tool definitions, tool choice, and response format reach the provider
+    /// unchanged. Chunks carry the provider's incremental tool-call deltas; fold them with
+    /// `LLMStreamChunk.folding(_:)` to assemble complete calls. The runtime does not execute
+    /// them.
+    ///
+    /// - Parameters:
+    ///   - messages: The ordered provider-neutral conversation to send.
+    ///   - tools: Tool definitions to offer the model, if any.
+    ///   - toolChoice: How the model should select among `tools`, if constrained.
+    ///   - responseFormat: The response shape to request, if any.
+    ///   - generationParameters: Per-call generation parameters. Defaults to the facade's
+    ///     configured parameters when `nil`.
+    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. Defaults to the
+    ///     runtime's configured `RuntimeConfiguration.streamTimeout`; pass a value to override it
+    ///     for this call. With `.requestResponse`, it bounds the whole request.
+    ///   - transport: Which provider transport to use. Streaming is the default.
+    ///   - promptCaching: Overrides the runtime's prompt-caching policy for this call. `nil`
+    ///     uses the runtime default. This Timeline-free path has no Timeline routing key, so
+    ///     the directive carries only the retention window.
+    /// - Returns: The provider's raw chunk stream. Cancelling the consuming task cancels the
+    ///   underlying provider request.
+    public func stream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]? = nil,
+        toolChoice: LLMToolChoice? = nil,
+        responseFormat: LLMResponseFormat? = nil,
+        generationParameters: GenerationParameters? = nil,
+        idleTimeout: TimeInterval? = nil,
+        transport: GenerationTransport = .streaming,
+        promptCaching: PromptCachingPolicy? = nil
+    ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        streamChunks(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            idleTimeout: idleTimeout ?? configuredStreamTimeout,
+            transport: transport,
+            promptCaching: promptCaching
+        )
+    }
+
     /// Generates and decodes one structured response for a single prompt, without creating or
     /// updating a Timeline.
     ///
@@ -255,10 +348,36 @@ extension ModelInferenceCapability {
         transport: GenerationTransport = .streaming,
         promptCaching: PromptCachingPolicy? = nil
     ) async throws -> LLMResponse {
+        try await completeResult(
+            messages: [LLMMessage(role: .user, content: prompt)],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: generationParameters,
+            idleTimeout: idleTimeout,
+            transport: transport,
+            promptCaching: promptCaching
+        )
+    }
+
+    /// Generates a response from host-rendered messages without creating or updating a timeline.
+    func completeResult(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        idleTimeout: TimeInterval?,
+        transport: GenerationTransport,
+        promptCaching: PromptCachingPolicy?
+    ) async throws -> LLMResponse {
         var chunks: [LLMStreamChunk] = []
         do {
             let stream = streamChunks(
-                prompt,
+                messages: messages,
+                tools: tools,
+                toolChoice: toolChoice,
+                responseFormat: responseFormat,
                 generationParameters: generationParameters,
                 idleTimeout: idleTimeout ?? configuredStreamTimeout,
                 transport: transport,
@@ -274,13 +393,26 @@ extension ModelInferenceCapability {
 
         let provider = await languageModelClient.configuration.activeProvider
         let folded = try LLMStreamChunk.folding(chunks, provider: provider.rawValue)
+        return Self.response(from: folded)
+    }
+
+    private static func response(from folded: LLMStreamChunk) -> LLMResponse {
+        let firstChoice = folded.choices.first
         let content = folded.choices.compactMap { $0.delta.content }.joined()
+        let toolCalls = firstChoice?.delta.toolCalls?.map { delta in
+            LLMToolCall(
+                id: delta.id ?? "",
+                name: delta.function?.name ?? "",
+                arguments: delta.function?.arguments ?? ""
+            )
+        }
         return LLMResponse(
             content: content,
             id: folded.id.isEmpty ? nil : folded.id,
             model: folded.model.isEmpty ? nil : folded.model,
             usage: folded.usage,
-            finishReason: folded.choices.first?.finishReason
+            finishReason: firstChoice?.finishReason,
+            toolCalls: toolCalls?.isEmpty == false ? toolCalls : nil
         )
     }
 
@@ -322,6 +454,29 @@ extension ModelInferenceCapability {
         transport: GenerationTransport,
         promptCaching: PromptCachingPolicy? = nil
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        streamChunks(
+            messages: [LLMMessage(role: .user, content: prompt)],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: generationParameters,
+            idleTimeout: idleTimeout,
+            transport: transport,
+            promptCaching: promptCaching
+        )
+    }
+
+    /// Streams a response for host-rendered messages without creating or updating a timeline.
+    private func streamChunks(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        idleTimeout: TimeInterval,
+        transport: GenerationTransport,
+        promptCaching: PromptCachingPolicy?
+    ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let client = languageModelClient
         let defaultGenerationParameters = self.generationParameters
         let clock = self.clock
@@ -331,10 +486,10 @@ extension ModelInferenceCapability {
                 do {
                     let stream = await client.generation(
                         transport: transport,
-                        messages: [LLMMessage(role: .user, content: prompt)],
-                        tools: nil,
-                        toolChoice: nil,
-                        responseFormat: nil,
+                        messages: messages,
+                        tools: tools,
+                        toolChoice: toolChoice,
+                        responseFormat: responseFormat,
                         generationParameters: generationParameters ?? defaultGenerationParameters,
                         modelTier: .primary,
                         responseModalities: [.text],
