@@ -140,6 +140,23 @@ struct WorkspaceToolDispatchIntegrationTests {
         }
     }
 
+    private struct AliasedProbeTool: PKTool {
+        let executionProbe: ExecutionProbe
+
+        let callName = "native_tool"
+        let name = "Friendly Native Tool"
+        let toolDescription = "A native workspace tool with a display name"
+        let requiresPermission = false
+        let parametersSchema = makeEmptyObjectSchema()
+
+        func canExecute() async -> Bool { true }
+
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
+            await executionProbe.recordExecution()
+            return .success("native output")
+        }
+    }
+
     private struct Environment {
         let manager: TimelineManager
         let router: ToolRouter
@@ -250,6 +267,13 @@ struct WorkspaceToolDispatchIntegrationTests {
                 tools: [tool]
             ),
         ])
+    }
+
+    private func advertisedToolIDs(in tool: AnyTool) -> [String] {
+        let schema = tool.parametersSchema.asDictionary
+        let properties = schema["properties"]?.asDictionary ?? [:]
+        let toolProperty = properties["tool"]?.asDictionary ?? [:]
+        return toolProperty["enum"]?.asArray?.compactMap(\.asString) ?? []
     }
 
     private static func handle(
@@ -393,15 +417,23 @@ struct WorkspaceToolDispatchIntegrationTests {
         let secondWorkspace = WorkspaceReference(
             uri: WorkspaceURI(host: "workspace-dispatch", path: "/timeline"),
             location: .runtimeTimeline,
-            tools: [.known(environment.tool.callName)],
+            tools: [.known("workspace_probe_second")],
             rootPath: "/tmp"
         )
         try await environment.persistence.saveWorkspace(secondWorkspace)
         try await environment.manager.attachWorkspace(secondWorkspace.id, to: environment.timelineID)
         let turnID = try await admit(environment, fingerprint: "local-provenance")
+        let secondTool = AnyTool(ProbeTool(
+            callName: "workspace_probe_second",
+            result: "second local output",
+            executionProbe: executionProbe,
+            intentProbe: nil,
+            repository: nil,
+            turnID: nil
+        ))
         let dispatchCatalog = WorkspaceToolCatalog(entries: [
             .init(workspace: environment.workspace, label: "runtime", isPrimary: false, tools: [environment.tool]),
-            .init(workspace: secondWorkspace, label: "runtimeTimeline", isPrimary: false, tools: [AnyTool(environment.tool)]),
+            .init(workspace: secondWorkspace, label: "runtimeTimeline", isPrimary: false, tools: [secondTool]),
         ])
         let calls = [
             ParsedToolCall(
@@ -412,7 +444,7 @@ struct WorkspaceToolDispatchIntegrationTests {
             ParsedToolCall(
                 callId: "call-runtime-timeline",
                 name: "call_tool",
-                argumentsJSON: "{\"tool\":\"workspace_probe\",\"at\":\"\(secondWorkspace.id.uuidString)\",\"arguments\":{}}"
+                argumentsJSON: "{\"tool\":\"workspace_probe_second\",\"at\":\"\(secondWorkspace.id.uuidString)\",\"arguments\":{}}"
             ),
         ]
         _ = try await Self.handle(
@@ -497,8 +529,8 @@ struct WorkspaceToolDispatchIntegrationTests {
         #expect(await intentProbe.intentWasDurableBeforeExecution)
     }
 
-    @Test("duplicate custom tool IDs stay independently routable through the captured catalog")
-    func duplicateWorkspaceToolIDsRemainIndependentlyRoutable() async throws {
+    @Test("duplicate custom tool IDs are rejected, including with explicit Workspace routing")
+    func duplicateWorkspaceToolIDsAreRejected() async throws {
         let persistence = MockPersistenceService()
         let bindings = InMemoryWorkspaceBindingRepository()
         let manager = TimelineManager(
@@ -539,6 +571,8 @@ struct WorkspaceToolDispatchIntegrationTests {
         )
         #expect(catalog.entries.count == 2)
         #expect(catalog.entries.allSatisfy { $0.tools.map(\.callName) == ["dup"] })
+        #expect(catalog.isEmpty == false)
+        #expect(catalog.callTool.parametersSchema.asDictionary["properties"]?.asDictionary?["tool"]?.asDictionary?["enum"]?.asArray?.isEmpty == true)
 
         let dispatcher = WorkspaceToolDispatcher(timelineManager: manager)
         let implicit = ParsedToolCall(
@@ -546,8 +580,15 @@ struct WorkspaceToolDispatchIntegrationTests {
             name: WorkspaceToolDispatcher.callName,
             argumentsJSON: "{\"tool\":\"dup\",\"arguments\":{}}"
         )
-        #expect(throws: ToolError.self) {
+        do {
             _ = try dispatcher.prepare(call: implicit, catalog: catalog)
+            Issue.record("Duplicate identifiers must be rejected before dispatch")
+        } catch let ToolError.ambiguousWorkspaceTool(tool, candidates) {
+            #expect(tool == "dup")
+            #expect(candidates.count == 2)
+            #expect(candidates.map(\.workspaceID) == [wsA.id, wsB.id].sorted { $0.uuidString < $1.uuidString })
+        } catch {
+            Issue.record("Expected duplicate identifiers to be rejected as ambiguous, got \(error)")
         }
 
         let explicit = ParsedToolCall(
@@ -555,8 +596,83 @@ struct WorkspaceToolDispatchIntegrationTests {
             name: WorkspaceToolDispatcher.callName,
             argumentsJSON: "{\"tool\":\"dup\",\"at\":\"\(wsB.id.uuidString)\",\"arguments\":{}}"
         )
-        let dispatch = try dispatcher.prepare(call: explicit, catalog: catalog)
-        #expect(dispatch.route.workspaceID == wsB.id)
+        do {
+            _ = try dispatcher.prepare(call: explicit, catalog: catalog)
+            Issue.record("Explicit routing must not disambiguate duplicate identifiers")
+        } catch let ToolError.ambiguousWorkspaceTool(tool, candidates) {
+            #expect(tool == "dup")
+            #expect(candidates.count == 2)
+            #expect(candidates.map(\.workspaceID) == [wsA.id, wsB.id].sorted { $0.uuidString < $1.uuidString })
+        } catch {
+            Issue.record("Expected duplicate identifiers to be rejected as ambiguous, got \(error)")
+        }
+    }
+
+    @Test("Workspace selectors advertise exact call names and reject display-name aliases")
+    func workspaceSelectorsUseOnlyCapturedCallNames() async throws {
+        let executionProbe = ExecutionProbe()
+        let tool = AnyTool(AliasedProbeTool(executionProbe: executionProbe))
+        let environment = try await makeEnvironment(
+            location: .runtime,
+            toolName: tool.callName,
+            tool: tool
+        )
+        let turnID = try await admit(environment, fingerprint: "exact-workspace-selector")
+        let dispatchCatalog = catalog(workspace: environment.workspace, tool: tool)
+
+        #expect(advertisedToolIDs(in: dispatchCatalog.callTool) == ["native_tool"])
+
+        let calls = [
+            ParsedToolCall(
+                callId: "call-display-alias",
+                name: WorkspaceToolDispatcher.callName,
+                argumentsJSON: "{\"tool\":\"Friendly Native Tool\",\"at\":\"\(environment.workspace.id.uuidString)\",\"arguments\":{}}"
+            ),
+            ParsedToolCall(
+                callId: "call-exact-id",
+                name: WorkspaceToolDispatcher.callName,
+                argumentsJSON: "{\"tool\":\"native_tool\",\"at\":\"\(environment.workspace.id.uuidString)\",\"arguments\":{}}"
+            ),
+        ]
+        _ = try await Self.handle(
+            router: environment.router,
+            timelineID: environment.timelineID,
+            turnID: turnID,
+            calls: calls,
+            availableTools: [dispatchCatalog.callTool],
+            workspaceToolCatalog: dispatchCatalog
+        )
+
+        #expect(await executionProbe.executionCount == 1)
+        let results = try await environment.repository.fetchToolResults(turnID: turnID)
+        #expect(results.count == 2)
+        #expect(results.first(where: { $0.toolCallID == "call-display-alias" })?.isSuccessful == false)
+        #expect(results.first(where: { $0.toolCallID == "call-exact-id" })?.isSuccessful == true)
+    }
+
+    @Test("explicit Workspace routing cannot select an identifier outside the captured catalog")
+    func explicitWorkspaceCannotSelectUncapturedTool() async throws {
+        let environment = try await makeEnvironment(location: .runtime)
+        let otherWorkspace = WorkspaceReference(
+            uri: WorkspaceURI(host: "workspace-dispatch", path: "/other"),
+            location: .runtime,
+            tools: [.known("different_tool")],
+            rootPath: "/tmp"
+        )
+        let dispatchCatalog = WorkspaceToolCatalog(entries: [
+            .init(workspace: environment.workspace, label: "captured", isPrimary: false, tools: [environment.tool]),
+            .init(workspace: otherWorkspace, label: "other", isPrimary: false, tools: []),
+        ])
+        let call = ParsedToolCall(
+            callId: "call-outside-catalog",
+            name: WorkspaceToolDispatcher.callName,
+            argumentsJSON: "{\"tool\":\"different_tool\",\"at\":\"\(otherWorkspace.id.uuidString)\",\"arguments\":{}}"
+        )
+        let dispatcher = WorkspaceToolDispatcher(timelineManager: environment.manager)
+
+        #expect(throws: ToolError.toolNotFound("different_tool")) {
+            _ = try dispatcher.prepare(call: call, catalog: dispatchCatalog)
+        }
     }
 
     @Test("mutating timeout holds the Workspace lane until the abandoned tool ends")

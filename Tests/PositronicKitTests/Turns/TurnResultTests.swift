@@ -95,20 +95,25 @@ struct TurnResultTests {
             )
         ).runtime
         let timeline = try await kit.timelines.create(title: "Deferred Result")
+        let externalTool = ToolDefinition(
+            id: "turn_result_external_tool",
+            name: "Turn result external tool",
+            description: "A host-executed workspace tool",
+            parametersSchema: [:]
+        )
         let attachedWorkspace = WorkspaceReference(
             uri: WorkspaceURI(host: "remote", path: "/deferred"),
             location: .attached,
-            tools: [.known("cat")],
+            tools: [.custom(externalTool)],
             rootPath: workspace.root.path
         )
         try await persistence.saveWorkspace(attachedWorkspace)
-        try await persistence.addToolToWorkspace(workspaceID: attachedWorkspace.id, tool: .known("cat"))
         try await kit.timelines.attachWorkspace(attachedWorkspace.id, to: timeline.id)
 
         llm.mockClient.nextToolCalls = [[MockToolCall(
             id: "deferred-call",
             name: "call_tool",
-            arguments: "{\"tool\":\"cat\",\"at\":\"\(attachedWorkspace.id.uuidString)\",\"arguments\":{\"path\":\"README.md\"}}"
+            arguments: "{\"tool\":\"turn_result_external_tool\",\"at\":\"\(attachedWorkspace.id.uuidString)\",\"arguments\":{}}"
         )]]
         llm.mockClient.nextResponse = ""
 

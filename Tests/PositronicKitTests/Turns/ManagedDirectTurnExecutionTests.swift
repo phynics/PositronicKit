@@ -115,23 +115,25 @@ struct ManagedDirectTurnExecutionTests {
             )
         ))
         let timeline = try await kit.timelines.create(title: "Direct Workspace")
+        let externalTool = ToolDefinition(
+            id: "direct_external_tool",
+            name: "Direct external tool",
+            description: "A host-executed workspace tool",
+            parametersSchema: [:]
+        )
         let attachedWorkspace = WorkspaceReference(
             uri: WorkspaceURI(host: "remote", path: "/direct"),
             location: .attached,
-            tools: [.known("cat")],
+            tools: [.custom(externalTool)],
             rootPath: workspace.root.path
         )
         try await persistence.saveWorkspace(attachedWorkspace)
-        try await persistence.addToolToWorkspace(
-            workspaceID: attachedWorkspace.id,
-            tool: .known("cat")
-        )
         try await kit.timelines.attachWorkspace(attachedWorkspace.id, to: timeline.id)
 
         llm.mockClient.nextToolCalls = [[MockToolCall(
             id: "direct-workspace-call",
             name: "call_tool",
-            arguments: "{\"tool\":\"cat\",\"at\":\"\(attachedWorkspace.id.uuidString)\",\"arguments\":{\"path\":\"README.md\"}}"
+            arguments: "{\"tool\":\"direct_external_tool\",\"at\":\"\(attachedWorkspace.id.uuidString)\",\"arguments\":{}}"
         )]]
         llm.mockClient.nextResponse = ""
 

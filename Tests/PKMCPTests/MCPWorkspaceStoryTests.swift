@@ -81,6 +81,15 @@ struct MCPWorkspaceStoryTests {
         #expect(calls.count == 1)
         #expect(calls.first?.name == "echo")
         #expect(calls.first?.arguments?["text"]?.stringValue == "hello")
+        let requestTools = test.llm.mockClient.generationCaptureHistory.first?.tools ?? []
+        let callTool = try #require(requestTools.first(where: { $0.name == "call_tool" }))
+        let callToolSchema = callTool.parameters?.asDictionary ?? [:]
+        let properties = callToolSchema["properties"]?.asDictionary ?? [:]
+        let selector = properties["tool"]?.asDictionary ?? [:]
+        #expect(selector["enum"]?.asArray?.compactMap(\.asString) == [
+            "append_file", "delete_file", "echo", "edit_file", "list_files",
+            "read_file", "search_files", "write_file",
+        ])
         #expect(events.contains { event in
             if case let .completion(.toolExecution(id, status)) = event,
                case let .workspaceSucceeded(result, _, _) = status
@@ -101,6 +110,59 @@ struct MCPWorkspaceStoryTests {
         let results = try await test.repository.fetchToolResults(turnID: turn.id)
         #expect(intents.count == 1)
         #expect(results.count == 1)
+    }
+
+    @Test("an MCP Workspace rejects identifiers outside the captured list")
+    func rejectsUnlistedMCPTool() async throws {
+        let recorder = MCPCallRecorder()
+        let server = try await makeInMemoryMCPServer(
+            tools: [readOnlyTool(name: "echo")],
+            callTool: { name, arguments in
+                await recorder.record(name: name, arguments: arguments)
+                return CallTool.Result(content: [.text(text: "should not run", annotations: nil, _meta: nil)])
+            }
+        )
+        defer { Task { await server.stop() } }
+
+        let workspaceRoot = TestRuntime.uniqueWorkspaceRoot()
+        let factory = MCPWorkspaceFactory(
+            secretResolver: MCPDictionarySecretResolver([:]),
+            fallback: MockWorkspaceCreator(),
+            transportFactory: { _ in server.clientTransport }
+        )
+        let test = TestRuntime(
+            workspaceRoot: workspaceRoot,
+            runtime: .init(
+                workspaceProfile: .hostManaged(root: workspaceRoot),
+                workspaceCreator: factory
+            )
+        )
+        let timeline = try await test.timelines.create(title: "MCP selector rejection")
+        let agent = try await test.agents.create(name: "MCP Agent", description: "selector rejection")
+        try await test.agents.attach(agent.id, to: timeline.id)
+        let config = MCPServerConfiguration(
+            name: "selector-rejection",
+            transport: .streamableHTTP(url: URL(string: "http://127.0.0.1:1/mcp")!, headers: [:])
+        )
+        _ = try await test.workspaces.createMCPWorkspace(config, for: timeline.id)
+
+        test.llm.mockClient.nextToolCalls = [[
+            MockToolCall(
+                id: "call-unlisted",
+                name: "call_tool",
+                arguments: #"{"tool":"not_listed","arguments":{}}"#
+            )
+        ]]
+        test.llm.mockClient.nextResponses = ["", "Handled"]
+
+        let turn = try await test.timelines.open(timeline.id).startTurn("call an unlisted tool")
+        _ = await turn.events().collect()
+
+        #expect(try await turn.outcome() == .completed)
+        #expect(await recorder.calls.isEmpty)
+        let results = try await test.repository.fetchToolResults(turnID: turn.id)
+        #expect(results.count == 1)
+        #expect(results.first?.isSuccessful == false)
     }
 
     @Test("the approval gate fires for a non-read-only MCP tool")

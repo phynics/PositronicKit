@@ -292,7 +292,8 @@ struct TurnPreparation: Sendable {
                 // per-Turn caller tools in caller order last. Anthropic puts `tools` first in
                 // the cached prefix, so a stable order is what keeps the prefix reusable.
                 let directToolNames = Set(catalog.directTools.map(\.callName))
-                let builtIns = (catalog.directTools + [catalog.callTool])
+                let workspaceDispatchTool = catalog.advertisedToolIDs.isEmpty ? [] : [catalog.callTool]
+                let builtIns = (catalog.directTools + workspaceDispatchTool)
                     .sorted { ($0.callName, $0.name) < ($1.callName, $1.name) }
                 let callerTools = tools.filter {
                     !directToolNames.contains($0.callName)

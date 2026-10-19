@@ -133,11 +133,12 @@ mutate the same Workspace concurrently.
 
 Managed and direct Turns expose one provider-facing dispatcher named `call_tool`. At admission the
 runtime captures the authorized ordinary Timeline-bound Workspace IDs, labels, tool descriptions, and
-schemas. Managed Turns additionally capture the Agent primary Workspace. A call names a tool,
-optionally names its Workspace with `at`, and supplies `arguments`. The Workspace may be omitted
-only when exactly one captured Workspace provides that tool. Ambiguity produces a corrective result
-and a durable notice; it never selects a Workspace by iteration order. Ordinary bindings are
-revalidated immediately before a side effect, so a released or transferred binding fails closed.
+schemas. Managed Turns additionally capture the Agent primary Workspace. The provider-facing `tool`
+selector lists exact call names from that snapshot. Display-name aliases are not accepted, and duplicate
+call names are not dispatched even when `at` names a Workspace. A call supplies an advertised `tool`,
+optional `at`, and `arguments`. Ambiguity produces a corrective result and a durable notice; it never
+selects a Workspace by iteration order. Ordinary bindings are revalidated immediately before a side
+effect, so a released or transferred binding fails closed.
 
 Runtime tools and request-scoped tools are separate from Workspace dispatch. The reserved
 `call_tool` name cannot be registered by a consumer.

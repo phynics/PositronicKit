@@ -120,7 +120,7 @@ final class ToolErrorSurfacesTests {
         #expect((error.remediation ?? "").contains(firstID.uuidString))
         #expect((error.remediation ?? "").contains("Read file"))
         #expect((error.remediation ?? "").contains("schema"))
-        #expect((error.remediation ?? "").contains("call_tool(tool: \"read_file\""))
+        #expect((error.remediation ?? "").contains("adding 'at' cannot resolve duplicates"))
     }
 
     @Test
