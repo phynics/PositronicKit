@@ -273,13 +273,36 @@ public actor OpenAIClient: LLMClientProtocol {
                     continue
                 }
                 let payloadJSON = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
-                let eventType = payloadJSON["type"] as? String ?? ""
+                let eventType = (payloadJSON["type"] as? String) ?? ""
+                let terminal = ResponsesEvents.terminalEvent(forEventType: eventType, payload: data)
                 let chunk = accumulator.withLock { state in
                     ResponsesEvents.chunk(forEventType: eventType, payload: data, model: self.modelName, responseID: (payloadJSON["response_id"] as? String) ?? (payloadJSON["id"] as? String) ?? "", accumulator: &state)
                 }
                 if let chunk {
                     continuation.yield(chunk)
                 }
+                if let terminal {
+                    accumulator.withLock { $0.sawTerminalEvent = true }
+                    switch terminal {
+                    case .completed, .incomplete:
+                        // Valid terminal: the terminal chunk already carried `finishReason`
+                        // (`stop` or the mapped incomplete reason) and usage.
+                        break
+                    case let .failed(message), let .providerError(message):
+                        // Provider-reported failure after the event loop: throw so the stream
+                        // finishes with an error instead of a clean successful EOF. Chunks
+                        // yielded before the failure remain delivered (partial-output contract).
+                        throw LLMServiceError.unexpectedResponse(provider: "OpenAI", reason: "provider reported failure: \(message)")
+                    }
+                }
+            }
+            // Abnormal EOF (issue #369): the protocol requires exactly one terminal event
+            // (`response.completed`, `response.incomplete`, `response.failed`, `error`). A
+            // stream that ends without one (connection dropped, truncated SSE body) must not
+            // be mistaken for success; throw so the Turn ends failed with the partial output
+            // preserved. Cancellation by the consumer is not a protocol violation.
+            guard accumulator.withLock(\.sawTerminalEvent) || Task.isCancelled else {
+                throw LLMServiceError.unexpectedResponse(provider: "OpenAI", reason: "stream ended before a terminal response event")
             }
         }
     }
@@ -327,20 +350,41 @@ public actor OpenAIClient: LLMClientProtocol {
                     case inputTokensDetails = "input_tokens_details"
                 }
             }
-            let id: String
+            struct ProviderError: Decodable {
+                let code: String?
+                let message: String?
+                let type: String?
+            }
+            let id: String?
             let model: String?
             let output: [OutputItem]?
             let status: String?
             let incompleteDetails: IncompleteDetails?
             let usage: Usage?
+            let error: ProviderError?
             enum CodingKeys: String, CodingKey {
-                case id, model, output, status, usage
+                case id, model, output, status, usage, error
                 case incompleteDetails = "incomplete_details"
             }
         }
         let request = try makeResponsesRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, promptCache: promptCache, stream: false)
         let decoded: CompletedResponse = try await RetryPolicy.retry(maxRetries: maxRetries) {
             try await HTTPHelpers.fetchDecodable(CompletedResponse.self, for: request, transport: self.transport, provider: "OpenAI")
+        }
+        if decoded.status == "failed" || decoded.error != nil {
+            let providerMessage = ResponsesEvents.failureMessage(
+                eventType: "response.failed",
+                code: decoded.error?.code,
+                type: decoded.error?.type,
+                message: decoded.error?.message
+            )
+            throw LLMServiceError.unexpectedResponse(
+                provider: "OpenAI",
+                reason: "provider reported failure: \(providerMessage)"
+            )
+        }
+        guard let responseID = decoded.id else {
+            throw LLMServiceError.unexpectedResponse(provider: "OpenAI", reason: "response omitted id")
         }
         var text = ""
         var toolDeltas: [LLMToolCallDelta] = []
@@ -373,13 +417,13 @@ public actor OpenAIClient: LLMClientProtocol {
             }
         case let status?: FinishReason.other(status).wireValue
         }
-        return LLMStreamChunk(id: decoded.id, model: decoded.model ?? modelName, choices: [.init(index: 0, delta: .init(role: .assistant, content: text.isEmpty ? nil : text, toolCalls: toolDeltas.isEmpty ? nil : toolDeltas), finishReason: finishReason)], usage: decoded.usage.map {
+        return LLMStreamChunk(id: responseID, model: decoded.model ?? modelName, choices: [.init(index: 0, delta: .init(role: .assistant, content: text.isEmpty ? nil : text, toolCalls: toolDeltas.isEmpty ? nil : toolDeltas), finishReason: finishReason)], usage: decoded.usage.map {
             let writeTokens = $0.cacheWriteTokens ?? $0.inputTokensDetails?.cacheWriteTokens
             let details: LLMTokenUsagePromptDetails? = ($0.inputTokensDetails?.cachedTokens != nil || writeTokens != nil)
                 ? .init(cachedTokens: $0.inputTokensDetails?.cachedTokens, cacheWriteTokens: writeTokens)
                 : nil
             return LLMTokenUsage(promptTokens: $0.inputTokens, completionTokens: $0.outputTokens, totalTokens: $0.totalTokens, promptTokensDetails: details)
-        })
+        }, isIncompleteTerminal: responseStatus == "incomplete")
     }
 
     public func sendMessage(_ content: String, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil) async throws -> String {

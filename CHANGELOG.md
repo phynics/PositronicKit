@@ -61,6 +61,16 @@ for tagged releases beginning with `1.0.0`.
 
 - OpenAI Responses streaming now reads usage from the nested `response.completed.response.usage`
   envelope and retains the flat usage fallback (#364).
+- OpenAI Responses streaming now terminates honestly: a `response.failed` event or an in-band
+  `error` event propagates the provider diagnostics (including type, code, and message when
+  available) as `LLMServiceError` instead of ending the
+  stream as a clean EOF, a `response.incomplete` terminal surfaces the mapped finish reason
+  (`length` for `max_output_tokens`, `content_filter`, or the provider reason verbatim) plus
+  usage on the terminal chunk, and a stream that ends without any terminal event (abnormal
+  EOF) fails the stream instead of fabricating a successful completion. Non-streaming failed
+  responses also surface their top-level error. A Turn therefore ends with a durable `.failed`
+  outcome on provider failure, incomplete finish reason, or abnormal EOF, and preserves partial
+  output already streamed (#369).
 - Stateless OpenAI Responses follow-ups now replay each assistant `function_call` with its original
   name, arguments, and call ID before the matching tool results (#368).
 - Reloaded and forked history keeps the semantic tool-result role and the original call
