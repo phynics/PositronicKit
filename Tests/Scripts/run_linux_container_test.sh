@@ -287,7 +287,8 @@ if ! grep -Fx "$common_dir:$common_dir:ro,z" "$runtime_args" >/dev/null; then
   printf 'FAIL: linked worktree Git directory was not mounted read-only\n' >&2
   exit 1
 fi
-if ! grep -Fx "$linked_worktree:/workspace:ro,z" "$runtime_args" >/dev/null; then
+linked_worktree_physical="$(cd "$linked_worktree" && pwd -P)"
+if ! grep -Fx "$linked_worktree_physical:/workspace:ro,z" "$runtime_args" >/dev/null; then
   printf 'FAIL: isolated workspace was not mounted read-only\n' >&2
   exit 1
 fi
@@ -353,7 +354,8 @@ if ! grep -F -- 'isolated-b' "$runtime_args" >/dev/null; then
   printf 'FAIL: container name did not include the run identity\n%s\n' "$runtime_args" >&2
   exit 1
 fi
-if ! grep -F -- "$tmp_dir/isolated-scratch/" "$runtime_args" | grep -F -- '/isolated-b:/scratch:Z' >/dev/null; then
+isolated_scratch_physical="$(cd "$tmp_dir/isolated-scratch" && pwd -P)"
+if ! grep -F -- "$isolated_scratch_physical/" "$runtime_args" | grep -F -- '/isolated-b:/scratch:Z' >/dev/null; then
   printf 'FAIL: isolated scratch path did not include the run identity\n%s\n' "$runtime_args" >&2
   exit 1
 fi
