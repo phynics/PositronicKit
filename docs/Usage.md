@@ -660,10 +660,10 @@ persisted as host-facing notices and do not change the originating outcome.
 
 Managed and direct Turns expose one provider-facing workspace dispatcher, `call_tool`. The runtime
 captures Timeline-bound Workspaces at Turn admission, and managed Turns additionally capture the Agent
-primary Workspace, including each tool's label, description, and schema. A model may call `call_tool`
-with `tool`, optional `at` (a Workspace UUID), and `arguments`; `at` may be omitted only when exactly
-one authorized Workspace provides the requested tool. If more than one matches, the model receives
-the authorized IDs and labels, tool descriptions and schemas, and an explicit corrected call. Routing
+primary Workspace, including each tool's label, description, and schema. The provider-facing `tool`
+selector lists only exact call names from that snapshot. Display names are not aliases, and a call name
+declared more than once is not advertised or dispatched, even when the model supplies `at` (a Workspace
+UUID). A model may call `call_tool` with an advertised `tool`, optional `at`, and `arguments`. Routing
 is evaluated against the admission snapshot, so Workspace attachment or catalog changes affect the
 next Turn only. Direct Turns use only Timeline-bound Workspaces and never inherit Agent context.
 The runtime revalidates ordinary bindings immediately before a side effect, so a released or

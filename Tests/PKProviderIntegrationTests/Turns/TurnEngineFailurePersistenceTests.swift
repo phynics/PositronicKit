@@ -132,7 +132,6 @@ struct TurnEngineFailurePersistenceTests {
         )
         try await persistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(wsId, to: timelineID)
-        try await persistence.addToolToWorkspace(workspaceID: wsId, tool: .known(PersistenceTestTool.toolID))
         try await timelineManager.hydrateTimeline(id: timelineID)
         if let toolManager = await timelineManager.getToolManager(for: timelineID) {
             await toolManager.updateAvailableTools([AnyTool(PersistenceTestTool())])

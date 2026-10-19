@@ -14,10 +14,9 @@ package actor TimelineToolRegistry {
     private var workspaces: [UUID: any WorkspaceProvider] = [:]
 
     /// Identifies one Workspace's declaration of a custom tool. Keying by Workspace *and* call
-    /// name keeps two Workspaces that declare the same tool ID independently routable instead of
-    /// letting dictionary order silently overwrite one of them. The admission catalog then exposes
-    /// both, and `call_tool` rejects an implicit ambiguous selection while `at` still routes to the
-    /// named Workspace.
+    /// name keeps two Workspaces that declare the same tool ID independently represented instead
+    /// of letting dictionary order silently overwrite one of them. The admission catalog exposes
+    /// both declarations, and `call_tool` rejects the duplicate identifier before execution.
     private struct WorkspaceToolKey: Hashable {
         let workspaceID: UUID
         let callName: String
@@ -201,6 +200,12 @@ package actor TimelineToolRegistry {
         // Append explicitly registered provider tools
         tools.append(contentsOf: providerTools.values)
         return sortToolsForOutput(tools)
+    }
+
+    /// Resolves a Workspace's `.known` declaration without consulting cached tools from another
+    /// Workspace. The owning Workspace supplies its advertised identifier list independently.
+    func toolForKnownWorkspaceReference(id: String) -> AnyTool? {
+        availableTools.first { $0.callName == id } ?? providerTools[id]
     }
 
     /// Returns call names that are registered but currently disabled.

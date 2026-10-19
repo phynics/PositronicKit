@@ -4,7 +4,8 @@
 ordinary PositronicKit **Workspace**. The model reaches that server's tools through the existing
 `call_tool` dispatcher, so MCP inherits admission-time authority capture, per-Workspace FIFO
 serialization, timeouts, approval gating, and durable tool intent and result audit. No new
-execution path is introduced.
+execution path is introduced. The provider-facing selector contains only exact, unique tool IDs
+captured from the MCP server's tool list; aliases and duplicate IDs fail closed.
 
 `PKMCP` is an optional runtime adapter. It imports `PositronicKit`, pins the official
 [`modelcontextprotocol/swift-sdk`](https://github.com/modelcontextprotocol/swift-sdk) at

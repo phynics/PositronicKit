@@ -80,11 +80,10 @@ for tagged releases beginning with `1.0.0`.
   a recognized missing-file error.
 - Timeline sends now fail without saving a destination message when source history cannot be read,
   preventing a storage failure from bypassing the cross-agent send depth limit.
-- Workspace tool catalog capture records a `.workspace` degradation when the live resolver or
-  `listTools` fails, instead of silently dropping the workspace's tools.
-- Two Workspaces that declare the same custom tool ID stay independently routable. The registry
-  no longer lets dictionary order overwrite one declaration, so `call_tool` rejects an implicit
-  ambiguous selection and `at` routes to the named Workspace.
+- Workspace tool catalog capture records a `.workspace` degradation and omits that Workspace's
+  tools when the live resolver or `listTools` fails, rather than reusing stale registered tools.
+- Workspace `call_tool` selectors now enumerate only unique captured call names. Display-name
+  aliases and duplicate identifiers are rejected, including when the caller supplies `at` (#378).
 - `PKMCP` builds for iOS again. `MCPConnection` referenced `Process`, which is unavailable on iOS,
   tvOS, watchOS, and visionOS, outside the platform guard that already rejects the stdio transport
   there. The stored process handle and its termination now sit behind that same guard, so the new

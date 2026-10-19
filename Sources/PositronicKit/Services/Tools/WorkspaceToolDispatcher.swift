@@ -30,25 +30,25 @@ struct WorkspaceToolCatalog: Sendable {
             self.tools = tools
             self.directTools = directTools
         }
-
-        var candidates: [WorkspaceToolCandidate] {
-            tools.map { tool in
-                WorkspaceToolCandidate(
-                    workspaceID: workspace.id,
-                    label: label,
-                    toolID: tool.callName,
-                    toolName: tool.name,
-                    description: tool.toolDescription,
-                    parametersSchema: tool.parametersSchema.asDictionary,
-                    isPrimary: isPrimary
-                )
-            }
-        }
     }
 
     let entries: [Entry]
 
     var isEmpty: Bool { entries.allSatisfy { $0.tools.isEmpty } }
+
+    /// Exact call names that identify one tool in this captured snapshot. Duplicate identifiers
+    /// are deliberately omitted because the provider-facing selector has no safe way to resolve
+    /// them, even when a Workspace UUID is also supplied.
+    var advertisedToolIDs: [String] {
+        var counts: [String: Int] = [:]
+        for tool in entries.flatMap(\.tools) {
+            counts[tool.callName, default: 0] += 1
+        }
+        return counts
+            .filter { !$0.key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && $0.value == 1 }
+            .map(\.key)
+            .sorted()
+    }
 
     /// Generic Agent-primary file tools are exposed directly to the model. Other workspace tools
     /// remain behind `call_tool` so their workspace routing stays explicit.
@@ -57,7 +57,7 @@ struct WorkspaceToolCatalog: Sendable {
     }
 
     var callTool: AnyTool {
-        AnyTool(WorkspaceCallTool())
+        AnyTool(WorkspaceCallTool(toolIDs: advertisedToolIDs))
     }
 }
 
@@ -129,39 +129,42 @@ struct WorkspaceToolDispatcher: Sendable {
             requestedWorkspace = nil
         }
 
-        var matches: [(entry: WorkspaceToolCatalog.Entry, tool: AnyTool)] = []
-        for entry in catalog.entries {
-            guard requestedWorkspace == nil || requestedWorkspace == entry.workspace.id else { continue }
-            for tool in entry.tools where tool.callName == requestedTool || tool.name == requestedTool {
-                matches.append((entry, tool))
-            }
-        }
-
         if explicit, let requestedWorkspace,
            !catalog.entries.contains(where: { $0.workspace.id == requestedWorkspace })
         {
             throw ToolError.workspaceNotFound(requestedWorkspace)
         }
+
+        let matches = catalog.entries.flatMap { entry in
+            entry.tools
+                .filter { $0.callName == requestedTool }
+                .map { (entry: entry, tool: $0) }
+        }
         guard !matches.isEmpty else { throw ToolError.toolNotFound(requestedTool) }
         guard matches.count == 1 else {
+            let sortedMatches = matches.sorted {
+                ($0.entry.workspace.id.uuidString, $0.entry.label, $0.tool.callName, $0.tool.name)
+                    < ($1.entry.workspace.id.uuidString, $1.entry.label, $1.tool.callName, $1.tool.name)
+            }
             throw ToolError.ambiguousWorkspaceTool(
                 tool: requestedTool,
-                candidates: matches.compactMap { match in
-                    match.entry.candidates.first(where: { $0.toolID == match.tool.callName }).map { candidate in
-                        ToolError.AmbiguousWorkspaceCandidate(
-                            workspaceID: candidate.workspaceID,
-                            label: candidate.label,
-                            toolName: candidate.toolName,
-                            description: candidate.description,
-                            parametersSchema: candidate.parametersSchema,
-                            isPrimary: candidate.isPrimary
-                        )
-                    }
+                candidates: sortedMatches.map { match in
+                    ToolError.AmbiguousWorkspaceCandidate(
+                        workspaceID: match.entry.workspace.id,
+                        label: match.entry.label,
+                        toolName: match.tool.name,
+                        description: match.tool.toolDescription,
+                        parametersSchema: match.tool.parametersSchema.asDictionary,
+                        isPrimary: match.entry.isPrimary
+                    )
                 }
             )
         }
 
         let match = matches[0]
+        if let requestedWorkspace, match.entry.workspace.id != requestedWorkspace {
+            throw ToolError.toolNotFound(requestedTool)
+        }
         return WorkspaceToolDispatch(
             route: WorkspaceToolRoute(
                 workspaceID: match.entry.workspace.id,
@@ -248,18 +251,27 @@ struct WorkspaceToolDispatcher: Sendable {
 /// The router consumes this marker before normal tool execution. Its implementation is a guard
 /// against accidental direct execution if a future call path forgets to use the dispatcher.
 private struct WorkspaceCallTool: PKTool, Sendable {
+    let toolIDs: [String]
+
     let callName = WorkspaceToolDispatcher.callName
     let name = "Workspace Tool"
-    let toolDescription = "Call a tool in an authorized workspace. Omit 'at' only when exactly one workspace matches."
+    let toolDescription = "Call a Workspace tool by an exact advertised call name. Omit 'at' only when that name identifies one Workspace."
     let requiresPermission = false
     let sideEffects: ToolSideEffects = .mutating
-    let usageExample: String? = "call_tool(tool: \"read_file\", at: \"<workspace-id>\", arguments: {\"path\": \"README.md\"})"
+    let usageExample: String? = nil
+
+    init(toolIDs: [String]) {
+        self.toolIDs = toolIDs
+    }
 
     var parametersSchema: Schema {
         Schema([
             "type": .string("object"),
             "properties": .dictionary([
-                "tool": .dictionary(["type": .string("string")]),
+                "tool": .dictionary([
+                    "type": .string("string"),
+                    "enum": .array(toolIDs.map { .string($0) }),
+                ]),
                 "at": .dictionary(["type": .string("string")]),
                 "arguments": .dictionary([
                     "type": .string("object"),
@@ -321,9 +333,6 @@ extension TimelineManager {
 
         for (reference, isPrimary) in references {
             var tools: [AnyTool] = []
-            if !isPrimary, let registry {
-                tools = await registry.tools(inWorkspace: reference.id)
-            }
 
             // The primary Agent workspace is not an ordinary Timeline binding, so hydrate its
             // wrappers directly. This also fills any custom definitions unavailable in the
@@ -349,33 +358,27 @@ extension TimelineManager {
             }
             if let toolProvider = liveWorkspace as? any WorkspaceToolProvider
             {
-                let listed: [ToolReference]
                 do {
-                    listed = try await toolProvider.listTools()
+                    let listed = try await toolProvider.listTools()
+                    for toolReference in listed {
+                        switch toolReference {
+                        case let .known(id):
+                            if let registry,
+                               let known = await registry.toolForKnownWorkspaceReference(id: id)
+                            {
+                                tools.append(known.withOrigin(.workspace(id: reference.id, name: reference.uri.description)))
+                            }
+                        case let .custom(definition):
+                            tools.append(AnyTool(
+                                WorkspaceToolWrapper(workspace: toolProvider, definition: definition),
+                                origin: .workspace(id: reference.id, name: reference.uri.description)
+                            ))
+                        }
+                    }
                 } catch {
                     recordCatalogDegradation(
                         for: timelineID, operation: "listTools", workspaceID: reference.id, error: error
                     )
-                    listed = []
-                }
-                let available: [AnyTool]
-                if let registry {
-                    available = await registry.getAvailableTools()
-                } else {
-                    available = []
-                }
-                for toolReference in listed {
-                    switch toolReference {
-                    case let .known(id):
-                        if let known = available.first(where: { $0.callName == id }) {
-                            tools.append(known.withOrigin(.workspace(id: reference.id, name: reference.uri.description)))
-                        }
-                    case let .custom(definition):
-                        tools.append(AnyTool(
-                            WorkspaceToolWrapper(workspace: toolProvider, definition: definition),
-                            origin: .workspace(id: reference.id, name: reference.uri.description)
-                        ))
-                    }
                 }
             }
 
@@ -398,12 +401,10 @@ extension TimelineManager {
                 }
             }
 
-            var seen = Set<String>()
-            tools = (genericTools + tools).filter { tool in
-                if isPrimary, Self.reservedAgentWorkspaceToolNames.contains(tool.callName),
-                   genericTools.isEmpty { return false }
-                return seen.insert(tool.callName).inserted
+            let workspaceTools = tools.filter { tool in
+                !isPrimary || !Self.reservedAgentWorkspaceToolNames.contains(tool.callName)
             }
+            tools = genericTools + workspaceTools
             tools.sort { ($0.callName, $0.name) < ($1.callName, $1.name) }
             entries.append(.init(
                 workspace: reference,

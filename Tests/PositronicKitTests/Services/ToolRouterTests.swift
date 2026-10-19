@@ -321,7 +321,8 @@ final class ToolRouterTests {
         }
 
         #expect(result.hasDeferred == false)
-        #expect(result.resolvedToolParams.first?.content.contains("call_tool") == true)
+        #expect(result.resolvedToolParams.first?.content.contains("ambiguous") == true)
+        #expect(result.resolvedToolParams.first?.content.contains("adding 'at' cannot resolve duplicates") == true)
         #expect(result.resolvedToolParams.first?.content.contains(first.id.uuidString) == true)
         #expect(result.resolvedToolParams.first?.content.contains(second.id.uuidString) == true)
         #expect(tool.result.output == "workspace output")
@@ -990,11 +991,25 @@ struct WorkspaceToolDispatcherTests {
         }
     }
 
-    @Test("Explicit at selects one captured Workspace")
+    @Test("Explicit at selects one captured Workspace when the identifier is unique")
     func explicitAtSelectsWorkspace() throws {
         let first = workspace(path: "/first")
         let second = workspace(path: "/second")
-        let arguments = #"{"tool":"cat","at":"\#(second.id.uuidString)"}"#
+        let dispatchCatalog = WorkspaceToolCatalog(entries: [
+            .init(
+                workspace: first,
+                label: first.uri.description,
+                isPrimary: false,
+                tools: [AnyTool(MockTool(callName: "cat"))]
+            ),
+            .init(
+                workspace: second,
+                label: second.uri.description,
+                isPrimary: false,
+                tools: [AnyTool(MockTool(callName: "dog"))]
+            ),
+        ])
+        let arguments = #"{"tool":"dog","at":"\#(second.id.uuidString)"}"#
 
         let dispatch = try makeDispatcher().prepare(
             call: ParsedToolCall(
@@ -1002,11 +1017,12 @@ struct WorkspaceToolDispatcherTests {
                 name: WorkspaceToolDispatcher.callName,
                 argumentsJSON: arguments
             ),
-            catalog: catalog([first, second])
+            catalog: dispatchCatalog
         )
 
         #expect(dispatch.route.workspaceID == second.id)
         #expect(dispatch.route.routing == .explicit)
+        #expect(dispatch.route.tool.callName == "dog")
     }
 
     @Test("Malformed explicit at fails closed")

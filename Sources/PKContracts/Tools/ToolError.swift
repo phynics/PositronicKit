@@ -21,8 +21,8 @@ import Foundation
 /// - **unmatchedToolOutput**: An externally submitted tool output does not match a pending call.
 /// - **invalidWorkspaceID**: The `workspaceID` argument was present but not a valid UUID string
 ///   (PKRR-015 fail-closed).
-/// - **ambiguousWorkspaceTool**: More than one authorized workspace exposes the requested tool
-///   and the model must choose a workspace explicitly.
+/// - **ambiguousWorkspaceTool**: More than one captured Workspace tool declares the requested
+///   identifier, so the runtime refuses to dispatch it.
 /// - **reservedToolName**: A caller attempted to replace a runtime-reserved dispatcher name.
 public enum ToolError: PKError, Sendable, Equatable {
     /// Diagnostic fields for one authorized Workspace tool that can resolve an ambiguous call.
@@ -133,7 +133,7 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "The 'workspaceID' argument '\(value)' is not a valid UUID string."
         case let .ambiguousWorkspaceTool(tool, candidates):
             let names = candidates.map { "\($0.label) (\($0.workspaceID.uuidString))" }.joined(separator: ", ")
-            return "The workspace tool '\(tool)' is ambiguous; choose one authorized workspace: \(names)."
+            return "The workspace tool identifier '\(tool)' is ambiguous and cannot be dispatched: \(names)."
         case let .reservedToolName(name):
             return "The tool name '\(name)' is reserved by the runtime and cannot be supplied by a caller."
         }
@@ -190,11 +190,9 @@ public enum ToolError: PKError, Sendable, Equatable {
                 }
                 return "- \(candidate.workspaceID.uuidString) [\(candidate.label)\(primary)]: \(candidate.toolName) — \(candidate.description); schema: \(schema)"
             }.joined(separator: "\n")
-            let preferred = candidates.first(where: \.isPrimary) ?? candidates.first
-            let example = preferred.map {
-                "call_tool(tool: \"\(tool)\", at: \"\($0.workspaceID.uuidString)\", arguments: {})"
-            } ?? "call_tool(tool: \"\(tool)\", at: \"<workspace-id>\", arguments: {})"
-            return "Choose a workspace by ID and re-emit the exact corrected call: \(example)\nAuthorized matches:\n\(details)"
+            return "Do not dispatch '\(tool)' because multiple captured tools use that identifier. " +
+                "Choose a unique identifier from the provided list; adding 'at' cannot resolve duplicates.\n" +
+                "Captured declarations:\n\(details)"
         case let .reservedToolName(name):
             return "Remove the caller-defined '\(name)' tool and use the runtime-provided dispatcher."
         }
