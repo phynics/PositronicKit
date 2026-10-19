@@ -212,8 +212,13 @@ public actor OpenAIClient: LLMClientProtocol {
                         }
                     }
                 }
-                if let calls = m.toolCalls, !calls.isEmpty, parts.isEmpty { parts.append(.text("")) }
-                input.append(.message(role: m.role.rawValue, content: parts))
+                let calls = m.role == .assistant ? m.toolCalls ?? [] : []
+                if !parts.isEmpty || calls.isEmpty {
+                    input.append(.message(role: m.role.rawValue, content: parts))
+                }
+                for call in calls {
+                    input.append(.functionCall(callId: call.id, name: call.name, arguments: call.arguments))
+                }
             }
         }
         let textFormat: ResponsesTextFormat? = switch responseFormat {

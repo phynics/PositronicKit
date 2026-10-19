@@ -41,6 +41,7 @@ package struct ResponsesRequest: Encodable {
 
 package enum ResponsesInputItem: Encodable {
     case message(role: String, content: [ResponsesContentPart])
+    case functionCall(callId: String, name: String, arguments: String)
     case functionCallOutput(callId: String, output: String)
     case reasoningEncrypted(id: String, encryptedContent: String)
 
@@ -51,6 +52,12 @@ package enum ResponsesInputItem: Encodable {
             try c.encode("message", forKey: .type)
             try c.encode(role, forKey: .role)
             try c.encode(content, forKey: .content)
+        case let .functionCall(callId, name, arguments):
+            var c = encoder.container(keyedBy: FunctionCallKeys.self)
+            try c.encode("function_call", forKey: .type)
+            try c.encode(callId, forKey: .callId)
+            try c.encode(name, forKey: .name)
+            try c.encode(arguments, forKey: .arguments)
         case let .functionCallOutput(callId, output):
             var c = encoder.container(keyedBy: CallKeys.self)
             try c.encode("function_call_output", forKey: .type)
@@ -64,6 +71,7 @@ package enum ResponsesInputItem: Encodable {
         }
     }
     private enum MsgKeys: String, CodingKey { case type, role, content }
+    private enum FunctionCallKeys: String, CodingKey { case type, name, arguments; case callId = "call_id" }
     private enum CallKeys: String, CodingKey { case type; case callId = "call_id"; case output }
     private enum ReasoningKeys: String, CodingKey { case type, id; case encryptedContent = "encrypted_content" }
 }

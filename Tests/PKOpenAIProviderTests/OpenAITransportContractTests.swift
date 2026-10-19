@@ -98,6 +98,36 @@ struct OpenAITransportContractTests {
         request.httpBody.map { String(decoding: $0, as: UTF8.self) } ?? ""
     }
 
+    private func expectResponsesToolRoundTrip(in input: [[String: Any]], assistantText: String?) throws {
+        try #require(input.count >= 4)
+        let functionCallIndices = input.indices.filter { input[$0]["type"] as? String == "function_call" }
+        try #require(functionCallIndices.count == 2)
+        let callStartIndex = try #require(functionCallIndices.first)
+        #expect(functionCallIndices[1] == callStartIndex + 1)
+        #expect(Array(input.suffix(4)).map { $0["type"] as? String } == [
+            "function_call", "function_call", "function_call_output", "function_call_output",
+        ])
+        if let assistantText {
+            let assistantMessage = try #require(input[..<callStartIndex].last { $0["role"] as? String == "assistant" })
+            let assistantContent = try #require(assistantMessage["content"] as? [[String: Any]])
+            #expect(assistantContent.map { $0["text"] as? String } == [assistantText])
+        } else {
+            #expect(!input[..<callStartIndex].contains { $0["role"] as? String == "assistant" })
+        }
+        let functionCalls = Array(input[callStartIndex..<(callStartIndex + 2)])
+        #expect(functionCalls.map { $0["call_id"] as? String } == ["call_weather", "call_time"])
+        #expect(functionCalls.map { $0["name"] as? String } == ["get_weather", "get_time"])
+        #expect(functionCalls.map { $0["arguments"] as? String } == [
+            #"{"city":"Paris"}"#,
+            #"{"zone":"Europe/London"}"#,
+        ])
+        let outputCallIDs = input.compactMap { item -> String? in
+            guard item["type"] as? String == "function_call_output" else { return nil }
+            return item["call_id"] as? String
+        }
+        #expect(outputCallIDs == ["call_weather", "call_time"])
+    }
+
     @Test("OpenAI chat request targets the configured host with auth headers and JSON body")
     func chatRequestContract() async throws {
         let server = try await TestHTTPServer.start(response: .init(
@@ -535,11 +565,7 @@ data: {bad json
         let continuationBody = try #require(requests.dropFirst().first?.httpBody)
         let continuation = try #require(JSONSerialization.jsonObject(with: continuationBody) as? [String: Any])
         let input = try #require(continuation["input"] as? [[String: Any]])
-        let outputCallIDs = input.compactMap { item -> String? in
-            guard item["type"] as? String == "function_call_output" else { return nil }
-            return item["call_id"] as? String
-        }
-        #expect(outputCallIDs == ["call_weather", "call_time"])
+        try expectResponsesToolRoundTrip(in: input, assistantText: nil)
 
         let native = try await client.chatCompletion(
             messages: [.init(role: .user, content: "Repeat these calls.")],
@@ -552,6 +578,67 @@ data: {bad json
         #expect(nativeCalls.map(\.id) == calls.map(\.id))
         #expect(nativeCalls.map { $0.function?.name } == calls.map(\.name))
         #expect(nativeCalls.map { $0.function?.arguments } == [#"{"city":"Paris"}"#, #"{"zone":"Europe/London"}"#])
+    }
+
+    @Test("native Responses function calls are replayed before their correlated results")
+    func nativeResponsesToolCallsAreSerialized() async throws {
+        let server = try await TestHTTPServer.startSequential(responses: [
+            .json(#"{"id":"resp_native_tools","model":"gpt-4o","status":"completed","output":[{"type":"message","id":"msg_native_tools","role":"assistant","content":[{"type":"output_text","text":"Checking both requests.","annotations":[]}]},{"type":"function_call","id":"fc_weather","call_id":"call_weather","name":"get_weather","arguments":"{\"city\":\"Paris\"}"},{"type":"function_call","id":"fc_time","call_id":"call_time","name":"get_time","arguments":"{\"zone\":\"Europe/London\"}"}]}"#),
+            .json(#"{"id":"resp_native_final","model":"gpt-4o","status":"completed","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Both tools completed.","annotations":[]}]}]}"#),
+        ])
+        defer { server.stop() }
+
+        let middleware = CapturingMiddleware()
+        let client = OpenAIClient(
+            apiKey: "secret-key",
+            modelName: "gpt-4o",
+            host: "127.0.0.1",
+            port: Int(server.port),
+            scheme: "http",
+            maxRetries: 0,
+            transport: middleware,
+            api: .responses
+        )
+        let userMessage = LLMMessage(role: .user, content: "Check weather in Paris and time in London.")
+        let response = try await client.chatCompletion(
+            messages: [userMessage],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+        let assistantText = try #require(response.choices.first?.delta.content)
+        let responseCalls = try #require(response.choices.first?.delta.toolCalls)
+        let assistantCalls = try responseCalls.map { call -> LLMToolCall in
+            LLMToolCall(
+                id: try #require(call.id),
+                name: try #require(call.function?.name),
+                arguments: try #require(call.function?.arguments)
+            )
+        }
+        let history = [
+            userMessage,
+            LLMMessage(role: .assistant, content: assistantText, toolCalls: assistantCalls),
+            LLMMessage(role: .tool, content: "weather:Paris", toolCallID: "call_weather"),
+            LLMMessage(role: .tool, content: "time:Europe/London", toolCallID: "call_time"),
+        ]
+        let finalResponse = try await client.chatCompletion(
+            messages: history,
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+
+        #expect(finalResponse.choices.first?.delta.content == "Both tools completed.")
+        let requests = middleware.recordedRequests()
+        #expect(requests.count == 2)
+        let followupBody = try #require(requests.dropFirst().first?.httpBody)
+        let followup = try #require(JSONSerialization.jsonObject(with: followupBody) as? [String: Any])
+        let input = try #require(followup["input"] as? [[String: Any]])
+        try expectResponsesToolRoundTrip(in: input, assistantText: "Checking both requests.")
+        #expect(followup["store"] as? Bool == false)
+        #expect(followup["previous_response_id"] == nil)
     }
 
     @Test("requestResponse preserves nested Responses text, JSON, refusal, and status")

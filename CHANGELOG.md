@@ -59,6 +59,8 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- Stateless OpenAI Responses follow-ups now replay each assistant `function_call` with its original
+  name, arguments, and call ID before the matching tool results (#368).
 - Reloaded and forked history keeps the semantic tool-result role and the original call
   correlation. A persisted tool result now re-enters the provider request as a `.tool` message
   adjacent to its assistant call with the matching `tool_call_id`, instead of degrading to a
