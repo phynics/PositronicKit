@@ -21,11 +21,13 @@ make agent-test FILTER='MessageContentTests'
 make linux-coverage
 ```
 
-The runner owns image selection, rootless identity, checkout mounts, logs, and shared-build locking.
-Host edits are visible in `/workspace`. Build artifacts remain in
-the gitignored `.build/` directory. If a sandbox blocks the container
-runtime, rerun the same Make target with container-runtime permission rather than composing a
-different container command.
+The runner owns image selection, rootless identity, checkout mounts, logs, and resource locks. It
+reuses the Linux development image while its toolchain, architecture, and Dockerfile fingerprint
+match. Focused test runs mount the source checkout read-only and write build products to their
+dedicated SwiftPM scratch directory. Full gates mount the checkout writable because their generated
+artifacts are part of the verification process. If a sandbox blocks the container runtime, rerun the
+same Make target with container-runtime permission rather than composing a different container
+command.
 
 Podman is preferred when both runtimes are installed. Set
 `CONTAINER_RUNTIME=/absolute/path/to/runtime` to pin one explicitly; `make doctor` reports which
@@ -117,6 +119,29 @@ the downloaded file.
 Use `make agent-test FILTER='…'` for a focused Linux test. The test layers,
 tagging taxonomy, determinism rules, and the `make test-fast` inner loop are
 defined in [Testing.md](Testing.md).
+
+Focused runs default to warm scratch: each worktree and Swift toolchain has its own stable scratch
+directory, and runs using that directory serialize through its resource lock. Use isolated scratch
+when focused runs must execute together:
+
+```bash
+make agent-test FILTER='MessageContentTests'
+make agent-test AGENT_TEST_MODE=isolated FILTER='MessageContentTests'
+make agent-test-repeat AGENT_TEST_MODE=isolated FILTER='AgentAuthorityCoordinatorTests' N=5
+```
+
+Each invocation has a unique execution ID, log, and metadata file under `.build/agent-logs/` and
+`.build/agent-metadata/`. Metadata records image setup, lock wait, compile and test times, total
+runtime, sampled peak container memory, toolchain, scratch path, and exit status. Memory is marked
+unavailable if the selected runtime cannot report it. `AGENT_SWIFT_JOBS` defaults to `1` to limit
+compiler pressure; `AGENT_MAX_CONCURRENT_RUNS` defaults to `3`; `AGENT_RUN_TIMEOUT` defaults to
+`7200` seconds; `AGENT_IMAGE_BUILD_TIMEOUT` defaults to `1200` seconds;
+`AGENT_LOCK_TIMEOUT` defaults to `7200` seconds; and `AGENT_MEMORY_SAMPLE_INTERVAL` defaults to
+`2` seconds between retries when container stats are not yet available. Override these Make
+variables to adjust the host budget. Use
+`AGENT_RESOURCE_LOCK=/path/to/resource.lock` when multiple worktrees or selected suites share a
+writable fixture. Do not disable a lock while a run uses shared writable state. Warm mode preserves
+incremental SwiftPM builds; isolated mode does not reuse another run's scratch.
 
 Provider conformance tests use the package-scoped `ScriptedProviderHTTPTransport` for Anthropic,
 OpenRouter, Ollama, and runtime transport checks. OpenAI tests use `TestHTTPServer`. Foundation
