@@ -237,13 +237,13 @@ def test_command_spawn_retries_eperm_without_retrying_exec_errors() -> None:
     real_popen = subprocess.Popen
     attempts: list[dict[str, object]] = []
 
-    def fail_once(*arguments: object, **options: object) -> subprocess.Popen[bytes]:
+    def fail_twice(*arguments: object, **options: object) -> subprocess.Popen[bytes]:
         attempts.append(options)
-        if len(attempts) == 1:
+        if len(attempts) <= 2:
             raise PermissionError(errno.EPERM, os.strerror(errno.EPERM), "fixture")
         return real_popen(*arguments, **options)
 
-    with patch.object(resource_runner.subprocess, "Popen", side_effect=fail_once):
+    with patch.object(resource_runner.subprocess, "Popen", side_effect=fail_twice):
         status, _, _, _, _ = resource_runner.run_command(
             [sys.executable, "-c", "pass"],
             timeout=5,
@@ -252,11 +252,32 @@ def test_command_spawn_retries_eperm_without_retrying_exec_errors() -> None:
             sample_interval=1,
         )
     check(status == 0, f"command failed after transient EPERM: status {status}")
-    check(len(attempts) == 2, f"expected one EPERM retry, got {len(attempts)} spawn attempts")
+    check(len(attempts) == 3, f"expected two EPERM retries, got {len(attempts)} spawn attempts")
     check(
         all(options.get("start_new_session") is True for options in attempts),
         "EPERM retry weakened process-session isolation",
     )
+
+    attempts.clear()
+
+    def fail_persistently(*_arguments: object, **_options: object) -> subprocess.Popen[bytes]:
+        attempts.append({})
+        raise PermissionError(errno.EPERM, os.strerror(errno.EPERM), "fixture")
+
+    with patch.object(resource_runner.subprocess, "Popen", side_effect=fail_persistently):
+        try:
+            resource_runner.run_command(
+                ["fixture"],
+                timeout=5,
+                sample_runtime=None,
+                sample_container=None,
+                sample_interval=1,
+            )
+        except OSError as error:
+            check(error.errno == errno.EPERM, f"persistent EPERM changed: {error}")
+        else:
+            raise AssertionError("persistent EPERM was swallowed")
+    check(len(attempts) == 3, f"persistent EPERM exceeded the three-attempt limit: {len(attempts)}")
 
     for error_number in (errno.ENOENT, errno.EACCES):
         attempts.clear()
