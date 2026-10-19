@@ -230,7 +230,10 @@ package enum ResponsesEvents {
         case "response.completed":
             accumulator.sawContent = true
             var usageOut = usage
-            if let u = json["usage"] as? [String: Any] {
+            let response = json["response"] as? [String: Any]
+            let responseUsage = response?["usage"] as? [String: Any]
+            let envelopeUsage = json["usage"] as? [String: Any]
+            if let u = responseUsage ?? envelopeUsage {
                 let inputDetails = u["input_tokens_details"] as? [String: Any]
                 let writeTokens = (u["cache_write_tokens"] as? Int) ?? (inputDetails?["cache_write_tokens"] as? Int)
                 let cachedTokens = inputDetails?["cached_tokens"] as? Int

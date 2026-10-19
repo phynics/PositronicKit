@@ -426,6 +426,52 @@ data: {bad json
         #expect(response.choices.first?.finishReason == "stop")
     }
 
+    @Test("Responses stream exposes usage from the captured completion envelope")
+    func streamedResponsesCompletionUsageEnvelope() async throws {
+        let server = try await TestHTTPServer.start(response: .sse(#"""
+        data: {"type":"response.output_text.delta","delta":"answer"}
+
+        data: {"type":"response.completed","response":{"id":"resp_usage","status":"completed","output":[],"usage":{"input_tokens":100,"output_tokens":7,"total_tokens":107,"input_tokens_details":{"cached_tokens":31,"cache_write_tokens":4}}}}
+
+        """#))
+        defer { server.stop() }
+
+        let middleware = CapturingMiddleware()
+        let client = OpenAIClient(
+            apiKey: "secret-key",
+            modelName: "gpt-4o",
+            host: "127.0.0.1",
+            port: Int(server.port),
+            scheme: "http",
+            maxRetries: 0,
+            transport: middleware,
+            api: .responses
+        )
+        let stream = await client.chatStream(
+            messages: [.init(role: .user, content: "hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+        var chunks: [LLMStreamChunk] = []
+        for try await chunk in stream {
+            chunks.append(chunk)
+        }
+
+        let completion = try #require(chunks.last)
+        #expect(completion.usage?.promptTokens == 100)
+        #expect(completion.usage?.completionTokens == 7)
+        #expect(completion.usage?.totalTokens == 107)
+        #expect(completion.usage?.promptTokensDetails?.cachedTokens == 31)
+        #expect(completion.usage?.promptTokensDetails?.cacheWriteTokens == 4)
+        #expect(chunks.compactMap(\.usage).count == 1)
+
+        let folded = try #require(LLMStreamChunk.folding(chunks))
+        #expect(folded.usage?.totalTokens == 107)
+        #expect(folded.usage?.promptTokensDetails?.cachedTokens == 31)
+    }
+
     @Test("streamed Responses tool metadata routes calls and persists matching result identities")
     func streamedResponsesToolCallIdentitySurvivesTurnHistory() async throws {
         struct WeatherTool: PKTool {
@@ -474,7 +520,7 @@ data: {bad json
 
             data: {"type":"response.function_call_arguments.done","item_id":"fc_time","output_index":1,"arguments":"{\"zone\":\"Europe/London\"}"}
 
-            data: {"type":"response.completed","response":{"id":"resp_tools","status":"completed","output":[],"usage":{"input_tokens":1,"output_tokens":2,"total_tokens":3}}}
+            data: {"type":"response.completed","response":{"id":"resp_tools","status":"completed","output":[],"usage":{"input_tokens":100,"output_tokens":7,"total_tokens":107,"input_tokens_details":{"cached_tokens":31,"cache_write_tokens":4}}}}
 
             """#),
             .sse(#"""
@@ -536,11 +582,18 @@ data: {bad json
         }
         try await runtime.timelines.attachWorkspace(workspaceReference.id, to: timeline.id)
 
-        _ = try await runtime.turnEngine.run(TurnRequest(
-            timelineID: timeline.id,
-            message: "Get weather in Paris and the time in London.",
-            tools: tools
-        )).collect()
+        let turn = try await runtime.timelines.open(timeline.id).startDirectTurn(
+            "Get weather in Paris and the time in London.",
+            context: DirectTurnContext(systemInstructions: ""),
+            options: TurnOptions(tools: tools)
+        )
+        let turnEvents = await turn.events().collect()
+        let reports = turnEvents.compactMap(\.promptCacheReport)
+        #expect(reports.count == 2)
+        #expect(reports[0].reportedCachedTokens == 31)
+        #expect(reports[0].reportedCacheWriteTokens == 4)
+        #expect(reports[1].reportedCachedTokens == nil)
+        #expect(try await turn.promptCacheReports() == reports)
 
         let messages = try await persistence.fetchMessages(for: timeline.id)
         let assistant = try #require(messages.first {
