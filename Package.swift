@@ -328,6 +328,15 @@ let package = Package(
             swiftSettings: approachableConcurrency
         ),
         .testTarget(
+            name: "GenericModelConsumerTests",
+            dependencies: [
+                "PKContracts",
+                "PKOpenAIProvider",
+            ],
+            path: "Tests/GenericModelConsumerTests",
+            swiftSettings: approachableConcurrency
+        ),
+        .testTarget(
             name: "PKUtilitiesTests",
             dependencies: ["PKUtilities", "PKContracts", "PKTestSupport"],
             path: "Tests/PKUtilitiesTests",

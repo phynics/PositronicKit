@@ -460,6 +460,55 @@ for message in history {
 `TimelineCapability.messages(for:)` reads semantic Timeline history. It does not read the
 process-scoped prompt state the runtime tracks for cache accounting.
 
+### Host-Managed One-Shot Generation
+
+`kit.model.generate(messages:)` sends host-rendered messages through the same provider-neutral
+contract as `LLMClientProtocol`, without creating or updating a Timeline or Agent. The host owns
+conversation history, tool definitions, tool choice, and every follow-up request. The runtime
+does not execute returned tool calls.
+
+```swift
+let weatherTools = [
+    LLMToolDefinition(name: "get_weather", description: "Current weather for a city")
+]
+let user = LLMMessage(role: .user, content: "Weather in Paris?")
+let runTool: (String, String) -> String = { _, _ in "Sunny, 21 C." }
+
+let response = try await kit.model.generate(
+    messages: [user],
+    tools: weatherTools,
+    toolChoice: .auto
+)
+
+if let calls = response.toolCalls, !calls.isEmpty {
+    let results = calls.map { call in
+        LLMMessage(
+            role: .tool,
+            content: runTool(call.name, call.arguments),
+            toolCallID: call.id
+        )
+    }
+    let assistant = LLMMessage(role: .assistant, content: response.content ?? "", toolCalls: calls)
+    let followUp = try await kit.model.generate(
+        messages: [user, assistant] + results,
+        tools: weatherTools,
+        toolChoice: .auto
+    )
+    print(followUp.content ?? "")
+}
+```
+
+`generate(messages:)` folds the provider's stream and returns complete tool calls in provider
+order, so a host can correlate each `.tool` result by `LLMToolCall.id`. Use
+`stream(messages:tools:toolChoice:responseFormat:)` when you need raw chunks or incremental
+deltas. Both methods accept `generationParameters:`, `idleTimeout:`, `transport:`, and
+`promptCaching:` overrides.
+
+An application that does not need the runtime can depend on `PKContracts` and one provider
+product and call `LLMClientProtocol.chatStream(...)` or `chatCompletion(...)` directly. The
+provider protocol has no runtime dependency, so a host can keep the same tool-round logic while
+choosing whether to use `kit.model` or the provider client.
+
 ### Typed One-Shot Structured Generation
 
 Use `kit.model.generate` when the response should be decoded into a schema-backed Swift type

@@ -82,11 +82,37 @@ def acquire_slot(slot_dir: str, count: int, deadline: float) -> tuple[int, int]:
         time.sleep(min(0.05, remaining))
 
 
-def stop_process(process: subprocess.Popen[bytes], signum: int) -> None:
+def stop_process(process: subprocess.Popen[bytes], signum: int, *, process_group: bool) -> None:
     try:
-        os.killpg(process.pid, signum)
+        if process_group:
+            os.killpg(process.pid, signum)
+        else:
+            process.send_signal(signum)
     except ProcessLookupError:
         pass
+
+
+def start_process(command: list[str]) -> tuple[subprocess.Popen[bytes], bool]:
+    """Start a command in its own session, degrading on persistent EPERM.
+
+    macOS intermittently denies session creation with EPERM. Retry briefly, then
+    start without a new session so the gate reports the command result instead
+    of failing on the spawn itself.
+    """
+    for attempt in range(3):
+        try:
+            return subprocess.Popen(command, start_new_session=True), True
+        except OSError as error:
+            if error.errno != errno.EPERM:
+                raise
+            if attempt == 2:
+                break
+            time.sleep(0.05 * (attempt + 1))
+    print(
+        "with-agent-resources: session creation denied; continuing without a new process session",
+        file=sys.stderr,
+    )
+    return subprocess.Popen(command, start_new_session=False), False
 
 
 def parse_memory_bytes(value: str) -> int | None:
@@ -253,37 +279,32 @@ def run_command(
             collect_memory()
             sampler = None
             reported_sampler_samples = 0
+    process_group = True
     try:
-        for spawn_attempt in range(3):
-            try:
-                process = subprocess.Popen(command, start_new_session=True)
-                break
-            except OSError as error:
-                if error.errno != errno.EPERM or spawn_attempt == 2:
-                    raise
-                time.sleep(0.05 * (spawn_attempt + 1))
+        process, process_group = start_process(command)
         deadline = started + timeout
         next_sample = started
         while True:
             poll_memory()
             if received_signal is not None:
-                stop_process(process, received_signal)
+                stop_process(process, received_signal, process_group=process_group)
                 try:
                     process.wait(timeout=10)
                 except subprocess.TimeoutExpired:
-                    stop_process(process, signal.SIGKILL)
+                    stop_process(process, signal.SIGKILL, process_group=process_group)
                     process.wait()
                 stop_memory()
                 return 128 + received_signal, time.monotonic() - started, memory_samples, memory_attempts, memory_error
 
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                print(f"with-agent-resources: command exceeded {timeout:g}s; stopping process group", file=sys.stderr)
-                stop_process(process, signal.SIGTERM)
+                target = "process group" if process_group else "command"
+                print(f"with-agent-resources: command exceeded {timeout:g}s; stopping {target}", file=sys.stderr)
+                stop_process(process, signal.SIGTERM, process_group=process_group)
                 try:
                     process.wait(timeout=10)
                 except subprocess.TimeoutExpired:
-                    stop_process(process, signal.SIGKILL)
+                    stop_process(process, signal.SIGKILL, process_group=process_group)
                     process.wait()
                 stop_memory()
                 return 124, time.monotonic() - started, memory_samples, memory_attempts, memory_error
@@ -300,11 +321,11 @@ def run_command(
     finally:
         stop_memory()
         if process is not None and process.poll() is None:
-            stop_process(process, signal.SIGTERM)
+            stop_process(process, signal.SIGTERM, process_group=process_group)
             try:
                 process.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                stop_process(process, signal.SIGKILL)
+                stop_process(process, signal.SIGKILL, process_group=process_group)
                 process.wait()
         for signum, handler in old_handlers.items():
             signal.signal(signum, handler)

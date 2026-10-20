@@ -346,8 +346,6 @@ struct TurnEngine: Sendable {
         let sid = timelineID.uuidString.prefix(8).lowercased()
         logger.info("Starting generation stream for timeline \(sid)")
 
-        let agentPreflight = try await preparation.preflightAgent(id: executionRequest.context.agentID, timelineID: timelineID)
-        guard await dependencies.llmService.isConfigured else { throw TurnEngineError.llmServiceNotConfigured }
         guard request.structuredOutput == nil || request.sidecars.isEmpty else {
             throw SidecarError.conflictsWithExplicitStructuredOutput
         }
@@ -359,8 +357,6 @@ struct TurnEngine: Sendable {
             prepared = try await preparation.prepareTurn(
                 executionRequest,
                 turnID: turnID,
-                agent: agentPreflight.instance,
-                agentDiagnostics: agentPreflight.diagnostics,
                 onAdmission: { [eventHub = dependencies.eventHub] in
                     await eventHub.begin(turnID: turnID)
                 }

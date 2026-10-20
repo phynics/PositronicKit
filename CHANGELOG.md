@@ -8,6 +8,18 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **Host-managed one-shot generation over the generic model contract (#290).**
+  `ModelInferenceCapability` gains
+  `generate(messages:tools:toolChoice:responseFormat:generationParameters:idleTimeout:transport:promptCaching:)`
+  and `stream(messages:tools:toolChoice:responseFormat:generationParameters:idleTimeout:transport:promptCaching:)`.
+  Both forward host-rendered `LLMMessage` arrays and tool definitions through
+  `LLMClientProtocol` without creating or updating a Timeline or Agent, and
+  `generate(messages:)` returns complete `LLMResponse.toolCalls` in provider order so a host can
+  run a tool round and correlate `.tool` results by `LLMToolCall.id`. An application that does not
+  need the runtime can use `PKContracts` and one provider product directly.
+
 ### Breaking
 
 - **One model-client stack: a single fold, no resolver seam, and configured timeouts (#311).**
@@ -59,6 +71,12 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- A Turn now captures its provider configuration and execution authority inside the admission
+  lane and freezes that snapshot for its lifetime. Media validation, prompt budgeting, model
+  identity, Workspace tool catalog, and Agent context all read the captured snapshot, so a host
+  configuration replacement or Workspace binding change during preparation cannot switch the
+  active Turn's model or workspace. A missing Agent still reports `agentNotFound`, and Agent
+  attachment is revalidated in the admission lane (#307).
 - OpenAI Responses streaming now reads usage from the nested `response.completed.response.usage`
   envelope and retains the flat usage fallback (#364).
 - OpenAI Responses streaming now terminates honestly: a `response.failed` event or an in-band

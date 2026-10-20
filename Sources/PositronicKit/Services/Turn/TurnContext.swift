@@ -157,6 +157,10 @@ struct TurnContext {
     let contextContributions: [TurnContextContribution]
     let executionKind: TurnExecutionKind
     let contributors: [TurnContributor]
+    /// Provider identity captured at Turn admission. Constant across model rounds.
+    let provider: LLMProvider
+    /// Provider configuration captured at Turn admission. Constant across model rounds.
+    let providerConfiguration: ProviderConfiguration
     let modelName: String
     let maxModelRounds: Int
     let systemInstructions: String?
@@ -207,6 +211,8 @@ struct TurnContext {
         contextContributions: [TurnContextContribution] = [],
         executionKind: TurnExecutionKind = .agentManaged,
         contributors: [TurnContributor] = [],
+        provider: LLMProvider = .openAI,
+        providerConfiguration: ProviderConfiguration = .makeDefault(for: .openAI),
         modelName: String,
         maxModelRounds: Int,
         systemInstructions: String?,
@@ -239,6 +245,8 @@ struct TurnContext {
         self.contextContributions = contextContributions
         self.executionKind = executionKind
         self.contributors = contributors
+        self.provider = provider
+        self.providerConfiguration = providerConfiguration
         self.modelName = modelName
         self.maxModelRounds = maxModelRounds
         self.systemInstructions = systemInstructions
@@ -284,6 +292,8 @@ struct TurnContext {
             contextContributions: contextContributions,
             executionKind: executionKind,
             contributors: contributors,
+            provider: provider,
+            providerConfiguration: providerConfiguration,
             modelName: modelName,
             maxModelRounds: maxModelRounds,
             systemInstructions: systemInstructions,

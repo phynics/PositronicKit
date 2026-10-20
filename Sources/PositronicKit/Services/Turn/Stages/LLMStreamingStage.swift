@@ -25,8 +25,7 @@ struct LLMStreamingStage: PipelineStage {
 
     func process(_ context: TurnContext) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         let processStartTime = ContinuousClock.now
-        let configuration = await llmService.configuration
-        let provider = configuration.activeProvider.rawValue
+        let provider = context.provider.rawValue
         let streamData: AsyncThrowingStream<LLMStreamChunk, Error>
         // TurnEngine's entry point rejects turns that set both `structuredOutput` and
         // `sidecars` (SidecarError.conflictsWithExplicitStructuredOutput), so at most one
@@ -44,8 +43,8 @@ struct LLMStreamingStage: PipelineStage {
         let promptCache = Self.promptCacheDirective(for: context)
 
         for warning in ProviderCapabilityObservability.warnings(
-            provider: configuration.activeProvider,
-            model: configuration.activeProviderConfiguration.modelName,
+            provider: context.provider,
+            model: context.providerConfiguration.modelName,
             hasTools: !context.toolParams.isEmpty,
             hasResponseFormat: effectiveStructuredOutput != nil,
             generationParameters: context.generationParameters

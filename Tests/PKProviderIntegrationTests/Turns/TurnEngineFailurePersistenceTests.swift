@@ -1,5 +1,6 @@
 import Foundation
 import ErrorKit
+import JSONSchema
 import Logging
 @testable import PKContracts
 import PKTestSupport
