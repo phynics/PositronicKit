@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchema
 import PKContracts
 import PKUtilities
 @testable import PositronicKit

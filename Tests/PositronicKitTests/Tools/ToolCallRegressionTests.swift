@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchema
 import Logging
 import Testing
 @testable import PositronicKit
