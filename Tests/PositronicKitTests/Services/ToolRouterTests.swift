@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchema
 import Logging
 @testable import PKContracts
 import PKUtilities
