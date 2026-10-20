@@ -16,7 +16,7 @@ gate.
 | Target | Holds | May depend on |
 | --- | --- | --- |
 | `PositronicKitTests` | Runtime suites only: Turns, Timelines, Workspaces, Agents, assembly, prompts, errors, policies, structured output, sidecar, streaming, tools, services, models, stories | `PositronicKit`, `PKContracts`, `PKUtilities`, `PKPrompt`, `PKTestSupport` |
-| `PKProviderIntegrationTests` | Provider-touching suites: TurnEngine behavior, provider transport/initialization/failure/cancellation conformance, the capability matrix, request encoding, example stories | Everything the runtime target takes, plus the five provider adapters, `PositronicKitExamples`, and the `OpenAI` package |
+| `PKProviderIntegrationTests` | Provider-touching suites: TurnEngine behavior, provider transport/initialization/failure/cancellation conformance, the capability matrix, request encoding, example stories | Everything the runtime target takes, plus the five provider adapters and `PositronicKitExamples` |
 | `PKOpenAIProviderTests`, `PKOpenRouterProviderTests`, `PKOllamaProviderTests`, `PKAnthropicProviderTests`, `PKFoundationModelsProviderTests` | Per-adapter unit suites | Their adapter, contracts, utilities, support |
 | `PKContractsTests`, `PKPromptTests`, `PKUtilitiesTests`, `PKObservableTests`, `PKAgentFilesTests`, `PKMCPTests`, `PKTestSupportTests` | Module unit suites | Their module plus support |
 
