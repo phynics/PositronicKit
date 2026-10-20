@@ -30,8 +30,8 @@ through the owning issue or an ADR.
 - Public consumers use capability values and handles. Managers, registries, pipeline topology, and
   model-round machinery remain internal.
 - `PKContracts` imports no PositronicKit project target. Providers and external integrations do not
-  import the runtime. Optional **runtime adapters** (`PKObservable`, `PKAgentFiles`, `PKSQLiteStorage`, `PKMCP`)
-  import `PositronicKit` to implement its host-facing protocols; see [ADR 0015](docs/adr/0015-runtime-adapter-tier.md). `PKUtilities` is not a public product.
+  import the runtime. Optional **runtime adapters** (`PKObservable`, `PKAgentFiles`, `PKMCP`, and
+  planned `PKSQLiteStorage`) import `PositronicKit` to implement its host-facing protocols; see [ADR 0015](docs/adr/0015-runtime-adapter-tier.md). `PKUtilities` is not a public product.
 - The runtime holds no journal state; it keeps only a per-Timeline tier fingerprint for cache
   accounting. `PromptJournal` is an optional `PKPrompt` feature and does not own semantic Timeline
   history.
