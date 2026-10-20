@@ -71,12 +71,12 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
-- A Turn now freezes its execution authority and provider configuration at admission. Provider
-  validation, prompt budgeting, model identity, Workspace tool catalog, and Agent context all read
-  the captured snapshot for the Turn's lifetime, so a host configuration replacement or Workspace
-  binding change during preparation cannot switch the active Turn's model or workspace. A missing
-  Agent still reports `agentNotFound`, and Agent attachment is revalidated in the admission lane
-  (#307).
+- A Turn now captures its provider configuration and execution authority inside the admission
+  lane and freezes that snapshot for its lifetime. Media validation, prompt budgeting, model
+  identity, Workspace tool catalog, and Agent context all read the captured snapshot, so a host
+  configuration replacement or Workspace binding change during preparation cannot switch the
+  active Turn's model or workspace. A missing Agent still reports `agentNotFound`, and Agent
+  attachment is revalidated in the admission lane (#307).
 - OpenAI Responses streaming now reads usage from the nested `response.completed.response.usage`
   envelope and retains the flat usage fallback (#364).
 - OpenAI Responses streaming now terminates honestly: a `response.failed` event or an in-band

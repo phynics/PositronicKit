@@ -25,10 +25,12 @@ struct TurnAdmissionSeamTests {
                 role: .user,
                 content: "managed"
             ),
+            content: MessageContent("managed"),
             executionKind: .agentManaged,
             agentID: agent.id,
             callerIntentFingerprint: "managed",
-            provider: .init(.default)
+            responseModalities: [],
+            audioOutput: nil
         ))
 
         #expect(result.agent?.id == agent.id)
@@ -51,10 +53,12 @@ struct TurnAdmissionSeamTests {
             turnID: turnID,
             requestID: requestID,
             inputMessage: nil,
+            content: MessageContent(parts: []),
             executionKind: .direct,
             agentID: nil,
             callerIntentFingerprint: "direct",
-            provider: .init(.default)
+            responseModalities: [],
+            audioOutput: nil
         ))
 
         #expect(result.agent == nil)
@@ -296,10 +300,12 @@ struct TurnAdmissionSeamTests {
                 role: .user,
                 content: content
             ),
+            content: MessageContent(content),
             executionKind: .direct,
             agentID: nil,
             callerIntentFingerprint: "same-intent",
-            provider: .init(.default)
+            responseModalities: [],
+            audioOutput: nil
         )
     }
 

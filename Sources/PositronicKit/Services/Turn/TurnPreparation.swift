@@ -21,30 +21,34 @@ struct TurnPreparation: Sendable {
         let agent: Agent?
     }
 
-    /// The provider identity and configuration captured once for a Turn. Everything after
-    /// admission reads this value instead of the live ``LLMService`` configuration.
+    /// The provider identity, configuration, and readiness captured together for a Turn.
+    /// Everything after admission reads this value instead of the live ``LLMService`` state.
     struct CapturedProviderConfiguration: Sendable {
         let provider: LLMProvider
         let configuration: ProviderConfiguration
+        let isConfigured: Bool
 
-        init(_ configuration: LLMConfiguration) {
+        init(_ configuration: LLMConfiguration, isConfigured: Bool) {
             provider = configuration.activeProvider
             self.configuration = configuration.activeProviderConfiguration
+            self.isConfigured = isConfigured
         }
     }
 
     /// The bounded input to Turn admission. Prompt assembly and Model Round configuration remain
-    /// local to `prepareTurn`; admission only needs durable identity, authority, input, and the
-    /// provider snapshot captured for this Turn.
+    /// local to `prepareTurn`; admission captures durable identity, authority, the provider
+    /// snapshot, and the media capabilities that snapshot authorizes.
     struct TurnAdmissionRequest: Sendable {
         let timelineID: UUID
         let turnID: UUID
         let requestID: UUID
         let inputMessage: TimelineMessage?
+        let content: MessageContent
         let executionKind: TurnExecutionKind
         let agentID: UUID?
         let callerIntentFingerprint: String
-        let provider: CapturedProviderConfiguration
+        let responseModalities: Set<ResponseModality>
+        let audioOutput: AudioOutputOptions?
     }
 
     struct TurnAdmissionResult: Sendable {
@@ -139,19 +143,6 @@ struct TurnPreparation: Sendable {
         }
 
         try messageContent.validateMedia()
-        // Capture provider identity and configuration exactly once. Later preparation and every
-        // Model Round use this snapshot even if the host replaces the live configuration while
-        // the Turn is being admitted or executed.
-        let providerConfiguration = CapturedProviderConfiguration(
-            await dependencies.llmService.configuration
-        )
-        try validateMultimodalRequest(
-            content: messageContent,
-            responseModalities: responseModalities,
-            audioOutput: audioOutput,
-            capabilities: providerConfiguration.configuration.capabilities,
-            provider: providerConfiguration.provider
-        )
 
         // `call_tool` is owned by the workspace catalog and must never be caller-defined. This is
         // pure request validation, so reject it before any admission side effect.
@@ -179,14 +170,20 @@ struct TurnPreparation: Sendable {
             turnID: turnID,
             requestID: requestId,
             inputMessage: inputMessage,
+            content: messageContent,
             executionKind: executionKind,
             agentID: agentId,
             callerIntentFingerprint: executionRequest.callerIntentFingerprint,
-            provider: providerConfiguration
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
         )
 
         do {
             let admissionResult = try await admitTurn(admissionRequest)
+            // The admission lane captured the provider identity and configuration together with
+            // authority. Everything after admission reads this snapshot even if the host replaces
+            // the live configuration, so this Turn cannot switch provider or model mid-flight.
+            let providerConfiguration = admissionResult.provider
             resolvedAgent = admissionResult.agent
             resolvedAgentContext = admissionResult.agentContext
             resolvedWorkspaceToolCatalog = admissionResult.workspaceToolCatalog
@@ -499,6 +496,21 @@ struct TurnPreparation: Sendable {
     /// barrier.
     func admitTurn(_ request: TurnAdmissionRequest) async throws -> TurnAdmissionResult {
         try await withAdmissionAuthority(timelineID: request.timelineID, agentID: request.agentID) { [self] in
+            // Capture provider identity and configuration exactly once, inside the admission
+            // lane, so a host replacement cannot land between the snapshot and the authority
+            // capture that admits the Turn. Reject unsupported media against this same snapshot
+            // before any persistence or provider work.
+            let providerConfiguration = CapturedProviderConfiguration(
+                await dependencies.llmService.configuration,
+                isConfigured: await dependencies.llmService.isConfigured
+            )
+            try validateMultimodalRequest(
+                content: request.content,
+                responseModalities: request.responseModalities,
+                audioOutput: request.audioOutput,
+                capabilities: providerConfiguration.configuration.capabilities,
+                provider: providerConfiguration.provider
+            )
             let timeline = try await dependencies.timelineManager.ensureTimelineExists(
                 id: request.timelineID
             )
@@ -510,7 +522,7 @@ struct TurnPreparation: Sendable {
                 executionKind: request.executionKind,
                 agentID: request.agentID
             )
-            guard await dependencies.llmService.isConfigured else {
+            guard providerConfiguration.isConfigured else {
                 throw TurnEngineError.llmServiceNotConfigured
             }
             var context: AgentContextSnapshot?
@@ -541,7 +553,7 @@ struct TurnPreparation: Sendable {
                     agent: authority.agent,
                     agentContext: context,
                     workspaceToolCatalog: workspaceCatalog,
-                    provider: request.provider
+                    provider: providerConfiguration
                 )
             case .joined, .replayed:
                 return TurnAdmissionResult(
@@ -550,7 +562,7 @@ struct TurnPreparation: Sendable {
                     agent: authority.agent,
                     agentContext: context,
                     workspaceToolCatalog: workspaceCatalog,
-                    provider: request.provider
+                    provider: providerConfiguration
                 )
             }
         }
