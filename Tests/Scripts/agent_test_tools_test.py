@@ -232,7 +232,7 @@ def test_cancellation_stops_the_child_and_records_status() -> None:
             raise AssertionError("cancelled agent command left its child process running")
 
 
-def test_command_spawn_retries_eperm_without_retrying_exec_errors() -> None:
+def test_command_spawn_retries_eperm_and_falls_back_to_a_plain_spawn() -> None:
     resource_runner = load_resource_runner()
     real_popen = subprocess.Popen
     attempts: list[dict[str, object]] = []
@@ -260,24 +260,37 @@ def test_command_spawn_retries_eperm_without_retrying_exec_errors() -> None:
 
     attempts.clear()
 
-    def fail_persistently(*_arguments: object, **_options: object) -> subprocess.Popen[bytes]:
-        attempts.append({})
-        raise PermissionError(errno.EPERM, os.strerror(errno.EPERM), "fixture")
+    def deny_new_session(*arguments: object, **options: object) -> subprocess.Popen[bytes]:
+        attempts.append(options)
+        if options.get("start_new_session"):
+            raise PermissionError(errno.EPERM, os.strerror(errno.EPERM), "fixture")
+        return real_popen(*arguments, **options)
 
-    with patch.object(resource_runner.subprocess, "Popen", side_effect=fail_persistently):
-        try:
-            resource_runner.run_command(
-                ["fixture"],
-                timeout=5,
-                sample_runtime=None,
-                sample_container=None,
-                sample_interval=1,
-            )
-        except OSError as error:
-            check(error.errno == errno.EPERM, f"persistent EPERM changed: {error}")
-        else:
-            raise AssertionError("persistent EPERM was swallowed")
-    check(len(attempts) == 3, f"persistent EPERM exceeded the three-attempt limit: {len(attempts)}")
+    with patch.object(resource_runner.subprocess, "Popen", side_effect=deny_new_session):
+        status, _, _, _, _ = resource_runner.run_command(
+            [sys.executable, "-c", "pass"],
+            timeout=5,
+            sample_runtime=None,
+            sample_container=None,
+            sample_interval=1,
+        )
+    check(status == 0, f"persistent EPERM did not fall back to a plain spawn: status {status}")
+    check(
+        [options.get("start_new_session") for options in attempts] == [True, True, True, False],
+        "persistent EPERM fallback did not disable session isolation once",
+    )
+
+    attempts.clear()
+
+    with patch.object(resource_runner.subprocess, "Popen", side_effect=deny_new_session):
+        status, _, _, _, _ = resource_runner.run_command(
+            [sys.executable, "-c", "import time; time.sleep(30)"],
+            timeout=0.2,
+            sample_runtime=None,
+            sample_container=None,
+            sample_interval=1,
+        )
+    check(status == 124, f"fallback timeout status changed: {status}")
 
     for error_number in (errno.ENOENT, errno.EACCES):
         attempts.clear()
@@ -428,7 +441,7 @@ def main() -> None:
         test_same_resource_lock_blocks_the_second_writer,
         test_slot_cap_and_timeout_and_exit_status,
         test_cancellation_stops_the_child_and_records_status,
-        test_command_spawn_retries_eperm_without_retrying_exec_errors,
+        test_command_spawn_retries_eperm_and_falls_back_to_a_plain_spawn,
         test_container_memory_is_recorded_when_the_runtime_reports_it,
         test_focused_runner_preserves_flags_and_fails_unmatched_filters,
     ]
