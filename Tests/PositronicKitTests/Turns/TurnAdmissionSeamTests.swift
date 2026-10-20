@@ -27,7 +27,8 @@ struct TurnAdmissionSeamTests {
             ),
             executionKind: .agentManaged,
             agentID: agent.id,
-            callerIntentFingerprint: "managed"
+            callerIntentFingerprint: "managed",
+            provider: .init(.default)
         ))
 
         #expect(result.agent?.id == agent.id)
@@ -52,7 +53,8 @@ struct TurnAdmissionSeamTests {
             inputMessage: nil,
             executionKind: .direct,
             agentID: nil,
-            callerIntentFingerprint: "direct"
+            callerIntentFingerprint: "direct",
+            provider: .init(.default)
         ))
 
         #expect(result.agent == nil)
@@ -151,9 +153,7 @@ struct TurnAdmissionSeamTests {
                     executionKind: .direct,
                     contributors: [.host]
                 ),
-                turnID: UUID(),
-                agent: nil,
-                agentDiagnostics: []
+                turnID: UUID()
             )
         }
 
@@ -181,9 +181,7 @@ struct TurnAdmissionSeamTests {
                     executionKind: .direct,
                     contributors: [.host]
                 ),
-                turnID: turnID,
-                agent: nil,
-                agentDiagnostics: []
+                turnID: turnID
             )
         }
 
@@ -224,9 +222,7 @@ struct TurnAdmissionSeamTests {
                     executionKind: .direct,
                     contributors: [.host]
                 ),
-                turnID: UUID(),
-                agent: nil,
-                agentDiagnostics: []
+                turnID: UUID()
             )
         }
 
@@ -302,7 +298,8 @@ struct TurnAdmissionSeamTests {
             ),
             executionKind: .direct,
             agentID: nil,
-            callerIntentFingerprint: "same-intent"
+            callerIntentFingerprint: "same-intent",
+            provider: .init(.default)
         )
     }
 
