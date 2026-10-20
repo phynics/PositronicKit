@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchema
 import PKContracts
 import PKTestSupport
 import PKUtilities
@@ -25,9 +26,12 @@ struct TurnAdmissionSeamTests {
                 role: .user,
                 content: "managed"
             ),
+            content: MessageContent("managed"),
             executionKind: .agentManaged,
             agentID: agent.id,
-            callerIntentFingerprint: "managed"
+            callerIntentFingerprint: "managed",
+            responseModalities: [],
+            audioOutput: nil
         ))
 
         #expect(result.agent?.id == agent.id)
@@ -50,9 +54,12 @@ struct TurnAdmissionSeamTests {
             turnID: turnID,
             requestID: requestID,
             inputMessage: nil,
+            content: MessageContent(parts: []),
             executionKind: .direct,
             agentID: nil,
-            callerIntentFingerprint: "direct"
+            callerIntentFingerprint: "direct",
+            responseModalities: [],
+            audioOutput: nil
         ))
 
         #expect(result.agent == nil)
@@ -151,9 +158,7 @@ struct TurnAdmissionSeamTests {
                     executionKind: .direct,
                     contributors: [.host]
                 ),
-                turnID: UUID(),
-                agent: nil,
-                agentDiagnostics: []
+                turnID: UUID()
             )
         }
 
@@ -181,9 +186,7 @@ struct TurnAdmissionSeamTests {
                     executionKind: .direct,
                     contributors: [.host]
                 ),
-                turnID: turnID,
-                agent: nil,
-                agentDiagnostics: []
+                turnID: turnID
             )
         }
 
@@ -224,9 +227,7 @@ struct TurnAdmissionSeamTests {
                     executionKind: .direct,
                     contributors: [.host]
                 ),
-                turnID: UUID(),
-                agent: nil,
-                agentDiagnostics: []
+                turnID: UUID()
             )
         }
 
@@ -300,9 +301,12 @@ struct TurnAdmissionSeamTests {
                 role: .user,
                 content: content
             ),
+            content: MessageContent(content),
             executionKind: .direct,
             agentID: nil,
-            callerIntentFingerprint: "same-intent"
+            callerIntentFingerprint: "same-intent",
+            responseModalities: [],
+            audioOutput: nil
         )
     }
 

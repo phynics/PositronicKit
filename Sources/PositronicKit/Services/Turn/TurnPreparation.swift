@@ -6,8 +6,8 @@ import PKUtilities
 
 // MARK: - Turn Preparation
 
-/// Prepares and admits a Turn: agent preflight, authority validation, prompt/context assembly,
-/// and durable admission with its compensation path.
+/// Prepares and admits a Turn: authority validation, prompt/context assembly, and durable
+/// admission with its compensation path.
 ///
 /// Extracted from `TurnEngine` so this work has its own seam. As an extension it published
 /// eleven members to the package because Swift's `private` does not cross file boundaries;
@@ -21,16 +21,34 @@ struct TurnPreparation: Sendable {
         let agent: Agent?
     }
 
+    /// The provider identity, configuration, and readiness captured together for a Turn.
+    /// Everything after admission reads this value instead of the live ``LLMService`` state.
+    struct CapturedProviderConfiguration: Sendable {
+        let provider: LLMProvider
+        let configuration: ProviderConfiguration
+        let isConfigured: Bool
+
+        init(_ configuration: LLMConfiguration, isConfigured: Bool) {
+            provider = configuration.activeProvider
+            self.configuration = configuration.activeProviderConfiguration
+            self.isConfigured = isConfigured
+        }
+    }
+
     /// The bounded input to Turn admission. Prompt assembly and Model Round configuration remain
-    /// local to `prepareTurn`; admission only needs durable identity, authority, and input.
+    /// local to `prepareTurn`; admission captures durable identity, authority, the provider
+    /// snapshot, and the media capabilities that snapshot authorizes.
     struct TurnAdmissionRequest: Sendable {
         let timelineID: UUID
         let turnID: UUID
         let requestID: UUID
         let inputMessage: TimelineMessage?
+        let content: MessageContent
         let executionKind: TurnExecutionKind
         let agentID: UUID?
         let callerIntentFingerprint: String
+        let responseModalities: Set<ResponseModality>
+        let audioOutput: AudioOutputOptions?
     }
 
     struct TurnAdmissionResult: Sendable {
@@ -40,9 +58,11 @@ struct TurnPreparation: Sendable {
         }
 
         let disposition: Disposition
+        let timeline: TimelineRecord
         let agent: Agent?
         let agentContext: AgentContextSnapshot?
         let workspaceToolCatalog: WorkspaceToolCatalog
+        let provider: CapturedProviderConfiguration
     }
 
     private struct TurnPreparationRecoveryError: Error, Sendable, CustomStringConvertible {
@@ -61,69 +81,6 @@ struct TurnPreparation: Sendable {
         case existing(TurnAdmission)
     }
 
-    struct AgentPreflight: Sendable {
-        let instance: Agent?
-        let diagnostics: [TurnDiagnostic]
-    }
-
-    /// Resolves a requested agent and validates its exclusive timeline attachment before provider
-    /// readiness or turn persistence.
-    func preflightAgent(id agentId: UUID?, timelineID: UUID) async throws -> AgentPreflight {
-        guard let agentId else {
-            return AgentPreflight(instance: nil, diagnostics: [])
-        }
-
-        let instance: Agent?
-        do {
-            instance = try await dependencies.agentStore.fetchAgent(id: agentId)
-        } catch {
-            let diagnostic = TurnDiagnostic(
-                dependency: .agent,
-                operation: "fetchAgent",
-                entityID: agentId.uuidString,
-                error: error
-            )
-            try enforceRequired([diagnostic])
-            return AgentPreflight(instance: nil, diagnostics: [diagnostic])
-        }
-
-        guard let instance else {
-            let error = AgentError.agentNotFound(agentId)
-            if dependencies.policy.degradationPolicy == .failRequired {
-                throw error
-            }
-            return AgentPreflight(
-                instance: nil,
-                diagnostics: [TurnDiagnostic(
-                    dependency: .agent,
-                    operation: "fetchAgent",
-                    entityID: agentId.uuidString,
-                    error: error
-                )]
-            )
-        }
-        try instance.requireActive()
-        let timeline: TimelineRecord?
-        do {
-            timeline = try await dependencies.timelineManager.timelineStore.fetchTimeline(id: timelineID)
-        } catch {
-            throw TimelineError.unavailable
-        }
-
-        guard let timeline else {
-            throw TimelineError.timelineNotFound
-        }
-        guard timeline.attachedAgentID == agentId else {
-            throw TurnError.managedExecutionAgentMismatch(
-                timelineID: timelineID,
-                requestedAgentID: agentId,
-                attachedAgentID: timeline.attachedAgentID
-            )
-        }
-
-        return AgentPreflight(instance: instance, diagnostics: [])
-    }
-
     /// Consolidates all pre-turn logic: saving inputs, resolving entities,
     /// and building the initial prompt.
     ///
@@ -133,9 +90,6 @@ struct TurnPreparation: Sendable {
     func prepareTurn(
         _ executionRequest: TurnExecutionRequest,
         turnID: UUID,
-        agent: Agent?,
-        agentContext: AgentContextSnapshot? = nil,
-        agentDiagnostics: [TurnDiagnostic],
         onAdmission: (@Sendable () async -> Void)? = nil
     ) async throws -> PreparedTurn {
         let request = executionRequest.request
@@ -189,15 +143,6 @@ struct TurnPreparation: Sendable {
         }
 
         try messageContent.validateMedia()
-        let initialConfiguration = await dependencies.llmService.configuration
-        let initialProviderConfig = initialConfiguration.activeProviderConfiguration
-        try validateMultimodalRequest(
-            content: messageContent,
-            responseModalities: responseModalities,
-            audioOutput: audioOutput,
-            capabilities: initialProviderConfig.capabilities,
-            provider: initialConfiguration.activeProvider
-        )
 
         // `call_tool` is owned by the workspace catalog and must never be caller-defined. This is
         // pure request validation, so reject it before any admission side effect.
@@ -216,8 +161,8 @@ struct TurnPreparation: Sendable {
                 content: messageContent
             )
             : nil
-        var resolvedAgent = agent
-        var resolvedAgentContext = agentContext
+        var resolvedAgent: Agent?
+        var resolvedAgentContext: AgentContextSnapshot?
         var resolvedWorkspaceToolCatalog: WorkspaceToolCatalog?
         var resolvedContributions: [TurnContextContribution] = []
         let admissionRequest = TurnAdmissionRequest(
@@ -225,19 +170,24 @@ struct TurnPreparation: Sendable {
             turnID: turnID,
             requestID: requestId,
             inputMessage: inputMessage,
+            content: messageContent,
             executionKind: executionKind,
             agentID: agentId,
-            callerIntentFingerprint: executionRequest.callerIntentFingerprint
+            callerIntentFingerprint: executionRequest.callerIntentFingerprint,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
         )
 
         do {
-            // 2. Validate timeline existence before any preparation proceeds.
-            try await dependencies.timelineManager.ensureTimelineExists(id: timelineID)
-
             let admissionResult = try await admitTurn(admissionRequest)
-            resolvedAgent = admissionResult.agent ?? resolvedAgent
-            resolvedAgentContext = admissionResult.agentContext ?? resolvedAgentContext
+            // The admission lane captured the provider identity and configuration together with
+            // authority. Everything after admission reads this snapshot even if the host replaces
+            // the live configuration, so this Turn cannot switch provider or model mid-flight.
+            let providerConfiguration = admissionResult.provider
+            resolvedAgent = admissionResult.agent
+            resolvedAgentContext = admissionResult.agentContext
             resolvedWorkspaceToolCatalog = admissionResult.workspaceToolCatalog
+            let timeline = admissionResult.timeline
             switch admissionResult.disposition {
             case .admitted:
                 repositoryAdmitted = true
@@ -334,9 +284,8 @@ struct TurnPreparation: Sendable {
             //    The projection sees only the durable history preceding this Turn's input and
             //    runs before stepwise history trimming. Durable history is never rewritten; a
             //    covered prefix is replaced only in the provider-facing prompt.
-            let providerConfig = await dependencies.llmService.configuration.activeProviderConfiguration
             let budget = try TurnEngine.makePromptBudget(
-                contextWindowTokens: providerConfig.contextWindowTokens,
+                contextWindowTokens: providerConfiguration.configuration.contextWindowTokens,
                 maxOutputTokens: generationParameters?.maxTokens
             )
             let projectionResult = try await resolveHistoryProjection(
@@ -395,8 +344,6 @@ struct TurnPreparation: Sendable {
             turnDiagnostics += await dependencies.timelineManager.consumeDegradations(for: timelineID)
             try enforceRequired(turnDiagnostics)
             await dependencies.timelineManager.touchTimeline(id: timelineID)
-            let timeline = await dependencies.timelineManager.timeline(id: timelineID)
-            turnDiagnostics += agentDiagnostics
 
             let requestOriginId = workspaceResult.primary?.originID
                 ?? workspaceResult.attached.lazy.compactMap(\.originID).first
@@ -483,7 +430,7 @@ struct TurnPreparation: Sendable {
                 runtimeRepository: dependencies.runtimeRepository
             )
 
-            let modelName = providerConfig.modelName
+            let modelName = providerConfiguration.configuration.modelName
 
             return .ready(TurnContext(
                 timelineID: timelineID,
@@ -495,6 +442,8 @@ struct TurnPreparation: Sendable {
                 contextContributions: resolvedContributions,
                 executionKind: executionKind,
                 contributors: contributors,
+                provider: providerConfiguration.provider,
+                providerConfiguration: providerConfiguration.configuration,
                 modelName: modelName,
                 maxModelRounds: maxModelRounds,
                 systemInstructions: effectiveSystemInstructions,
@@ -547,14 +496,35 @@ struct TurnPreparation: Sendable {
     /// barrier.
     func admitTurn(_ request: TurnAdmissionRequest) async throws -> TurnAdmissionResult {
         try await withAdmissionAuthority(timelineID: request.timelineID, agentID: request.agentID) { [self] in
+            // Capture provider identity and configuration exactly once, inside the admission
+            // lane, so a host replacement cannot land between the snapshot and the authority
+            // capture that admits the Turn. Reject unsupported media against this same snapshot
+            // before any persistence or provider work.
+            let providerConfiguration = CapturedProviderConfiguration(
+                await dependencies.llmService.configuration,
+                isConfigured: await dependencies.llmService.isConfigured
+            )
+            try validateMultimodalRequest(
+                content: request.content,
+                responseModalities: request.responseModalities,
+                audioOutput: request.audioOutput,
+                capabilities: providerConfiguration.configuration.capabilities,
+                provider: providerConfiguration.provider
+            )
+            let timeline = try await dependencies.timelineManager.ensureTimelineExists(
+                id: request.timelineID
+            )
             // Revalidate the execution authority in the same per-Timeline lane as admission. The
             // handle's initial lookup is only a convenience preflight; an attachment can change
             // while preparation is waiting on provider or persistence work.
             let authority = try await validateExecutionAuthority(
-                timelineID: request.timelineID,
+                timeline: timeline,
                 executionKind: request.executionKind,
                 agentID: request.agentID
             )
+            guard providerConfiguration.isConfigured else {
+                throw TurnEngineError.llmServiceNotConfigured
+            }
             var context: AgentContextSnapshot?
             if let currentAgent = authority.agent {
                 let snapshot = try await dependencies.agentContextSource.snapshot(
@@ -579,16 +549,20 @@ struct TurnPreparation: Sendable {
             case .admitted:
                 return TurnAdmissionResult(
                     disposition: .admitted,
+                    timeline: authority.timeline,
                     agent: authority.agent,
                     agentContext: context,
-                    workspaceToolCatalog: workspaceCatalog
+                    workspaceToolCatalog: workspaceCatalog,
+                    provider: providerConfiguration
                 )
             case .joined, .replayed:
                 return TurnAdmissionResult(
                     disposition: .existing(admission),
+                    timeline: authority.timeline,
                     agent: authority.agent,
                     agentContext: context,
-                    workspaceToolCatalog: workspaceCatalog
+                    workspaceToolCatalog: workspaceCatalog,
+                    provider: providerConfiguration
                 )
             }
         }
@@ -682,25 +656,17 @@ struct TurnPreparation: Sendable {
     }
 
     private func validateExecutionAuthority(
-        timelineID: UUID,
+        timeline: TimelineRecord,
         executionKind: TurnExecutionKind,
         agentID: UUID?
     ) async throws -> ExecutionAuthority {
-        guard let timeline = try await dependencies.timelineManager.timelineStore.fetchTimeline(id: timelineID) else {
-            throw TimelineError.timelineNotFound
-        }
         switch executionKind {
         case .agentManaged:
             // A nil Agent is retained for the legacy internal `run` seam. Public managed
-            // admission supplies the captured identity; when present it must still match the
-            // durable attachment immediately before admission.
-            if let agentID, timeline.attachedAgentID != agentID {
-                throw TurnError.managedExecutionAgentMismatch(
-                    timelineID: timelineID,
-                    requestedAgentID: agentID,
-                    attachedAgentID: timeline.attachedAgentID
-                )
-            }
+            // admission supplies the captured identity; when present it must exist, remain
+            // active, and still match the durable attachment immediately before admission.
+            // Fetch first so a missing Agent keeps its documented `agentNotFound` result
+            // instead of being masked by an attachment mismatch.
             guard let agentID else {
                 return ExecutionAuthority(timeline: timeline, agent: nil)
             }
@@ -708,10 +674,17 @@ struct TurnPreparation: Sendable {
                 throw AgentError.agentNotFound(agentID)
             }
             try agent.requireActive()
+            if timeline.attachedAgentID != agentID {
+                throw TurnError.managedExecutionAgentMismatch(
+                    timelineID: timeline.id,
+                    requestedAgentID: agentID,
+                    attachedAgentID: timeline.attachedAgentID
+                )
+            }
             return ExecutionAuthority(timeline: timeline, agent: agent)
         case .direct:
             guard timeline.attachedAgentID == nil else {
-                throw TurnError.directExecutionRequiresDetachedTimeline(timelineID)
+                throw TurnError.directExecutionRequiresDetachedTimeline(timeline.id)
             }
             return ExecutionAuthority(timeline: timeline, agent: nil)
         }

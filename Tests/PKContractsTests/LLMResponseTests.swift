@@ -20,10 +20,18 @@ import Foundation
             id: "response-1",
             model: "claude-3-opus",
             usage: LLMTokenUsage(promptTokens: 100, completionTokens: 50, totalTokens: 150),
+            toolCalls: [LLMToolCall(id: "call_1", name: "lookup", arguments: #"{"q":"swift"}"#)],
             duration: 2.5,
             tokensPerSecond: 45.2
         )
         try assertCodable(metadata)
+    }
+
+    @Test
+    func testLLMResponseOmitsAbsentToolCalls() throws {
+        let data = try JSONEncoder().encode(LLMResponse(content: "answer"))
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(object["toolCalls"] == nil)
     }
 
     @Test
