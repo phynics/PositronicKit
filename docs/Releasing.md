@@ -190,8 +190,8 @@ The target runs the accurate build-based path
 (`swift build --build-system swiftbuild --sbom-spec cyclonedx`) and writes
 `.build/sboms/PositronicKit-<version>.cyclonedx.json` with the release version. It fails if SwiftPM
 cannot generate the document, if a public library product is missing from the components, or if
-the per-product dependency edges change: `PKOpenAIProvider` must list `MacPaw/OpenAI` while
-`PKContracts` must not.
+the audited attribution changes: neither `PKOpenAIProvider` nor `PKContracts` may depend on
+`MacPaw/OpenAI`.
 
 `make verify-release` runs the same generation for the tag being verified, so the SBOM is a blocking
 release artifact rather than an afterthought. The Release Gate workflow generates a final SBOM only
