@@ -974,14 +974,14 @@
       "declaration": "var usage: LLMTokenUsage?"
     },
     {
-      "precise": "s:11PKContracts11LLMResponseV7content2id5model5usage12finishReason17systemFingerprint8duration15tokensPerSecondACSSSg_A2lA13LLMTokenUsageVSgA2LSdSgAPtcfc",
+      "precise": "s:11PKContracts11LLMResponseV7content2id5model5usage12finishReason9toolCalls17systemFingerprint8duration15tokensPerSecondACSSSg_A2mA13LLMTokenUsageVSgAMSayAA11LLMToolCallVGSgAMSdSgAUtcfc",
       "module": "PKContracts",
       "kind": "swift.init",
       "path": [
         "LLMResponse",
-        "init(content:id:model:usage:finishReason:systemFingerprint:duration:tokensPerSecond:)"
+        "init(content:id:model:usage:finishReason:toolCalls:systemFingerprint:duration:tokensPerSecond:)"
       ],
-      "declaration": "init(content: String? = nil, id: String? = nil, model: String? = nil, usage: LLMTokenUsage? = nil, finishReason: String? = nil, systemFingerprint: String? = nil, duration: TimeInterval? = nil, tokensPerSecond: Double? = nil)"
+      "declaration": "init(content: String? = nil, id: String? = nil, model: String? = nil, usage: LLMTokenUsage? = nil, finishReason: String? = nil, toolCalls: [LLMToolCall]? = nil, systemFingerprint: String? = nil, duration: TimeInterval? = nil, tokensPerSecond: Double? = nil)"
     },
     {
       "precise": "s:11PKContracts11LLMResponseV7contentSSSgvp",
@@ -1002,6 +1002,16 @@
         "duration"
       ],
       "declaration": "var duration: TimeInterval?"
+    },
+    {
+      "precise": "s:11PKContracts11LLMResponseV9toolCallsSayAA11LLMToolCallVGSgvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "LLMResponse",
+        "toolCalls"
+      ],
+      "declaration": "var toolCalls: [LLMToolCall]?"
     },
     {
       "precise": "s:11PKContracts11LLMToolCallV",
@@ -22001,6 +22011,16 @@
       "declaration": "func checkHealth() async throws -> HealthStatus"
     },
     {
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV6stream8messages5tools10toolChoice14responseFormat20generationParameters11idleTimeout9transport13promptCachingScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0yJ0OSgAM011LLMResponseL0OSgAM010GenerationN0VSgSdSgAA19GenerationTransportOAM06PromptS6PolicyOSgtF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ModelInferenceCapability",
+        "stream(messages:tools:toolChoice:responseFormat:generationParameters:idleTimeout:transport:promptCaching:)"
+      ],
+      "declaration": "func stream(messages: [LLMMessage], tools: [LLMToolDefinition]? = nil, toolChoice: LLMToolChoice? = nil, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval? = nil, transport: GenerationTransport = .streaming, promptCaching: PromptCachingPolicy? = nil) -> AsyncThrowingStream<LLMStreamChunk, Error>"
+    },
+    {
       "precise": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeout9transport13promptCachingScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AI010GenerationH0VSgSdSgAA0R9TransportOAI06PromptM6PolicyOSgtF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -22009,6 +22029,16 @@
         "stream(_:generationParameters:idleTimeout:transport:promptCaching:)"
       ],
       "declaration": "func stream(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval? = nil, transport: GenerationTransport = .streaming, promptCaching: PromptCachingPolicy? = nil) -> AsyncThrowingStream<LLMStreamChunk, Error>"
+    },
+    {
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate8messages5tools10toolChoice14responseFormat20generationParameters11idleTimeout9transport13promptCaching11PKContracts11LLMResponseVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM0uL0OSgAM010GenerationN0VSgSdSgAA0Y9TransportOAM06PromptS6PolicyOSgtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ModelInferenceCapability",
+        "generate(messages:tools:toolChoice:responseFormat:generationParameters:idleTimeout:transport:promptCaching:)"
+      ],
+      "declaration": "func generate(messages: [LLMMessage], tools: [LLMToolDefinition]? = nil, toolChoice: LLMToolChoice? = nil, responseFormat: LLMResponseFormat? = nil, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval? = nil, transport: GenerationTransport = .streaming, promptCaching: PromptCachingPolicy? = nil) async throws -> LLMResponse"
     },
     {
       "precise": "s:13PositronicKit24ModelInferenceCapabilityV8generate_16structuredOutput20generationParameters11idleTimeout9transport13promptCachingS2S_11PKContracts010StructuredH7RequestOAJ010GenerationJ0VSgSdSgAA0S9TransportOAJ06PromptO6PolicyOSgtYaKF",
@@ -41702,7 +41732,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts11LLMResponseV7content2id5model5usage12finishReason17systemFingerprint8duration15tokensPerSecondACSSSg_A2lA13LLMTokenUsageVSgA2LSdSgAPtcfc",
+      "source": "s:11PKContracts11LLMResponseV7content2id5model5usage12finishReason9toolCalls17systemFingerprint8duration15tokensPerSecondACSSSg_A2mA13LLMTokenUsageVSgAMSayAA11LLMToolCallVGSgAMSdSgAUtcfc",
       "target": "s:11PKContracts11LLMResponseV"
     },
     {
@@ -41715,6 +41745,12 @@
       "module": "PKContracts",
       "kind": "memberOf",
       "source": "s:11PKContracts11LLMResponseV8durationSdSgvp",
+      "target": "s:11PKContracts11LLMResponseV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts11LLMResponseV9toolCallsSayAA11LLMToolCallVGSgvp",
       "target": "s:11PKContracts11LLMResponseV"
     },
     {
@@ -55647,7 +55683,19 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV6stream8messages5tools10toolChoice14responseFormat20generationParameters11idleTimeout9transport13promptCachingScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0yJ0OSgAM011LLMResponseL0OSgAM010GenerationN0VSgSdSgAA19GenerationTransportOAM06PromptS6PolicyOSgtF",
+      "target": "s:13PositronicKit24ModelInferenceCapabilityV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit24ModelInferenceCapabilityV6stream_20generationParameters11idleTimeout9transport13promptCachingScsy11PKContracts14LLMStreamChunkVs5Error_pGSS_AI010GenerationH0VSgSdSgAA0R9TransportOAI06PromptM6PolicyOSgtF",
+      "target": "s:13PositronicKit24ModelInferenceCapabilityV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate8messages5tools10toolChoice14responseFormat20generationParameters11idleTimeout9transport13promptCaching11PKContracts11LLMResponseVSayAM10LLMMessageVG_SayAM17LLMToolDefinitionVGSgAM0wJ0OSgAM0uL0OSgAM010GenerationN0VSgSdSgAA0Y9TransportOAM06PromptS6PolicyOSgtYaKF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
