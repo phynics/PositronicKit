@@ -66,7 +66,7 @@ struct FacadeRunValidationTests {
             ), agentID: agentID, executionKind: .agentManaged)
         }
 
-        #expect(await harness.agentStore.fetchCount == 2)
+        #expect(await harness.agentStore.fetchCount == 1)
         #expect(harness.languageModel.generationCaptureHistory.isEmpty)
         #expect(try await harness.persistence.fetchMessages(for: harness.timelineID).isEmpty)
     }
@@ -89,7 +89,7 @@ struct FacadeRunValidationTests {
         ), agentID: agent.id, executionKind: .agentManaged)
         _ = try await stream.collect()
 
-        #expect(await harness.agentStore.fetchCount == 3)
+        #expect(await harness.agentStore.fetchCount == 2)
         let prompt = try #require(harness.languageModel.lastGenerationCapture)
             .messages
             .map(\.content)
@@ -125,7 +125,7 @@ struct FacadeRunValidationTests {
         ), agentID: agent.id, executionKind: .agentManaged)
         _ = try await stream.collect()
 
-        #expect(await harness.agentStore.fetchCount == 4)
+        #expect(await harness.agentStore.fetchCount == 3)
         #expect(harness.languageModel.generationCaptureHistory.count == 1)
     }
 

@@ -134,12 +134,13 @@ extension TimelineManager {
         return timeline
     }
 
-    /// Validates that a timeline exists before a turn proceeds. Throws
-    /// ``TimelineError/timelineNotFound`` for unknown IDs and
+    /// Validates that a timeline exists before a turn proceeds and returns the authoritative
+    /// record. Throws ``TimelineError/timelineNotFound`` for unknown IDs and
     /// ``TimelineError/unavailable`` for transient store failures.
-    func ensureTimelineExists(id: UUID) async throws {
+    @discardableResult
+    func ensureTimelineExists(id: UUID) async throws -> TimelineRecord {
         do {
-            try await hydrateTimeline(id: id)
+            return try await hydrateTimeline(id: id)
         } catch let error as TimelineError {
             throw error
         } catch {
@@ -148,8 +149,11 @@ extension TimelineManager {
     }
 
     /// Reconstructs a timeline and its components from persistence.
-    func hydrateTimeline(id: UUID) async throws {
-        if toolManagers[id] != nil { return }
+    @discardableResult
+    func hydrateTimeline(id: UUID) async throws -> TimelineRecord {
+        if let cached = timelines[id], toolManagers[id] != nil {
+            return cached
+        }
 
         guard let timeline = try await timelineStore.fetchTimeline(id: id) else {
             throw TimelineError.timelineNotFound
@@ -170,6 +174,7 @@ extension TimelineManager {
             workspaceURL: timelineWorkspaceURL
         )
         await classifyActiveTurnOnLoad(for: id)
+        return timeline
     }
 
     /// Interrupts an active Turn this process does not own when the Timeline is loaded, so an
