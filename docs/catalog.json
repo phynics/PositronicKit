@@ -2,13 +2,18 @@
   "schemaVersion": 1,
   "repository": "phynics/PositronicKit",
   "stable": {
-    "version": "6.1.0",
-    "ref": "6.1.0",
+    "version": "7.0.0",
+    "ref": "7.0.0",
     "guides": [
       {
         "title": "Overview and quick start",
         "path": "README.md",
         "summary": "Stable package setup, provider configuration, examples, and verification."
+      },
+      {
+        "title": "Migrate from 6.x",
+        "path": "docs/Migrating-to-7.md",
+        "summary": "Stable 7.0 breaking changes, replacement APIs, and verification steps."
       },
       {
         "title": "Setup",
@@ -44,7 +49,7 @@
   },
   "next": {
     "label": "Next",
-    "version": "6.1.0",
+    "version": "7.0.0",
     "ref": "main"
   },
   "guides": [
@@ -52,6 +57,11 @@
       "title": "Overview and quick start",
       "path": "README.md",
         "summary": "Release selection, runtime contracts, Timeline history, provider setup, typed structured generation, conformance suites, runnable examples, products, and verification."
+    },
+    {
+      "title": "Migrate from 6.x",
+      "path": "docs/Migrating-to-7.md",
+      "summary": "7.0 breaking changes, replacement APIs, and verification steps for upgrading consumers."
     },
     {
       "title": "Setup",

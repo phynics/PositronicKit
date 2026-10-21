@@ -1,6 +1,6 @@
 # PositronicKit SwiftUI Guide
 
-This guide documents the unreleased Next `PKObservable` story. `TimelineController` is a
+This guide documents the 7.0 `PKObservable` story. `TimelineController` is a
 `@Observable` `@MainActor` controller that mirrors one `TimelineHandle` into SwiftUI state:
 completed `messages`, in-flight `streamingText`/`isStreaming`, the durable terminal truth of
 the last send (`lastTurnID`, `lastOutcome`, `lastError`), the per-round `promptCacheReports`,

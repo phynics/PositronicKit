@@ -8,7 +8,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes and tagged compatibility hist
 
 ## Choose a documentation channel
 
-- Latest stable: `6.1.0`. Use the [immutable tagged documentation](https://github.com/phynics/PositronicKit/blob/6.1.0/README.md) and the semver dependency below for production.
+- Latest stable: `7.0.0`. Use the [immutable tagged documentation](https://github.com/phynics/PositronicKit/blob/7.0.0/README.md) and the semver dependency below for production.
 - Next: this `main` README and the [Next documentation landing](docs/next/) describe unreleased follow-up work. Use a branch or local-path dependency only for coordinated evaluation.
 
 The [documentation landing](docs/) defaults to stable and keeps stable links separate from the
@@ -48,15 +48,14 @@ current package.
 Add PositronicKit as a Swift Package dependency:
 
 ```swift skip
-.package(url: "https://github.com/phynics/PositronicKit.git", from: "6.1.0")
+.package(url: "https://github.com/phynics/PositronicKit.git", from: "7.0.0")
 ```
 
-Public products follow semver, with one recorded exception: `6.1.0` removed public API that the
-runtime never read and should have been a major release. Review the `6.1.0` breaking entries in
-[CHANGELOG.md](CHANGELOG.md) before upgrading from `6.0.x`. Continue with the tagged README for stable API examples. The
-examples below describe the current Next public story and may advance beyond `6.1.0`.
+Public products follow semver from `7.0.0`. The `6.1.0` tag removed public API in a minor release;
+that exception is recorded in [CHANGELOG.md](CHANGELOG.md). Review the [migration guide](docs/Migrating-to-7.md)
+before upgrading from `6.0.x` or `6.1.0`. The examples below describe the 7.0 public story.
 
-## Next quick start
+## Quick start
 
 Build one configured provider value in its provider module, then pass it to the provider-neutral
 runtime:
@@ -249,6 +248,7 @@ The repository includes a deterministic executable that exercises a complete off
 
 Use these guides for details:
 
+- [Migrate from 6.x](docs/Migrating-to-7.md) lists the 7.0 breaking changes and replacements.
 - [Setup](docs/Setup.md) covers providers, persistence, customization, logging, and errors.
 - [Usage](docs/Usage.md) covers managed and direct Turns, Agents, and Workspaces.
 - [Agent files](docs/PKAgentFiles.md) covers the optional `PKAgentFiles` filesystem conventions.
@@ -433,8 +433,8 @@ Once `journal.compact()` is called, these delta operations are merged directly b
 `PKTestSupport` is a public library product for downstream test targets. Import it normally. Do not
 use `@testable` to access its mocks, fixtures, stream factories, or `TestRuntime` composition root.
 
-> Release availability: this section documents the current Next channel. It is not part of the stable `6.1.0`
-> channel. Use a local-path override only for coordinated unreleased work, as described in
+> Release availability: this section documents behavior shipped in `7.0.0`. Use a local-path
+> override only for coordinated work against `main`, as described in
 > [Releasing](docs/Releasing.md#downstream-cadence).
 
 This example compiles in an ordinary downstream test target with `PKContracts`, `PositronicKit`, and

@@ -1,7 +1,8 @@
 # PositronicKit Usage Guide
 
-This guide documents the unreleased Next runtime. For production, start from the
-[stable tagged README](https://github.com/phynics/PositronicKit/blob/6.1.0/README.md).
+This guide documents the 7.0 runtime. The
+[7.0.0 tagged README](https://github.com/phynics/PositronicKit/blob/7.0.0/README.md)
+is the stable entry point.
 
 ## Request-response transport
 
