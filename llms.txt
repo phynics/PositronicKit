@@ -1,20 +1,22 @@
 # PositronicKit documentation
 
-> Stable 6.1.0 is the default, immutable channel. Next follows main and is unreleased.
+> Stable 7.0.0 is the default, immutable channel. Next follows main and is unreleased.
 
 ## Stable
 
-- [Overview and quick start](https://github.com/phynics/PositronicKit/blob/6.1.0/README.md): Stable package setup, provider configuration, examples, and verification.
-- [Setup](https://github.com/phynics/PositronicKit/blob/6.1.0/docs/Setup.md): Stable provider, persistence, customization, logging, and error setup.
-- [Usage](https://github.com/phynics/PositronicKit/blob/6.1.0/docs/Usage.md): Stable runtime, Agent lifecycle, Workspace routing, and embeddings usage.
-- [Architecture](https://github.com/phynics/PositronicKit/blob/6.1.0/docs/Architecture.md): Architecture and module boundaries shipped by the stable release.
-- [Prompt composition](https://github.com/phynics/PositronicKit/blob/6.1.0/docs/PKPromptComposition.md): Stable prompt composition, rendering, compression, and journaling APIs.
-- [Sidecar directives](https://github.com/phynics/PositronicKit/blob/6.1.0/docs/SidecarDirectives.md): Stable auxiliary structured-result behavior.
-- [Changelog](https://github.com/phynics/PositronicKit/blob/6.1.0/CHANGELOG.md): Published release history through this immutable tag.
+- [Overview and quick start](https://github.com/phynics/PositronicKit/blob/7.0.0/README.md): Stable package setup, provider configuration, examples, and verification.
+- [Migrate from 6.x](https://github.com/phynics/PositronicKit/blob/7.0.0/docs/Migrating-to-7.md): Stable 7.0 breaking changes, replacement APIs, and verification steps.
+- [Setup](https://github.com/phynics/PositronicKit/blob/7.0.0/docs/Setup.md): Stable provider, persistence, customization, logging, and error setup.
+- [Usage](https://github.com/phynics/PositronicKit/blob/7.0.0/docs/Usage.md): Stable runtime, Agent lifecycle, Workspace routing, and embeddings usage.
+- [Architecture](https://github.com/phynics/PositronicKit/blob/7.0.0/docs/Architecture.md): Architecture and module boundaries shipped by the stable release.
+- [Prompt composition](https://github.com/phynics/PositronicKit/blob/7.0.0/docs/PKPromptComposition.md): Stable prompt composition, rendering, compression, and journaling APIs.
+- [Sidecar directives](https://github.com/phynics/PositronicKit/blob/7.0.0/docs/SidecarDirectives.md): Stable auxiliary structured-result behavior.
+- [Changelog](https://github.com/phynics/PositronicKit/blob/7.0.0/CHANGELOG.md): Published release history through this immutable tag.
 
 ## Next
 
 - [Overview and quick start](README.md): Release selection, runtime contracts, Timeline history, provider setup, typed structured generation, conformance suites, runnable examples, products, and verification.
+- [Migrate from 6.x](docs/Migrating-to-7.md): 7.0 breaking changes, replacement APIs, and verification steps for upgrading consumers.
 - [Setup](docs/Setup.md): Provider-neutral configuration, readiness and health, stream timing, offline examples, persistence, customization, logging, and stable error identity.
 - [Usage](docs/Usage.md): Managed and direct Turns, durable Timeline history, typed and raw one-shot structured generation, cancellation, Agent memory, lifecycle, and Workspace routing.
 - [Agent files](docs/PKAgentFiles.md): Optional PKAgentFiles conventions for filesystem Agent context, workspace seeding, and protected-path write approval.

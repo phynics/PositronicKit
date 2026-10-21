@@ -98,8 +98,8 @@ In that role, `PromptJournal` is the recommended public abstraction.
 After you accept a turn and append its assistant/tool messages to timeline history, record
 that pressure with `recordAppend(messages:)` (or `recordAppend(messageCount:estimatedTokens:)`).
 When the thresholds are exceeded, the next `observe(_:)` auto-promotes the latest accepted prompt
-into a new committed base before diffing again. This gives standalone prompt consumers the same
-kind of safety valve that the runtime uses, without coupling them to runtime-only types.
+into a new committed base before diffing again. This is a standalone `PKPrompt` feature; the runtime does not use it and keeps no
+append-pressure state.
 
 ### What the runtime keeps
 

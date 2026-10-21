@@ -1,8 +1,8 @@
-# PositronicKit Next Setup Guide
+# PositronicKit 7.0 Setup Guide
 
-This guide follows `main` and describes unreleased APIs. The
-[stable `6.1.0` documentation](https://github.com/phynics/PositronicKit/blob/6.1.0/docs/Setup.md)
-is immutable and remains the production default.
+This guide describes APIs shipped by `7.0.0`. The
+[`6.1.0` documentation](https://github.com/phynics/PositronicKit/blob/6.1.0/docs/Setup.md)
+is an immutable earlier release.
 
 ## 1. Choosing An Entry Point
 

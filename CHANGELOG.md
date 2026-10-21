@@ -8,6 +8,11 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [7.0.0] - 2026-10-20
+
+> **Major release.** 7.0.0 removes public API and replaces several runtime seams. Read the
+> [migration guide](docs/Migrating-to-7.md) before upgrading from `6.0.x` or `6.1.0`.
+
 ### Added
 
 - **Host-managed one-shot generation over the generic model contract (#290).**
@@ -20,182 +25,6 @@ for tagged releases beginning with `1.0.0`.
   run a tool round and correlate `.tool` results by `LLMToolCall.id`. An application that does not
   need the runtime can use `PKContracts` and one provider product directly.
 
-### Breaking
-
-- **One model-client stack: a single fold, no resolver seam, and configured timeouts (#311).**
-  `LLMClientResolving` and `FixedClientsResolver` are removed. Construct `LLMService` with
-  `configuration:` and `clients:` directly; the client set is pinned, so `updateConfiguration(_:)`
-  replaces the configuration but keeps dispatching through the same clients. `LLMStreamChunk`
-  gains a throwing `folding(_:provider:)` that is the single one-shot fold and empty-response
-  rule: a stream with no chunks throws `LLMServiceError.emptyResponse(provider:)` with the real
-  provider label. The public `kit.model` one-shot entry points now defer to the runtime's
-  configured `RuntimeConfiguration.streamTimeout`, so `idleTimeout` is `TimeInterval? = nil` on
-  `ModelInferenceCapability.generate(_:generationParameters:idleTimeout:transport:promptCaching:)`,
-  `generate(_:from:generationParameters:idleTimeout:transport:promptCaching:decoder:)`,
-  `stream(_:generationParameters:idleTimeout:transport:promptCaching:)`,
-  `generate(_:structuredOutput:generationParameters:idleTimeout:transport:promptCaching:)`, and
-  `LLMStreamClient.sendStructuredMessage`. Hosts that set a non-default `streamTimeout` and called
-  `kit.model` without passing `idleTimeout` explicitly now honour that configured value. The
-  Turn-stage, `kit.model`, and `generationStreamWithContext` structured paths share one
-  structured-preparation step.
-- **Move runtime vocabulary into `PositronicKit` (#314).** `Agent`, `AgentTemplate`,
-  `RequestOriginIdentity`, `TurnEvent`, `TurnIdentity`, `TurnSnapshot`, `TurnDiagnostic`,
-  `TurnContextSnapshot`, `Sidecar*`, `WorkspaceReference`, `WorkspaceURI`, `WorkspaceToolCandidate`,
-  and `WorkspaceToolRouting` now live in `PositronicKit`. `ToolCallDelta`, `ToolCallRecord`, and
-  `ToolResultRecord` move with their Turn event or snapshot owners. Import `PositronicKit` for these
-  types. `PKContracts` retains model messages, tool definitions/calls/results, structured output,
-  embeddings, and diagnostics. `WorkspaceToolDefinition` is now the neutral `ToolDefinition` in
-  `PKContracts`. `ToolResult` no longer carries Workspace routing; successful Workspace calls expose
-  that metadata through `ToolExecutionStatus.workspaceSucceeded`. `TurnEvent` keeps its existing
-  Codable wire format.
-- **The runtime adds no default prompt instructions (#288).** `DefaultInstructions` is removed.
-  A Turn with no host `systemInstructions` and no Agent context now sends an empty stable system
-  tier instead of the old "You are PKRuntime…" persona. Hosts that relied on the default must
-  supply identity and guidance through `AgentContextSource`, `TurnContextSource`, or the direct
-  Turn request. Built-in sections are now minimal structured text (workspace, tools, Timeline,
-  and Agent identity) with no guidance prose, the retrieved-context header is one documented
-  constant, and the fixed 120k-token history budget is derived from
-  `ProviderConfiguration.contextWindowTokens` minus the response reserve and an estimate of the
-  non-history tiers.
-- **The filesystem Agent conventions move to the optional `PKAgentFiles` adapter (#289).**
-  `DefaultAgentContextSource` is replaced by `IdentityAgentContextSource` as the runtime default,
-  which returns the Agent's stored name, description, and instructions only.
-  `DefaultWorkspaceCatalog` writes no identity file and no `Notes/MEMORY.md` template unless a host
-  supplies an `AgentWorkspaceSeed`. `AgentWorkspaceFileTool` no longer special-cases `SOUL.md`; it
-  consults `RuntimeToolPolicy.protectedPrimaryWorkspacePaths` (default empty, so no write is
-  gated). `WorkspaceProfile` no longer seeds timeline notes by default; pass
-  `seedNotes: .default` to restore `Welcome.md` and `Project.md`. Install `PKAgentFiles` for
-  `FileSystemAgentContextSource`, `PKAgentFiles.seedNotes`, and `PKAgentFiles.protectedPaths`, or
-  use `PKRuntime.RuntimeConfiguration.agentFiles(persistence:workspaceProfile:)` to install all
-  three at once.
-
-### Fixed
-
-- A Turn now captures its provider configuration and execution authority inside the admission
-  lane and freezes that snapshot for its lifetime. Media validation, prompt budgeting, model
-  identity, Workspace tool catalog, and Agent context all read the captured snapshot, so a host
-  configuration replacement or Workspace binding change during preparation cannot switch the
-  active Turn's model or workspace. A missing Agent still reports `agentNotFound`, and Agent
-  attachment is revalidated in the admission lane (#307).
-- OpenAI Responses streaming now reads usage from the nested `response.completed.response.usage`
-  envelope and retains the flat usage fallback (#364).
-- OpenAI Responses streaming now terminates honestly: a `response.failed` event or an in-band
-  `error` event propagates the provider diagnostics (including type, code, and message when
-  available) as `LLMServiceError` instead of ending the
-  stream as a clean EOF, a `response.incomplete` terminal surfaces the mapped finish reason
-  (`length` for `max_output_tokens`, `content_filter`, or the provider reason verbatim) plus
-  usage on the terminal chunk, and a stream that ends without any terminal event (abnormal
-  EOF) fails the stream instead of fabricating a successful completion. Non-streaming failed
-  responses also surface their top-level error. A Turn therefore ends with a durable `.failed`
-  outcome on provider failure, incomplete finish reason, or abnormal EOF, and preserves partial
-  output already streamed (#369).
-- Stateless OpenAI Responses follow-ups now replay each assistant `function_call` with its original
-  name, arguments, and call ID before the matching tool results (#368).
-- Reloaded and forked history keeps the semantic tool-result role and the original call
-  correlation. A persisted tool result now re-enters the provider request as a `.tool` message
-  adjacent to its assistant call with the matching `tool_call_id`, instead of degrading to a
-  user XML wrapper with a nil result ID (#366).
-- Image-only and audio-only Turns reach the provider request. The prompt layout now preserves a
-  user query whenever it has nonempty parts, instead of dropping it when the text projection is
-  empty (#365).
-- OpenAI Responses non-streaming completions now decode assistant text and refusals from nested
-  message content parts, preserve structured JSON, and retain incomplete-response status (#360).
-- The Workspace Execution Lane stays closed after a mutating or external-process tool times out,
-  until the abandoned task ends. A later call for the same Workspace now waits instead of
-  overlapping the still-running tool (#302).
-- Cancelling a tool caller no longer releases the Workspace Execution Lane while a
-  cancellation-ignoring mutating or external-process tool may still be running. Cancellation
-  carries the same abandoned-mutation ownership handoff as the timeout path, so a later call waits
-  for the underlying task to exit instead of overlapping it (#367).
-- `append_file` preserves existing files when a read fails, including oversized files,
-  permission errors, and invalid UTF-8. It creates a file only when the provider reports
-  a recognized missing-file error.
-- Timeline sends now fail without saving a destination message when source history cannot be read,
-  preventing a storage failure from bypassing the cross-agent send depth limit.
-- Workspace tool catalog capture records a `.workspace` degradation and omits that Workspace's
-  tools when the live resolver or `listTools` fails, rather than reusing stale registered tools.
-- Workspace `call_tool` selectors now enumerate only unique captured call names. Display-name
-  aliases and duplicate identifiers are rejected, including when the caller supplies `at` (#378).
-- `PKMCP` builds for iOS again. `MCPConnection` referenced `Process`, which is unavailable on iOS,
-  tvOS, watchOS, and visionOS, outside the platform guard that already rejects the stdio transport
-  there. The stored process handle and its termination now sit behind that same guard, so the new
-  all-products iOS lane (#316) can compile the module. The stdio transport still reports
-  `unsupportedTransport` on those platforms.
-
-### Changed
-
-- **The runtime holds no prompt-journal state (#293).** `TimelinePromptJournals`, the
-  `TimelinePromptHistory` journal diff, append-pressure compaction, and `StructuredDiffHint`
-  plumbing are removed. A changed semi-stable segment is re-rendered in place and reported as one
-  prefix reset. Prefix-reset detection now compares a small internal per-Timeline `TierFingerprint`
-  (an ordered hash per tier and segment ID) against the previous model round, producing
-  `stableTierChanged`, `semiStableSegmentChanged`, `toolsChanged`, `historyTrim`, and
-  `historyProjectionChanged` for `PromptCacheReport` (#280). The first round after launch or after
-  Timeline eviction reports `firstRound`. Per-Timeline prompt state now lives on the Timeline
-  manager, so it still survives `replacingLanguageModel(_:generationParameters:)` without a journal
-  registry. `PromptJournal` and its overlay format remain in the optional `PKPrompt` product.
-- **Runtime Turns no longer compress or summarize (#294).** `PromptAssemblyOptions` drops
-  `tokenBudget`, `compressor`, `structuredExecutor`, and `structuredDiff`, and no compression type
-  is referenced in `Sources/PositronicKit`. An over-budget Turn now runs in this order: apply a
-  configured `TurnHistoryProjectionSource`, stepwise-trim history at a tool-transaction boundary,
-  then fail preparation with `TurnError.promptExceedsContextWindow(estimated:limit:)` when the
-  non-history tiers alone exceed the prompt budget. No section is silently dropped. Compression
-  and summarization remain in the optional `PKPrompt` product.
-- **Tiered prompt wire layout (#277).** The runtime renders provider requests in cache tiers:
-  tools, stable system, semi-stable system, prior history, volatile per-Turn context, then the
-  query. `TurnContextContributions` no longer sit at byte zero, so per-Turn context changes no
-  longer reset the whole prefix. The runtime derives `PromptCacheDirective` breakpoints
-  (`stableSystem`, `semiStableSystem`, `history`, and `toolLoop` on later rounds; at most four)
-  from the layout, orders tools deterministically (built-in runtime tools by name, then per-Turn
-  caller tools in caller order), and trims history stepwise to 75% of the budget at a
-  tool-transaction boundary, keeping one cut until the budget is crossed again. The Timeline title
-  moves from the stable Agent identity into the semi-stable Timeline context, so a rename no
-  longer resets the identity prefix.
-- **The runtime no longer depends on `PKPrompt`.** `PositronicKit` builds provider requests from
-  an internal tiered `PromptLayout`, the 13 runtime section types are internal producers, and the
-  `RenderedPrompt.buildMessages()` / `buildTimelineMessages()` projections move into `PKPrompt` as
-  the optional authoring product's own rendering. The shared prompt section model, token
-  budgeting, and compression live in the package-internal `PKUtilities` target, which `PKPrompt`
-  re-exports so its public surface stays source-compatible. A dependency gate fails if either
-  module imports the other (#287).
-- **The Turn transition rules have one runtime owner.** A new runtime module, the Turn Ledger,
-decides admission, retries, membership, the tool-result barrier, terminal commits, interruption,
-and quarantine release as pure functions over a loaded ledger snapshot and returns the rows to
-write. `InMemoryTimelineRuntimeRepository` becomes a thin atomic-commit adapter over that module,
-so a durable adapter can decide one transition without embedding the in-memory store. The ledger
-is package-scoped; the repository protocol is unchanged in this release (ADR 0017).
-- **OpenAI provider rebuild (no third-party SDK):** `PKOpenAIProvider` now runs on the shared `PKUtilities` Chat Completions wire plumbing with `.sortedKeys`-deterministic bytes and adds stateless Responses API support (`OpenAIAPI.automatic/.chatCompletions/.responses`; Responses for `api.openai.com`, Chat Completions elsewhere, audio forced to Chat Completions). `PKOpenRouterProvider` becomes a thin preset over the same core (attribution headers retained). Removes the `MacPaw/OpenAI` dependency.
-- **Nix dev shell (#272):** `flake.nix` and a pinned `flake.lock` fetch the official swift.org 6.4.0
-  Linux toolchain, patch it with `autoPatchelfHook`, and fall back to Xcode's 6.4 toolchain on
-  macOS, so `nix develop` is a supported second development path next to the container. `make
-  doctor` reports a Nix backend and validates the toolchain and its patched libraries,
-  `Scripts/update-flake-swift.sh` refreshes the pinned URLs and hashes, and a nightly CI job runs
-  `nix develop -c make verify-products`.
-- **CI builds every library product for iOS and adds the nightly live lanes (#316).** The
-  `ios-verify` lane now builds every library product `Package.swift` declares for
-  `generic/platform=iOS Simulator` (driven by `Scripts/list-library-products.swift`) before it
-  builds and tests `PKObservable` on a simulator, so an iOS-only availability regression in any
-  provider or in `PKTestSupport` cannot hide behind the macOS build. A new report-only
-  `.github/workflows/nightly-live.yml` runs on a schedule or manual dispatch only: the opt-in
-  prompt-cache live checks (`POSITRONICKIT_LIVE_TESTS=1` plus a provider key, each job skipped when
-  its secret is absent), the recorded OpenAI transport contract, the Nix flake build (folded from
-  the deleted `nix-devshell.yml`), and report-only local-path-override builds of Gnostic and
-  Yakamoz against `main`. The live and contract steps run through
-  `make verify-live-{anthropic,openai,openrouter}-cache` and `make verify-openai-contract`, which
-  apply the gate's `$(SWIFT_BUILD_FLAGS)` and refuse to start a live target without both opt-ins,
-  so nightly compiler diagnostics cannot diverge from the PR gate and a skipped suite is never
-  reported as evidence. Nightly flake detection now runs through
-  `make detect-flakes-run ITERATIONS=…`, so it applies the gate's `-warnings-as-errors` flags, and
-  a weekly macOS schedule repeats the full suite for the Apple-only paths.
-  `.github/dependabot.yml` opens grouped weekly `github-actions` and `swift` update pull requests.
-- **Bind release SBOM artifacts to the resolved tag commit (#359).** The Release Gate resolves a
-  tag once and pins each gate job to that commit; its SBOM artifact includes provenance naming the
-  tag and commit. The `Release SBOM` workflow attaches only an artifact whose provenance matches
-  the release checkout, so a moved or recreated tag requires a fresh successful gate for its
-  current commit. `docs/Releasing.md` documents tag actor restrictions separately; the workflow
-  does not depend on a required-workflow tag rule.
-
-### Added
 
 - **Cache-exact sibling requests over a Timeline prefix (#281, @_spi(Experimental)).** With
   `RuntimeConfiguration(retainsSiblingPrefix: true)`, the runtime retains each Timeline's newest
@@ -350,6 +179,54 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
 
 ### Breaking
 
+- **One model-client stack: a single fold, no resolver seam, and configured timeouts (#311).**
+  `LLMClientResolving` and `FixedClientsResolver` are removed. Construct `LLMService` with
+  `configuration:` and `clients:` directly; the client set is pinned, so `updateConfiguration(_:)`
+  replaces the configuration but keeps dispatching through the same clients. `LLMStreamChunk`
+  gains a throwing `folding(_:provider:)` that is the single one-shot fold and empty-response
+  rule: a stream with no chunks throws `LLMServiceError.emptyResponse(provider:)` with the real
+  provider label. The public `kit.model` one-shot entry points now defer to the runtime's
+  configured `RuntimeConfiguration.streamTimeout`, so `idleTimeout` is `TimeInterval? = nil` on
+  `ModelInferenceCapability.generate(_:generationParameters:idleTimeout:transport:promptCaching:)`,
+  `generate(_:from:generationParameters:idleTimeout:transport:promptCaching:decoder:)`,
+  `stream(_:generationParameters:idleTimeout:transport:promptCaching:)`,
+  `generate(_:structuredOutput:generationParameters:idleTimeout:transport:promptCaching:)`, and
+  `LLMStreamClient.sendStructuredMessage`. Hosts that set a non-default `streamTimeout` and called
+  `kit.model` without passing `idleTimeout` explicitly now honour that configured value. The
+  Turn-stage, `kit.model`, and `generationStreamWithContext` structured paths share one
+  structured-preparation step.
+- **Move runtime vocabulary into `PositronicKit` (#314).** `Agent`, `AgentTemplate`,
+  `RequestOriginIdentity`, `TurnEvent`, `TurnIdentity`, `TurnSnapshot`, `TurnDiagnostic`,
+  `TurnContextSnapshot`, `Sidecar*`, `WorkspaceReference`, `WorkspaceURI`, `WorkspaceToolCandidate`,
+  and `WorkspaceToolRouting` now live in `PositronicKit`. `ToolCallDelta`, `ToolCallRecord`, and
+  `ToolResultRecord` move with their Turn event or snapshot owners. Import `PositronicKit` for these
+  types. `PKContracts` retains model messages, tool definitions/calls/results, structured output,
+  embeddings, and diagnostics. `WorkspaceToolDefinition` is now the neutral `ToolDefinition` in
+  `PKContracts`. `ToolResult` no longer carries Workspace routing; successful Workspace calls expose
+  that metadata through `ToolExecutionStatus.workspaceSucceeded`. `TurnEvent` keeps its existing
+  Codable wire format.
+- **The runtime adds no default prompt instructions (#288).** `DefaultInstructions` is removed.
+  A Turn with no host `systemInstructions` and no Agent context now sends an empty stable system
+  tier instead of the old "You are PKRuntime…" persona. Hosts that relied on the default must
+  supply identity and guidance through `AgentContextSource`, `TurnContextSource`, or the direct
+  Turn request. Built-in sections are now minimal structured text (workspace, tools, Timeline,
+  and Agent identity) with no guidance prose, the retrieved-context header is one documented
+  constant, and the fixed 120k-token history budget is derived from
+  `ProviderConfiguration.contextWindowTokens` minus the response reserve and an estimate of the
+  non-history tiers.
+- **The filesystem Agent conventions move to the optional `PKAgentFiles` adapter (#289).**
+  `DefaultAgentContextSource` is replaced by `IdentityAgentContextSource` as the runtime default,
+  which returns the Agent's stored name, description, and instructions only.
+  `DefaultWorkspaceCatalog` writes no identity file and no `Notes/MEMORY.md` template unless a host
+  supplies an `AgentWorkspaceSeed`. `AgentWorkspaceFileTool` no longer special-cases `SOUL.md`; it
+  consults `RuntimeToolPolicy.protectedPrimaryWorkspacePaths` (default empty, so no write is
+  gated). `WorkspaceProfile` no longer seeds timeline notes by default; pass
+  `seedNotes: .default` to restore `Welcome.md` and `Project.md`. Install `PKAgentFiles` for
+  `FileSystemAgentContextSource`, `PKAgentFiles.seedNotes`, and `PKAgentFiles.protectedPaths`, or
+  use `PKRuntime.RuntimeConfiguration.agentFiles(persistence:workspaceProfile:)` to install all
+  three at once.
+
+
 - **Removed host settings persistence leftovers and utility generators (#269):** The runtime stops
   shipping app-settings persistence and one-off utility generators. A host keeps its own settings
   storage and passes a configured `LLMService(configuration:clients:)`. Persist `LLMConfiguration`
@@ -383,7 +260,132 @@ is package-scoped; the repository protocol is unchanged in this release (ADR 001
   cascades message history, so the in-memory runtime repository no longer exposes an
   always-throwing `deleteMessages`.
 
+### Fixed
+
+- A Turn now captures its provider configuration and execution authority inside the admission
+  lane and freezes that snapshot for its lifetime. Media validation, prompt budgeting, model
+  identity, Workspace tool catalog, and Agent context all read the captured snapshot, so a host
+  configuration replacement or Workspace binding change during preparation cannot switch the
+  active Turn's model or workspace. A missing Agent still reports `agentNotFound`, and Agent
+  attachment is revalidated in the admission lane (#307).
+- OpenAI Responses streaming now reads usage from the nested `response.completed.response.usage`
+  envelope and retains the flat usage fallback (#364).
+- OpenAI Responses streaming now terminates honestly: a `response.failed` event or an in-band
+  `error` event propagates the provider diagnostics (including type, code, and message when
+  available) as `LLMServiceError` instead of ending the
+  stream as a clean EOF, a `response.incomplete` terminal surfaces the mapped finish reason
+  (`length` for `max_output_tokens`, `content_filter`, or the provider reason verbatim) plus
+  usage on the terminal chunk, and a stream that ends without any terminal event (abnormal
+  EOF) fails the stream instead of fabricating a successful completion. Non-streaming failed
+  responses also surface their top-level error. A Turn therefore ends with a durable `.failed`
+  outcome on provider failure, incomplete finish reason, or abnormal EOF, and preserves partial
+  output already streamed (#369).
+- Stateless OpenAI Responses follow-ups now replay each assistant `function_call` with its original
+  name, arguments, and call ID before the matching tool results (#368).
+- Reloaded and forked history keeps the semantic tool-result role and the original call
+  correlation. A persisted tool result now re-enters the provider request as a `.tool` message
+  adjacent to its assistant call with the matching `tool_call_id`, instead of degrading to a
+  user XML wrapper with a nil result ID (#366).
+- Image-only and audio-only Turns reach the provider request. The prompt layout now preserves a
+  user query whenever it has nonempty parts, instead of dropping it when the text projection is
+  empty (#365).
+- OpenAI Responses non-streaming completions now decode assistant text and refusals from nested
+  message content parts, preserve structured JSON, and retain incomplete-response status (#360).
+- The Workspace Execution Lane stays closed after a mutating or external-process tool times out,
+  until the abandoned task ends. A later call for the same Workspace now waits instead of
+  overlapping the still-running tool (#302).
+- Cancelling a tool caller no longer releases the Workspace Execution Lane while a
+  cancellation-ignoring mutating or external-process tool may still be running. Cancellation
+  carries the same abandoned-mutation ownership handoff as the timeout path, so a later call waits
+  for the underlying task to exit instead of overlapping it (#367).
+- `append_file` preserves existing files when a read fails, including oversized files,
+  permission errors, and invalid UTF-8. It creates a file only when the provider reports
+  a recognized missing-file error.
+- Timeline sends now fail without saving a destination message when source history cannot be read,
+  preventing a storage failure from bypassing the cross-agent send depth limit.
+- Workspace tool catalog capture records a `.workspace` degradation and omits that Workspace's
+  tools when the live resolver or `listTools` fails, rather than reusing stale registered tools.
+- Workspace `call_tool` selectors now enumerate only unique captured call names. Display-name
+  aliases and duplicate identifiers are rejected, including when the caller supplies `at` (#378).
+- `PKMCP` builds for iOS again. `MCPConnection` referenced `Process`, which is unavailable on iOS,
+  tvOS, watchOS, and visionOS, outside the platform guard that already rejects the stdio transport
+  there. The stored process handle and its termination now sit behind that same guard, so the new
+  all-products iOS lane (#316) can compile the module. The stdio transport still reports
+  `unsupportedTransport` on those platforms.
+
 ### Changed
+
+- **The runtime holds no prompt-journal state (#293).** `TimelinePromptJournals`, the
+  `TimelinePromptHistory` journal diff, append-pressure compaction, and `StructuredDiffHint`
+  plumbing are removed. A changed semi-stable segment is re-rendered in place and reported as one
+  prefix reset. Prefix-reset detection now compares a small internal per-Timeline `TierFingerprint`
+  (an ordered hash per tier and segment ID) against the previous model round, producing
+  `stableTierChanged`, `semiStableSegmentChanged`, `toolsChanged`, `historyTrim`, and
+  `historyProjectionChanged` for `PromptCacheReport` (#280). The first round after launch or after
+  Timeline eviction reports `firstRound`. Per-Timeline prompt state now lives on the Timeline
+  manager, so it still survives `replacingLanguageModel(_:generationParameters:)` without a journal
+  registry. `PromptJournal` and its overlay format remain in the optional `PKPrompt` product.
+- **Runtime Turns no longer compress or summarize (#294).** `PromptAssemblyOptions` drops
+  `tokenBudget`, `compressor`, `structuredExecutor`, and `structuredDiff`, and no compression type
+  is referenced in `Sources/PositronicKit`. An over-budget Turn now runs in this order: apply a
+  configured `TurnHistoryProjectionSource`, stepwise-trim history at a tool-transaction boundary,
+  then fail preparation with `TurnError.promptExceedsContextWindow(estimated:limit:)` when the
+  non-history tiers alone exceed the prompt budget. No section is silently dropped. Compression
+  and summarization remain in the optional `PKPrompt` product.
+- **Tiered prompt wire layout (#277).** The runtime renders provider requests in cache tiers:
+  tools, stable system, semi-stable system, prior history, volatile per-Turn context, then the
+  query. `TurnContextContributions` no longer sit at byte zero, so per-Turn context changes no
+  longer reset the whole prefix. The runtime derives `PromptCacheDirective` breakpoints
+  (`stableSystem`, `semiStableSystem`, `history`, and `toolLoop` on later rounds; at most four)
+  from the layout, orders tools deterministically (built-in runtime tools by name, then per-Turn
+  caller tools in caller order), and trims history stepwise to 75% of the budget at a
+  tool-transaction boundary, keeping one cut until the budget is crossed again. The Timeline title
+  moves from the stable Agent identity into the semi-stable Timeline context, so a rename no
+  longer resets the identity prefix.
+- **The runtime no longer depends on `PKPrompt`.** `PositronicKit` builds provider requests from
+  an internal tiered `PromptLayout`, the 13 runtime section types are internal producers, and the
+  `RenderedPrompt.buildMessages()` / `buildTimelineMessages()` projections move into `PKPrompt` as
+  the optional authoring product's own rendering. The shared prompt section model, token
+  budgeting, and compression live in the package-internal `PKUtilities` target, which `PKPrompt`
+  re-exports so its public surface stays source-compatible. A dependency gate fails if either
+  module imports the other (#287).
+- **The Turn transition rules have one runtime owner.** A new runtime module, the Turn Ledger,
+decides admission, retries, membership, the tool-result barrier, terminal commits, interruption,
+and quarantine release as pure functions over a loaded ledger snapshot and returns the rows to
+write. `InMemoryTimelineRuntimeRepository` becomes a thin atomic-commit adapter over that module,
+so a durable adapter can decide one transition without embedding the in-memory store. The ledger
+is package-scoped; the repository protocol is unchanged in this release (ADR 0017).
+- **OpenAI provider rebuild (no third-party SDK):** `PKOpenAIProvider` now runs on the shared `PKUtilities` Chat Completions wire plumbing with `.sortedKeys`-deterministic bytes and adds stateless Responses API support (`OpenAIAPI.automatic/.chatCompletions/.responses`; Responses for `api.openai.com`, Chat Completions elsewhere, audio forced to Chat Completions). `PKOpenRouterProvider` becomes a thin preset over the same core (attribution headers retained). Removes the `MacPaw/OpenAI` dependency.
+- **Nix dev shell (#272):** `flake.nix` and a pinned `flake.lock` fetch the official swift.org 6.4.0
+  Linux toolchain, patch it with `autoPatchelfHook`, and fall back to Xcode's 6.4 toolchain on
+  macOS, so `nix develop` is a supported second development path next to the container. `make
+  doctor` reports a Nix backend and validates the toolchain and its patched libraries,
+  `Scripts/update-flake-swift.sh` refreshes the pinned URLs and hashes, and a nightly CI job runs
+  `nix develop -c make verify-products`.
+- **CI builds every library product for iOS and adds the nightly live lanes (#316).** The
+  `ios-verify` lane now builds every library product `Package.swift` declares for
+  `generic/platform=iOS Simulator` (driven by `Scripts/list-library-products.swift`) before it
+  builds and tests `PKObservable` on a simulator, so an iOS-only availability regression in any
+  provider or in `PKTestSupport` cannot hide behind the macOS build. A new report-only
+  `.github/workflows/nightly-live.yml` runs on a schedule or manual dispatch only: the opt-in
+  prompt-cache live checks (`POSITRONICKIT_LIVE_TESTS=1` plus a provider key, each job skipped when
+  its secret is absent), the recorded OpenAI transport contract, the Nix flake build (folded from
+  the deleted `nix-devshell.yml`), and report-only local-path-override builds of Gnostic and
+  Yakamoz against `main`. The live and contract steps run through
+  `make verify-live-{anthropic,openai,openrouter}-cache` and `make verify-openai-contract`, which
+  apply the gate's `$(SWIFT_BUILD_FLAGS)` and refuse to start a live target without both opt-ins,
+  so nightly compiler diagnostics cannot diverge from the PR gate and a skipped suite is never
+  reported as evidence. Nightly flake detection now runs through
+  `make detect-flakes-run ITERATIONS=…`, so it applies the gate's `-warnings-as-errors` flags, and
+  a weekly macOS schedule repeats the full suite for the Apple-only paths.
+  `.github/dependabot.yml` opens grouped weekly `github-actions` and `swift` update pull requests.
+- **Bind release SBOM artifacts to the resolved tag commit (#359).** The Release Gate resolves a
+  tag once and pins each gate job to that commit; its SBOM artifact includes provenance naming the
+  tag and commit. The `Release SBOM` workflow attaches only an artifact whose provenance matches
+  the release checkout, so a moved or recreated tag requires a fresh successful gate for its
+  current commit. `docs/Releasing.md` documents tag actor restrictions separately; the workflow
+  does not depend on a required-workflow tag rule.
+
 
 - Public API baselines now track `main` in `api/next-public-api-{linux,macos}.json`. Release-named
   `api/<major>.<minor>-public-api-*.json` files are frozen at their tag and must not be edited;

@@ -1,8 +1,8 @@
-# PositronicKit Next Architecture
+# PositronicKit 7.0 Architecture
 
-This guide describes the unreleased architecture on `main`. The
-[stable `6.1.0` architecture](https://github.com/phynics/PositronicKit/blob/6.1.0/docs/Architecture.md)
-is immutable. Accepted rationale lives in the [architecture decisions](adr/); canonical terms live
+This guide describes the architecture shipped by `7.0.0`. The
+[`6.1.0` architecture](https://github.com/phynics/PositronicKit/blob/6.1.0/docs/Architecture.md)
+is an immutable earlier release. Accepted rationale lives in the [architecture decisions](adr/); canonical terms live
 in the [context map](../CONTEXT-MAP.md).
 
 ## Public shape
