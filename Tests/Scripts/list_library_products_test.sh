@@ -23,9 +23,7 @@ pass=0
 fail=0
 
 # run_case <name> <ok|fails> <expected-stdout> <stdin-json>
-# An undecodable description makes the script raise at top level, which Swift
-# turns into a trap rather than a chosen status, so the failing cases assert
-# "not zero" instead of pinning a number the runtime picks.
+# Invalid descriptions must report a decode error and exit normally with status 1.
 run_case() {
     local name="$1"
     local expectation="$2"
@@ -41,11 +39,16 @@ run_case() {
         return 0
     fi
     if [ "$expectation" = "fails" ]; then
-        if [ "$actual_exit" -eq 0 ]; then
-            printf 'FAIL %s: expected a non-zero exit, got 0\n' "$name"
+        if [ "$actual_exit" -ne 1 ]; then
+            printf 'FAIL %s: expected exit 1, got %s\n' "$name" "$actual_exit"
+            cat "$tmp_dir/$name.err"
+            fail=$((fail + 1))
+        elif ! grep -q '^list-library-products: could not decode package description:' "$tmp_dir/$name.err"; then
+            printf 'FAIL %s: expected a package-description decode diagnostic\n' "$name"
+            cat "$tmp_dir/$name.err"
             fail=$((fail + 1))
         else
-            printf 'ok %s (exit %s)\n' "$name" "$actual_exit"
+            printf 'ok %s (exit 1 with decode diagnostic)\n' "$name"
             pass=$((pass + 1))
         fi
         return 0
