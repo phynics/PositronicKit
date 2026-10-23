@@ -262,6 +262,8 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- `Scripts/list-library-products.swift` reports invalid package-description JSON and exits with
+  status 1 instead of trapping.
 - A Turn now captures its provider configuration and execution authority inside the admission
   lane and freezes that snapshot for its lifetime. Media validation, prompt budgeting, model
   identity, Workspace tool catalog, and Agent context all read the captured snapshot, so a host

@@ -16,8 +16,14 @@ struct ProductType: Decodable {
 }
 
 let data = FileHandle.standardInput.readDataToEndOfFile()
-let description = try JSONDecoder().decode(PackageDescription.self, from: data)
+let products: [Product]
+do {
+    products = try JSONDecoder().decode(PackageDescription.self, from: data).products
+} catch {
+    fputs("list-library-products: could not decode package description: \(error)\n", stderr)
+    exit(EXIT_FAILURE)
+}
 
-for product in description.products where product.type.library != nil {
+for product in products where product.type.library != nil {
     print(product.name)
 }
