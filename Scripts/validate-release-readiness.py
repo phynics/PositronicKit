@@ -135,12 +135,12 @@ def compare_public_surfaces(candidate: dict, previous: dict, kind: str) -> list[
 def candidate_baseline_path(root: Path, version: str, platform_name: str) -> Path:
     """Return the baseline that ships in this release.
 
-    A minor or major release promotes its own `api/<major>.<minor>-*` file; a
-    patch release keeps the frozen minor baseline and compares `api/next-*`.
+    Release candidates and patches compare `api/next-*`. Stable minor and major
+    releases use their promoted `api/<major>.<minor>-*` file.
     """
     major, minor, patch = version_components(version)
     release_path = root / "api" / f"{major}.{minor}-public-api-{platform_name}.json"
-    if patch == 0 and release_path.exists():
+    if version == stable_version(version) and patch == 0:
         return release_path
     return root / "api" / f"next-public-api-{platform_name}.json"
 
@@ -153,15 +153,16 @@ def api_semver_violations(
 ) -> list[str]:
     """Return the public API compatibility failures for a release candidate."""
     kind = release_kind(version)
+    release = stable_version(version)
     violations: list[str] = []
     if kind == "major":
-        section = release_section(changelog, version)
+        section = release_section(changelog, release)
         if section is None or not has_breaking_section(section):
             violations.append(
                 f"major release {version} must carry a non-empty `### Breaking` section"
             )
 
-    previous_version = previous_release(changelog, version)
+    previous_version = previous_release(changelog, release)
     if previous_version is None:
         return violations
     previous_name = ".".join(previous_version.split(".")[:2])
@@ -169,10 +170,9 @@ def api_semver_violations(
         candidate_path = candidate_baseline_path(root, version, platform_name)
         previous_path = root / "api" / f"{previous_name}-public-api-{platform_name}.json"
         if not candidate_path.exists() or not previous_path.exists():
-            print(
-                f"release readiness: skipping the {kind} public API comparison for "
-                f"{platform_name} (missing {candidate_path.name} or {previous_path.name})",
-                file=sys.stderr,
+            violations.append(
+                f"cannot compare {platform_name} public API: missing "
+                f"{candidate_path.name} or {previous_path.name}"
             )
             continue
         candidate = json.loads(candidate_path.read_text())
@@ -212,14 +212,15 @@ def main() -> int:
 
     baseline_release = ".".join(release.split(".")[:2])
     for platform_name in API_PLATFORMS:
-        baseline_path = ROOT / "api" / f"{baseline_release}-public-api-{platform_name}.json"
+        baseline_path = candidate_baseline_path(ROOT, version, platform_name)
         if not baseline_path.exists():
             fail(f"missing reviewed {platform_name} public API baseline: {baseline_path.relative_to(ROOT)}")
         baseline = json.loads(baseline_path.read_text())
-        if baseline.get("release") != baseline_release or baseline.get("platform") != platform_name:
+        expected_release = "next" if baseline_path.name.startswith("next-") else baseline_release
+        if baseline.get("release") != expected_release or baseline.get("platform") != platform_name:
             fail(f"invalid release/platform metadata in {baseline_path.relative_to(ROOT)}")
 
-    violations = api_semver_violations(ROOT, release, changelog)
+    violations = api_semver_violations(ROOT, version, changelog)
     if violations:
         print(
             f"release readiness: {release_kind(release)} release {release} changes the public "
