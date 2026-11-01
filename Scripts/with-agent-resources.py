@@ -16,6 +16,8 @@ import sys
 import time
 from pathlib import Path
 
+GROUP_EXIT_SETTLE_SECONDS = 1.0
+
 
 def positive_float(value: str) -> float:
     parsed = float(value)
@@ -82,12 +84,31 @@ def acquire_slot(slot_dir: str, count: int, deadline: float) -> tuple[int, int]:
         time.sleep(min(0.05, remaining))
 
 
-def stop_process(process: subprocess.Popen[bytes], signum: int, *, process_group: bool) -> None:
+def signal_process_group(process: subprocess.Popen[bytes], signum: int) -> None:
+    """Signal a process group, tolerating a group that has already exited.
+
+    macOS reports EPERM rather than ESRCH when every member of the group has
+    exited and the leader is not yet reaped. A leader that is still exiting can
+    report EPERM here while waitpid briefly reports it as running, so wait for
+    it. EPERM from a leader that outlives the wait is a real denial.
+    """
     try:
-        if process_group:
-            os.killpg(process.pid, signum)
-        else:
-            process.send_signal(signum)
+        os.killpg(process.pid, signum)
+    except ProcessLookupError:
+        pass
+    except PermissionError as error:
+        try:
+            process.wait(timeout=GROUP_EXIT_SETTLE_SECONDS)
+        except subprocess.TimeoutExpired:
+            raise error from None
+
+
+def stop_process(process: subprocess.Popen[bytes], signum: int, *, process_group: bool) -> None:
+    if process_group:
+        signal_process_group(process, signum)
+        return
+    try:
+        process.send_signal(signum)
     except ProcessLookupError:
         pass
 
@@ -200,17 +221,11 @@ class MemorySampler:
     def stop(self) -> None:
         was_running = self.process.poll() is None
         if was_running:
-            try:
-                os.killpg(self.process.pid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
+            signal_process_group(self.process, signal.SIGTERM)
             try:
                 self.process.wait(timeout=1)
             except subprocess.TimeoutExpired:
-                try:
-                    os.killpg(self.process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
+                signal_process_group(self.process, signal.SIGKILL)
                 self.process.wait()
         self.poll(report_exit_error=not was_running)
         if self.process.stdout is not None:
@@ -390,7 +405,7 @@ def main() -> int:
         print(f"with-agent-resources: {error}", file=sys.stderr)
     except OSError as error:
         lock_wait_seconds = time.monotonic() - lock_started
-        print(f"with-agent-resources: could not start {command[0]}: {error}", file=sys.stderr)
+        print(f"with-agent-resources: could not run {command[0]}: {error}", file=sys.stderr)
         status = 127
     finally:
         append_metadata(
