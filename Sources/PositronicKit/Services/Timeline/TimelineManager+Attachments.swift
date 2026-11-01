@@ -39,6 +39,18 @@ extension TimelineManager {
 
         try requireTimelineLiveness(for: timelineID, version: livenessVersion)
 
+        // A runtime with no WorkspaceFactory binds Workspaces that never had a provider, so there
+        // is nothing to resolve. A configured resolver that cannot produce one fails the attach.
+        var resolvedWorkspace: any WorkspaceProvider?
+        if (workspaceResolver as? DefaultWorkspaceResolver)?.hasWorkspaceFactory != false {
+            guard let workspace = try await workspaceResolver.workspace(id: workspaceId) else {
+                throw WorkspaceError.workspaceNotFound
+            }
+            resolvedWorkspace = workspace
+        }
+        try Task.checkCancellation()
+        try requireTimelineLiveness(for: timelineID, version: livenessVersion)
+
         let (timeline, claimedNewBinding): (TimelineRecord, Bool) = try await withTimelineAuthority(timelineID) { [self] in
             // The initial lookup above only validates the request. Re-read after acquiring the
             // authority lane so metadata committed by another Timeline mutation is not overwritten.
@@ -52,6 +64,7 @@ extension TimelineManager {
                 )
             }
             try await self.requireExecutionContextMutable(for: timelineID)
+            try Task.checkCancellation()
             let claimed = existingOwner == nil
             if claimed {
                 _ = try await self.workspaceBindingRepository.claim(
@@ -93,24 +106,8 @@ extension TimelineManager {
         }
         replaceCachedTimelineIfPresent(timeline)
 
-        if let toolManager = toolManagers[timelineID] {
-            do {
-                if let resolved = try await workspaceResolver.workspace(id: workspaceId) {
-                    await toolManager.registerWorkspace(resolved)
-                }
-            } catch {
-                logger.warning("""
-                attachWorkspace: workspace registration failed — \
-                workspace: \(workspaceId.uuidString.prefix(8)), timeline: \(timelineID.uuidString.prefix(8)), \
-                operation: registerWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
-                """)
-                timelineDegradations[timelineID, default: []].append(TurnDiagnostic(
-                    dependency: .workspace,
-                    operation: "registerWorkspace",
-                    entityID: "workspace:\(workspaceId.uuidString.prefix(8))",
-                    error: error
-                ))
-            }
+        if let toolManager = toolManagers[timelineID], let resolvedWorkspace {
+            await toolManager.registerWorkspace(resolvedWorkspace)
         }
     }
 

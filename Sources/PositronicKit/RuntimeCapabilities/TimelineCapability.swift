@@ -209,6 +209,14 @@ public struct TimelineCapability: Sendable {
     }
 
     /// Attaches an ordinary Workspace to a Timeline.
+    ///
+    /// The Workspace provider must resolve before the binding is committed. A resolver error is
+    /// thrown to the caller, and a missing provider throws ``WorkspaceError/workspaceNotFound``;
+    /// either failure leaves the binding unchanged. A runtime with no `WorkspaceFactory` binds the
+    /// Workspace without a provider, so it contributes no tools.
+    ///
+    /// - Throws: An error from the Workspace resolver, or
+    ///   ``WorkspaceError/workspaceNotFound`` when the resolver returns no provider.
     public func attachWorkspace(_ workspaceID: UUID, to timelineID: UUID) async throws {
         try await timelineManager.attachWorkspace(workspaceID, to: timelineID)
     }

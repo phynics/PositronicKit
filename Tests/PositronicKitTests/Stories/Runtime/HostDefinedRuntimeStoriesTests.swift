@@ -125,6 +125,62 @@ struct HostDefinedRuntimeStoriesTests {
         #expect(intents.first?.workspaceRouting == .explicit)
     }
 
+    @Test("attaching a Workspace reports provider resolution failures")
+    func attachWorkspaceReportsProviderResolutionFailure() async throws {
+        let model = MockLLMService()
+        model.mockClient.nextResponse = "No workspace tools are attached."
+        let repository = InMemoryTimelineRuntimeRepository()
+        let workspaces = InMemoryWorkspacePersistence()
+        let workspaceTool = ToolDefinition(
+            id: "workspace_lookup",
+            name: "workspace_lookup",
+            description: "Looks up a value in the catalog Workspace."
+        )
+        let workspace = WorkspaceReference(
+            uri: WorkspaceURI(host: "host", path: "/unavailable"),
+            location: .runtimeTimeline,
+            tools: [.custom(workspaceTool)]
+        )
+        try await workspaces.saveWorkspace(workspace)
+
+        let runtime = makeRuntime(
+            model: model,
+            repository: repository,
+            workspaces: workspaces,
+            workspaceFactory: FailingWorkspaceFactory()
+        )
+        let timeline = try await runtime.timelines.create(title: "Workspace resolution failure")
+
+        await #expect(throws: WorkspaceError.connectionFailed) {
+            try await runtime.timelines.attachWorkspace(workspace.id, to: timeline.id)
+        }
+
+        _ = try await timeline.startDirectTurn(
+            "Check the available tools.",
+            context: DirectTurnContext(systemInstructions: "Use only available tools.")
+        )
+        #expect(!(model.generationCaptureHistory.last?.tools?.contains {
+            $0.name == "call_tool"
+        } ?? false))
+    }
+
+    @Test("a runtime with no WorkspaceFactory still binds a Workspace without a provider")
+    func attachWorkspaceWithoutFactoryBindsWorkspace() async throws {
+        let runtime = PKRuntime(configuration: .init(
+            languageModel: MockLLMService(),
+            persistence: .inMemory()
+        ))
+        let timeline = try await runtime.timelines.create(title: "No Workspace factory")
+        let workspace = try await runtime.workspaces.create(
+            uri: WorkspaceURI(host: "host", path: "/unprovided"),
+            location: .runtime
+        )
+
+        try await runtime.timelines.attachWorkspace(workspace.id, to: timeline.id)
+
+        try await runtime.timelines.detachWorkspace(workspace.id, from: timeline.id)
+    }
+
     @Test("a fresh runtime reloads history, replays a request, and continues the Timeline")
     func injectedRepositorySurvivesRuntimeReconstruction() async throws {
         let repository = InMemoryTimelineRuntimeRepository()
@@ -317,6 +373,12 @@ private struct HostLookupTool: PKTool {
 private struct HostWorkspaceFactory: WorkspaceFactory {
     func create(from reference: WorkspaceReference) throws -> any WorkspaceProvider {
         HostWorkspaceProvider(reference: reference)
+    }
+}
+
+private struct FailingWorkspaceFactory: WorkspaceFactory {
+    func create(from _: WorkspaceReference) throws -> any WorkspaceProvider {
+        throw WorkspaceError.connectionFailed
     }
 }
 

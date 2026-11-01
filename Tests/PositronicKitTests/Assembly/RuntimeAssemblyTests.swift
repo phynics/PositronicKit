@@ -72,7 +72,8 @@ struct RuntimeAssemblyTests {
         let timeline = try await kit.timelines.create(title: "Binding precedence")
         let workspace = WorkspaceReference(
             uri: WorkspaceURI(host: "test", path: "/binding-precedence"),
-            location: .attached
+            location: .attached,
+            rootPath: "/tmp"
         )
         try await workspaceStore.saveWorkspace(workspace)
         try await kit.timelines.attachWorkspace(workspace.id, to: timeline.id)
@@ -100,7 +101,8 @@ struct RuntimeAssemblyTests {
         let timeline = try await kit.timelines.create(title: "Repository binding")
         let workspace = WorkspaceReference(
             uri: WorkspaceURI(host: "test", path: "/repository-binding"),
-            location: .attached
+            location: .attached,
+            rootPath: "/tmp"
         )
         try await workspaceStore.saveWorkspace(workspace)
         try await kit.timelines.attachWorkspace(workspace.id, to: timeline.id)

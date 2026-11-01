@@ -24,6 +24,11 @@ public actor DefaultWorkspaceResolver: WorkspaceResolver {
         self.workspaceCreator = workspaceCreator
     }
 
+    /// Whether a host configured a factory. Without one, no Workspace can have a provider.
+    nonisolated var hasWorkspaceFactory: Bool {
+        !(workspaceCreator is NullWorkspaceCreator)
+    }
+
     /// Returns the number of currently active/cached workspaces.
     public var activeWorkspaceCount: Int {
         activeWorkspaces.count

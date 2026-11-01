@@ -27,6 +27,12 @@ for tagged releases beginning with `1.0.0`.
   provider after persistent Workspace deletion succeeds, whether or not the Workspace was detached
   first. Detaching alone keeps the provider available for reuse.
 
+- **Workspace attachment fails when its provider cannot be resolved (#418).**
+  `TimelineCapability.attachWorkspace` now throws the resolver error, or
+  `WorkspaceError.workspaceNotFound` when resolution returns no provider. Resolution happens
+  before the binding is committed, so failed and cancelled attempts leave the existing binding
+  unchanged. A runtime with no `WorkspaceFactory` still binds the Workspace without a provider.
+
 - **Provider URLs preserve ports that are standard only for the other scheme (#414).** OpenRouter
   and Anthropic requests retain explicit `:443` over HTTP and `:80` over HTTPS, while omitting
   only the matching scheme's default port. OpenAI chat and embedding URL construction use the same
