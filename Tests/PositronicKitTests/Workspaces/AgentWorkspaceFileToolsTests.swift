@@ -183,6 +183,37 @@ struct AgentWorkspaceFileToolsTests {
         #expect(!result.output.contains("incomplete"))
     }
 
+    @Test("search reports files truncated at the content byte limit")
+    func searchReportsContentTruncation() async throws {
+        let byteLimit = 256 * 1_024
+        let afterLimit = SearchWorkspaceProvider(files: [
+            "large.txt": String(repeating: "x", count: byteLimit) + "needle",
+        ])
+        let afterLimitResult = try await AgentWorkspaceFileTool(operation: .searchFiles, provider: afterLimit)
+            .execute(parameters: ["pattern": "needle"])
+        #expect(afterLimitResult.isSuccess)
+        #expect(afterLimitResult.output.contains("No matches found in readable files."))
+        #expect(afterLimitResult.output.contains("stopped reading 1 file at the 262144-byte content limit"))
+
+        let exactBoundary = SearchWorkspaceProvider(files: [
+            "exact.txt": String(repeating: "x", count: byteLimit - "\nneedle".utf8.count) + "\nneedle",
+        ])
+        let exactBoundaryResult = try await AgentWorkspaceFileTool(operation: .searchFiles, provider: exactBoundary)
+            .execute(parameters: ["pattern": "needle"])
+        #expect(exactBoundaryResult.output == "exact.txt:2: needle")
+        #expect(!exactBoundaryResult.output.contains("Search incomplete"))
+
+        let multibyte = SearchWorkspaceProvider(files: [
+            "multibyte.txt": String(repeating: "x", count: byteLimit - 1) + "éneedle",
+        ])
+        let multibyteResult = try await AgentWorkspaceFileTool(operation: .searchFiles, provider: multibyte)
+            .execute(parameters: ["pattern": "needle|output truncated"])
+        #expect(multibyteResult.isSuccess)
+        #expect(!multibyteResult.output.contains("multibyte.txt:"))
+        #expect(multibyteResult.output.contains("stopped reading 1 file at the 262144-byte content limit"))
+        #expect(!multibyteResult.output.contains("output truncated"))
+    }
+
     @Test("search reports when the match output reaches its limit")
     func searchReportsMatchLimit() async throws {
         let provider = SearchWorkspaceProvider(files: ["matches.txt": String(repeating: "needle\n", count: 101)])
@@ -199,9 +230,10 @@ struct AgentWorkspaceFileToolsTests {
     func searchPreservesCancellation() async throws {
         let provider = SearchWorkspaceProvider(files: ["a.txt": "needle"])
         let tool = AgentWorkspaceFileTool(operation: .searchFiles, provider: provider)
-        let task = Task { try await tool.execute(parameters: ["pattern": "needle"]) }
-
-        task.cancel()
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await tool.execute(parameters: ["pattern": "needle"])
+        }
         let result = try await task.value
 
         #expect(!result.isSuccess)

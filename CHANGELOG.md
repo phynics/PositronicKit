@@ -15,9 +15,9 @@ for tagged releases beginning with `1.0.0`.
   only the matching scheme's default port. OpenAI chat and embedding URL construction use the same
   rule.
 
-- Agent Workspace `search_files` now reports incomplete searches when the 200-file or 100-match
-  bound stops work, or when files cannot be read. A complete search with no matches now returns an
-  explicit `No matches found.` result.
+- Agent Workspace `search_files` now reports incomplete searches when the 200-file, 100-match, or
+  256 KiB per-file content bound stops work, or when files cannot be read. A complete search with no
+  matches now returns an explicit `No matches found.` result.
 
 ## [7.0.0] - 2026-10-20
 

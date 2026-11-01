@@ -235,11 +235,14 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
 
     private func search(pattern: String, path: String) async throws -> ToolResult {
         let regex = try NSRegularExpression(pattern: pattern)
+        try Task.checkCancellation()
         let files = try await provider.listFiles(path: path).sorted()
+        try Task.checkCancellation()
         let searchedFiles = files.prefix(Self.maxSearchFiles)
         let skippedFileCount = max(files.count - Self.maxSearchFiles, 0)
         var matches: [String] = []
         var unreadableFileCount = 0
+        var truncatedFileCount = 0
         var matchLimitReached = false
         for file in searchedFiles {
             try Task.checkCancellation()
@@ -251,7 +254,11 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
                 unreadableFileCount += 1
                 continue
             }
-            let boundedContent = boundedOutput(content, byteCount: Self.maxReadBytes)
+            try Task.checkCancellation()
+            let boundedContent = content.utf8Prefix(maxBytes: Self.maxReadBytes)
+            if boundedContent.utf8.count < content.utf8.count {
+                truncatedFileCount += 1
+            }
             for (lineIndex, line) in boundedContent.components(separatedBy: .newlines).enumerated()
                 where regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)) != nil
             {
@@ -270,6 +277,9 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
         }
         if unreadableFileCount > 0 {
             incompleteReasons.append("could not read \(unreadableFileCount) file\(unreadableFileCount == 1 ? "" : "s")")
+        }
+        if truncatedFileCount > 0 {
+            incompleteReasons.append("stopped reading \(truncatedFileCount) file\(truncatedFileCount == 1 ? "" : "s") at the \(Self.maxReadBytes)-byte content limit")
         }
         if matchLimitReached {
             incompleteReasons.append("stopped after the first \(Self.maxSearchMatches) matches")
