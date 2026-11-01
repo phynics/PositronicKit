@@ -14,6 +14,8 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
     fileprivate static let maxWriteBytes = 1_024 * 1_024
     private static let maxListedOutputBytes = 128 * 1_024
     private static let maxSearchLineBytes = 8 * 1_024
+    private static let maxSearchFiles = 200
+    private static let maxSearchMatches = 100
 
     enum Operation: String, Sendable {
         case readFile = "read_file"
@@ -233,19 +235,64 @@ struct AgentWorkspaceFileTool: PKTool, Sendable {
 
     private func search(pattern: String, path: String) async throws -> ToolResult {
         let regex = try NSRegularExpression(pattern: pattern)
+        try Task.checkCancellation()
         let files = try await provider.listFiles(path: path).sorted()
+        try Task.checkCancellation()
+        let searchedFiles = files.prefix(Self.maxSearchFiles)
+        let skippedFileCount = max(files.count - Self.maxSearchFiles, 0)
         var matches: [String] = []
-        for file in files.prefix(200) {
-            guard let content = try? await provider.readFile(path: file) else { continue }
-            let boundedContent = boundedOutput(content, byteCount: Self.maxReadBytes)
+        var unreadableFileCount = 0
+        var truncatedFileCount = 0
+        var matchLimitReached = false
+        for file in searchedFiles {
+            try Task.checkCancellation()
+            let content: String
+            do {
+                content = try await provider.readFile(path: file)
+            } catch {
+                if Task.isCancelled { throw CancellationError() }
+                unreadableFileCount += 1
+                continue
+            }
+            try Task.checkCancellation()
+            let boundedContent = content.utf8Prefix(maxBytes: Self.maxReadBytes)
+            if boundedContent.utf8.count < content.utf8.count {
+                truncatedFileCount += 1
+            }
             for (lineIndex, line) in boundedContent.components(separatedBy: .newlines).enumerated()
                 where regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)) != nil
             {
                 matches.append("\(file):\(lineIndex + 1): \(boundedOutput(line, byteCount: Self.maxSearchLineBytes))")
-                if matches.count == 100 { return .success(matches.joined(separator: "\n")) }
+                if matches.count == Self.maxSearchMatches {
+                    matchLimitReached = true
+                    break
+                }
             }
+            if matchLimitReached { break }
         }
-        return .success(matches.joined(separator: "\n"))
+
+        var incompleteReasons: [String] = []
+        if skippedFileCount > 0 {
+            incompleteReasons.append("skipped \(skippedFileCount) file\(skippedFileCount == 1 ? "" : "s") after the \(Self.maxSearchFiles)-file limit")
+        }
+        if unreadableFileCount > 0 {
+            incompleteReasons.append("could not read \(unreadableFileCount) file\(unreadableFileCount == 1 ? "" : "s")")
+        }
+        if truncatedFileCount > 0 {
+            incompleteReasons.append("stopped reading \(truncatedFileCount) file\(truncatedFileCount == 1 ? "" : "s") at the \(Self.maxReadBytes)-byte content limit")
+        }
+        if matchLimitReached {
+            incompleteReasons.append("stopped after the first \(Self.maxSearchMatches) matches")
+        }
+
+        var output = matches.joined(separator: "\n")
+        if !incompleteReasons.isEmpty {
+            if output.isEmpty { output = "No matches found in readable files." }
+            output += "\n\nSearch incomplete: \(incompleteReasons.joined(separator: "; "))."
+        } else if output.isEmpty {
+            output = "No matches found."
+        }
+        return .success(output)
     }
 
     private func requiredString(_ key: String, _ parameters: [String: AnyCodable]) throws -> String {
