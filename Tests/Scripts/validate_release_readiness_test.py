@@ -146,6 +146,20 @@ def test_minor_accepts_an_added_symbol() -> None:
     assert MODULE.compare_public_surfaces(candidate, previous, "minor") == []
 
 
+def test_minor_rejects_making_an_existing_enum_nonexhaustive() -> None:
+    previous = baseline(
+        "7.0", "linux", [symbol("PositronicKit.TurnOutcome", declaration="enum TurnOutcome")]
+    )
+    candidate = baseline(
+        "7.1", "linux", [symbol("PositronicKit.TurnOutcome", declaration="@nonexhaustive enum TurnOutcome")]
+    )
+
+    failures = MODULE.compare_public_surfaces(candidate, previous, "minor")
+    assert any(
+        "changed public symbol declaration" in failure for failure in failures
+    ), failures
+
+
 def test_patch_rejects_any_symbol_delta() -> None:
     previous = baseline("6.1", "linux", [symbol("Kept")])
     assert MODULE.compare_public_surfaces(

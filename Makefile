@@ -3,9 +3,9 @@
 	verify-linux-agent verify-linux-filter verify-linux-repeat verify-linux-coverage \
 	verify-agent-harness verify-products verify-examples verify-pktestsupport verify-public-consumers verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-domain-vocabulary verify-doc-snippets detect-flakes detect-flakes-run \
 	verify-live-anthropic-cache verify-live-openai-cache verify-live-openrouter-cache verify-openai-contract \
-	verify-public-api update-public-api-baseline verify-public-api-immutability verify-release sbom \
+	verify-public-api update-public-api-baseline verify-public-api-immutability verify-release sbom verify-turn-outcome-exhaustiveness \
 	verify-static verify-documentation-static verify-docc verify-macos-ci verify-macos-ci-gates verify-ios \
-	agent-verify agent-test agent-test-repeat linux-image linux-build linux-coverage require-container-runtime
+	agent-verify agent-test agent-test-repeat agent-experiment-turn-outcome-semver experiment-turn-outcome-semver linux-image linux-build linux-coverage require-container-runtime
 
 # Swift toolchain baked into the supported Linux development image.
 LINUX_SWIFT_VERSION ?= 6.4.0
@@ -78,6 +78,7 @@ help:
 	@echo "  make verify-examples                 Build and run the PositronicKitExamples executable"
 	@echo "  make verify-pktestsupport            Build PKTestSupport and an ordinary-import consumer in release mode"
 	@echo "  make verify-public-consumers         Compile ordinary imports for every public library product"
+	@echo "  make agent-experiment-turn-outcome-semver  Run the pinned actual API minor-addition experiment"
 	@echo "  make verify-public-api               Compare public Swift symbols with the reviewed Next baseline"
 	@echo "  make update-public-api-baseline      Record an intentionally reviewed public API change"
 	@echo "  make verify-public-api-immutability  Check release baselines still match their tags"
@@ -210,15 +211,15 @@ verify: verify-concurrency-scan verify-diagnose-scan verify-agent-harness verify
 verify-static: verify-diagnose-scan verify-runtime-architecture verify-dependency-direction verify-test-layout verify-gate-script-coverage verify-story-coverage verify-documentation-static verify-public-api-immutability
 
 # The macOS CI lane: only the gates whose result depends on the Apple platform.
-# The platform-neutral ones (lint, doc snippets, the release-mode PKTestSupport
-# and public-consumer builds) run in the Linux lane, so the two CI lanes together
-# cover `make verify`. Run `make verify` locally for the full macOS gate.
+# The separate-package enum consumer also runs on macOS. Platform-neutral gates
+# (lint, doc snippets and release-mode consumer builds) run in the Linux lane,
+# so both CI lanes cover `make verify`. Run `make verify` locally for the full gate.
 verify-macos-ci: verify-macos-ci-gates verify-public-api
 
 # The macOS lane without the public API check. CI runs this target as one step
 # and `verify-public-api` as its own step, so a baseline mismatch can publish a
 # regenerated macOS baseline without an unrelated gate failure doing the same.
-verify-macos-ci-gates: verify-agent-harness verify-docc verify-products verify-examples test-fast test
+verify-macos-ci-gates: verify-agent-harness verify-docc verify-products verify-examples verify-turn-outcome-exhaustiveness test-fast test
 
 # The iOS Simulator lane. It builds and tests PKObservable on an iOS
 # destination so an Apple-platform-only availability regression cannot hide
@@ -304,9 +305,18 @@ verify-pktestsupport:
 		"$$consumer_path"; \
 	fi
 
-verify-public-consumers:
+verify-public-consumers: verify-turn-outcome-exhaustiveness
 	@echo "Compiling ordinary imports for every public library product..."
 	@swift build $(SWIFT_BUILD_FLAGS) -c release --target PublicProductConsumer
+
+verify-turn-outcome-exhaustiveness:
+	@echo "Verifying TurnOutcome exhaustiveness from a separate package..."
+	@bash Tests/Fixtures/TurnOutcomeExhaustiveness/verify.sh
+
+# Real API-surface semver experiment for #411. This deliberately mutates and
+# restores the working source and Next baseline; use only on a clean worktree.
+experiment-turn-outcome-semver:
+	@bash Tests/Fixtures/TurnOutcomeExhaustiveness/experiment-semver.sh
 
 verify-public-api:
 	@python3 Scripts/public-api-baseline.py --check
@@ -446,6 +456,16 @@ agent-verify: require-container-runtime
 		--mode warm \
 		--lock "$(AGENT_LOCK_FILE)" \
 		-- make verify-linux-agent
+
+agent-experiment-turn-outcome-semver: require-container-runtime
+	@CONTAINER_RUNTIME="$(CONTAINER_RUNTIME)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		LINUX_SWIFT_VERSION="$(LINUX_SWIFT_VERSION)" \
+		AGENT_LOG_DIR="$(AGENT_LOG_DIR)" AGENT_METADATA_DIR="$(AGENT_METADATA_DIR)" \
+		AGENT_SWIFT_JOBS="$(AGENT_SWIFT_JOBS)" AGENT_MAX_CONCURRENT_RUNS="$(AGENT_MAX_CONCURRENT_RUNS)" \
+		AGENT_RUN_TIMEOUT="$(AGENT_RUN_TIMEOUT)" AGENT_MEMORY_SAMPLE_INTERVAL="$(AGENT_MEMORY_SAMPLE_INTERVAL)" \
+		AGENT_IMAGE_BUILD_TIMEOUT="$(AGENT_IMAGE_BUILD_TIMEOUT)" \
+		AGENT_LOCK_TIMEOUT="$(AGENT_LOCK_TIMEOUT)" \
+		bash Scripts/run-linux-container.sh --mode warm --lock "$(AGENT_LOCK_FILE)" -- make experiment-turn-outcome-semver
 
 agent-test: require-container-runtime
 	@if [ -z "$(FILTER)" ]; then \

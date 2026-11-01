@@ -32,6 +32,7 @@ public enum TurnLifecycle: String, Codable, Hashable, Sendable {
 }
 
 /// The terminal truth recorded by the runtime repository.
+@nonexhaustive
 public enum TurnOutcome: Codable, Equatable, Hashable, Sendable {
     case completed
     case failed(message: String)

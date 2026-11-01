@@ -1,13 +1,53 @@
-# Migrating to PositronicKit 7.0
+# Migrating to PositronicKit 7
+
+> This page is current `main` guidance for the unreleased Next line. The [tagged 7.0.0 migration
+> guide](https://github.com/phynics/PositronicKit/blob/7.0.0/docs/Migrating-to-7.md) remains
+> immutable; the notes below that refer to 7.1 are not part of the released guide.
 
 PositronicKit 7.0 is a major release. It removes public API that the runtime never read, moves
 runtime vocabulary out of `PKContracts`, replaces the fork API, and makes the runtime own a smaller
 prompt and model-client surface. The 6.1.0 release already broke the documented minor-release rule;
 7.0.0 is the supported upgrade target for both 6.0.x and 6.1.0 consumers.
 
-This guide describes the released 7.0.0 surface. It does not describe unreleased follow-up work.
-Every `swift` example is compiled by `make verify-documentation`; `swift skip` examples show API
-that 7.0 removed and are syntax-checked only.
+The sections below combine the released 7.0.0 migration with current Next guidance. Every `swift`
+example is compiled by `make verify-documentation`; `swift skip` examples show API removed in 7.0
+and are syntax-checked only.
+
+## Switch over `TurnOutcome`
+
+`TurnOutcome` is non-exhaustive. In Swift 6 mode, add `@unknown default` to every switch over this
+enum, including switches that handle all current cases. A separate package that omits this clause
+does not compile. The clause lets later releases add outcomes such as `.limitReached` in 7.1.
+
+```swift skip
+import PositronicKit
+
+func describe(_ outcome: TurnOutcome) -> String {
+    switch outcome {
+    case .completed:
+        "completed"
+    case .failed(let message):
+        message
+    case .cancelled(let reason):
+        reason ?? "cancelled"
+    case .interrupted(let reason):
+        reason
+    @unknown default:
+        "future outcome"
+    }
+}
+```
+
+The #395 follow-up scope proposes `.limitReached(reason:)` for 7.1 only on `TurnOutcome`. The audit leaves these
+related public enums exhaustive:
+
+| Enum | Decision | Reason |
+| --- | --- | --- |
+| `TurnLifecycle` | Keep exhaustive | #395 adds a terminal outcome, not a lifecycle state. |
+| `TurnEvent` and `DeltaEvent`, `ErrorEvent`, `CompletionEvent` | Keep exhaustive | #395 does not require a new stream event. |
+| `ToolExecutionStatus` | Keep exhaustive | #395 uses bounded failure results for calls the tool budget rejects. |
+| `TurnError` | Keep exhaustive | #395 does not name a new request-validation error. |
+| `TimelineRuntimeRepositoryError` | Keep exhaustive | #395 does not name a new repository error. |
 
 ## Upgrade the package pin
 

@@ -13632,7 +13632,7 @@
       "path": [
         "TurnOutcome"
       ],
-      "declaration": "enum TurnOutcome"
+      "declaration": "@nonexhaustive enum TurnOutcome"
     },
     {
       "precise": "s:13PositronicKit11TurnOutcomeO11interruptedyACSS_tcACmF",
