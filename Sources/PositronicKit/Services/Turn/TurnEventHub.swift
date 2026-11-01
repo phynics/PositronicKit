@@ -27,6 +27,14 @@ actor TurnEventHub {
         activeTurns.insert(turnID)
     }
 
+    /// Whether a terminal waiter has registered for `turnID`.
+    ///
+    /// This internal observation lets tests synchronize with the actor-owned waiter state before
+    /// finishing a Turn, without relying on a scheduling delay.
+    func hasTerminalWaiter(turnID: UUID) -> Bool {
+        terminalWaiters[turnID]?.isEmpty == false
+    }
+
     func subscribe(turnID: UUID) -> AsyncThrowingStream<TurnEvent, Error> {
         makeSubscription(turnID: turnID)
     }
