@@ -8,45 +8,11 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
-### Breaking
+## [7.0.0] - 2026-11-01
 
-- **Make `TurnOutcome` non-exhaustive before 7.0.0 (#411).** Swift 6 consumers in another
-  package must add `@unknown default` to switches over this enum. This allows a later minor release
-  to add the `.limitReached` outcome from #395 without a source compatibility break.
-
-### Fixed
-
-- **OpenAI Chat Completions reports an unusable tool-call recovery (#408).** When a stream finishes
-  with `tool_calls` but recovery returns none, the stream now throws `unexpectedResponse`, matching
-  OpenRouter. Previously it ended with no tool call and no error, so the Turn could not tell.
-
-- **Hosts can read a Turn's preparation diagnostics (#407).** `TurnHandle.diagnostics()` returns
-  the durable `TurnDiagnostic` values collected during preparation. Previously a Turn running under
-  `continueWithWarnings` dropped them, so a host could not tell which dependency had failed.
-
-- Release-candidate API checks use the current Next baselines instead of an older prepared
-  release snapshot, and missing API baselines fail the release comparison (#412).
-
-- **Deleting a Workspace releases its cached provider (#417).** The runtime drops its references to the
-  provider after persistent Workspace deletion succeeds, whether or not the Workspace was detached
-  first. Detaching alone keeps the provider available for reuse.
-
-- **Workspace attachment fails when its provider cannot be resolved (#418).**
-  `TimelineCapability.attachWorkspace` now throws the resolver error, or
-  `WorkspaceError.workspaceNotFound` when resolution returns no provider. Resolution happens
-  before the binding is committed, so failed and cancelled attempts leave the existing binding
-  unchanged. A runtime with no `WorkspaceFactory` still binds the Workspace without a provider.
-
-- **Provider URLs preserve ports that are standard only for the other scheme (#414).** OpenRouter
-  and Anthropic requests retain explicit `:443` over HTTP and `:80` over HTTPS, while omitting
-  only the matching scheme's default port. OpenAI chat and embedding URL construction use the same
-  rule.
-
-- Agent Workspace `search_files` now reports incomplete searches when the 200-file, 100-match, or
-  256 KiB per-file content bound stops work, or when files cannot be read. A complete search with no
-  matches now returns an explicit `No matches found.` result.
-
-## [7.0.0] - 2026-10-20
+> **Candidate status.** This section includes the `7.0.0-rc.3` candidate. Stable `7.0.0`
+> remains unpublished. Read the [rc.3 notes](docs/releases/7.0.0-rc.3.md) for the changes
+> since rc.2 and the evidence still required before the stable release.
 
 > **Major release.** 7.0.0 removes public API and replaces several runtime seams. Read the
 > [migration guide](docs/Migrating-to-7.md) before upgrading from `6.0.x` or `6.1.0`.
@@ -217,6 +183,10 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Make `TurnOutcome` non-exhaustive before 7.0.0 (#411).** Swift 6 consumers in another
+  package must add `@unknown default` to switches over this enum. This allows a later minor release
+  to add the `.limitReached` outcome from #395 without a source compatibility break.
+
 - **One model-client stack: a single fold, no resolver seam, and configured timeouts (#311).**
   `LLMClientResolving` and `FixedClientsResolver` are removed. Construct `LLMService` with
   `configuration:` and `clients:` directly; the client set is pinned, so `updateConfiguration(_:)`
@@ -299,6 +269,36 @@ for tagged releases beginning with `1.0.0`.
   always-throwing `deleteMessages`.
 
 ### Fixed
+
+- **OpenAI Chat Completions reports an unusable tool-call recovery (#408).** When a stream finishes
+  with `tool_calls` but recovery returns none, the stream now throws `unexpectedResponse`, matching
+  OpenRouter. Previously it ended with no tool call and no error, so the Turn could not tell.
+
+- **Hosts can read a Turn's preparation diagnostics (#407).** `TurnHandle.diagnostics()` returns
+  the durable `TurnDiagnostic` values collected during preparation. Previously a Turn running under
+  `continueWithWarnings` dropped them, so a host could not tell which dependency had failed.
+
+- Release-candidate API checks use the current Next baselines instead of an older prepared
+  release snapshot, and missing API baselines fail the release comparison (#412).
+
+- **Deleting a Workspace releases its cached provider (#417).** The runtime drops its references to the
+  provider after persistent Workspace deletion succeeds, whether or not the Workspace was detached
+  first. Detaching alone keeps the provider available for reuse.
+
+- **Workspace attachment fails when its provider cannot be resolved (#418).**
+  `TimelineCapability.attachWorkspace` now throws the resolver error, or
+  `WorkspaceError.workspaceNotFound` when resolution returns no provider. Resolution happens
+  before the binding is committed, so failed and cancelled attempts leave the existing binding
+  unchanged. A runtime with no `WorkspaceFactory` still binds the Workspace without a provider.
+
+- **Provider URLs preserve ports that are standard only for the other scheme (#414).** OpenRouter
+  and Anthropic requests retain explicit `:443` over HTTP and `:80` over HTTPS, while omitting
+  only the matching scheme's default port. OpenAI chat and embedding URL construction use the same
+  rule.
+
+- Agent Workspace `search_files` now reports incomplete searches when the 200-file, 100-match, or
+  256 KiB per-file content bound stops work, or when files cannot be read. A complete search with no
+  matches now returns an explicit `No matches found.` result.
 
 - `Scripts/list-library-products.swift` reports invalid package-description JSON and exits with
   status 1 instead of trapping.
