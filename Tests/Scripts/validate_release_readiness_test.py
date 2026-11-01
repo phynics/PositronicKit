@@ -244,6 +244,11 @@ def test_release_candidate_dry_run_uses_stable_release_metadata() -> None:
             [symbol("Kept"), symbol("Added")],
             [symbol("Kept")],
         )
+        for platform_name in MODULE.API_PLATFORMS:
+            (root / "api" / f"next-public-api-{platform_name}.json").write_text(
+                json.dumps(baseline("next", platform_name, [symbol("Kept"), symbol("Added")])),
+                encoding="utf-8",
+            )
         result = subprocess.run(
             ["python3", str(script), "--dry-run", "6.2.0-rc.1"],
             cwd=root,
@@ -253,6 +258,77 @@ def test_release_candidate_dry_run_uses_stable_release_metadata() -> None:
         )
         assert result.returncode == 0, result.stdout + result.stderr
         assert "passed for 6.2.0" in result.stdout, result.stdout
+
+
+def test_release_candidate_checks_next_instead_of_an_older_snapshot() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = _make_script_fixture(root)
+        for platform_name in MODULE.API_PLATFORMS:
+            # The prepared minor snapshot is compatible, but the actual candidate removed Kept.
+            (root / "api" / f"6.2-public-api-{platform_name}.json").write_text(
+                json.dumps(baseline("6.2", platform_name, [symbol("Kept"), symbol("Gone")])),
+                encoding="utf-8",
+            )
+            (root / "api" / f"next-public-api-{platform_name}.json").write_text(
+                json.dumps(baseline("next", platform_name, [symbol("Gone")])),
+                encoding="utf-8",
+            )
+        result = subprocess.run(
+            ["python3", str(script), "--dry-run", "6.2.0-rc.3"],
+            cwd=root, capture_output=True, text=True, check=False,
+        )
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "removed public symbol: PKContracts.Kept" in result.stderr, result.stderr
+
+
+def test_release_candidate_requires_both_next_baselines() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = _make_script_fixture(root)
+        _write_platform_baselines(
+            root, "6.2", "6.1", [symbol("Kept")], [symbol("Kept")]
+        )
+        (root / "api" / "next-public-api-linux.json").write_text(
+            json.dumps(baseline("next", "linux", [symbol("Kept")])), encoding="utf-8"
+        )
+        result = subprocess.run(
+            ["python3", str(script), "--dry-run", "6.2.0-rc.3"],
+            cwd=root, capture_output=True, text=True, check=False,
+        )
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "next-public-api-macos.json" in result.stderr, result.stderr
+
+
+def test_stable_release_requires_its_frozen_baselines() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = _make_script_fixture(root)
+        for platform_name in MODULE.API_PLATFORMS:
+            (root / "api" / f"6.2-public-api-{platform_name}.json").unlink()
+            (root / "api" / f"next-public-api-{platform_name}.json").write_text(
+                json.dumps(baseline("next", platform_name, [symbol("Kept")])),
+                encoding="utf-8",
+            )
+        result = subprocess.run(
+            ["python3", str(script), "--dry-run", "6.2.0"],
+            cwd=root, capture_output=True, text=True, check=False,
+        )
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "6.2-public-api-linux.json" in result.stderr, result.stderr
+
+
+def test_missing_predecessor_baseline_fails_the_comparison() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        script = _make_script_fixture(root)
+        (root / "api" / "6.1-public-api-macos.json").unlink()
+        result = subprocess.run(
+            ["python3", str(script), "--dry-run", "6.2.0"],
+            cwd=root, capture_output=True, text=True, check=False,
+        )
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "cannot compare macos public API" in result.stderr, result.stderr
 
 
 def test_dry_run_fails_when_release_heading_is_not_dated() -> None:
@@ -333,12 +409,17 @@ if __name__ == "__main__":
         test_minor_rejects_a_removed_symbol,
         test_minor_rejects_a_changed_declaration,
         test_minor_accepts_an_added_symbol,
+        test_minor_rejects_making_an_existing_enum_nonexhaustive,
         test_patch_rejects_any_symbol_delta,
         test_major_accepts_removals,
         test_major_requires_a_non_empty_breaking_section,
         test_dry_run_fails_for_a_hypothetical_minor_removal,
         test_dry_run_checks_metadata_without_a_tag_or_sbom,
         test_release_candidate_dry_run_uses_stable_release_metadata,
+        test_release_candidate_checks_next_instead_of_an_older_snapshot,
+        test_release_candidate_requires_both_next_baselines,
+        test_stable_release_requires_its_frozen_baselines,
+        test_missing_predecessor_baseline_fails_the_comparison,
         test_dry_run_fails_when_release_heading_is_not_dated,
     ]
     for test in tests:

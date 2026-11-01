@@ -16,6 +16,9 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- Release-candidate API checks use the current Next baselines instead of an older prepared
+  release snapshot, and missing API baselines fail the release comparison (#412).
+
 - **Provider URLs preserve ports that are standard only for the other scheme (#414).** OpenRouter
   and Anthropic requests retain explicit `:443` over HTTP and `:80` over HTTPS, while omitting
   only the matching scheme's default port. OpenAI chat and embedding URL construction use the same

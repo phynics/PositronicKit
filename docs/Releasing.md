@@ -20,7 +20,8 @@ The tagged version applies to the public products documented in
 
 `make verify-release VERSION=<version>` compares the release candidate's public symbol surface with
 the frozen baseline of the previous release. It reads `api/next-public-api-<platform>.json` for a
-patch release and `api/<major>.<minor>-public-api-<platform>.json` for a minor or major release,
+patch release or release candidate. A stable minor or major release uses
+`api/<major>.<minor>-public-api-<platform>.json`,
 and it compares against `api/<previous-major>.<previous-minor>-public-api-<platform>.json`. The
 previous release is the dated section immediately below the candidate in `CHANGELOG.md`.
 
@@ -33,9 +34,11 @@ The release kind sets the rule:
 | `major` | Removals pass, but the dated changelog section must carry a non-empty `### Breaking` section. |
 
 The tag workflow accepts stable tags and release candidates such as `7.0.0-rc.1`. For a release
-candidate, `VERSION` is the full tag while the changelog, stable catalog ref, and frozen API
-baseline use the corresponding stable version (`7.0.0`). The release-candidate gate compares the
-same candidate baseline with the previous dated release.
+candidate, `VERSION` is the full tag while the changelog and stable catalog ref use the
+corresponding stable version (`7.0.0`). The release-candidate gate compares both reviewed Next
+baselines with the previous dated release. An existing release-named snapshot from an earlier
+candidate cannot substitute for the current Next API. Missing candidate or predecessor baselines
+fail the comparison. Stable minor and major releases still require their frozen release baselines.
 
 The check depends on the frozen per-tag baselines from #259. Never edit
 `api/<major>.<minor>-public-api-<platform>.json`; promote the Next graphs at release time with
@@ -63,6 +66,10 @@ semver-stable public API baseline and tracked in their own baselines
 
 1. Merge every intended change into `CHANGELOG.md` under `Unreleased` and close out the open
    issues the release claims to deliver.
+   A release candidate may precede live-provider and downstream product evidence when the owning
+   release issue records that scope. Record those pending checks in the prerelease notes and
+   complete them before publishing the stable release. Deterministic platform, API, release
+   metadata, and SBOM gates still apply to the candidate.
 2. Review the API inventory with `make verify-public-api` on Linux and macOS. The platform
    graphs differ, especially for Apple-only products, so the release requires reviewed
    `api/next-public-api-<platform>.json` and `api/next-experimental-api-<platform>.json` files on
