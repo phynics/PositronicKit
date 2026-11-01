@@ -5,15 +5,18 @@ import PKContracts
 public struct WorkspaceCapability: Sendable {
     private let workspaceCatalog: any WorkspaceCatalog
     private let attachWorkspaceToTimeline: @Sendable (UUID, UUID) async throws -> Void
+    private let releaseWorkspaceProvider: @Sendable (UUID) async -> Void
 
     init(
         workspaceCatalog: any WorkspaceCatalog,
         attachWorkspaceToTimeline: @escaping @Sendable (UUID, UUID) async throws -> Void = { _, _ in
             throw WorkspaceError.toolExecutionNotSupported
-        }
+        },
+        releaseWorkspaceProvider: @escaping @Sendable (UUID) async -> Void = { _ in }
     ) {
         self.workspaceCatalog = workspaceCatalog
         self.attachWorkspaceToTimeline = attachWorkspaceToTimeline
+        self.releaseWorkspaceProvider = releaseWorkspaceProvider
     }
 
     public func create(
@@ -89,5 +92,6 @@ public struct WorkspaceCapability: Sendable {
             id: workspaceID,
             includingDirectory: includingDirectory
         )
+        await releaseWorkspaceProvider(workspaceID)
     }
 }

@@ -4,6 +4,30 @@ import PKTestSupport
 import PositronicKit
 import Testing
 
+private final class ReleaseObservedWorkspaceProvider: WorkspaceProvider, Sendable {
+    let reference: WorkspaceReference
+    var isHealthy: Bool { get async { true } }
+
+    init(reference: WorkspaceReference) {
+        self.reference = reference
+    }
+}
+
+// swiftlint:disable:this concurrency_unchecked_sendable -- Test-only weak observation of provider release; see docs/Concurrency/exception-manifest.md.
+private final class WeakWorkspaceProviderProbe: @unchecked Sendable {
+    weak var provider: ReleaseObservedWorkspaceProvider?
+}
+
+private struct ReleaseObservedWorkspaceFactory: WorkspaceFactory {
+    let probe: WeakWorkspaceProviderProbe
+
+    func create(from reference: WorkspaceReference) throws -> any WorkspaceProvider {
+        let provider = ReleaseObservedWorkspaceProvider(reference: reference)
+        probe.provider = provider
+        return provider
+    }
+}
+
 @Suite("Facade capability values", .tags(.unit))
 struct CapabilityValuesTests {
     @Test("Timelines capability creates and reopens a stateful handle")
@@ -155,6 +179,39 @@ struct CapabilityValuesTests {
         try await kit.workspaces.delete(workspace.id)
 
         #expect(try await kit.workspaces.get(workspace.id) == nil)
+    }
+
+    @Test("deleting a Workspace releases its cached provider while the runtime remains alive")
+    func deletingWorkspaceReleasesCachedProvider() async throws {
+        let probe = WeakWorkspaceProviderProbe()
+        let kit = PKRuntime(configuration: .init(
+            languageModel: MockLLMService(),
+            persistence: .inMemory(),
+            runtime: .init(workspaceCreator: ReleaseObservedWorkspaceFactory(probe: probe))
+        ))
+        let timeline = try await kit.timelines.create(title: "Workspace lifetime")
+        let firstTurn = try await timeline.startDirectTurn(
+            "initialize tool routing",
+            context: DirectTurnContext(systemInstructions: "")
+        )
+        _ = await firstTurn.events().collect()
+        #expect(try await firstTurn.outcome() == .completed)
+
+        let workspace = try await kit.workspaces.create(
+            uri: WorkspaceURI(parsing: "workspace://provider-release")!,
+            location: .runtime
+        )
+        try await kit.timelines.attachWorkspace(workspace.id, to: timeline.id)
+        #expect(probe.provider != nil)
+
+        try await kit.timelines.detachWorkspace(workspace.id, from: timeline.id)
+        #expect(probe.provider != nil)
+
+        try await kit.workspaces.delete(workspace.id)
+
+        #expect(probe.provider == nil)
+        #expect(try await kit.workspaces.get(workspace.id) == nil)
+        #expect(try await kit.timelines.get(timeline.id) != nil)
     }
 
     @Test("Workspaces capability removes a workspace directory only when asked")

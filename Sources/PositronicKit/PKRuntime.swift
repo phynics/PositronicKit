@@ -110,6 +110,9 @@ public final class PKRuntime: Sendable {
             workspaceCatalog: workspaceCatalog,
             attachWorkspaceToTimeline: { [timelineManager] workspaceID, timelineID in
                 try await timelineManager.attachWorkspace(workspaceID, to: timelineID)
+            },
+            releaseWorkspaceProvider: { [timelineManager] workspaceID in
+                await timelineManager.releaseWorkspaceProvider(id: workspaceID)
             }
         )
     }

@@ -140,6 +140,13 @@ actor TimelineManager {
     /// surface. Hosts that need custom workspace behavior inject a `WorkspaceResolver` at
     /// construction; they don't reach back through `TimelineManager` to get one.
     let workspaceResolver: any WorkspaceResolver
+
+    /// Releases a provider cached by the bundled resolver after its Workspace is deleted.
+    /// Custom resolvers own their own cache lifecycle.
+    func releaseWorkspaceProvider(id: UUID) async {
+        guard let resolver = workspaceResolver as? DefaultWorkspaceResolver else { return }
+        await resolver.closeWorkspace(id: id)
+    }
     let runtimeToolPolicy: RuntimeToolPolicy
     /// Per-Timeline process-scoped prompt state: the previous round's tier fingerprint (#280),
     /// the stepwise history cut (#277), the projection watermark, and the retained sibling
