@@ -95,9 +95,11 @@ public actor AnthropicClient: LLMClientProtocol {
         self.maxRetries = maxRetries
         self.transport = transport
 
-        var urlString = "\(scheme)://\(host)"
-        if port != 443, port != 80 { urlString += ":\(port)" }
-        endpoint = URL(string: urlString) ?? URL(string: "https://api.anthropic.com")!
+        var components = URLComponents()
+        components.scheme = scheme
+        ProviderURLComponents.setHost(host, on: &components)
+        ProviderURLComponents.setPort(port, for: scheme, on: &components)
+        endpoint = components.url ?? URL(string: "https://api.anthropic.com")!
     }
 
     // MARK: - Streaming

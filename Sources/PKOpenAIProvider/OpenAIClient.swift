@@ -78,8 +78,9 @@ public actor OpenAIClient: LLMClientProtocol {
 
     private nonisolated var baseURL: URL {
         var components = URLComponents()
-        components.scheme = scheme; components.host = host
-        if !((scheme == "https" && port == 443) || (scheme == "http" && port == 80) || port == 0) { components.port = port }
+        components.scheme = scheme
+        ProviderURLComponents.setHost(host, on: &components)
+        ProviderURLComponents.setPort(port, for: scheme, on: &components)
         return components.url ?? URL(string: "https://api.openai.com")!
     }
 

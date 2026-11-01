@@ -162,10 +162,12 @@ public actor OpenRouterClient: LLMClientProtocol {
     }
 
     private static func baseURL(scheme: String, host: String, port: Int) -> URL {
-        var urlString = "\(scheme)://\(host)"
-        if port != 443, port != 80 { urlString += ":\(port)" }
-        if !urlString.contains("/api") { urlString += "/api" }
-        return URL(string: urlString) ?? defaultBaseURL
+        var components = URLComponents()
+        components.scheme = scheme
+        ProviderURLComponents.setHost(host, on: &components)
+        ProviderURLComponents.setPort(port, for: scheme, on: &components)
+        components.path = "/api"
+        return components.url ?? defaultBaseURL
     }
 
     private static func validatedBaseURL(_ url: URL) -> URL {

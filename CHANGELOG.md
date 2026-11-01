@@ -8,6 +8,13 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Provider URLs preserve ports that are standard only for the other scheme (#414).** OpenRouter
+  and Anthropic requests retain explicit `:443` over HTTP and `:80` over HTTPS, while omitting
+  only the matching scheme's default port. OpenAI chat and embedding URL construction use the same
+  rule.
+
 ## [7.0.0] - 2026-10-20
 
 > **Major release.** 7.0.0 removes public API and replaces several runtime seams. Read the
