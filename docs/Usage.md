@@ -306,6 +306,19 @@ print(result.message?.content ?? "")
   running. Abandoning `generatedText()` follows the same owner-only
   cancellation rule as abandoning `events()`.
 
+### Reading preparation diagnostics
+
+With `degradationPolicy: .continueWithWarnings`, a Turn proceeds when a dependency fails during
+preparation. `diagnostics()` tells the host which dependency failed. The runtime persists the
+values before generation starts, so a joiner can read them too.
+
+```swift
+let turn = try await timeline.startTurn("Summarize the release notes.")
+for diagnostic in try await turn.diagnostics() {
+    print("\(diagnostic.dependency) \(diagnostic.operation): \(diagnostic.message)")
+}
+```
+
 ### Running a direct Turn
 
 Use a detached Timeline for direct execution. `DirectTurnContext` uses the conventional `.host`

@@ -12,6 +12,7 @@ import Synchronization
 /// and none of the facade's. Keeping them here lets ``TimelineHandle`` and ``TurnHandle`` hold a
 /// `TurnEngine` instead of the whole runtime.
 extension TurnEngine {
+    static let diagnosticCorrelationKind = "turn-diagnostic"
 
     func startTurnHandle(
         _ request: TurnRequest,
@@ -96,6 +97,39 @@ extension TurnEngine {
                 guard let data = correlation.value.data(using: .utf8) else { return nil }
                 return try? SerializationUtils.jsonDecoder.decode(PromptCacheReport.self, from: data)
             }
+    }
+
+    /// Returns the durable preparation diagnostics recorded on a Turn, in collection order.
+    func diagnostics(forTurnID turnID: UUID) async throws -> [TurnDiagnostic] {
+        let correlations = try await dependencies.runtimeRepository.fetchCorrelations(turnID: turnID)
+        return correlations
+            .filter { $0.kind == Self.diagnosticCorrelationKind }
+            .compactMap { correlation in
+                guard let data = correlation.value.data(using: .utf8) else { return nil }
+                return try? SerializationUtils.jsonDecoder.decode(TurnDiagnostic.self, from: data)
+            }
+    }
+
+    /// Appends preparation diagnostics to the Turn's durable correlation trail. A store failure is
+    /// logged but never fails the Turn: a tolerated dependency failure must stay tolerated.
+    func persistDiagnostics(_ diagnostics: [TurnDiagnostic], turnID: UUID) async {
+        for diagnostic in diagnostics {
+            guard let data = try? SerializationUtils.jsonEncoder.encode(diagnostic),
+                  let value = String(bytes: data, encoding: .utf8)
+            else {
+                logger.warning("Unable to encode a preparation diagnostic for Turn \(turnID)")
+                continue
+            }
+            do {
+                try await dependencies.runtimeRepository.appendCorrelation(
+                    turnID: turnID,
+                    correlation: TurnCorrelation(kind: Self.diagnosticCorrelationKind, value: value),
+                    now: Date()
+                )
+            } catch {
+                logger.warning("Unable to persist a preparation diagnostic for Turn \(turnID): \(error)")
+            }
+        }
     }
 
     func waitForTurnOutcome(id turnID: UUID) async throws -> TurnOutcome {

@@ -8,6 +8,65 @@ import Testing
 
 @Suite("Typed Agent context and lifecycle", .tags(.integration))
 struct AgentContextLifecycleTests {
+    @Test("managed Turn exposes tolerated preparation diagnostics to the host")
+    func exposesToleratedPreparationDiagnostics() async throws {
+        let diagnostic = TurnDiagnostic(
+            dependency: .agent,
+            operation: "readSoul",
+            entityID: "missing-soul",
+            errorIdentity: nil,
+            message: "SOUL.md is unavailable"
+        )
+        let source = DiagnosticAgentContextSource(diagnostics: [diagnostic])
+        let llm = MockLLMService()
+        llm.mockClient.nextResponse = "identity-only reply"
+        let kit = PKRuntime(configuration: .init(
+            languageModel: llm,
+            persistence: .inMemory(),
+            runtime: .init(
+                customization: .init(agentContextSource: source),
+                degradationPolicy: .continueWithWarnings
+            )
+        ))
+        let timeline = try await kit.timelines.create(title: "Diagnostic visibility")
+        let agent = try await kit.agents.create(name: "Diagnostic Agent", description: "typed")
+        try await kit.agents.attach(agent.id, to: timeline.id)
+
+        let options = TurnOptions(requestID: UUID())
+        let turn = try await timeline.startTurn("hello", options: options)
+        _ = await turn.events().collect()
+
+        #expect(try await turn.outcome() == .completed)
+        #expect(try await turn.diagnostics().contains(diagnostic))
+
+        // A replay reuses the durable Turn, so it reads the same diagnostics without preparing.
+        let replay = try await timeline.startTurn("hello", options: options)
+        #expect(replay.id == turn.id)
+        #expect(try await replay.diagnostics() == turn.diagnostics())
+        #expect(try await replay.diagnostics().contains(diagnostic))
+    }
+
+    @Test("direct Turn without preparation failures exposes no diagnostics")
+    func exposesNoDiagnosticsWhenPreparationSucceeds() async throws {
+        let llm = MockLLMService()
+        llm.mockClient.nextResponse = "clean reply"
+        let kit = PKRuntime(configuration: .init(
+            languageModel: llm,
+            persistence: .inMemory(),
+            runtime: .init(degradationPolicy: .continueWithWarnings)
+        ))
+        let timeline = try await kit.timelines.create(title: "No diagnostics")
+
+        let turn = try await timeline.startDirectTurn(
+            "hello",
+            context: DirectTurnContext(systemInstructions: "")
+        )
+        _ = await turn.events().collect()
+
+        #expect(try await turn.outcome() == .completed)
+        #expect(try await turn.diagnostics().isEmpty)
+    }
+
     @Test("managed admission captures typed Agent context")
     func capturesTypedContext() async throws {
         let source = RecordingAgentContextSource()
@@ -172,6 +231,14 @@ private actor RecordingAgentContextSource: AgentContextSource {
 private struct FailingAgentContextSource: AgentContextSource {
     func snapshot(for _: Agent, timeline _: TimelineRecord) async throws -> AgentContextSnapshot {
         throw ContextSourceFailure.unavailable
+    }
+}
+
+private struct DiagnosticAgentContextSource: AgentContextSource {
+    let diagnostics: [TurnDiagnostic]
+
+    func snapshot(for agent: Agent, timeline _: TimelineRecord) async throws -> AgentContextSnapshot {
+        AgentContextSnapshot(agent: agent, diagnostics: diagnostics)
     }
 }
 

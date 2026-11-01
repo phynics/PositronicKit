@@ -112,6 +112,17 @@ public struct TurnHandle: Identifiable, Sendable {
         try await engine.promptCacheReports(forTurnID: id)
     }
 
+    /// Returns the durable diagnostics for dependencies that failed during this Turn's preparation.
+    ///
+    /// Under ``TurnDegradationPolicy/continueWithWarnings`` a Turn proceeds without a failed
+    /// dependency, and this is how a host learns which one. The diagnostics are persisted before
+    /// the Turn starts generating, so any joiner observes them. Reading does not consume the event
+    /// stream and is safe before or after the Turn terminates. An empty result means preparation
+    /// recorded no failures; a store failure while persisting is logged instead of failing the Turn.
+    public func diagnostics() async throws -> [TurnDiagnostic] {
+        try await engine.diagnostics(forTurnID: id)
+    }
+
     /// Requests cancellation of exactly this Turn.
     public func cancel() async {
         _ = await engine.dependencies.timelineManager.cancelGeneration(turnID: id, for: timelineID)
