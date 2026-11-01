@@ -66,6 +66,16 @@ final class LLMConfigurationModelsTests {
         try assertCodable(config)
     }
 
+    @Test("Provider configuration accepts explicit ports independently of scheme defaults")
+    func providerConfigurationAcceptsSchemeMismatchedStandardPort() throws {
+        var configuration = LLMConfiguration.openRouter
+        configuration.providers[.openRouter]?.endpoint = "http://localhost:443/api"
+        configuration.providers[.openRouter]?.apiKey = "test-key"
+
+        try configuration.validate()
+        #expect(configuration.providers[.openRouter]?.endpoint == "http://localhost:443/api")
+    }
+
     @Test
     func lLMParametersCodable() throws {
         var config = ProviderConfiguration(

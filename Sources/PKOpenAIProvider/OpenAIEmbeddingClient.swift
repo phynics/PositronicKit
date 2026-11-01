@@ -184,15 +184,9 @@ public actor OpenAIEmbeddingClient: EmbeddingClientProtocol {
     private var embeddingsURL: URL? {
         var components = URLComponents()
         components.scheme = scheme
-        components.host = host
-        if !Self.isDefaultPort(scheme: scheme, port: port) {
-            components.port = port
-        }
+        ProviderURLComponents.setHost(host, on: &components)
+        ProviderURLComponents.setPort(port, for: scheme, on: &components)
         components.path = "/v1/embeddings"
         return components.url
-    }
-
-    private static func isDefaultPort(scheme: String, port: Int) -> Bool {
-        (scheme == "https" && port == 443) || (scheme == "http" && port == 80) || port == 0
     }
 }

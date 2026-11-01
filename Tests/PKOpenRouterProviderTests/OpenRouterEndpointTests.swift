@@ -55,6 +55,40 @@ struct OpenRouterEndpointTests {
         }
     }
 
+    @Test("Requests retain mismatched standard ports and omit matching defaults")
+    func requestPortsFollowScheme() async throws {
+        let cases: [(String, Int, String)] = [
+            ("http", 443, "http://api.example.test:443/api/v1/chat/completions"),
+            ("https", 80, "https://api.example.test:80/api/v1/chat/completions"),
+            ("http", 80, "http://api.example.test/api/v1/chat/completions"),
+            ("https", 443, "https://api.example.test/api/v1/chat/completions"),
+            ("http", 443, "http://[::1]:443/api/v1/chat/completions"),
+        ]
+
+        for (index, (scheme, port, expectedURL)) in cases.enumerated() {
+            let transport = EndpointRecordingTransport(lines: ["data: [DONE]"])
+            let client = OpenRouterClient(
+                apiKey: "test",
+                host: index == 4 ? "::1" : "api.example.test",
+                port: port,
+                scheme: scheme,
+                maxRetries: 0,
+                transport: transport
+            )
+
+            for try await _ in await client.chatStream(
+                messages: [LLMMessage(role: .user, content: "hello")],
+                tools: nil,
+                toolChoice: nil,
+                responseFormat: nil,
+                generationParameters: nil
+            ) {}
+
+            let actualURLs = await transport.requestURLs().map(\.absoluteString)
+            #expect(actualURLs == [expectedURL], "\(scheme) port \(port): \(actualURLs)")
+        }
+    }
+
     @Test("OpenRouter factory preserves configured base paths")
     func factoryPreservesConfiguredBasePaths() async {
         for (configuredEndpoint, expectedBaseURL) in Self.endpoints {

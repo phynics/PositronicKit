@@ -80,6 +80,32 @@ struct OpenAIEmbeddingClientTests {
         }
     }
 
+    @Test("Embedding requests preserve scheme-mismatched standard ports")
+    func requestPortsFollowScheme() async throws {
+        let cases: [(String, Int, String)] = [
+            ("http", 443, "http://127.0.0.1:443/v1/embeddings"),
+            ("https", 80, "https://127.0.0.1:80/v1/embeddings"),
+            ("http", 80, "http://127.0.0.1/v1/embeddings"),
+            ("https", 443, "https://127.0.0.1/v1/embeddings"),
+        ]
+        let response = Data(#"{"data":[{"index":0,"embedding":[0.1,0.2]}],"usage":null}"#.utf8)
+
+        for (scheme, port, expectedURL) in cases {
+            let transport = ScriptedProviderHTTPTransport(responses: [.dataResponse(response)])
+            let client = OpenAIEmbeddingClient(
+                apiKey: "test-key",
+                modelName: "text-embedding-3-small",
+                host: "127.0.0.1",
+                port: port,
+                scheme: scheme,
+                transport: transport
+            )
+            _ = try await client.embed(EmbeddingRequest(inputs: ["hello"], purpose: .query))
+
+            #expect(await transport.lastRequest()?.url?.absoluteString == expectedURL)
+        }
+    }
+
     @Test("Budget violations are rejected before any transport call")
     func budgetRejectedBeforeTransport() async {
         let transport = ScriptedProviderHTTPTransport()
