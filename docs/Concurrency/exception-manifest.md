@@ -47,6 +47,10 @@ annotation reasons around `concurrency_unchecked_sendable` matches). Categories:
 - **Provider fixtures** (`ScriptedProviderHTTPTransport`, provider cancellation latches):
   actor-owned request and stream-termination waiters are registered before suspension and resumed
   exactly once by the corresponding event or cancellation callback.
+- **Workspace provider lifetime probe** (`WeakWorkspaceProviderProbe` in
+  `Tests/PositronicKitTests/Assembly/CapabilityValuesTests.swift`): a weak reference observes
+  whether the runtime releases a cached test provider after catalog deletion; the test accesses it
+  only between awaited lifecycle operations.
 - **Pipe/lint fixtures** (`TestContext`): isolated per-test instances.
 - **ManualClock** (`Tests/PKTestSupport/ManualClock.swift`): actor-owned virtual-time waiters
   resume exactly once when a test advances the clock.
