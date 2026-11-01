@@ -20,6 +20,10 @@ for tagged releases beginning with `1.0.0`.
   with `tool_calls` but recovery returns none, the stream now throws `unexpectedResponse`, matching
   OpenRouter. Previously it ended with no tool call and no error, so the Turn could not tell.
 
+- **Hosts can read a Turn's preparation diagnostics (#407).** `TurnHandle.diagnostics()` returns
+  the durable `TurnDiagnostic` values collected during preparation. Previously a Turn running under
+  `continueWithWarnings` dropped them, so a host could not tell which dependency had failed.
+
 - Release-candidate API checks use the current Next baselines instead of an older prepared
   release snapshot, and missing API baselines fail the release comparison (#412).
 

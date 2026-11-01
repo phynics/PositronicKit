@@ -13050,6 +13050,16 @@
       "declaration": "let timelineID: UUID"
     },
     {
+      "precise": "s:13PositronicKit10TurnHandleV11diagnosticsSayAA0C10DiagnosticVGyYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "TurnHandle",
+        "diagnostics()"
+      ],
+      "declaration": "func diagnostics() async throws -> [TurnDiagnostic]"
+    },
+    {
       "precise": "s:13PositronicKit10TurnHandleV13generatedTextScSySSGyF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -50680,6 +50690,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10TurnHandleV10timelineID20FoundationEssentials4UUIDVvp",
+      "target": "s:13PositronicKit10TurnHandleV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit10TurnHandleV11diagnosticsSayAA0C10DiagnosticVGyYaKF",
       "target": "s:13PositronicKit10TurnHandleV"
     },
     {

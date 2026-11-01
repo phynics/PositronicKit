@@ -13,7 +13,8 @@ public enum TurnDependency: String, Codable, Sendable, Equatable {
 public enum TurnDegradationPolicy: String, Codable, Sendable, Equatable {
     /// Fail when a dependency explicitly requested by the turn cannot be prepared.
     case failRequired
-    /// Continue with the remaining features and include every downgraded failure in metadata.
+    /// Continue with the remaining features and record every downgraded failure for
+    /// ``TurnHandle/diagnostics()``.
     case continueWithWarnings
 }
 

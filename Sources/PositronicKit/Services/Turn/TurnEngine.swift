@@ -393,6 +393,7 @@ struct TurnEngine: Sendable {
         guard case let .ready(context) = prepared else {
             throw TurnEngineError.promptHistoryInconsistent("Invalid turn preparation result.")
         }
+        await persistDiagnostics(context.diagnostics, turnID: turnID)
 
         let (sourceStream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
         // Durable admission starts the live event lane before preparation continues.
