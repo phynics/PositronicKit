@@ -121,6 +121,94 @@ struct AgentWorkspaceFileToolsTests {
         #expect(await provider.writeCount == 1)
     }
 
+    @Test("search reports file-budget truncation at the 200-file boundary")
+    func searchReportsFileBudgetTruncation() async throws {
+        let belowLimitProvider = SearchWorkspaceProvider(files: Dictionary(uniqueKeysWithValues: (1...199).map {
+            (String(format: "file-%03d.txt", $0), "other")
+        }))
+        let belowLimit = try await AgentWorkspaceFileTool(operation: .searchFiles, provider: belowLimitProvider)
+            .execute(parameters: ["pattern": "needle"])
+        #expect(belowLimit.isSuccess)
+        #expect(belowLimit.output == "No matches found.")
+        #expect(await belowLimitProvider.readCount == 199)
+
+        let overLimitProvider = SearchWorkspaceProvider(files: Dictionary(uniqueKeysWithValues: (1...201).map { index in
+            (String(format: "file-%03d.txt", index), index == 201 ? "needle" : "other")
+        }))
+        let tool = AgentWorkspaceFileTool(operation: .searchFiles, provider: overLimitProvider)
+
+        let atLimitProvider = SearchWorkspaceProvider(files: Dictionary(uniqueKeysWithValues: (1...200).map {
+            (String(format: "file-%03d.txt", $0), "other")
+        }))
+        let atLimit = try await AgentWorkspaceFileTool(operation: .searchFiles, provider: atLimitProvider)
+            .execute(parameters: ["pattern": "needle"])
+        #expect(atLimit.isSuccess)
+        #expect(!atLimit.output.contains("incomplete"))
+        #expect(await atLimitProvider.readCount == 200)
+
+        let overLimit = try await tool.execute(parameters: ["pattern": "needle"])
+        #expect(overLimit.isSuccess)
+        #expect(overLimit.output.contains("No matches found in readable files."))
+        #expect(!overLimit.output.contains("file-201.txt"))
+        #expect(overLimit.output.contains("incomplete"))
+        #expect(overLimit.output.contains("skipped 1 file"))
+        #expect(await overLimitProvider.readCount == 200)
+    }
+
+    @Test("search reports unreadable files as incomplete")
+    func searchReportsUnreadableFiles() async throws {
+        let provider = SearchWorkspaceProvider(
+            files: ["a-unreadable.txt": "", "b-readable.txt": "needle"],
+            unreadable: ["a-unreadable.txt"]
+        )
+        let tool = AgentWorkspaceFileTool(operation: .searchFiles, provider: provider)
+
+        let result = try await tool.execute(parameters: ["pattern": "needle"])
+
+        #expect(result.isSuccess)
+        #expect(result.output.contains("b-readable.txt:1: needle"))
+        #expect(result.output.contains("incomplete"))
+        #expect(result.output.contains("1 file"))
+    }
+
+    @Test("search returns an explicit no-match result when every file was searched")
+    func searchReportsCompleteNoMatches() async throws {
+        let provider = SearchWorkspaceProvider(files: ["a.txt": "other"])
+        let tool = AgentWorkspaceFileTool(operation: .searchFiles, provider: provider)
+
+        let result = try await tool.execute(parameters: ["pattern": "needle"])
+
+        #expect(result.isSuccess)
+        #expect(result.output.contains("No matches found"))
+        #expect(!result.output.contains("incomplete"))
+    }
+
+    @Test("search reports when the match output reaches its limit")
+    func searchReportsMatchLimit() async throws {
+        let provider = SearchWorkspaceProvider(files: ["matches.txt": String(repeating: "needle\n", count: 101)])
+        let tool = AgentWorkspaceFileTool(operation: .searchFiles, provider: provider)
+
+        let result = try await tool.execute(parameters: ["pattern": "needle"])
+
+        #expect(result.isSuccess)
+        #expect(result.output.components(separatedBy: "matches.txt:").count - 1 == 100)
+        #expect(result.output.contains("Search incomplete: stopped after the first 100 matches."))
+    }
+
+    @Test("search preserves task cancellation")
+    func searchPreservesCancellation() async throws {
+        let provider = SearchWorkspaceProvider(files: ["a.txt": "needle"])
+        let tool = AgentWorkspaceFileTool(operation: .searchFiles, provider: provider)
+        let task = Task { try await tool.execute(parameters: ["pattern": "needle"]) }
+
+        task.cancel()
+        let result = try await task.value
+
+        #expect(!result.isSuccess)
+        #expect(result.error?.isEmpty == false)
+        #expect(await provider.readCount == 0)
+    }
+
     @Test("jails paths and requests approval for configured protected paths")
     func pathAndApprovalPolicy() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -184,4 +272,30 @@ private actor FailingReadWorkspaceProvider: WorkspaceFileProvider {
     func deleteFile(path _: String) async throws {
         content = nil
     }
+}
+
+private actor SearchWorkspaceProvider: WorkspaceFileProvider {
+    nonisolated let reference = WorkspaceReference(uri: .agentWorkspace(UUID()), location: .runtime)
+    private let files: [String: String]
+    private let unreadable: Set<String>
+    private(set) var readCount = 0
+
+    init(files: [String: String], unreadable: Set<String> = []) {
+        self.files = files
+        self.unreadable = unreadable
+    }
+
+    var isHealthy: Bool { true }
+
+    func readFile(path: String) async throws -> String {
+        readCount += 1
+        if unreadable.contains(path) {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)
+        }
+        return files[path] ?? ""
+    }
+
+    func listFiles(path _: String) async throws -> [String] { Array(files.keys).sorted() }
+    func writeFile(path _: String, content _: String) async throws {}
+    func deleteFile(path _: String) async throws {}
 }
