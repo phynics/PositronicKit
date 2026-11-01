@@ -1,13 +1,17 @@
-# Migrating to PositronicKit 7.0
+# Migrating to PositronicKit 7
+
+> This page is current `main` guidance for the unreleased Next line. The [tagged 7.0.0 migration
+> guide](https://github.com/phynics/PositronicKit/blob/7.0.0/docs/Migrating-to-7.md) remains
+> immutable; the notes below that refer to 7.1 are not part of the released guide.
 
 PositronicKit 7.0 is a major release. It removes public API that the runtime never read, moves
 runtime vocabulary out of `PKContracts`, replaces the fork API, and makes the runtime own a smaller
 prompt and model-client surface. The 6.1.0 release already broke the documented minor-release rule;
 7.0.0 is the supported upgrade target for both 6.0.x and 6.1.0 consumers.
 
-This guide describes the released 7.0.0 surface. It does not describe unreleased follow-up work.
-Every `swift` example is compiled by `make verify-documentation`; `swift skip` examples show API
-that 7.0 removed and are syntax-checked only.
+The sections below combine the released 7.0.0 migration with current Next guidance. Every `swift`
+example is compiled by `make verify-documentation`; `swift skip` examples show API removed in 7.0
+and are syntax-checked only.
 
 ## Switch over `TurnOutcome`
 
@@ -34,7 +38,7 @@ func describe(_ outcome: TurnOutcome) -> String {
 }
 ```
 
-The #395 7.1 scope names `.limitReached(reason:)` only for `TurnOutcome`. The audit leaves these
+The #395 follow-up scope proposes `.limitReached(reason:)` for 7.1 only on `TurnOutcome`. The audit leaves these
 related public enums exhaustive:
 
 | Enum | Decision | Reason |

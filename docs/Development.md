@@ -39,9 +39,10 @@ runtime resolved.
 the `make verify-linux-agent` contract on Swift 6.4.0 installed from swift.org. The macOS CI lane
 runs `make verify-macos-ci` on the `xcode-27` runner image, whose bundled Xcode 27 toolchain is
 Swift 6.4 and whose Testing library declares `CustomTestReflectable`; the Xcode 26 SDK on
-`macos-latest` ships Testing 6.3 without it. That lane runs only the Apple-platform gates; the
-platform-neutral ones (lint, doc snippets, release-mode consumer builds) run on Linux, so the two
-lanes together cover `make verify`, which remains the full local macOS gate. A preflight job runs
+`macos-latest` ships Testing 6.3 without it. That lane runs the Apple-platform gates and the
+public-consumer fixture; the platform-neutral gates (lint, doc snippets, and release-mode consumer
+builds) also run on Linux, so the two lanes together cover `make verify`, which remains the full
+local macOS gate. A preflight job runs
 `make verify-static`, the gates that need no Swift toolchain, before either lane starts.
 `make doctor` reports the required toolchain.
 
@@ -113,6 +114,10 @@ The macOS lane publishes the artifact only when `make verify-public-api` is the 
 Another macOS gate failure publishes no baseline. The workflow keeps
 `permissions: contents: read` and never pushes a commit, so the contributor reviews and commits
 the downloaded file.
+
+The separate-package public-consumer check is part of `verify-public-consumers` on both platform
+gates. It compiles an exhaustive `TurnOutcome` switch to confirm the Swift 6 `@unknown default`
+requirement and runs the resulting executable.
 
 ## Focused checks
 

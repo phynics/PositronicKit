@@ -11,8 +11,8 @@ for tagged releases beginning with `1.0.0`.
 ### Breaking
 
 - **Make `TurnOutcome` non-exhaustive before 7.0.0 (#411).** Swift 6 consumers in another
-  package must add `@unknown default` to switches over this enum. This lets 7.1 add the
-  `.limitReached` outcome from #395 as a minor-release API addition.
+  package must add `@unknown default` to switches over this enum. This allows a later minor release
+  to add the `.limitReached` outcome from #395 without a source compatibility break.
 
 ### Fixed
 

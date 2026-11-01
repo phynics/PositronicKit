@@ -3,11 +3,12 @@ import PackageDescription
 
 let package = Package(
     name: "TurnOutcomeExhaustiveness",
-    dependencies: [.package(path: "../../../")],
+    platforms: [.macOS(.v15), .iOS(.v18)],
+    dependencies: [.package(name: "PositronicKit", path: "../../../")],
     targets: [
         .executableTarget(
             name: "TurnOutcomeExhaustiveness",
-            dependencies: [.product(name: "PositronicKit", package: "workspace")]
+            dependencies: [.product(name: "PositronicKit", package: "PositronicKit")]
         )
     ],
     swiftLanguageModes: [.v6]
