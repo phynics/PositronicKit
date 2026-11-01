@@ -9,6 +9,42 @@ This guide describes the released 7.0.0 surface. It does not describe unreleased
 Every `swift` example is compiled by `make verify-documentation`; `swift skip` examples show API
 that 7.0 removed and are syntax-checked only.
 
+## Switch over `TurnOutcome`
+
+`TurnOutcome` is non-exhaustive. In Swift 6 mode, add `@unknown default` to every switch over this
+enum, including switches that handle all current cases. A separate package that omits this clause
+does not compile. The clause lets later releases add outcomes such as `.limitReached` in 7.1.
+
+```swift skip
+import PositronicKit
+
+func describe(_ outcome: TurnOutcome) -> String {
+    switch outcome {
+    case .completed:
+        "completed"
+    case .failed(let message):
+        message
+    case .cancelled(let reason):
+        reason ?? "cancelled"
+    case .interrupted(let reason):
+        reason
+    @unknown default:
+        "future outcome"
+    }
+}
+```
+
+The #395 7.1 scope names `.limitReached(reason:)` only for `TurnOutcome`. The audit leaves these
+related public enums exhaustive:
+
+| Enum | Decision | Reason |
+| --- | --- | --- |
+| `TurnLifecycle` | Keep exhaustive | #395 adds a terminal outcome, not a lifecycle state. |
+| `TurnEvent` and `DeltaEvent`, `ErrorEvent`, `CompletionEvent` | Keep exhaustive | #395 does not require a new stream event. |
+| `ToolExecutionStatus` | Keep exhaustive | #395 uses bounded failure results for calls the tool budget rejects. |
+| `TurnError` | Keep exhaustive | #395 does not name a new request-validation error. |
+| `TimelineRuntimeRepositoryError` | Keep exhaustive | #395 does not name a new repository error. |
+
 ## Upgrade the package pin
 
 ```swift skip

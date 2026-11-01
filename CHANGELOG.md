@@ -8,6 +8,12 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- **Make `TurnOutcome` non-exhaustive before 7.0.0 (#411).** Swift 6 consumers in another
+  package must add `@unknown default` to switches over this enum. This lets 7.1 add the
+  `.limitReached` outcome from #395 as a minor-release API addition.
+
 ### Fixed
 
 - **Provider URLs preserve ports that are standard only for the other scheme (#414).** OpenRouter

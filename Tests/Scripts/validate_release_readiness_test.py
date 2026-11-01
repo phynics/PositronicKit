@@ -146,6 +146,31 @@ def test_minor_accepts_an_added_symbol() -> None:
     assert MODULE.compare_public_surfaces(candidate, previous, "minor") == []
 
 
+def test_minor_accepts_a_case_added_to_a_nonexhaustive_enum() -> None:
+    enum = symbol("PositronicKit.TurnOutcome", declaration="@nonexhaustive enum TurnOutcome")
+    old_case = symbol("PositronicKit.TurnOutcome.completed", declaration="case completed")
+    new_case = symbol("PositronicKit.TurnOutcome.limitReached", declaration="case limitReached(reason: LimitReason)")
+
+    candidate = baseline("7.1", "linux", [enum, old_case, new_case])
+    previous = baseline("7.0", "linux", [enum, old_case])
+
+    assert MODULE.compare_public_surfaces(candidate, previous, "minor") == []
+
+
+def test_minor_rejects_making_an_existing_enum_nonexhaustive() -> None:
+    previous = baseline(
+        "7.0", "linux", [symbol("PositronicKit.TurnOutcome", declaration="enum TurnOutcome")]
+    )
+    candidate = baseline(
+        "7.1", "linux", [symbol("PositronicKit.TurnOutcome", declaration="@nonexhaustive enum TurnOutcome")]
+    )
+
+    failures = MODULE.compare_public_surfaces(candidate, previous, "minor")
+    assert any(
+        "changed public symbol declaration" in failure for failure in failures
+    ), failures
+
+
 def test_patch_rejects_any_symbol_delta() -> None:
     previous = baseline("6.1", "linux", [symbol("Kept")])
     assert MODULE.compare_public_surfaces(
