@@ -162,7 +162,13 @@ public actor OpenAIClient: LLMClientProtocol {
             if !Task.isCancelled, recoveryState.withLock(\.shouldRecoverToolCalls) {
                 let recoveryRequest = try self.makeChatRequest(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: responseModalities, audioOutput: nil, promptCache: promptCache, stream: false)
                 let response: ChatCompletionsChatResponse = try await HTTPHelpers.fetchDecodable(ChatCompletionsChatResponse.self, for: recoveryRequest, transport: self.transport, provider: "OpenAI")
-                if let chunk = self.makeToolCallRecoveryChunk(from: response) { continuation.yield(chunk) }
+                guard !Task.isCancelled else { return }
+                guard let chunk = self.makeToolCallRecoveryChunk(from: response) else {
+                    let error = LLMServiceError.unexpectedResponse(provider: "OpenAI", reason: "tool-call recovery returned no usable tool calls")
+                    self.logger.error("\(error.userFriendlyMessage)")
+                    throw error
+                }
+                continuation.yield(chunk)
             }
         }
     }
