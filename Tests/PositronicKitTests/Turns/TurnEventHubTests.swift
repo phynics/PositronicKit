@@ -1,6 +1,7 @@
 import Foundation
 @testable import PKContracts
 @testable import PositronicKit
+import PKTestSupport
 import Testing
 
 @Suite("Turn EventHub terminal subscription", .tags(.integration))
@@ -26,48 +27,51 @@ struct TurnEventHubTests {
         #expect(result == .unseen)
     }
 
-    /// This is the deterministic proof for finding B-01: a waiter suspended in
-    /// `awaitTerminal(turnID:)` is woken directly by `finish(turnID:)`, not by a poll tick.
-    ///
-    /// The poll interval and timeout are configured to be enormous (far longer than the whole
-    /// test suite's budget). If the wake path silently fell back to polling — the exact defect
-    /// this change removes — this test would hang for that duration instead of completing in
-    /// milliseconds, so it would fail on timeout rather than pass by coincidence.
-    @Test("a waiter suspended in awaitTerminal wakes on finish(), not on a poll tick")
+    /// A registered hub waiter must be resumed by `finish`, before the injected fallback clock
+    /// advances. The runner's time limit bounds a failure that leaves the waiter suspended.
+    @Test("a registered waiter wakes on finish without advancing the fallback clock", .timeLimit(.minutes(1)))
     func awaiterWakesOnFinishWithoutPolling() async throws {
         let hub = TurnEventHub()
         let turnID = UUID()
         let durableValue = DurableValueSlot()
+        let clock = ManualClock()
 
         await hub.begin(turnID: turnID)
 
-        let waiter = TurnTerminationWaiter(hub: hub, pollInterval: .seconds(3600), pollTimeout: .seconds(3600))
+        let waiter = TurnTerminationWaiter(
+            hub: hub,
+            pollInterval: .seconds(3600),
+            pollTimeout: .seconds(3600),
+            clock: clock
+        )
         let waiterTask = Task { () -> TurnTerminationWaiter.Observation<String> in
             try await waiter.awaitResult(turnID: turnID) {
                 await durableValue.read()
             }
         }
 
-        // Give the waiter task room to reach and register inside `awaitTerminal` before this
-        // finishes the Turn. This is a scheduling settle pause, not a correctness dependency: the
-        // assertion below only holds if the wake is push-driven, since the configured poll
-        // interval (one hour) makes the fallback path unobservably slow in comparison.
-        try await Task.sleep(for: .milliseconds(20))
+        // `awaitTerminal` registers its continuation while isolated to the hub actor. Wait for
+        // that state directly so finish cannot win the race before the waiter is actually parked.
+        while await !hub.hasTerminalWaiter(turnID: turnID) {
+            try Task.checkCancellation()
+            await Task.yield()
+        }
 
-        let clock = ContinuousClock()
-        let start = clock.now
         await durableValue.write("durable-outcome")
         await hub.finish(turnID: turnID)
 
-        let observation = try await waiterTask.value
-        let elapsed = clock.now - start
+        // The time limit cancels this test, not the unstructured waiter, so forward cancellation.
+        let observation = try await withTaskCancellationHandler {
+            try await waiterTask.value
+        } onCancel: {
+            waiterTask.cancel()
+        }
 
         guard case let .value(value) = observation else {
             Issue.record("Expected a terminal value, got \(observation)")
             return
         }
         #expect(value == "durable-outcome")
-        #expect(elapsed < .seconds(2))
     }
 }
 
