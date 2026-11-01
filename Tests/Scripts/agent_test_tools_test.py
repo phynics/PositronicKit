@@ -315,6 +315,59 @@ def test_command_spawn_retries_eperm_and_falls_back_to_a_plain_spawn() -> None:
         check(len(attempts) == 1, f"spawn error {error_number} was retried")
 
 
+def test_stopping_an_exited_process_group_is_not_an_error() -> None:
+    resource_runner = load_resource_runner()
+    real_killpg = os.killpg
+
+    def exit_then_killpg(process_group: int, signum: int) -> None:
+        # Hold the race open: the leader exits after the caller's liveness check
+        # and stays unreaped when the signal is sent, so macOS reports EPERM.
+        os.kill(process_group, signal.SIGKILL)
+        os.waitid(os.P_PID, process_group, os.WEXITED | os.WNOWAIT)
+        real_killpg(process_group, signum)
+
+    with tempfile.TemporaryDirectory() as temporary:
+        runtime = Path(temporary) / "fake-runtime"
+        runtime.write_text("#!/bin/sh\nexec sleep 30\n")
+        runtime.chmod(0o755)
+        sampler = resource_runner.MemorySampler(str(runtime), "fixture")
+        with patch.object(resource_runner.os, "killpg", side_effect=exit_then_killpg):
+            sampler.stop()
+        check(sampler.process.returncode is not None, "sampler was not reaped")
+
+    process = subprocess.Popen([sys.executable, "-c", "pass"], start_new_session=True)
+    os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOWAIT)
+    denied = PermissionError(errno.EPERM, os.strerror(errno.EPERM), "fixture")
+    with patch.object(resource_runner.os, "killpg", side_effect=denied):
+        resource_runner.stop_process(process, signal.SIGTERM, process_group=True)
+    check(process.returncode == 0, "exited process group was not reaped after EPERM")
+
+    # waitpid can report a leader as running just after killpg reports EPERM.
+    exiting = subprocess.Popen(["/bin/sh", "-c", "sleep 0.1"], start_new_session=True)
+    with (
+        patch.object(resource_runner, "GROUP_EXIT_SETTLE_SECONDS", 30),
+        patch.object(resource_runner.os, "killpg", side_effect=denied),
+    ):
+        resource_runner.stop_process(exiting, signal.SIGTERM, process_group=True)
+    check(exiting.returncode == 0, "exiting process group was not reaped after EPERM")
+
+    running = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"], start_new_session=True)
+    try:
+        with (
+            patch.object(resource_runner, "GROUP_EXIT_SETTLE_SECONDS", 0.05),
+            patch.object(resource_runner.os, "killpg", side_effect=denied),
+        ):
+            try:
+                resource_runner.stop_process(running, signal.SIGTERM, process_group=True)
+            except PermissionError:
+                pass
+            else:
+                check(False, "EPERM from a running process group was swallowed")
+    finally:
+        running.kill()
+        running.wait()
+
+
 def test_container_memory_is_recorded_when_the_runtime_reports_it() -> None:
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
@@ -442,6 +495,7 @@ def main() -> None:
         test_slot_cap_and_timeout_and_exit_status,
         test_cancellation_stops_the_child_and_records_status,
         test_command_spawn_retries_eperm_and_falls_back_to_a_plain_spawn,
+        test_stopping_an_exited_process_group_is_not_an_error,
         test_container_memory_is_recorded_when_the_runtime_reports_it,
         test_focused_runner_preserves_flags_and_fails_unmatched_filters,
     ]
