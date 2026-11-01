@@ -13,8 +13,7 @@ private final class ReleaseObservedWorkspaceProvider: WorkspaceProvider, Sendabl
     }
 }
 
-// swiftlint:disable:this concurrency_unchecked_sendable -- Test-only weak observation of provider release; see docs/Concurrency/exception-manifest.md.
-private final class WeakWorkspaceProviderProbe: @unchecked Sendable {
+private final class WeakWorkspaceProviderProbe: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- Test-only weak observation of provider release (see docs/Concurrency/exception-manifest.md)
     weak var provider: ReleaseObservedWorkspaceProvider?
 }
 
@@ -212,6 +211,35 @@ struct CapabilityValuesTests {
         #expect(probe.provider == nil)
         #expect(try await kit.workspaces.get(workspace.id) == nil)
         #expect(try await kit.timelines.get(timeline.id) != nil)
+    }
+
+    @Test("deleting an attached Workspace releases its provider without an explicit detach")
+    func deletingAttachedWorkspaceReleasesCachedProvider() async throws {
+        let probe = WeakWorkspaceProviderProbe()
+        let kit = PKRuntime(configuration: .init(
+            languageModel: MockLLMService(),
+            persistence: .inMemory(),
+            runtime: .init(workspaceCreator: ReleaseObservedWorkspaceFactory(probe: probe))
+        ))
+        let timeline = try await kit.timelines.create(title: "Attached Workspace lifetime")
+        let firstTurn = try await timeline.startDirectTurn(
+            "initialize tool routing",
+            context: DirectTurnContext(systemInstructions: "")
+        )
+        _ = await firstTurn.events().collect()
+        #expect(try await firstTurn.outcome() == .completed)
+
+        let workspace = try await kit.workspaces.create(
+            uri: WorkspaceURI(parsing: "workspace://attached-provider-release")!,
+            location: .runtime
+        )
+        try await kit.timelines.attachWorkspace(workspace.id, to: timeline.id)
+        #expect(probe.provider != nil)
+
+        try await kit.workspaces.delete(workspace.id)
+
+        #expect(probe.provider == nil)
+        #expect(try await kit.workspaces.get(workspace.id) == nil)
     }
 
     @Test("Workspaces capability removes a workspace directory only when asked")

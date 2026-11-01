@@ -159,6 +159,17 @@ extension TimelineManager {
         }
     }
 
+    /// Releases the runtime's references to a provider after its Workspace is deleted. A deletion
+    /// removes the binding, so every registry is checked: the former owner is no longer known.
+    /// Custom resolvers own their own cache lifecycle.
+    func releaseWorkspaceProvider(id: UUID) async {
+        for toolManager in toolManagers.values {
+            await toolManager.unregisterWorkspace(id)
+        }
+        guard let resolver = workspaceResolver as? DefaultWorkspaceResolver else { return }
+        await resolver.closeWorkspace(id: id)
+    }
+
     // MARK: - Workspace Lookup
 
     func getWorkspaces(for timelineID: UUID) async throws -> WorkspaceQueryResult {
