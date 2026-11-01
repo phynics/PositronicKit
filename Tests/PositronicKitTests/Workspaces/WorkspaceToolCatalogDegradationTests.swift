@@ -22,6 +22,52 @@ struct WorkspaceToolCatalogDegradationTests {
         }
     }
 
+    private struct MissingResolver: WorkspaceResolver {
+        func workspace(id _: UUID) async throws -> any WorkspaceProvider? { nil }
+    }
+
+    private actor ToggleResolver: WorkspaceResolver {
+        let provider: any WorkspaceProvider
+        private var shouldFail = false
+
+        init(provider: any WorkspaceProvider) {
+            self.provider = provider
+        }
+
+        func failResolutions() {
+            shouldFail = true
+        }
+
+        func workspace(id _: UUID) async throws -> any WorkspaceProvider? {
+            if shouldFail { throw FailingStoreError.fetchFailed }
+            return provider
+        }
+    }
+
+    private actor ResolutionStartSignal {
+        private var started = false
+
+        func markStarted() {
+            started = true
+        }
+
+        func waitUntilStarted() async {
+            while !started { await Task.yield() }
+        }
+    }
+
+    private struct CancellationAwareResolver: WorkspaceResolver {
+        let signal: ResolutionStartSignal
+
+        func workspace(id _: UUID) async throws -> any WorkspaceProvider? {
+            await signal.markStarted()
+            while true {
+                try Task.checkCancellation()
+                await Task.yield()
+            }
+        }
+    }
+
     private struct ThrowingToolProvider: WorkspaceToolProvider {
         let reference: WorkspaceReference
 
@@ -188,8 +234,8 @@ struct WorkspaceToolCatalogDegradationTests {
         }
     }
 
-    @Test("resolver failure during catalog capture records a degradation")
-    func resolverFailureRecordsDegradation() async throws {
+    @Test("resolver failure during attachment is thrown before binding")
+    func resolverFailureThrowsBeforeBinding() async throws {
         let persistence = MockPersistenceService()
         let workspace = WorkspaceReference(
             uri: WorkspaceURI(host: "degrade", path: "/resolve"),
@@ -199,14 +245,86 @@ struct WorkspaceToolCatalogDegradationTests {
         let manager = makeManager(persistence: persistence, resolver: ThrowingResolver())
         let timeline = try await manager.createTimeline(title: "catalog degradation")
         try await persistence.saveWorkspace(workspace)
+        do {
+            try await manager.attachWorkspace(workspace.id, to: timeline.id)
+            Issue.record("A resolver failure must be reported to the attach caller")
+        } catch is FailingStoreError {
+            let workspaces = try await manager.getWorkspaces(for: timeline.id)
+            #expect(workspaces.primary == nil && workspaces.attached.isEmpty)
+        }
+    }
+
+    @Test("missing provider during attachment throws before binding")
+    func missingProviderThrowsBeforeBinding() async throws {
+        let persistence = MockPersistenceService()
+        let workspace = WorkspaceReference(
+            uri: WorkspaceURI(host: "degrade", path: "/missing-provider"),
+            location: .runtime,
+            rootPath: "/tmp"
+        )
+        let manager = makeManager(persistence: persistence, resolver: MissingResolver())
+        let timeline = try await manager.createTimeline(title: "missing provider")
+        try await persistence.saveWorkspace(workspace)
+
+        await #expect(throws: WorkspaceError.workspaceNotFound) {
+            try await manager.attachWorkspace(workspace.id, to: timeline.id)
+        }
+        let workspaces = try await manager.getWorkspaces(for: timeline.id)
+        #expect(workspaces.primary == nil && workspaces.attached.isEmpty)
+    }
+
+    @Test("resolver failure leaves an existing binding unchanged")
+    func resolverFailureLeavesExistingBindingUnchanged() async throws {
+        let persistence = MockPersistenceService()
+        let workspace = WorkspaceReference(
+            uri: WorkspaceURI(host: "degrade", path: "/existing-binding"),
+            location: .runtime,
+            rootPath: "/tmp"
+        )
+        let resolver = ToggleResolver(provider: RecoverableToolProvider(reference: workspace))
+        let manager = makeManager(persistence: persistence, resolver: resolver)
+        let timeline = try await manager.createTimeline(title: "existing binding")
+        try await persistence.saveWorkspace(workspace)
         try await manager.attachWorkspace(workspace.id, to: timeline.id)
 
-        _ = try await manager.captureWorkspaceToolCatalog(for: timeline.id, primaryWorkspaceID: nil)
+        await resolver.failResolutions()
+        do {
+            try await manager.attachWorkspace(workspace.id, to: timeline.id)
+            Issue.record("A resolver failure must be reported to the attach caller")
+        } catch is FailingStoreError {
+            let workspaces = try await manager.getWorkspaces(for: timeline.id)
+            #expect(workspaces.primary?.id == workspace.id)
+        }
+    }
 
-        let degradations = await manager.consumeDegradations(for: timeline.id)
-        #expect(degradations.contains {
-            $0.operation == "captureWorkspaceCatalog.resolveWorkspace"
-                && $0.entityID == "workspace:\(workspace.id.uuidString.prefix(8))"
-        }, "A resolver failure must be recorded, not silently collapsed to an empty tool set")
+    @Test("cancelling provider resolution leaves the Workspace unbound")
+    func cancellationDuringResolutionLeavesWorkspaceUnbound() async throws {
+        let persistence = MockPersistenceService()
+        let workspace = WorkspaceReference(
+            uri: WorkspaceURI(host: "degrade", path: "/cancelled-resolution"),
+            location: .runtime,
+            rootPath: "/tmp"
+        )
+        let signal = ResolutionStartSignal()
+        let manager = makeManager(
+            persistence: persistence,
+            resolver: CancellationAwareResolver(signal: signal)
+        )
+        let timeline = try await manager.createTimeline(title: "cancelled resolution")
+        try await persistence.saveWorkspace(workspace)
+
+        let attachTask = Task {
+            try await manager.attachWorkspace(workspace.id, to: timeline.id)
+        }
+        await signal.waitUntilStarted()
+        attachTask.cancel()
+
+        do {
+            try await attachTask.value
+            Issue.record("A cancelled provider resolution must not report a successful attach")
+        } catch is CancellationError {
+            let workspaces = try await manager.getWorkspaces(for: timeline.id)
+            #expect(workspaces.primary == nil && workspaces.attached.isEmpty)
+        }
     }
 }

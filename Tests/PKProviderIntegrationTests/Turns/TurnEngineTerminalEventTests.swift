@@ -138,8 +138,8 @@ struct TurnEngineTerminalEventTests {
             rootPath: "/tmp"
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(wsId, to: timelineID)
         try await mockPersistence.addToolToWorkspace(workspaceID: wsId, tool: .known("mock_tool"))
+        try await timelineManager.attachWorkspace(wsId, to: timelineID)
 
         try await timelineManager.hydrateTimeline(id: timelineID)
 
