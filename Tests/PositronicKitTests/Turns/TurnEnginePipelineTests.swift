@@ -428,17 +428,9 @@ private struct RecordingLogHandler: LogHandler {
         set { metadata[key] = newValue }
     }
 
-    func log(
-        level _: Logger.Level,
-        message _: Logger.Message,
-        metadata: Logger.Metadata?,
-        source _: String,
-        file _: String,
-        function _: String,
-        line _: UInt
-    ) {
+    func log(event: LogEvent) {
         var merged = self.metadata
-        if let metadata {
+        if let metadata = event.metadata {
             merged.merge(metadata) { _, new in new }
         }
         recorder.append(merged.mapValues { "\($0)" })

@@ -38,7 +38,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
         .package(url: "https://github.com/FlineDev/ErrorKit", from: "1.0.0"),
-        .package(url: "https://github.com/ajevans99/swift-json-schema", exact: "0.11.2"),
+        .package(url: "https://github.com/ajevans99/swift-json-schema", exact: "0.14.2"),
         .package(url: "https://github.com/apple/swift-crypto.git", exact: "3.15.1"),
         .package(url: "https://github.com/itruf/PartialJSON.git", exact: "0.0.2"),
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", exact: "0.12.1"),

@@ -37,16 +37,8 @@ private struct CapturingLogHandler: LogHandler {
         set { metadata[key] = newValue }
     }
 
-    func log(
-        level _: Logger.Level,
-        message: Logger.Message,
-        metadata _: Logger.Metadata?,
-        source _: String,
-        file _: String,
-        function _: String,
-        line _: UInt
-    ) {
-        sink.append(message.description)
+    func log(event: LogEvent) {
+        sink.append(event.message.description)
     }
 }
 

@@ -29,16 +29,8 @@ private struct PromptAssemblyTestLogHandler: LogHandler {
         set { metadata[key] = newValue }
     }
 
-    func log(
-        level: Logger.Level,
-        message: Logger.Message,
-        metadata _: Logger.Metadata?,
-        source _: String,
-        file _: String,
-        function _: String,
-        line _: UInt
-    ) {
-        sink.append(level, message.description)
+    func log(event: LogEvent) {
+        sink.append(event.level, event.message.description)
     }
 }
 
