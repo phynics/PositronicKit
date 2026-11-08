@@ -119,16 +119,8 @@ struct LoggingRedactionTests {
             set { metadata[key] = newValue }
         }
 
-        func log(
-            level: Logger.Level,
-            message: Logger.Message,
-            metadata: Logger.Metadata?,
-            source _: String,
-            file _: String,
-            function _: String,
-            line _: UInt
-        ) {
-            sink.append(level: level, message: message.description, metadata: metadata ?? [:])
+        func log(event: LogEvent) {
+            sink.append(level: event.level, message: event.message.description, metadata: event.metadata ?? [:])
         }
     }
 }
